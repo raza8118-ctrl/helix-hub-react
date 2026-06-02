@@ -152,7 +152,13 @@ export default function ProdReport({ user }) {
     return curr - prev;
   });
 
-  // AUTH summary by task type
+  // Task breakdown by type (works for ALL process types)
+  const slotSummary = slotTaskOptions.map(task => ({
+    task,
+    count: slots.filter(s => s.task === task).reduce((s, sl) => s + (parseInt(sl.count) || 0), 0),
+  })).filter(t => t.count > 0);
+
+  // AUTH summary alias (kept for save logic)
   const authSummary = AUTH_HOURLY_TASKS.map(task => ({
     task,
     count: slots.filter(s => s.task === task).reduce((s, sl) => s + (parseInt(sl.count) || 0), 0),
@@ -372,6 +378,23 @@ export default function ProdReport({ user }) {
               </div>
             )}
 
+            {/* Task breakdown by process (all users) */}
+            {slotSummary.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                  Breakdown — {proc}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px,1fr))', gap: 8 }}>
+                  {slotSummary.map(t => (
+                    <div key={t.task} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 6, fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{t.task}</span>
+                      <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: 15 }}>{t.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
                 className="btn-primary"
@@ -463,20 +486,6 @@ export default function ProdReport({ user }) {
             </div>
           </div>
 
-          {/* ── AUTH task summary ── */}
-          {isAuth && authSummary.some(t => t.count > 0) && (
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div className="card-title" style={{ marginBottom: 10 }}>Task Breakdown</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))', gap: 8 }}>
-                {authSummary.filter(t => t.count > 0).map(t => (
-                  <div key={t.task} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 6, fontSize: 13 }}>
-                    <span className="text-muted">{t.task}</span>
-                    <span className="bold" style={{ color: 'var(--accent)' }}>{t.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* ── Remark + Quality ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
