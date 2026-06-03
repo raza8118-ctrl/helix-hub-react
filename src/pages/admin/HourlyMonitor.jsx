@@ -15,7 +15,17 @@ export default function HourlyMonitor({ user }) {
   const [loading, setLoading]     = useState(false);
   const [empDetail, setEmpDetail] = useState(null);
 
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
   useEffect(() => { load(); }, [date]);
+
+  // Auto-refresh every 60 seconds so admin sees live hourly updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshSilent();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [date]);
 
   async function load() {
     setLoading(true);
@@ -25,7 +35,18 @@ export default function HourlyMonitor({ user }) {
     ]);
     setAllUsers(u ?? []);
     setHourlyData(h ?? []);
+    setLastRefresh(new Date());
     setLoading(false);
+  }
+
+  async function refreshSilent() {
+    const [u, h] = await Promise.all([
+      S.get('users', { active: true }),
+      S.get('hourly_logs', { date }),
+    ]);
+    setAllUsers(u ?? []);
+    setHourlyData(h ?? []);
+    setLastRefresh(new Date());
   }
 
   const filteredUsers = allUsers.filter(u => {
@@ -60,6 +81,9 @@ export default function HourlyMonitor({ user }) {
           </div>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            Last refresh: {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
           <input
             type="text"
             placeholder="Search employee…"
@@ -71,6 +95,7 @@ export default function HourlyMonitor({ user }) {
           <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
             {ACCESSES.map(a => <option key={a}>{a}</option>)}
           </select>
+          <button className="btn-sm" onClick={load}>↺ Refresh</button>
         </div>
       </div>
 

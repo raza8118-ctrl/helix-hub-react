@@ -42,6 +42,7 @@ export default function ProdReport({ user }) {
   const [saving, setSaving]       = useState(false);
   const [savingHourly, setSavingHourly] = useState(false);
   const [saved, setSaved]         = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [hourlyMsg, setHourlyMsg] = useState('');
 
   // Hourly slots: [{slot, task, count}]
@@ -180,7 +181,9 @@ export default function ProdReport({ user }) {
 
   // ── Save full report ──────────────────────────────────────────────
   async function save() {
-    setSaving(true);
+    setSaving(true); setSaveError(''); setSaved(false);
+
+    // Save hourly counts first
     await saveHourly();
 
     const slotTasksMap = {};
@@ -211,11 +214,17 @@ export default function ProdReport({ user }) {
     };
 
     const existing = (await S.get('daily_logs', { emp_id: user.emp_id, date }))?.[0];
-    if (existing?.id) await S.update('daily_logs', payload, { id: existing.id });
-    else await S.set('daily_logs', payload);
+    let ok;
+    if (existing?.id) ok = await S.update('daily_logs', payload, { id: existing.id });
+    else ok = await S.set('daily_logs', payload);
 
-    setSaved(true); setSaving(false);
-    await load();
+    if (ok) {
+      setSaved(true);
+    } else {
+      setSaveError('Save failed — please try again.');
+    }
+    setSaving(false);
+    // Do NOT call load() — keep all form state so user can continue editing/updating
   }
 
   function exportReport() {
@@ -588,10 +597,16 @@ export default function ProdReport({ user }) {
           </div>
 
           {/* Save / Export */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            {saveError && (
+              <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 600 }}>{saveError}</span>
+            )}
+            {saved && !saveError && (
+              <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>✓ Saved — you can still edit and save again</span>
+            )}
             <button className="btn-sm" onClick={exportReport}>Export CSV</button>
             <button className="btn-primary" onClick={save} disabled={saving || loading} style={{ padding: '9px 24px', fontSize: 14 }}>
-              {saving ? 'Saving…' : saved ? '✓ Report Saved' : 'Save Report'}
+              {saving ? 'Saving…' : saved ? '↺ Update Report' : 'Save Report'}
             </button>
           </div>
         </>

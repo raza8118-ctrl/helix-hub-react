@@ -22,6 +22,14 @@ export default function Today({ user }) {
 
   useEffect(() => { load(); }, [date]);
 
+  // Auto-refresh every 2 minutes so admin sees new submissions without manual reload
+  useEffect(() => {
+    const interval = setInterval(() => {
+      S.get('daily_logs', { date }).then(l => setLogs(l ?? []));
+    }, 120000);
+    return () => clearInterval(interval);
+  }, [date]);
+
   async function load() {
     setLoading(true);
     const [u, l, h] = await Promise.all([
@@ -143,6 +151,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
           >
             {holiday ? 'Unmark Holiday' : '🏖 Mark Holiday'}
           </button>
+          <button className="btn-sm" onClick={load}>↺ Refresh</button>
           <button className="btn-sm" onClick={exportCSV}>Export CSV</button>
           <button className="btn-primary" onClick={genEmail}>✦ AI Email</button>
         </div>
