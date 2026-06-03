@@ -68,15 +68,22 @@ export default function ProdReport({ user }) {
   const [callType, setCallType]       = useState('Insurance Call');
   const [callNotes, setCallNotes]     = useState('');
 
+  // 24-hour edit window: always editable today, or within 24h of submission
+  const isEditable = date === today() ||
+    !submittedAt ||
+    (Date.now() - new Date(submittedAt).getTime()) < 24 * 60 * 60 * 1000;
+
   useEffect(() => { load(); }, [date]);
 
   async function load() {
     setLoading(true); setSaved(false); setSaveError('');
-    const [logs, hols] = await Promise.all([
+    const [logs, hols, hRows] = await Promise.all([
       S.get('daily_logs', { emp_id: user.emp_id, date }),
       S.get('holidays', { date }),
+      S.get('hourly_logs', { emp_id: user.emp_id, date }),   // always load hourly
     ]);
     const ex = logs?.[0] ?? null;
+    const hr = hRows?.[0] ?? null;
     setHoliday(hols?.[0] ?? null);
     setSubmittedAt(ex?.submitted_at ?? null);
 
@@ -89,6 +96,7 @@ export default function ProdReport({ user }) {
       setCallNotes(ex.call_notes ?? '');
       setQualityNA(ex.quality == null);
       setQuality(ex.quality != null ? String(ex.quality) : isAuth ? '100' : '');
+      setQualityDate(ex.tasks?._quality_date || yesterday());
       setActionPlan(ex.bypass_reason ?? '');
 
       const savedTasks = ex.tasks ?? {};
@@ -96,8 +104,6 @@ export default function ProdReport({ user }) {
       taskDefs.forEach(t => { counts[t.name] = savedTasks[t.name] != null ? String(savedTasks[t.name]) : ''; });
       setTaskCounts(counts);
 
-      const hRows = await S.get('hourly_logs', { emp_id: user.emp_id, date });
-      const hr = hRows?.[0];
       const slotTasksMap = savedTasks._slot_tasks ?? {};
       setSlots(HOURLY_SLOTS.map((slot, i) => ({
         slot,
@@ -105,7 +111,13 @@ export default function ProdReport({ user }) {
         count: hr ? (hr[`h${i}`] != null ? String(hr[`h${i}`]) : '') : '',
       })));
     } else {
-      setSlots(HOURLY_SLOTS.map(slot => ({ slot, task: slotTaskOptions[0] || '', count: '' })));
+      // No daily log — still load hourly if it exists (user may have saved hourly only)
+      const slotTasksMap = {};
+      setSlots(HOURLY_SLOTS.map((slot, i) => ({
+        slot,
+        task: slotTasksMap[i] || slotTaskOptions[0] || '',
+        count: hr ? (hr[`h${i}`] != null ? String(hr[`h${i}`]) : '') : '',
+      })));
       setTaskCounts(Object.fromEntries(taskDefs.map(t => [t.name, ''])));
       setDowntime(''); setRemarks('');
       setQuality(isAuth ? '100' : ''); setQualityNA(false);
@@ -271,14 +283,21 @@ export default function ProdReport({ user }) {
         </div>
       )}
 
-      {/* 24-hour edit banner */}
-      {submittedAt && (
+      {/* Submission / edit-window banner */}
+      {submittedAt && isEditable && (
         <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
           <span style={{ fontSize: 16 }}>✅</span>
           <span style={{ color: '#10b981', fontWeight: 600 }}>
             Submitted at {new Date(submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span style={{ color: 'var(--text-muted)' }}>— You can still edit and update this report at any time today.</span>
+          <span style={{ color: 'var(--text-muted)' }}>— You can edit and re-save within 24 hours of submission.</span>
+        </div>
+      )}
+      {submittedAt && !isEditable && (
+        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+          <span style={{ fontSize: 16 }}>🔒</span>
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>Editing period expired</span>
+          <span style={{ color: 'var(--text-muted)' }}>— Report submitted {new Date(submittedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}. Contact admin to make changes.</span>
         </div>
       )}
 
@@ -421,10 +440,10 @@ export default function ProdReport({ user }) {
               <button
                 className="btn-primary"
                 onClick={saveHourly}
-                disabled={savingHourly}
-                style={{ padding: '9px 22px', fontSize: 13 }}
+                disabled={savingHourly || !isEditable}
+                style={{ padding: '9px 22px', fontSize: 13, opacity: !isEditable ? 0.5 : 1 }}
               >
-                {savingHourly ? 'Saving…' : '💾 Save Hourly Data'}
+                {savingHourly ? 'Saving…' : !isEditable ? '🔒 Locked' : '💾 Save Hourly Data'}
               </button>
               {hourlyMsg && <span style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>{hourlyMsg}</span>}
             </div>
@@ -618,8 +637,8 @@ export default function ProdReport({ user }) {
               <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>✓ Saved — you can still edit and save again</span>
             )}
             <button className="btn-sm" onClick={exportReport}>Export CSV</button>
-            <button className="btn-primary" onClick={save} disabled={saving || loading} style={{ padding: '9px 24px', fontSize: 14 }}>
-              {saving ? 'Saving…' : saved ? '↺ Update Report' : 'Save Report'}
+            <button className="btn-primary" onClick={save} disabled={saving || loading || !isEditable} style={{ padding: '9px 24px', fontSize: 14, opacity: !isEditable ? 0.5 : 1 }}>
+              {saving ? 'Saving…' : !isEditable ? '🔒 Editing Locked' : saved ? '↺ Update Report' : 'Save Report'}
             </button>
           </div>
         </>

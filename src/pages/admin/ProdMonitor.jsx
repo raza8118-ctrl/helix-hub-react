@@ -62,7 +62,21 @@ export default function ProdMonitor({ user }) {
   async function doBypass() {
     if (!bypassTarget || !bypassReason.trim()) return;
     setBypassLoading(true);
-    await S.update('daily_logs', { bypass_reason: bypassReason.trim() }, { id: bypassTarget.log.id });
+    if (bypassTarget.log?.id) {
+      await S.update('daily_logs', { bypass_reason: bypassReason.trim() }, { id: bypassTarget.log.id });
+    } else {
+      // No log exists — create a minimal entry with the bypass note
+      await S.set('daily_logs', {
+        emp_id: bypassTarget.emp_id,
+        emp_name: bypassTarget.name ?? bypassTarget.emp_id,
+        date,
+        process: bypassTarget.access ?? 'MCO',
+        total: 0, target: bypassTarget.target ?? 50, adj_target: bypassTarget.target ?? 50,
+        bypass_reason: bypassReason.trim(),
+        submitted: false,
+        submitted_at: new Date().toISOString(),
+      }, 'emp_id,date');
+    }
     setBypassTarget(null);
     setBypassReason('');
     setBypassLoading(false);
@@ -228,8 +242,10 @@ export default function ProdMonitor({ user }) {
                   </td>
                   <td>
                     <div className="row" style={{ gap: 4 }}>
-                      {row.log && !row.log.bypass_reason && (
-                        <button className="btn-sm" onClick={() => { setBypassTarget(row); setBypassReason(''); }}>Bypass</button>
+                      {!row.log?.bypass_reason && (
+                        <button className="btn-sm" onClick={() => { setBypassTarget(row); setBypassReason(''); }}>
+                          {row.log ? 'Bypass' : '+ Note'}
+                        </button>
                       )}
                       {row.log?.bypass_reason && (
                         <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeBypass(row)}>Remove</button>

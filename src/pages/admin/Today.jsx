@@ -22,11 +22,14 @@ export default function Today({ user }) {
 
   useEffect(() => { load(); }, [date]);
 
-  // Auto-refresh every 2 minutes so admin sees new submissions without manual reload
+  // Auto-refresh every 30 seconds so admin sees new submissions quickly
   useEffect(() => {
     const interval = setInterval(() => {
-      S.get('daily_logs', { date }).then(l => setLogs(l ?? []));
-    }, 120000);
+      Promise.all([S.get('daily_logs', { date }), S.get('users', { active: true })]).then(([l, u]) => {
+        setLogs(l ?? []);
+        setAllUsers(u ?? []);
+      });
+    }, 30000);
     return () => clearInterval(interval);
   }, [date]);
 
