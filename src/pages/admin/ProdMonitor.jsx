@@ -86,9 +86,10 @@ export default function ProdMonitor({ user }) {
     await load();
   }
 
+  const employees = allUsers.filter(u => u.role === 'employee');
   const filteredUsers = filterProc === 'ALL'
-    ? allUsers
-    : allUsers.filter(u => u.access === filterProc || u.access === 'ALL');
+    ? employees
+    : employees.filter(u => u.access === filterProc || u.access === 'ALL');
 
   const filteredLogs = filterProc === 'ALL' ? logs : logs.filter(l => l.process === filterProc);
 
@@ -134,6 +135,7 @@ export default function ProdMonitor({ user }) {
           <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
             {ACCESSES.map(a => <option key={a}>{a}</option>)}
           </select>
+          <button className="btn-sm" onClick={load}>↺ Refresh</button>
           <button
             className="btn-sm"
             style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}

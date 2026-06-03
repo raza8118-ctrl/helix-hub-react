@@ -216,20 +216,17 @@ export default function ProdReport({ user }) {
       submitted_at: new Date().toISOString(),
     };
 
-    const existing = (await S.get('daily_logs', { emp_id: user.emp_id, date }))?.[0];
-    let ok;
-    if (existing?.id) ok = await S.update('daily_logs', payload, { id: existing.id });
-    else ok = await S.set('daily_logs', payload);
+    // Upsert — unique constraint on (emp_id, date) handles insert vs update automatically
+    const ok = await S.set('daily_logs', payload, 'emp_id,date');
 
     if (ok && ok.length > 0) {
       setSaved(true);
       setSaveError('');
       setSubmittedAt(new Date().toISOString());
     } else {
-      setSaveError('Save failed — check your connection and try again.');
+      setSaveError('Save failed — please try again or check console for details.');
     }
     setSaving(false);
-    // Do NOT call load() — form stays populated so user can keep editing/updating
   }
 
   function exportReport() {

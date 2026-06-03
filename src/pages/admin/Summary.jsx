@@ -49,6 +49,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const activeDays   = workDays.filter(d => !holidayDates.has(d));
 
   const filteredUsers = allUsers.filter(u => {
+    if (u.role !== 'employee') return false;
     const procOk  = filterProc === 'ALL' || u.access === filterProc || u.access === 'ALL';
     const agentOk = agentId === 'ALL' || u.emp_id === agentId;
     return procOk && agentOk;
@@ -171,7 +172,7 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
           </select>
           <select value={agentId} onChange={e => setAgentId(e.target.value)} style={{ maxWidth: 165 }}>
             <option value="ALL">All Agents</option>
-            {allUsers.map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
+            {allUsers.filter(u => u.role === 'employee').map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
           </select>
           <button className="btn-sm" onClick={exportCSV}>Export CSV</button>
           <button className="btn-primary" onClick={genEmail}>✦ AI Summary Email</button>

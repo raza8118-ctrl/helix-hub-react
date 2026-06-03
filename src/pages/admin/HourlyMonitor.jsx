@@ -50,6 +50,7 @@ export default function HourlyMonitor({ user }) {
   }
 
   const filteredUsers = allUsers.filter(u => {
+    if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || u.access === filterProc || u.access === 'ALL';
     const searchOk = !search.trim() || (u.name ?? u.emp_id).toLowerCase().includes(search.toLowerCase());
     return procOk && searchOk;
