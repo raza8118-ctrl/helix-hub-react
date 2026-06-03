@@ -39,11 +39,12 @@ export default function ProdReport({ user }) {
   const [date, setDate]           = useState(today());
   const [holiday, setHoliday]     = useState(null);
   const [loading, setLoading]     = useState(false);
-  const [saving, setSaving]       = useState(false);
+  const [saving, setSaving]           = useState(false);
   const [savingHourly, setSavingHourly] = useState(false);
-  const [saved, setSaved]         = useState(false);
-  const [saveError, setSaveError] = useState('');
-  const [hourlyMsg, setHourlyMsg] = useState('');
+  const [saved, setSaved]             = useState(false);
+  const [saveError, setSaveError]     = useState('');
+  const [submittedAt, setSubmittedAt] = useState(null);
+  const [hourlyMsg, setHourlyMsg]     = useState('');
 
   // Hourly slots: [{slot, task, count}]
   const [slots, setSlots] = useState(
@@ -70,13 +71,14 @@ export default function ProdReport({ user }) {
   useEffect(() => { load(); }, [date]);
 
   async function load() {
-    setLoading(true); setSaved(false);
+    setLoading(true); setSaved(false); setSaveError('');
     const [logs, hols] = await Promise.all([
       S.get('daily_logs', { emp_id: user.emp_id, date }),
       S.get('holidays', { date }),
     ]);
     const ex = logs?.[0] ?? null;
     setHoliday(hols?.[0] ?? null);
+    setSubmittedAt(ex?.submitted_at ?? null);
 
     if (ex) {
       setDowntime(ex.downtime != null ? String(ex.downtime) : '');
@@ -193,21 +195,22 @@ export default function ProdReport({ user }) {
       ? { ...Object.fromEntries(authSummary.map(t => [t.task, t.count])), _slot_tasks: slotTasksMap }
       : { ...Object.fromEntries(taskDefs.map(t => [t.name, parseFloat(taskCounts[t.name]) || 0])), _slot_tasks: slotTasksMap };
 
+    // For AUTH: store adj_target=50 so prod% calculates correctly in all views
     const payload = {
       emp_id: user.emp_id,
       emp_name: user.name ?? user.emp_id,
       date, process: proc,
       total: isAuth ? authGrandTotal : total,
-      target: isAuth ? null : overallTarget,
-      adj_target: isAuth ? null : adjTarget,
-      downtime: dt || null,
+      target: isAuth ? 50 : overallTarget,
+      adj_target: isAuth ? 50 : adjTarget,
+      downtime: isAuth ? null : (dt || null),
       quality: qualityNA ? null : (parseFloat(quality) || null),
       tasks: taskPayload,
       remarks: remarks.trim() || null,
       bypass_reason: actionPlan.trim() || null,
       calls: parseInt(calls) || null,
       call_hours: parseFloat(callHours) || null,
-      insurance_call: callType || null,
+      insurance_call: callType || null,   // TEXT column — stores "Insurance Call"
       call_notes: callNotes.trim() || null,
       submitted: true,
       submitted_at: new Date().toISOString(),
@@ -218,13 +221,15 @@ export default function ProdReport({ user }) {
     if (existing?.id) ok = await S.update('daily_logs', payload, { id: existing.id });
     else ok = await S.set('daily_logs', payload);
 
-    if (ok) {
+    if (ok && ok.length > 0) {
       setSaved(true);
+      setSaveError('');
+      setSubmittedAt(new Date().toISOString());
     } else {
-      setSaveError('Save failed — please try again.');
+      setSaveError('Save failed — check your connection and try again.');
     }
     setSaving(false);
-    // Do NOT call load() — keep all form state so user can continue editing/updating
+    // Do NOT call load() — form stays populated so user can keep editing/updating
   }
 
   function exportReport() {
@@ -266,6 +271,17 @@ export default function ProdReport({ user }) {
       {isAuth && (
         <div style={{ background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', border: '1.5px solid #a78bfa', borderRadius: 8, padding: '12px 18px', marginBottom: 16, fontSize: 13, color: '#5b21b6' }}>
           <strong>🔐 PMB Auth Process</strong> — Quality is 100% by default. No fixed daily target — record all requests completed.
+        </div>
+      )}
+
+      {/* 24-hour edit banner */}
+      {submittedAt && (
+        <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ color: '#10b981', fontWeight: 600 }}>
+            Submitted at {new Date(submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <span style={{ color: 'var(--text-muted)' }}>— You can still edit and update this report at any time today.</span>
         </div>
       )}
 
