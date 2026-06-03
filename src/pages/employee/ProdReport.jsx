@@ -111,14 +111,27 @@ export default function ProdReport({ user }) {
         count: hr ? (hr[`h${i}`] != null ? String(hr[`h${i}`]) : '') : '',
       })));
     } else {
-      // No daily log — still load hourly if it exists (user may have saved hourly only)
-      const slotTasksMap = {};
-      setSlots(HOURLY_SLOTS.map((slot, i) => ({
+      // No daily log — load hourly if exists; auto-fill task counts from hourly
+      const newSlots = HOURLY_SLOTS.map((slot, i) => ({
         slot,
-        task: slotTasksMap[i] || slotTaskOptions[0] || '',
+        task: slotTaskOptions[0] || '',
         count: hr ? (hr[`h${i}`] != null ? String(hr[`h${i}`]) : '') : '',
-      })));
-      setTaskCounts(Object.fromEntries(taskDefs.map(t => [t.name, ''])));
+      }));
+      setSlots(newSlots);
+
+      // Auto-fill task counts from hourly data
+      if (hr) {
+        const sums = {};
+        newSlots.forEach(sl => {
+          const c = parseInt(sl.count) || 0;
+          if (sl.task && c > 0) sums[sl.task] = (sums[sl.task] || 0) + c;
+        });
+        const counts = Object.fromEntries(taskDefs.map(t => [t.name, sums[t.name] ? String(sums[t.name]) : '']));
+        setTaskCounts(counts);
+      } else {
+        setTaskCounts(Object.fromEntries(taskDefs.map(t => [t.name, ''])));
+      }
+
       setDowntime(''); setRemarks('');
       setQuality(isAuth ? '100' : ''); setQualityNA(false);
       setQualityDate(yesterday()); setActionPlan('');
@@ -228,15 +241,21 @@ export default function ProdReport({ user }) {
       submitted_at: new Date().toISOString(),
     };
 
-    // Upsert — unique constraint on (emp_id, date) handles insert vs update automatically
-    const ok = await S.set('daily_logs', payload, 'emp_id,date');
+    // Find existing record then INSERT or UPDATE (more reliable than upsert)
+    const existing = (await S.get('daily_logs', { emp_id: user.emp_id, date }))?.[0];
+    let ok;
+    if (existing?.id) {
+      ok = await S.update('daily_logs', payload, { id: existing.id });
+    } else {
+      ok = await S.set('daily_logs', payload);   // plain INSERT, no matchCols
+    }
 
-    if (ok && ok.length > 0) {
+    if (ok) {
       setSaved(true);
       setSaveError('');
       setSubmittedAt(new Date().toISOString());
     } else {
-      setSaveError('Save failed — please try again or check console for details.');
+      setSaveError('❌ Save failed — open browser console (F12) and check for errors, then try again.');
     }
     setSaving(false);
   }
@@ -631,10 +650,7 @@ export default function ProdReport({ user }) {
           {/* Save / Export */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
             {saveError && (
-              <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 600 }}>{saveError}</span>
-            )}
-            {saved && !saveError && (
-              <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>✓ Saved — you can still edit and save again</span>
+              <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 700 }}>{saveError}</span>
             )}
             <button className="btn-sm" onClick={exportReport}>Export CSV</button>
             <button className="btn-primary" onClick={save} disabled={saving || loading || !isEditable} style={{ padding: '9px 24px', fontSize: 14, opacity: !isEditable ? 0.5 : 1 }}>
