@@ -30,7 +30,6 @@ const ADMIN_TABS = [
   { id: 'allocation',  label: 'Work Alloc'    },
   { id: 'allocmon',    label: 'Alloc Monitor' },
   { id: 'feedmonitor', label: 'Feed Monitor'  },
-  { id: 'changelog',   label: 'Changelog'     },
   { id: 'settings',    label: 'Settings'      },
 ];
 

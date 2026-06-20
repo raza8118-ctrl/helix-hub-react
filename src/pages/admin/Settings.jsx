@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { kv, S } from '../../lib/supabase';
 import { DEFAULT_TASKS } from '../../lib/constants';
+import Changelog from './Changelog';
 
 const PROCESSES = ['MCO', 'MCD', 'MCR', 'AUTH'];
 
@@ -241,6 +242,10 @@ export default function Settings({ user }) {
             })}
           </div>
         )}
+      </div>
+
+      <div className="mt-4">
+        <Changelog />
       </div>
     </div>
   );

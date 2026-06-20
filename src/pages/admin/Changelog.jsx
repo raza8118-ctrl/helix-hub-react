@@ -1,6 +1,28 @@
 const VERSIONS = [
   {
-    version: 'v10.0', date: 'Jun 2026', status: 'current',
+    version: 'v11.0', date: 'Jun 2026', status: 'current',
+    features: [
+      'Friend connections — search any employee by ID, send/accept requests, curate a Close Friends list',
+      'Team Feed — post text, uploaded photos, and Giphy-searched GIFs with Public / Friends / Close Friends visibility',
+      'Facebook-style emoji reactions and comment threads on Team Feed posts, with repost/share',
+      'Admin Feed Monitor — view every post regardless of visibility, hide or delete any of them',
+      'Feedback upgraded into Announcements — priority levels (Low/Normal/High/Urgent), snapshot image attachments',
+      'Per-person acknowledgement tracking for team-wide announcements ("Acknowledged 3/8" + pending names), with timestamps',
+      'Reactions and comments now show who reacted/commented, not just counts',
+      'Admin attendance override (Present/Half Day/Absent + leave type) via the Productivity Monitor bypass action',
+      'Half-day attendance renamed to First Half/Second Half, shift adjusted to 4.5h; deficit now measured against the full-day target',
+      'Absent status with Planned Leave/CSL sub-type, now saves a record instead of being skipped entirely',
+      'Active/Disabled/All filter across Today, Productivity Monitor, Summary, Hourly Monitor, and Team Management',
+      'Multi-process employees now correctly match process filters everywhere instead of only under "ALL"',
+      'Admin can pin employees for close monitoring on Today and Productivity Monitor',
+      'Profile photo upload (client-resized) and a show/hide toggle on the login password field',
+      'Per-tab login sessions — multiple roles can be tested independently in the same browser',
+      'Active tab now persists across a browser refresh instead of resetting to the default page',
+      'Team Feed and Announcements auto-refresh every 25s with a toast notification when new content arrives',
+    ],
+  },
+  {
+    version: 'v10.0', date: 'Jun 2026', status: 'stable',
     features: [
       'Complete UI redesign — 9 professional themes (light, dark, ocean, forest, rose, slate, amber, violet, high-contrast)',
       'AI-powered email generation using Claude (daily summaries, weekly/monthly recaps)',
@@ -86,17 +108,12 @@ const STATUS = {
 export default function Changelog() {
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Changelog</div>
-          <div className="page-subtitle">Helix Hub — RCM Team Performance Portal · 3Gen Consulting</div>
-        </div>
-        <span className="badge badge-green" style={{ fontSize: 13, padding: '4px 14px' }}>v10.0 Current</span>
-      </div>
-
       {/* Timeline */}
       <div className="card mb-16">
-        <div className="card-header"><div className="card-title">Release History</div></div>
+        <div className="card-header">
+          <div className="card-title">Changelog — Release History</div>
+          <span className="badge badge-green" style={{ fontSize: 12, padding: '3px 12px' }}>v11.0 Current</span>
+        </div>
         <div style={{ padding: '8px 4px' }}>
           {VERSIONS.map((v, idx) => {
             const s      = STATUS[v.status];

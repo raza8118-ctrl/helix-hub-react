@@ -6,14 +6,13 @@ import AdminFeedback from './AdminFeedback';
 import TeamMgmt      from './TeamMgmt';
 import WorkAllocation from './WorkAllocation';
 import AllocMonitor  from './AllocMonitor';
-import Changelog     from './Changelog';
 import Settings      from './Settings';
 import FeedMonitor   from './FeedMonitor';
 
 /**
  * Routes admin tabs to the correct page component.
  * Tab IDs: today | prodmonitor | hourlymon | weekly | monthly |
- *          feedback | team | allocation | allocmon | feedmonitor | changelog | settings
+ *          feedback | team | allocation | allocmon | feedmonitor | settings
  */
 export default function AdminApp({ activeTab, user }) {
   switch (activeTab) {
@@ -27,7 +26,6 @@ export default function AdminApp({ activeTab, user }) {
     case 'allocation':  return <WorkAllocation user={user} />;
     case 'allocmon':    return <AllocMonitor user={user} />;
     case 'feedmonitor': return <FeedMonitor user={user} />;
-    case 'changelog':   return <Changelog user={user} />;
     case 'settings':    return <Settings user={user} />;
     default:            return <Today user={user} />;
   }
