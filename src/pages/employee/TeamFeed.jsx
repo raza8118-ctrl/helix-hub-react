@@ -18,7 +18,7 @@ function timeAgo(iso) {
 // Defined at module scope (not inside TeamFeed) so React keeps a stable identity
 // across re-renders — otherwise every post (and any open EmojiPicker popover)
 // would unmount/remount on every unrelated state change in the parent.
-function PostCard({ post, user, userById, posts, openComments, setOpenComments, sharePost, deletePost }) {
+function PostCard({ post, user, userById, posts, sharePost, deletePost }) {
   const author = userById(post.emp_id);
   const shared = post.shared_from_post_id ? posts.find(p => p.id === post.shared_from_post_id) : null;
   const sharedAuthor = shared ? userById(shared.emp_id) : null;
@@ -52,13 +52,11 @@ function PostCard({ post, user, userById, posts, openComments, setOpenComments, 
       <ReactionBar targetType="post" targetId={post.id} user={user} />
 
       <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8 }}>
-        <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}>
-          💬 Comment
-        </button>
         <button className="btn-sm" onClick={() => sharePost(post)}>🔁 Share</button>
       </div>
 
-      {openComments[post.id] && <CommentThread targetType="post" targetId={post.id} user={user} />}
+      <div className="text-muted text-sm bold" style={{ marginBottom: 4 }}>💬 Comments</div>
+      <CommentThread targetType="post" targetId={post.id} user={user} />
     </div>
   );
 }
@@ -82,8 +80,6 @@ export default function TeamFeed({ user }) {
   const [gifLoading, setGifLoading] = useState(false);
   const [gifErr, setGifErr]       = useState('');
   const [posting, setPosting]     = useState(false);
-
-  const [openComments, setOpenComments] = useState({});
 
   useEffect(() => { load(); }, []);
 
@@ -257,7 +253,6 @@ export default function TeamFeed({ user }) {
         visiblePosts.map(post => (
           <PostCard
             key={post.id} post={post} user={user} userById={userById} posts={posts}
-            openComments={openComments} setOpenComments={setOpenComments}
             sharePost={sharePost} deletePost={deletePost}
           />
         ))

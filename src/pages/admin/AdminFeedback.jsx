@@ -25,21 +25,30 @@ export default function AdminFeedback({ user }) {
   const [loading, setLoading]     = useState(false);
   const [sending, setSending]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
-  const [openComments, setOpenComments] = useState({});
+  const [acks, setAcks]           = useState([]);
 
   useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
     setLoading(true);
-    const [u, f] = await Promise.all([
+    const [u, f, a] = await Promise.all([
       S.get('users', { active: true }),
       S.get('feedback'),
+      S.get('feedback_acks'),
     ]);
     setAllUsers(u ?? []);
     setFeedbacks(
       (f ?? []).sort((a, b) => (b.created_at ?? b.date) > (a.created_at ?? a.date) ? 1 : -1)
     );
+    setAcks(a ?? []);
     setLoading(false);
+  }
+
+  // Who an announcement actually reached: the one named recipient, or every active
+  // employee in the targeted process (or everyone, if it went to the whole team).
+  function audienceFor(f) {
+    if (f.to_emp_id) return allUsers.filter(u => u.emp_id === f.to_emp_id);
+    return allUsers.filter(u => u.role === 'employee' && (!f.process || u.access === f.process || u.access === 'ALL'));
   }
 
   async function pickImage(e) {
@@ -212,33 +221,51 @@ export default function AdminFeedback({ user }) {
         {displayFeedbacks.length === 0 && (
           <div className="card" style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No announcements found</div>
         )}
-        {displayFeedbacks.map(f => (
-          <div key={f.id} className="card" style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span className="bold text-sm">{f.from_name ?? f.from_emp_id}</span>
-                <span className="text-muted text-sm">→ {f.to_emp_id ? (f.to_name ?? f.to_emp_id) : 'Team'}</span>
-                {f.process && <span className="badge badge-yellow">{f.process}</span>}
-                <PriorityBadge priority={f.priority} />
+        {displayFeedbacks.map(f => {
+          const isBroadcast = !f.to_emp_id;
+          const audience = audienceFor(f);
+          const ackedIds = new Set(acks.filter(a => a.feedback_id === f.id).map(a => a.emp_id));
+          const acked = audience.filter(u => ackedIds.has(u.emp_id));
+          const pending = audience.filter(u => !ackedIds.has(u.emp_id));
+          return (
+            <div key={f.id} className="card" style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span className="bold text-sm">{f.from_name ?? f.from_emp_id}</span>
+                  <span className="text-muted text-sm">→ {f.to_emp_id ? (f.to_name ?? f.to_emp_id) : 'Team'}</span>
+                  {f.process && <span className="badge badge-yellow">{f.process}</span>}
+                  <PriorityBadge priority={f.priority} />
+                </div>
+                <span className="text-sm text-muted">{fmtD(f.date)}</span>
               </div>
-              <span className="text-sm text-muted">{fmtD(f.date)}</span>
+              <p style={{ fontSize: 13, lineHeight: 1.55, cursor: 'pointer' }} onClick={() => setViewItem(f)}>{f.message}</p>
+              {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, marginBottom: 8 }} />}
+
+              <ReactionBar targetType="feedback" targetId={f.id} user={user} />
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {isBroadcast ? (
+                  <span className="badge badge-green" title={acked.map(u => u.name ?? u.emp_id).join(', ')}>
+                    ✓ Acknowledged {acked.length}/{audience.length}
+                  </span>
+                ) : (
+                  <button className="btn-sm" onClick={() => toggleAck(f)}>
+                    {f.acknowledged ? <span className="badge badge-green">Acknowledged</span> : <span className="badge badge-yellow">Awaiting</span>}
+                  </button>
+                )}
+                <button className="btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }} onClick={() => deleteFeedback(f.id)}>Delete</button>
+              </div>
+              {isBroadcast && pending.length > 0 && (
+                <div className="text-muted text-sm" style={{ marginBottom: 8 }}>
+                  ⏳ Pending: {pending.map(u => u.name ?? u.emp_id).join(', ')}
+                </div>
+              )}
+
+              <div className="text-muted text-sm bold" style={{ marginBottom: 4 }}>💬 Comments</div>
+              <CommentThread targetType="feedback" targetId={f.id} user={user} />
             </div>
-            <p style={{ fontSize: 13, lineHeight: 1.55, cursor: 'pointer' }} onClick={() => setViewItem(f)}>{f.message}</p>
-            {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, marginBottom: 8 }} />}
-
-            <ReactionBar targetType="feedback" targetId={f.id} user={user} />
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8, alignItems: 'center' }}>
-              <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [f.id]: !prev[f.id] }))}>💬 Comment</button>
-              <button className="btn-sm" onClick={() => toggleAck(f)}>
-                {f.acknowledged ? <span className="badge badge-green">Acknowledged</span> : <span className="badge badge-yellow">Awaiting</span>}
-              </button>
-              <button className="btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }} onClick={() => deleteFeedback(f.id)}>Delete</button>
-            </div>
-
-            {openComments[f.id] && <CommentThread targetType="feedback" targetId={f.id} user={user} />}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* View full announcement */}

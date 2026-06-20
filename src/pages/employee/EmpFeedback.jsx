@@ -13,29 +13,44 @@ function PriorityBadge({ priority }) {
 
 export default function EmpFeedback({ user }) {
   const [feedbacks, setFeedbacks] = useState([]);
+  const [myAcks, setMyAcks]       = useState([]);
   const [loading, setLoading]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
-  const [openComments, setOpenComments] = useState({});
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const all = await S.get('feedback');
+    const [all, acks] = await Promise.all([
+      S.get('feedback'),
+      S.get('feedback_acks', { emp_id: user.emp_id }),
+    ]);
     const mine = (all ?? [])
       .filter(f => f.to_emp_id === user.emp_id || f.to_emp_id === null)
       .sort((a, b) => (b.created_at ?? b.date) > (a.created_at ?? a.date) ? 1 : -1);
     setFeedbacks(mine);
+    setMyAcks(acks ?? []);
     setLoading(false);
   }
 
-  async function ack(item) {
-    await S.update('feedback', { acknowledged: true }, { id: item.id });
-    setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: true } : f));
-    if (viewItem?.id === item.id) setViewItem(prev => ({ ...prev, acknowledged: true }));
+  // A team-wide announcement tracks acknowledgement per person (feedback_acks);
+  // a 1:1 announcement only ever has one possible acknowledger, so the original
+  // shared boolean on the row is still accurate for that case.
+  function isAcked(f) {
+    return f.to_emp_id ? !!f.acknowledged : myAcks.some(a => a.feedback_id === f.id);
   }
 
-  const unread = feedbacks.filter(f => !f.acknowledged).length;
+  async function ack(item) {
+    if (item.to_emp_id) {
+      await S.update('feedback', { acknowledged: true }, { id: item.id });
+      setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: true } : f));
+    } else {
+      await S.set('feedback_acks', { feedback_id: item.id, emp_id: user.emp_id }, ['feedback_id', 'emp_id']);
+      setMyAcks(prev => [...prev, { feedback_id: item.id, emp_id: user.emp_id }]);
+    }
+  }
+
+  const unread = feedbacks.filter(f => !isAcked(f)).length;
 
   return (
     <div>
@@ -61,7 +76,7 @@ export default function EmpFeedback({ user }) {
         </div>
         <div className="stat-card">
           <div className="stat-label">Acknowledged</div>
-          <div className="stat-value col-green">{feedbacks.filter(f => f.acknowledged).length}</div>
+          <div className="stat-value col-green">{feedbacks.filter(isAcked).length}</div>
         </div>
       </div>
 
@@ -76,17 +91,19 @@ export default function EmpFeedback({ user }) {
 
       {/* Feedback cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {feedbacks.map(f => (
+        {feedbacks.map(f => {
+          const acked = isAcked(f);
+          return (
           <div
             key={f.id}
             className="card fade-in"
             style={{
-              borderLeft: `3px solid ${f.acknowledged ? 'var(--col-green)' : '#f59e0b'}`,
-              background: f.acknowledged ? undefined : 'rgba(245,158,11,0.03)',
+              borderLeft: `3px solid ${acked ? 'var(--col-green)' : '#f59e0b'}`,
+              background: acked ? undefined : 'rgba(245,158,11,0.03)',
               cursor: 'pointer',
               transition: 'box-shadow 0.15s',
             }}
-            onClick={() => { setViewItem(f); if (!f.acknowledged) ack(f); }}
+            onClick={() => setViewItem(f)}
           >
             {/* Card header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
@@ -95,7 +112,7 @@ export default function EmpFeedback({ user }) {
                 {f.to_emp_id === null && <span className="badge badge-blue">Team</span>}
                 {f.process && <span className="badge badge-yellow">{f.process}</span>}
                 <PriorityBadge priority={f.priority} />
-                {!f.acknowledged && <span className="badge badge-red">New</span>}
+                {!acked && <span className="badge badge-red">New</span>}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                 <span className="text-sm text-muted">{fmtD(f.date)}</span>
@@ -110,7 +127,7 @@ export default function EmpFeedback({ user }) {
             {/* Message preview */}
             <p style={{
               fontSize: 13, lineHeight: 1.55,
-              color: f.acknowledged ? 'var(--text-muted)' : 'var(--text)',
+              color: acked ? 'var(--text-muted)' : 'var(--text)',
               overflow: 'hidden',
               display: '-webkit-box',
               WebkitLineClamp: 2,
@@ -122,18 +139,16 @@ export default function EmpFeedback({ user }) {
 
             <div onClick={e => e.stopPropagation()}>
               <ReactionBar targetType="feedback" targetId={f.id} user={user} />
-              <div style={{ marginTop: 8, marginBottom: 4 }}>
-                <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [f.id]: !prev[f.id] }))}>💬 Comment</button>
-              </div>
-              {openComments[f.id] && <CommentThread targetType="feedback" targetId={f.id} user={user} />}
+              <div className="text-muted text-sm bold" style={{ marginTop: 8, marginBottom: 4 }}>💬 Comments</div>
+              <CommentThread targetType="feedback" targetId={f.id} user={user} />
             </div>
 
             {/* Status + Ack button */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <span className={`badge ${f.acknowledged ? 'badge-green' : 'badge-yellow'}`} style={{ fontSize: 10 }}>
-                {f.acknowledged ? 'Acknowledged' : 'Awaiting Acknowledgement'}
+              <span className={`badge ${acked ? 'badge-green' : 'badge-yellow'}`} style={{ fontSize: 10 }}>
+                {acked ? 'Acknowledged' : 'Awaiting Acknowledgement'}
               </span>
-              {!f.acknowledged && (
+              {!acked && (
                 <button
                   className="btn-sm"
                   onClick={e => { e.stopPropagation(); ack(f); }}
@@ -143,7 +158,8 @@ export default function EmpFeedback({ user }) {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Full view modal */}
@@ -164,8 +180,8 @@ export default function EmpFeedback({ user }) {
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span className="text-muted">Status</span>
-              <span className={`badge ${viewItem.acknowledged ? 'badge-green' : 'badge-yellow'}`}>
-                {viewItem.acknowledged ? 'Acknowledged' : 'Awaiting'}
+              <span className={`badge ${isAcked(viewItem) ? 'badge-green' : 'badge-yellow'}`}>
+                {isAcked(viewItem) ? 'Acknowledged' : 'Awaiting'}
               </span>
             </div>
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '6px 0' }} />
@@ -175,7 +191,7 @@ export default function EmpFeedback({ user }) {
             {viewItem.image_url && <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />}
           </div>
           <div className="form-actions">
-            {!viewItem.acknowledged && (
+            {!isAcked(viewItem) && (
               <button className="btn-sm" onClick={() => { ack(viewItem); setViewItem(null); }}>
                 ✓ Acknowledge
               </button>
