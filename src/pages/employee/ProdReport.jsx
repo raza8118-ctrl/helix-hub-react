@@ -542,7 +542,7 @@ export default function ProdReport({ user }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 14 }}>
               {slots.map((sl, i) => {
-                const night = i >= 6;
+                const night = true;
                 const delta = slotDeltas[i];
                 return (
                   <div key={i} style={{
