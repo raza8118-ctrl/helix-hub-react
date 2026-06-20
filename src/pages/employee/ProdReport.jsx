@@ -3,7 +3,7 @@ import { S } from '../../lib/supabase';
 import { today, yesterday, fmtD, dlCSV } from '../../lib/helpers';
 import {
   DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H,
-  LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, ATTENDANCE_STATUSES,
+  LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, ATTENDANCE_STATUSES, LEAVE_TYPES,
 } from '../../lib/constants';
 
 // ── Four-path calcProd (matches spec §4) ────────────────────────────────────
@@ -36,8 +36,13 @@ function calcProd(taskDefs, counts, overallTarget, downtimeHours, attendanceStat
   const eff       = Math.max(0, (shiftHours - (parseFloat(downtimeHours) || 0)) / shiftHours);
   const adjTarget = +(baseTarget * eff).toFixed(2);
   const prodPct   = adjTarget > 0 ? +((total / adjTarget) * 100).toFixed(1) : 0;
-  const deficit   = +(Math.max(0, adjTarget - total)).toFixed(2);
-  return { total, adjTarget, prodPct, deficit, deficitPct: +(100 - prodPct).toFixed(1), isLeave: false, shiftHours, baseTarget };
+
+  // Half-day: prod% is measured against the halved target, but the deficit
+  // shown is measured against the FULL day's target (flat, no downtime adjustment).
+  const deficitBase = isHalfDay ? overallTarget : adjTarget;
+  const deficit      = +(Math.max(0, deficitBase - total)).toFixed(2);
+  const deficitPct   = deficitBase > 0 ? +(100 - (total / deficitBase) * 100).toFixed(1) : null;
+  return { total, adjTarget, prodPct, deficit, deficitPct, isLeave: false, shiftHours, baseTarget };
 }
 
 function pColor(pct) {
@@ -49,13 +54,10 @@ function pColor(pct) {
 }
 
 const ATTEND_LABELS = {
-  present:        'Present',
-  half_day_1:     'Half Day AM',
-  half_day_2:     'Half Day PM',
-  full_leave:     'Full Leave',
-  planned_leave:  'Planned Leave',
-  csl:            'CSL',
-  absent:         'Absent',
+  present:    'Present',
+  half_day_1: 'Half Day AM',
+  half_day_2: 'Half Day PM',
+  absent:     'Absent',
 };
 
 export default function ProdReport({ user }) {
@@ -73,6 +75,7 @@ export default function ProdReport({ user }) {
   // ── State ────────────────────────────────────────────────────────────────
   const [taskCfgRows, setTaskCfgRows]       = useState(null);
   const [attendanceStatus, setAttendanceStatus] = useState('present');
+  const [leaveType, setLeaveType]           = useState('planned');
   const [date, setDate]                     = useState(today());
   const [holiday, setHoliday]               = useState(null);
   const [loading, setLoading]               = useState(false);
@@ -150,6 +153,7 @@ export default function ProdReport({ user }) {
 
     if (ex) {
       setAttendanceStatus(ex.attendance_status ?? 'present');
+      setLeaveType(ex.leave_type ?? 'planned');
       setDowntime(ex.downtime != null ? String(ex.downtime) : '');
       setRemarks(ex.remarks ?? '');
       setCalls(ex.calls != null ? String(ex.calls) : '');
@@ -174,6 +178,7 @@ export default function ProdReport({ user }) {
       })));
     } else {
       setAttendanceStatus('present');
+      setLeaveType('planned');
       const newSlots = HOURLY_SLOTS.map((slot, i) => ({
         slot,
         task: slotTaskOptions[0] || '',
@@ -264,42 +269,72 @@ export default function ProdReport({ user }) {
 
   // ── Save full report ─────────────────────────────────────────────────────
   async function save() {
-    if (isLeave) return; // PATH A — no record saved
     setSaving(true); setSaveError(''); setSaved(false);
 
-    await saveHourly();
+    let payload;
+    if (isLeave) {
+      // PATH A — Absent: minimal record, just marks the day + leave type. No hourly/task data.
+      payload = {
+        emp_id:            user.emp_id,
+        emp_name:          user.name ?? user.emp_id,
+        date,
+        process:           userProcs.join(','),
+        total:             0,
+        target:            overallTarget,
+        adj_target:        0,
+        base_target:       0,
+        shift_hours:       0,
+        downtime:          null,
+        attendance_status: attendanceStatus,
+        leave_type:        leaveType,
+        legacy_auth_calc:  false,
+        quality:           null,
+        tasks:             {},
+        remarks:           remarks.trim() || null,
+        bypass_reason:     actionPlan.trim() || null,
+        calls:             null,
+        call_hours:        null,
+        insurance_call:    null,
+        call_notes:        null,
+        submitted:         true,
+        submitted_at:      new Date().toISOString(),
+      };
+    } else {
+      await saveHourly();
 
-    const slotTasksMap = {};
-    slots.forEach((sl, i) => { slotTasksMap[i] = sl.task; });
+      const slotTasksMap = {};
+      slots.forEach((sl, i) => { slotTasksMap[i] = sl.task; });
 
-    const taskPayload = isOnlyAuth
-      ? { ...Object.fromEntries(authSummary.map(t => [t.task, t.count])), _slot_tasks: slotTasksMap, _quality_date: qualityDate }
-      : { ...Object.fromEntries(taskDefs.map(t => [t.name, parseFloat(taskCounts[t.name]) || 0])), _slot_tasks: slotTasksMap, _quality_date: qualityDate };
+      const taskPayload = isOnlyAuth
+        ? { ...Object.fromEntries(authSummary.map(t => [t.task, t.count])), _slot_tasks: slotTasksMap, _quality_date: qualityDate }
+        : { ...Object.fromEntries(taskDefs.map(t => [t.name, parseFloat(taskCounts[t.name]) || 0])), _slot_tasks: slotTasksMap, _quality_date: qualityDate };
 
-    const payload = {
-      emp_id:           user.emp_id,
-      emp_name:         user.name ?? user.emp_id,
-      date,
-      process:          userProcs.join(','),
-      total:            isLegacyAuth ? slotGrandTotal : total,
-      target:           overallTarget,
-      adj_target:       adjTarget,
-      base_target:      baseTarget,
-      shift_hours:      shiftHours,
-      downtime:         isLegacyAuth ? null : (dt || null),
-      attendance_status: attendanceStatus,
-      legacy_auth_calc: isLegacyAuth,
-      quality:          qualityNA ? null : (parseFloat(quality) || null),
-      tasks:            taskPayload,
-      remarks:          remarks.trim() || null,
-      bypass_reason:    actionPlan.trim() || null,
-      calls:            parseInt(calls) || null,
-      call_hours:       parseFloat(callHours) || null,
-      insurance_call:   callType || null,
-      call_notes:       callNotes.trim() || null,
-      submitted:        true,
-      submitted_at:     new Date().toISOString(),
-    };
+      payload = {
+        emp_id:           user.emp_id,
+        emp_name:         user.name ?? user.emp_id,
+        date,
+        process:          userProcs.join(','),
+        total:            isLegacyAuth ? slotGrandTotal : total,
+        target:           overallTarget,
+        adj_target:       adjTarget,
+        base_target:      baseTarget,
+        shift_hours:      shiftHours,
+        downtime:         isLegacyAuth ? null : (dt || null),
+        attendance_status: attendanceStatus,
+        leave_type:       null,
+        legacy_auth_calc: isLegacyAuth,
+        quality:          qualityNA ? null : (parseFloat(quality) || null),
+        tasks:            taskPayload,
+        remarks:          remarks.trim() || null,
+        bypass_reason:    actionPlan.trim() || null,
+        calls:            parseInt(calls) || null,
+        call_hours:       parseFloat(callHours) || null,
+        insurance_call:   callType || null,
+        call_notes:       callNotes.trim() || null,
+        submitted:        true,
+        submitted_at:     new Date().toISOString(),
+      };
+    }
 
     const existing = (await S.get('daily_logs', { emp_id: user.emp_id, date }))?.[0];
     let ok;
@@ -337,8 +372,8 @@ export default function ProdReport({ user }) {
         <div className="row" style={{ gap: 8 }}>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
           <button className="btn-sm" onClick={exportReport}>Export CSV</button>
-          <button className="btn-primary" onClick={save} disabled={saving || loading || isLeave}>
-            {saving ? 'Saving…' : isLeave ? 'N/A (Leave)' : saved ? '✓ Report Saved' : 'Save Report'}
+          <button className="btn-primary" onClick={save} disabled={saving || loading}>
+            {saving ? 'Saving…' : saved ? '✓ Report Saved' : isLeave ? 'Mark Absent' : 'Save Report'}
           </button>
         </div>
       </div>
@@ -373,8 +408,28 @@ export default function ProdReport({ user }) {
           })}
         </div>
         {isLeave && (
-          <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontSize: 13, color: '#ef4444', fontWeight: 600 }}>
-            🚫 Leave day — no productivity entry required. No record will be saved for this date.
+          <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8 }}>
+            <div style={{ fontSize: 13, color: '#ef4444', fontWeight: 600, marginBottom: 10 }}>
+              🚫 Absent — no productivity entry required. Pick a leave type, then Save to record this day.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {LEAVE_TYPES.map(lt => (
+                <button
+                  key={lt.id}
+                  onClick={() => isEditable && setLeaveType(lt.id)}
+                  disabled={!isEditable}
+                  style={{
+                    padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                    border: `1.5px solid ${leaveType === lt.id ? '#ef4444' : 'var(--border)'}`,
+                    background: leaveType === lt.id ? 'rgba(239,68,68,0.12)' : 'var(--surface)',
+                    color: leaveType === lt.id ? '#ef4444' : 'var(--text-muted)',
+                    cursor: isEditable ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {lt.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {isHalfDay && (

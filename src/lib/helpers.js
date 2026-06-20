@@ -204,8 +204,13 @@ export function calcProd(tasks, counts, overallTarget, downtimeHours, opts = {})
   const eff = Math.max(0, (shiftHours - (parseFloat(downtimeHours) || 0)) / shiftHours);
   const adjTarget = +(baseTarget * eff).toFixed(2);
   const prodPct   = adjTarget > 0 ? +((total / adjTarget) * 100).toFixed(1) : 0;
-  const deficit   = +(Math.max(0, adjTarget - total)).toFixed(2);
-  return { total, adjTarget, prodPct, deficit, deficitPct: +(100 - prodPct).toFixed(1), isLeave: false, shiftHours, baseTarget };
+
+  // Half-day: prod% is measured against the halved target, but the deficit
+  // shown is measured against the FULL day's target (flat, no downtime adjustment).
+  const deficitBase = isHalfDay ? overallTarget : adjTarget;
+  const deficit      = +(Math.max(0, deficitBase - total)).toFixed(2);
+  const deficitPct   = deficitBase > 0 ? +(100 - (total / deficitBase) * 100).toFixed(1) : null;
+  return { total, adjTarget, prodPct, deficit, deficitPct, isLeave: false, shiftHours, baseTarget };
 }
 
 /** True if user works on the AUTH process */

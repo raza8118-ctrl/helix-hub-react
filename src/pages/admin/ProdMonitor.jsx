@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned } from '../../lib/helpers';
-import { ACCESSES, SHIFT_H } from '../../lib/constants';
+import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 
 const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
+
+const STATUS_LABELS = { present: 'Present', half_day_1: 'Half Day AM', half_day_2: 'Half Day PM', absent: 'Absent' };
 
 function StatusBadge({ prod, bypassed }) {
   if (bypassed) return <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--accent)' }}>Bypassed</span>;
@@ -29,6 +31,8 @@ export default function ProdMonitor({ user }) {
 
   const [bypassTarget, setBypassTarget] = useState(null);
   const [bypassReason, setBypassReason] = useState('');
+  const [bypassStatus, setBypassStatus] = useState('absent');
+  const [bypassLeaveType, setBypassLeaveType] = useState('planned');
   const [bypassLoading, setBypassLoading] = useState(false);
 
   const [qualityTarget, setQualityTarget] = useState(null);
@@ -71,8 +75,20 @@ export default function ProdMonitor({ user }) {
   async function doBypass() {
     if (!bypassTarget || !bypassReason.trim()) return;
     setBypassLoading(true);
+
+    const isAbsentStatus  = LEAVE_STATUSES.includes(bypassStatus);
+    const isHalfDayStatus = HALF_DAY_STATUSES.includes(bypassStatus);
+    const baseTarget = bypassTarget.target ?? 50;
+    const statusFields = {
+      attendance_status: bypassStatus,
+      leave_type: isAbsentStatus ? bypassLeaveType : null,
+      total: isAbsentStatus ? 0 : (bypassTarget.log?.total ?? 0),
+      adj_target: isAbsentStatus ? 0 : (isHalfDayStatus ? baseTarget * 0.5 : baseTarget),
+      base_target: isAbsentStatus ? 0 : (isHalfDayStatus ? baseTarget * 0.5 : baseTarget),
+    };
+
     if (bypassTarget.log?.id) {
-      await S.update('daily_logs', { bypass_reason: bypassReason.trim() }, { id: bypassTarget.log.id });
+      await S.update('daily_logs', { bypass_reason: bypassReason.trim(), ...statusFields }, { id: bypassTarget.log.id });
     } else {
       // No log exists — create a minimal entry with the bypass note
       await S.set('daily_logs', {
@@ -80,7 +96,8 @@ export default function ProdMonitor({ user }) {
         emp_name: bypassTarget.name ?? bypassTarget.emp_id,
         date,
         process: bypassTarget.process || bypassTarget.access || 'MCO',
-        total: 0, target: bypassTarget.target ?? 50, adj_target: bypassTarget.target ?? 50,
+        target: baseTarget,
+        ...statusFields,
         bypass_reason: bypassReason.trim(),
         submitted: false,
         submitted_at: new Date().toISOString(),
@@ -88,6 +105,8 @@ export default function ProdMonitor({ user }) {
     }
     setBypassTarget(null);
     setBypassReason('');
+    setBypassStatus('absent');
+    setBypassLeaveType('planned');
     setBypassLoading(false);
     await load();
   }
@@ -279,7 +298,7 @@ export default function ProdMonitor({ user }) {
                   <td>
                     <div className="row" style={{ gap: 4 }}>
                       {!row.log?.bypass_reason && (
-                        <button className="btn-sm" onClick={() => { setBypassTarget(row); setBypassReason(''); }}>
+                        <button className="btn-sm" onClick={() => { setBypassTarget(row); setBypassReason(''); setBypassStatus(row.log?.attendance_status || 'absent'); setBypassLeaveType(row.log?.leave_type || 'planned'); }}>
                           {row.log ? 'Bypass' : '+ Note'}
                         </button>
                       )}
@@ -301,11 +320,45 @@ export default function ProdMonitor({ user }) {
       {/* Bypass modal */}
       {bypassTarget && (
         <Modal title={`Bypass — ${bypassTarget.name ?? bypassTarget.emp_id}`} onClose={() => setBypassTarget(null)}>
-          <p className="text-muted text-sm" style={{ marginBottom: 12 }}>Reason for bypassing productivity for {fmtD(date)}.</p>
+          <p className="text-muted text-sm" style={{ marginBottom: 12 }}>Set attendance and/or bypass reason for {fmtD(date)}.</p>
+          <div className="field">
+            <label>Attendance Status</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+              {ATTENDANCE_STATUSES.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setBypassStatus(s)}
+                  className="btn-sm"
+                  style={bypassStatus === s ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+                >
+                  {STATUS_LABELS[s] ?? s}
+                </button>
+              ))}
+            </div>
+          </div>
+          {LEAVE_STATUSES.includes(bypassStatus) && (
+            <div className="field">
+              <label>Leave Type</label>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                {LEAVE_TYPES.map(lt => (
+                  <button
+                    key={lt.id}
+                    type="button"
+                    onClick={() => setBypassLeaveType(lt.id)}
+                    className="btn-sm"
+                    style={bypassLeaveType === lt.id ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+                  >
+                    {lt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="field">
             <label>Reason</label>
             <textarea rows={3} value={bypassReason} onChange={e => setBypassReason(e.target.value)}
-              placeholder="e.g. System downtime, Training…" style={{ resize: 'vertical' }} />
+              placeholder="e.g. System downtime, Training, Employee on leave…" style={{ resize: 'vertical' }} />
           </div>
           <div className="form-actions">
             <button className="btn-sm" onClick={() => setBypassTarget(null)}>Cancel</button>
