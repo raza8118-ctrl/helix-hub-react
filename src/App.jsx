@@ -29,6 +29,7 @@ const ADMIN_TABS = [
   { id: 'team',        label: 'Team'          },
   { id: 'allocation',  label: 'Work Alloc'    },
   { id: 'allocmon',    label: 'Alloc Monitor' },
+  { id: 'feedmonitor', label: 'Feed Monitor'  },
   { id: 'changelog',   label: 'Changelog'     },
   { id: 'settings',    label: 'Settings'      },
 ];
@@ -169,6 +170,7 @@ export default function App() {
     { id: 'progress',     label: 'Progress'       },
     { id: 'myallocation', label: 'My Allocation'  },
     { id: 'feedback',     label: unreadFeedback > 0 ? `Feedback (${unreadFeedback})` : 'Feedback' },
+    { id: 'feed',         label: 'Team Feed'      },
   ];
 
   const tabs = isAdmin ? ADMIN_TABS : empTabs;

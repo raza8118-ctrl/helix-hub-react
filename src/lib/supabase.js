@@ -59,6 +59,16 @@ export const S = {
   },
 };
 
+// File uploads — Supabase Storage
+export const storage = {
+  async uploadFile(bucket, path, file) {
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+    if (error) { console.error('storage.uploadFile error', error); return null; }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl ?? null;
+  },
+};
+
 // Key-value store backed by rcm_store table { key TEXT PK, value JSONB }
 export const kv = {
   async get(key) {

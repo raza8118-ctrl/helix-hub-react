@@ -218,6 +218,31 @@ export function userIsAuth(user) {
   return procIncludes(user, 'AUTH');
 }
 
+// ── Team Feed: friendship helpers ──────────────────────────────────────────────
+
+/** True if a and b have an accepted friend_requests row in either direction */
+export function isFriend(a, b, requestRows) {
+  if (a === b) return false;
+  return (requestRows ?? []).some(r =>
+    r.status === 'accepted' &&
+    ((r.from_emp_id === a && r.to_emp_id === b) || (r.from_emp_id === b && r.to_emp_id === a))
+  );
+}
+
+/** True if owner has marked friendId as a close friend */
+export function isCloseFriend(owner, friendId, closeRows) {
+  return (closeRows ?? []).some(r => r.owner_emp_id === owner && r.friend_emp_id === friendId);
+}
+
+/** True if viewer is allowed to see a post by author, given its visibility */
+export function canViewPost(post, viewerEmpId, requestRows, closeRows) {
+  if (post.emp_id === viewerEmpId) return true;
+  if (post.visibility === 'public') return true;
+  if (post.visibility === 'friends') return isFriend(post.emp_id, viewerEmpId, requestRows);
+  if (post.visibility === 'close_friends') return isCloseFriend(post.emp_id, viewerEmpId, closeRows);
+  return false;
+}
+
 // ── AI helper ─────────────────────────────────────────────────────────────────
 
 export async function callAI(prompt, maxTokens = 1024, apiKey = null) {

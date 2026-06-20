@@ -33,6 +33,24 @@ export const AUTH_HOURLY_TASKS = [
 
 export const ACCESSES = ['MCO', 'MCD', 'MCR', 'AUTH', 'ALL'];
 
+export const REACTIONS = [
+  { id: 'like',  emoji: '👍' },
+  { id: 'love',  emoji: '❤️' },
+  { id: 'haha',  emoji: '😂' },
+  { id: 'wow',   emoji: '😮' },
+  { id: 'sad',   emoji: '😢' },
+  { id: 'angry', emoji: '😠' },
+];
+
+export const POST_VISIBILITY = [
+  { id: 'public',       label: 'Public' },
+  { id: 'friends',      label: 'Friends' },
+  { id: 'close_friends', label: 'Close Friends' },
+];
+
+export const FEED_BUCKET = 'feed-media';
+export const GIPHY_API_KEY = 'dc6zaTOxFJmzC'; // Giphy public beta key — swap for your own in Settings later
+
 export const THEMES = [
   { id: 'light',       label: 'Light',         bg: '#f5f6fa',  topbar: '#ffffff',  dark: false },
   { id: 'dark',        label: 'Dark',          bg: '#0f1117',  topbar: '#1a1d27',  dark: true  },
