@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD } from '../../lib/helpers';
+import { today, fmtD, procIncludes } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
 
@@ -9,6 +9,7 @@ const SLOT_KEYS = HOURLY_SLOTS.map((_, i) => `h${i}`);
 export default function HourlyMonitor({ user }) {
   const [date, setDate]           = useState(today());
   const [filterProc, setProc]     = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [search, setSearch]       = useState('');
   const [hourlyData, setHourlyData] = useState([]);
   const [allUsers, setAllUsers]   = useState([]);
@@ -30,7 +31,7 @@ export default function HourlyMonitor({ user }) {
   async function load() {
     setLoading(true);
     const [u, h] = await Promise.all([
-      S.get('users', { active: true }),
+      S.get('users'),
       S.get('hourly_logs', { date }),
     ]);
     setAllUsers(u ?? []);
@@ -41,7 +42,7 @@ export default function HourlyMonitor({ user }) {
 
   async function refreshSilent() {
     const [u, h] = await Promise.all([
-      S.get('users', { active: true }),
+      S.get('users'),
       S.get('hourly_logs', { date }),
     ]);
     setAllUsers(u ?? []);
@@ -51,9 +52,11 @@ export default function HourlyMonitor({ user }) {
 
   const filteredUsers = allUsers.filter(u => {
     if (u.role !== 'employee') return false;
-    const procOk   = filterProc === 'ALL' || u.access === filterProc || u.access === 'ALL';
+    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const searchOk = !search.trim() || (u.name ?? u.emp_id).toLowerCase().includes(search.toLowerCase());
-    return procOk && searchOk;
+    const statusOk = statusFilter === 'all' ||
+      (statusFilter === 'active' ? u.active !== false : u.active === false);
+    return procOk && searchOk && statusOk;
   });
 
   const tableRows = filteredUsers.map(u => {
@@ -95,6 +98,11 @@ export default function HourlyMonitor({ user }) {
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
           <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
             {ACCESSES.map(a => <option key={a}>{a}</option>)}
+          </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="all">All</option>
           </select>
           <button className="btn-sm" onClick={load}>↺ Refresh</button>
         </div>

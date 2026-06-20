@@ -99,7 +99,7 @@ export default function Login({ onLogin }) {
         setLoading(false);
         return;
       }
-      localStorage.setItem('hh_user', JSON.stringify(u));
+      sessionStorage.setItem('hh_user', JSON.stringify(u));
       onLogin(u);
     } catch {
       setError('Connection error. Please try again.');

@@ -37,7 +37,7 @@ export default function Profile({ user, theme: currentTheme, onTheme, onClose, o
       }
 
       const updated = { ...user, ...updates };
-      localStorage.setItem('hh_user', JSON.stringify(updated));
+      sessionStorage.setItem('hh_user', JSON.stringify(updated));
       onSave(updated);
       setMsg('Profile saved!');
     } catch {

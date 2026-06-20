@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned } from '../../lib/helpers';
 import { ACCESSES, SHIFT_H } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
@@ -18,6 +18,9 @@ function StatusBadge({ prod, bypassed }) {
 export default function ProdMonitor({ user }) {
   const [date, setDate]         = useState(today());
   const [filterProc, setProc]   = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [pinnedOnly, setPinnedOnly] = useState(false);
+  const [pinned, setPinned]     = useState([]);
   const [logs, setLogs]         = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [holiday, setHoliday]   = useState(null);
@@ -33,11 +36,12 @@ export default function ProdMonitor({ user }) {
   const [qualityLoading, setQualityLoading] = useState(false);
 
   useEffect(() => { load(); }, [date]);
+  useEffect(() => { getPinned().then(setPinned); }, []);
 
   async function load() {
     setLoading(true);
     const [u, l, h] = await Promise.all([
-      S.get('users', { active: true }),
+      S.get('users'),
       S.get('daily_logs', { date }),
       S.get('holidays', { date }),
     ]);
@@ -45,6 +49,11 @@ export default function ProdMonitor({ user }) {
     setLogs(l ?? []);
     setHoliday(h?.[0] ?? null);
     setLoading(false);
+  }
+
+  async function togglePin(empId) {
+    const next = await togglePinned(empId, pinned);
+    setPinned(next);
   }
 
   async function toggleHoliday() {
@@ -100,14 +109,17 @@ export default function ProdMonitor({ user }) {
     await load();
   }
 
-  const employees = allUsers.filter(u => u.role === 'employee');
-  const filteredUsers = filterProc === 'ALL'
-    ? employees
-    : employees.filter(u =>
-        u.access === filterProc || u.access === 'ALL' ||
-        u.process === filterProc || u.process === 'ALL');
+  const employees = allUsers.filter(u => {
+    if (u.role !== 'employee') return false;
+    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+    const statusOk = statusFilter === 'all' ||
+      (statusFilter === 'active' ? u.active !== false : u.active === false);
+    const pinOk    = !pinnedOnly || pinned.includes(u.emp_id);
+    return procOk && statusOk && pinOk;
+  });
+  const filteredUsers = employees;
 
-  const filteredLogs = filterProc === 'ALL' ? logs : logs.filter(l => l.process === filterProc);
+  const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc));
 
   const tableRows = filteredUsers.map(u => {
     const log  = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
@@ -117,7 +129,7 @@ export default function ProdMonitor({ user }) {
     const prod    = p(log?.total, adjT);
     const deficit = adjT != null && log?.total != null ? adjT - log.total : null;
     return { ...u, log, adjT, prod, deficit };
-  });
+  }).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
 
   const avgProd    = avg(tableRows.map(r => r.prod).filter(v => v != null));
   const avgQuality = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
@@ -151,6 +163,18 @@ export default function ProdMonitor({ user }) {
           <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
             {ACCESSES.map(a => <option key={a}>{a}</option>)}
           </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="all">All</option>
+          </select>
+          <button
+            className="btn-sm"
+            style={pinnedOnly ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+            onClick={() => setPinnedOnly(v => !v)}
+          >
+            📌 Pinned only
+          </button>
           <button className="btn-sm" onClick={load}>↺ Refresh</button>
           <button
             className="btn-sm"
@@ -210,11 +234,21 @@ export default function ProdMonitor({ user }) {
               {tableRows.length === 0 && (
                 <tr><td colSpan={12} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No employees found</td></tr>
               )}
-              {tableRows.map(row => (
-                <tr key={row.emp_id}>
-                  <td className="bold" style={{ cursor: 'pointer', color: 'var(--accent)' }}
-                    onClick={() => setEmpDetail(row)}>
-                    {row.name ?? row.emp_id}
+              {tableRows.map(row => {
+                const isPinned = pinned.includes(row.emp_id);
+                return (
+                <tr key={row.emp_id} style={isPinned ? { borderLeft: '3px solid var(--accent)' } : undefined}>
+                  <td className="bold">
+                    <span
+                      onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
+                      style={{ cursor: 'pointer', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
+                      title={isPinned ? 'Unpin' : 'Pin for close monitoring'}
+                    >
+                      📌
+                    </span>
+                    <span style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setEmpDetail(row)}>
+                      {row.name ?? row.emp_id}
+                    </span>
                   </td>
                   <td>{row.log?.process ?? row.access}</td>
                   <td className="center">
@@ -258,7 +292,7 @@ export default function ProdMonitor({ user }) {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>

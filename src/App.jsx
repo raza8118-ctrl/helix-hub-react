@@ -45,18 +45,24 @@ export default function App() {
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hh_user');
-      if (raw) {
+    (async () => {
+      try {
+        const raw = sessionStorage.getItem('hh_user');
+        if (!raw) return;
         const u = JSON.parse(raw);
-        const t = u.theme || THEMES[0].id;
         setCurrentUser(u);
-        setTheme(t);
-        applyTheme(t);
         const isAdmin = u.role === 'admin' || u.role === 'manager';
         setActiveTab(isAdmin ? 'today' : 'prodreport');
-      }
-    } catch { /* ignore corrupt session */ }
+
+        let t = u.theme || THEMES[0].id;
+        try {
+          const prefs = await kv.get(`prefs_${u.emp_id}`);
+          if (prefs?.theme && THEMES.find(th => th.id === prefs.theme)) t = prefs.theme;
+        } catch { /* use default */ }
+        setTheme(t);
+        applyTheme(t);
+      } catch { /* ignore corrupt session */ }
+    })();
   }, []);
 
   // ── Live clock ──────────────────────────────────────────────────────────────
@@ -105,7 +111,7 @@ export default function App() {
     const isAdmin = u.role === 'admin' || u.role === 'manager';
     setCurrentUser(u);
     setActiveTab(isAdmin ? 'today' : 'prodreport');
-    localStorage.setItem('hh_user', JSON.stringify(u));
+    sessionStorage.setItem('hh_user', JSON.stringify(u));
 
     // Load saved theme from rcm:prefs:{empId}
     let t = u.theme || THEMES[0].id;
@@ -121,7 +127,7 @@ export default function App() {
 
   // ── Logout ──────────────────────────────────────────────────────────────────
   function handleLogout() {
-    localStorage.removeItem('hh_user');
+    sessionStorage.removeItem('hh_user');
     setCurrentUser(null);
     setActiveTab('today');
     setShowProfile(false);
@@ -140,7 +146,7 @@ export default function App() {
         const existing = await kv.get(`prefs_${currentUser.emp_id}`) ?? {};
         await kv.set(`prefs_${currentUser.emp_id}`, { ...existing, theme: newTheme });
         const updated = { ...currentUser, theme: newTheme };
-        localStorage.setItem('hh_user', JSON.stringify(updated));
+        sessionStorage.setItem('hh_user', JSON.stringify(updated));
         setCurrentUser(updated);
       } catch { /* non-critical */ }
     }
@@ -149,7 +155,7 @@ export default function App() {
   // ── User update (from Profile modal) ────────────────────────────────────────
   function handleUserUpdate(updated) {
     setCurrentUser(updated);
-    localStorage.setItem('hh_user', JSON.stringify(updated));
+    sessionStorage.setItem('hh_user', JSON.stringify(updated));
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────

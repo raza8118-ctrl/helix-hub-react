@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI } from '../../lib/helpers';
+import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI, procIncludes, logMatchesProc } from '../../lib/helpers';
 import { MONTHS, ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import LineChart from '../../components/shared/LineChart';
@@ -16,6 +16,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const [refDate, setRefDate]   = useState(getMon(todayStr));
   const [refMonth, setRefMonth] = useState({ y: new Date().getFullYear(), m: new Date().getMonth() + 1 });
   const [filterProc, setProc]   = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [agentId, setAgentId]   = useState('ALL');
   const [logs, setLogs]         = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -35,7 +36,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   async function load() {
     setLoading(true);
     const [u, h] = await Promise.all([
-      S.get('users', { active: true }),
+      S.get('users'),
       S.get('holidays'),
     ]);
     setAllUsers(u ?? []);
@@ -50,13 +51,15 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
   const filteredUsers = allUsers.filter(u => {
     if (u.role !== 'employee') return false;
-    const procOk  = filterProc === 'ALL' || u.access === filterProc || u.access === 'ALL' || u.process === filterProc || u.process === 'ALL';
-    const agentOk = agentId === 'ALL' || u.emp_id === agentId;
-    return procOk && agentOk;
+    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+    const agentOk  = agentId === 'ALL' || u.emp_id === agentId;
+    const statusOk = statusFilter === 'all' ||
+      (statusFilter === 'active' ? u.active !== false : u.active === false);
+    return procOk && agentOk && statusOk;
   });
 
   const filteredLogs = logs.filter(l => {
-    const procOk  = filterProc === 'ALL' || l.process === filterProc;
+    const procOk  = logMatchesProc(l, filterProc);
     const agentOk = agentId === 'ALL' || l.emp_id === agentId;
     return procOk && agentOk && !holidayDates.has(l.date);
   });
@@ -169,6 +172,11 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
           </div>
           <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 120 }}>
             {ACCESSES.map(a => <option key={a}>{a}</option>)}
+          </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="all">All</option>
           </select>
           <select value={agentId} onChange={e => setAgentId(e.target.value)} style={{ maxWidth: 165 }}>
             <option value="ALL">All Agents</option>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, dlCSV, callAI } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import Modal from '../../components/shared/Modal';
@@ -11,6 +11,9 @@ const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / ad
 export default function Today({ user }) {
   const [date, setDate]         = useState(today());
   const [filterProc, setProc]   = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [pinnedOnly, setPinnedOnly] = useState(false);
+  const [pinned, setPinned]     = useState([]);
   const [logs, setLogs]         = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [holiday, setHoliday]   = useState(null);
@@ -21,11 +24,12 @@ export default function Today({ user }) {
   const [empDetail, setEmpDetail] = useState(null);
 
   useEffect(() => { load(); }, [date]);
+  useEffect(() => { getPinned().then(setPinned); }, []);
 
   // Auto-refresh every 30 seconds so admin sees new submissions quickly
   useEffect(() => {
     const interval = setInterval(() => {
-      Promise.all([S.get('daily_logs', { date }), S.get('users', { active: true })]).then(([l, u]) => {
+      Promise.all([S.get('daily_logs', { date }), S.get('users')]).then(([l, u]) => {
         setLogs(l ?? []);
         setAllUsers(u ?? []);
       });
@@ -36,7 +40,7 @@ export default function Today({ user }) {
   async function load() {
     setLoading(true);
     const [u, l, h] = await Promise.all([
-      S.get('users', { active: true }),
+      S.get('users'),
       S.get('daily_logs', { date }),
       S.get('holidays', { date }),
     ]);
@@ -46,16 +50,22 @@ export default function Today({ user }) {
     setLoading(false);
   }
 
-  const employees = allUsers.filter(u => u.role === 'employee');
-  const filteredUsers = filterProc === 'ALL'
-    ? employees
-    : employees.filter(u =>
-        u.access === filterProc || u.access === 'ALL' ||
-        u.process === filterProc || u.process === 'ALL');
+  async function togglePin(empId) {
+    const next = await togglePinned(empId, pinned);
+    setPinned(next);
+  }
 
-  const filteredLogs = filterProc === 'ALL'
-    ? logs
-    : logs.filter(l => l.process === filterProc);
+  const employees = allUsers.filter(u => {
+    if (u.role !== 'employee') return false;
+    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+    const statusOk = statusFilter === 'all' ||
+      (statusFilter === 'active' ? u.active !== false : u.active === false);
+    const pinOk    = !pinnedOnly || pinned.includes(u.emp_id);
+    return procOk && statusOk && pinOk;
+  });
+  const filteredUsers = employees;
+
+  const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc));
 
   const submitted  = filteredLogs.filter(l => l.submitted).length;
   const pending    = filteredUsers.length - submitted;
@@ -69,7 +79,7 @@ export default function Today({ user }) {
   const tableRows = filteredUsers.map(u => ({
     ...u,
     log: filteredLogs.find(l => l.emp_id === u.emp_id) ?? null,
-  }));
+  })).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
 
   async function toggleHoliday() {
     if (holiday) {
@@ -150,6 +160,18 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
           <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
             {ACCESSES.map(a => <option key={a}>{a}</option>)}
           </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="all">All</option>
+          </select>
+          <button
+            className="btn-sm"
+            style={pinnedOnly ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+            onClick={() => setPinnedOnly(v => !v)}
+          >
+            📌 Pinned only
+          </button>
           <button
             className="btn-sm"
             style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
@@ -166,7 +188,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       {/* KPI cards */}
       <div className="grid-4 mb-16">
         {[
-          { label: 'Team Size',        value: filteredUsers.length, sub: 'active employees',    cls: '' },
+          { label: 'Team Size',        value: filteredUsers.length, sub: `${statusFilter} employees`, cls: '' },
           { label: 'Submitted',        value: submitted,             sub: `${pending} pending`,  cls: 'col-green' },
           { label: 'Avg Productivity', value: avgProd != null ? avgProd.toFixed(1) + '%' : '—', sub: 'target 100%', cls: pCol(avgProd) },
           { label: 'Avg Quality',      value: avgQuality != null ? avgQuality.toFixed(1) + '%' : '—', sub: 'target ≥95%', cls: pCol(avgQuality) },
@@ -217,11 +239,20 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
               )}
               {tableRows.map(row => {
                 const prod = row.log ? p(row.log.total, row.log.adj_target ?? row.log.target) : null;
+                const isPinned = pinned.includes(row.emp_id);
                 return (
-                  <tr key={row.emp_id}>
-                    <td className="bold" style={{ cursor: 'pointer', color: 'var(--accent)' }}
-                      onClick={() => setEmpDetail(row)}>
-                      {row.name ?? row.emp_id}
+                  <tr key={row.emp_id} style={isPinned ? { borderLeft: '3px solid var(--accent)' } : undefined}>
+                    <td className="bold">
+                      <span
+                        onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
+                        style={{ cursor: 'pointer', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
+                        title={isPinned ? 'Unpin' : 'Pin for close monitoring'}
+                      >
+                        📌
+                      </span>
+                      <span style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setEmpDetail(row)}>
+                        {row.name ?? row.emp_id}
+                      </span>
                     </td>
                     <td>{row.log?.process ?? row.access}</td>
                     <td className="center">

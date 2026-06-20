@@ -36,6 +36,7 @@ export default function TeamMgmt({ user }) {
   const [customProcs, setCustomProcs] = useState([]);
   const [search, setSearch]           = useState('');
   const [procFilter, setProcFilter]   = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [loading, setLoading]         = useState(false);
   const [showForm, setShowForm]       = useState(false);
   const [editUser, setEditUser]       = useState(null);
@@ -65,8 +66,11 @@ export default function TeamMgmt({ user }) {
   const displayUsers = allUsers.filter(u => {
     const q      = search.toLowerCase();
     const nameOk = !q || (u.name ?? '').toLowerCase().includes(q) || (u.emp_id ?? '').toLowerCase().includes(q);
-    const procOk = procFilter === 'ALL' || u.access === procFilter || u.access === 'ALL' || u.process === procFilter || u.process === 'ALL';
-    return nameOk && procOk;
+    const procOk = procFilter === 'ALL' || u.access === procFilter || u.access === 'ALL' ||
+      u.process === procFilter || u.process === 'ALL' || (u.processes ?? []).includes(procFilter);
+    const statusOk = statusFilter === 'all' ||
+      (statusFilter === 'active' ? u.active !== false : u.active === false);
+    return nameOk && procOk && statusOk;
   });
 
   const setF = patch => setForm(prev => ({ ...prev, ...patch }));
@@ -217,6 +221,11 @@ export default function TeamMgmt({ user }) {
             <select value={procFilter} onChange={e => setProcFilter(e.target.value)} style={{ maxWidth: 140 }}>
               <option value="ALL">All Processes</option>
               {allProcs.map(p => <option key={p}>{p}</option>)}
+            </select>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+              <option value="all">All</option>
             </select>
           </div>
         </div>

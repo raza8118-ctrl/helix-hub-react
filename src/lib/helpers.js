@@ -1,4 +1,5 @@
 import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES } from './constants.js';
+import { kv } from './supabase.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -120,6 +121,25 @@ export function procDisplay(user) {
 /** True if user's processes include the given filter */
 export function procIncludes(user, filter) {
   return getProcs(user).includes(filter);
+}
+
+/** True if a saved log's (possibly comma-joined) process field includes the given process */
+export function logMatchesProc(log, filterProc) {
+  if (filterProc === 'ALL') return true;
+  return (log?.process ?? '').split(',').map(s => s.trim()).includes(filterProc);
+}
+
+// ── Pinned employees (admin "watch closely" list, shared across admins) ───────
+
+export async function getPinned() {
+  const ids = await kv.get('pinned_emp_ids');
+  return Array.isArray(ids) ? ids : [];
+}
+
+export async function togglePinned(empId, current) {
+  const next = current.includes(empId) ? current.filter(id => id !== empId) : [...current, empId];
+  await kv.set('pinned_emp_ids', next);
+  return next;
 }
 
 /** Merges taskConfig with user's processes, returns deduped flat array (first-seen name wins) */
