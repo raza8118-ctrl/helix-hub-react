@@ -37,6 +37,82 @@ function timeAgo(iso) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+// Defined at module scope (not inside TeamFeed) so React keeps a stable identity
+// across re-renders — otherwise every post (and any open EmojiPicker popover)
+// would unmount/remount on every unrelated state change in the parent.
+function PostCard({ post, user, userById, posts, reactions, comments, openComments, setOpenComments, commentDraft, setCommentDraft, reactToPost, addComment, sharePost, deletePost }) {
+  const author = userById(post.emp_id);
+  const shared = post.shared_from_post_id ? posts.find(p => p.id === post.shared_from_post_id) : null;
+  const sharedAuthor = shared ? userById(shared.emp_id) : null;
+  const postReactions = reactions.filter(r => r.target_type === 'post' && r.target_id === post.id);
+  const myReaction = postReactions.find(r => r.emp_id === user.emp_id)?.emoji ?? null;
+  const counts = {};
+  postReactions.forEach(r => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
+  const postComments = comments.filter(c => c.post_id === post.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const visLabel = POST_VISIBILITY.find(v => v.id === post.visibility)?.label ?? post.visibility;
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <div>
+          <div className="bold" style={{ fontSize: 13 }}>{author?.name ?? post.emp_id}</div>
+          <div className="text-muted text-sm">{timeAgo(post.created_at)} · {visLabel}</div>
+        </div>
+        {post.emp_id === user.emp_id && (
+          <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => deletePost(post)}>Delete</button>
+        )}
+      </div>
+
+      {shared && (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10, marginBottom: 8, background: 'var(--surface-2)' }}>
+          <div className="text-sm bold" style={{ marginBottom: 4 }}>{sharedAuthor?.name ?? shared.emp_id}</div>
+          {shared.content && <div style={{ fontSize: 13, marginBottom: 6 }}>{shared.content}</div>}
+          {shared.image_url && <img src={shared.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
+          {shared.gif_url && <img src={shared.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
+        </div>
+      )}
+
+      {post.content && <div style={{ fontSize: 14, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{post.content}</div>}
+      {post.image_url && <img src={post.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
+      {post.gif_url && <img src={post.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
+
+      {Object.keys(counts).length > 0 && (
+        <div className="text-muted text-sm" style={{ marginBottom: 6 }}>
+          {REACTIONS.filter(r => counts[r.id]).map(r => `${r.emoji}${counts[r.id]}`).join('  ')}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <EmojiPicker myReaction={myReaction} onReact={id => reactToPost(post.id, id)} />
+        <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}>
+          💬 {postComments.length > 0 ? postComments.length : 'Comment'}
+        </button>
+        <button className="btn-sm" onClick={() => sharePost(post)}>🔁 Share</button>
+      </div>
+
+      {openComments[post.id] && (
+        <div>
+          {postComments.map(c => (
+            <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
+              <strong>{c.emp_name ?? c.emp_id}:</strong> {c.content}
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <input
+              type="text" placeholder="Write a comment…"
+              value={commentDraft[post.id] ?? ''}
+              onChange={e => setCommentDraft(prev => ({ ...prev, [post.id]: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && addComment(post.id)}
+              style={{ flex: 1 }}
+            />
+            <button className="btn-sm" onClick={() => addComment(post.id)}>Post</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TeamFeed({ user }) {
   const [allUsers, setAllUsers]   = useState([]);
   const [requests, setRequests]   = useState([]);
@@ -56,6 +132,7 @@ export default function TeamFeed({ user }) {
   const [gifResults, setGifResults] = useState([]);
   const [gifUrl, setGifUrl]       = useState('');
   const [gifLoading, setGifLoading] = useState(false);
+  const [gifErr, setGifErr]       = useState('');
   const [posting, setPosting]     = useState(false);
 
   const [openComments, setOpenComments] = useState({});
@@ -103,12 +180,15 @@ export default function TeamFeed({ user }) {
   }
 
   async function doGifSearch() {
-    setGifLoading(true);
+    if (!gifQuery.trim()) return;
+    setGifLoading(true); setGifErr('');
     try {
       const results = await searchGifs(gifQuery);
       setGifResults(results);
-    } catch {
+      if (results.length === 0) setGifErr('No GIFs found for that search.');
+    } catch (err) {
       setGifResults([]);
+      setGifErr(`GIF search failed: ${err.message}`);
     }
     setGifLoading(false);
   }
@@ -178,79 +258,6 @@ export default function TeamFeed({ user }) {
     .filter(p => canViewPost(p, user.emp_id, requests, closeFriends))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  function PostCard({ post }) {
-    const author = userById(post.emp_id);
-    const shared = post.shared_from_post_id ? posts.find(p => p.id === post.shared_from_post_id) : null;
-    const sharedAuthor = shared ? userById(shared.emp_id) : null;
-    const postReactions = reactions.filter(r => r.target_type === 'post' && r.target_id === post.id);
-    const myReaction = postReactions.find(r => r.emp_id === user.emp_id)?.emoji ?? null;
-    const counts = {};
-    postReactions.forEach(r => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
-    const postComments = comments.filter(c => c.post_id === post.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    const visLabel = POST_VISIBILITY.find(v => v.id === post.visibility)?.label ?? post.visibility;
-
-    return (
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-          <div>
-            <div className="bold" style={{ fontSize: 13 }}>{author?.name ?? post.emp_id}</div>
-            <div className="text-muted text-sm">{timeAgo(post.created_at)} · {visLabel}</div>
-          </div>
-          {post.emp_id === user.emp_id && (
-            <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => deletePost(post)}>Delete</button>
-          )}
-        </div>
-
-        {shared && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10, marginBottom: 8, background: 'var(--surface-2)' }}>
-            <div className="text-sm bold" style={{ marginBottom: 4 }}>{sharedAuthor?.name ?? shared.emp_id}</div>
-            {shared.content && <div style={{ fontSize: 13, marginBottom: 6 }}>{shared.content}</div>}
-            {shared.image_url && <img src={shared.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
-            {shared.gif_url && <img src={shared.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
-          </div>
-        )}
-
-        {post.content && <div style={{ fontSize: 14, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{post.content}</div>}
-        {post.image_url && <img src={post.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
-        {post.gif_url && <img src={post.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
-
-        {Object.keys(counts).length > 0 && (
-          <div className="text-muted text-sm" style={{ marginBottom: 6 }}>
-            {REACTIONS.filter(r => counts[r.id]).map(r => `${r.emoji}${counts[r.id]}`).join('  ')}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          <EmojiPicker myReaction={myReaction} onReact={id => reactToPost(post.id, id)} />
-          <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}>
-            💬 {postComments.length > 0 ? postComments.length : 'Comment'}
-          </button>
-          <button className="btn-sm" onClick={() => sharePost(post)}>🔁 Share</button>
-        </div>
-
-        {openComments[post.id] && (
-          <div>
-            {postComments.map(c => (
-              <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
-                <strong>{c.emp_name ?? c.emp_id}:</strong> {c.content}
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-              <input
-                type="text" placeholder="Write a comment…"
-                value={commentDraft[post.id] ?? ''}
-                onChange={e => setCommentDraft(prev => ({ ...prev, [post.id]: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && addComment(post.id)}
-                style={{ flex: 1 }}
-              />
-              <button className="btn-sm" onClick={() => addComment(post.id)}>Post</button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="page-header">
@@ -303,6 +310,8 @@ export default function TeamFeed({ user }) {
           </button>
         </div>
 
+        {gifErr && <div style={{ color: '#dc2626', fontSize: 12, marginBottom: 8 }}>{gifErr}</div>}
+
         {gifResults.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
             {gifResults.map(g => (
@@ -319,7 +328,15 @@ export default function TeamFeed({ user }) {
       ) : visiblePosts.length === 0 ? (
         <div className="text-muted text-sm">No posts yet — be the first to share something.</div>
       ) : (
-        visiblePosts.map(post => <PostCard key={post.id} post={post} />)
+        visiblePosts.map(post => (
+          <PostCard
+            key={post.id} post={post} user={user} userById={userById} posts={posts}
+            reactions={reactions} comments={comments}
+            openComments={openComments} setOpenComments={setOpenComments}
+            commentDraft={commentDraft} setCommentDraft={setCommentDraft}
+            reactToPost={reactToPost} addComment={addComment} sharePost={sharePost} deletePost={deletePost}
+          />
+        ))
       )}
 
       {showFriends && <FriendsPanel user={user} onClose={() => setShowFriends(false)} />}
