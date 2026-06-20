@@ -49,7 +49,7 @@ export const POST_VISIBILITY = [
 ];
 
 export const FEED_BUCKET = 'feed-media';
-export const GIPHY_API_KEY = 'dc6zaTOxFJmzC'; // Giphy public beta key — swap for your own in Settings later
+export const GIPHY_API_KEY = 'O7xoQ2OykXwLJWW9WkTbfT6mOCmUC7NJ';
 
 export const THEMES = [
   { id: 'light',       label: 'Light',         bg: '#f5f6fa',  topbar: '#ffffff',  dark: false },
