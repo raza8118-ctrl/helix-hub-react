@@ -1,4 +1,4 @@
-import { DEFAULT_TASKS, SHIFT_H } from './constants.js';
+import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES } from './constants.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -70,8 +70,7 @@ export function mDays(year, month) {
 export function pCol(pct) {
   if (pct === null || pct === undefined) return 'col-neutral';
   if (pct >= 100) return 'col-green';
-  if (pct >= 85)  return 'col-yellow';
-  if (pct >= 70)  return 'col-orange';
+  if (pct >= 75)  return 'col-orange';
   return 'col-red';
 }
 
@@ -102,6 +101,12 @@ export function getProcKey(process) {
 
 /** Returns array of process keys for a user object */
 export function getProcs(user) {
+  // user.processes array (TeamMgmt multi-select) takes priority
+  if (Array.isArray(user?.processes) && user.processes.length > 0) {
+    const valid = user.processes.filter(p => DEFAULT_TASKS[p]);
+    if (valid.length > 0) return valid;
+    if (user.processes.includes('ALL')) return ['MCO', 'MCD', 'MCR', 'AUTH'];
+  }
   const proc = user?.process || user?.access;
   if (!proc || proc === 'ALL') return ['MCO', 'MCD', 'MCR', 'AUTH'];
   return [proc];
@@ -117,35 +122,70 @@ export function procIncludes(user, filter) {
   return getProcs(user).includes(filter);
 }
 
-/** Merges taskConfig with user's processes, returns flat array with process key */
+/** Merges taskConfig with user's processes, returns deduped flat array (first-seen name wins) */
 export function getTasksForUser(user, taskConfig = DEFAULT_TASKS) {
+  const seen = new Set();
   return getProcs(user).flatMap(p =>
     (taskConfig[p] || []).map(t => ({ ...t, process: p }))
-  );
+  ).filter(t => {
+    if (seen.has(t.name)) return false;
+    seen.add(t.name);
+    return true;
+  });
 }
 
 // ── Productivity calculation ──────────────────────────────────────────────────
 
 /**
- * @param {Array}  tasks     - task definitions [{name, target}]
- * @param {Object} counts    - {taskName: count}
- * @param {number} target    - daily total target
- * @param {number} downtime  - downtime in minutes
- * @param {boolean} isAuth   - whether AUTH process
- * @returns {{ total, adjTarget, prodPct, deficit }}
+ * Weighted productivity formula.
+ * Each task contributes count × (50 / task.target) to the weighted total.
+ * AUTH process: raw claim count only, prod% = (total / 50) × 100.
+ *
+ * @param {Array}   tasks          - task definitions [{name, target}]
+ * @param {Object}  counts         - {taskName: count}
+ * @param {number}  overallTarget  - daily target (used for non-AUTH adj. target)
+ * @param {number}  downtimeHours  - downtime in HOURS (not minutes)
+ * @param {boolean} isAuth         - AUTH process flag
+ * @returns {{ total, adjTarget, prodPct, deficit, deficitPct }}
  */
-export function calcProd(tasks, counts, target, downtime, isAuth) {
-  const shiftMins = SHIFT_H * 60;
-  const effectiveMins = Math.max(0, shiftMins - (downtime || 0));
-  const timeRatio = effectiveMins / shiftMins;
-  const adjTarget = Math.round(target * timeRatio);
+/**
+ * Four-path productivity calculation (spec §4).
+ * opts.attendanceStatus: 'present'|'half_day_1'|'half_day_2'|'full_leave'|'planned_leave'|'csl'|'absent'
+ * opts.isLegacyAuth: true only for AUTH-only users with date < LEGACY_AUTH_CUTOFF
+ * Weight is NEVER stored — always derived as 50/t.target (un-rounded float).
+ */
+export function calcProd(tasks, counts, overallTarget, downtimeHours, opts = {}) {
+  const { attendanceStatus = 'present', isLegacyAuth = false } = opts;
 
-  const total = (tasks || []).reduce((sum, t) => sum + (Number(counts?.[t.name]) || 0), 0);
+  // PATH A — Leave: no calculation
+  if (LEAVE_STATUSES.includes(attendanceStatus)) {
+    return { total: 0, adjTarget: 0, prodPct: null, deficit: 0, deficitPct: null, isLeave: true, shiftHours: 0, baseTarget: 0 };
+  }
 
-  const prodPct = adjTarget > 0 ? Math.round((total / adjTarget) * 100) : null;
-  const deficit = Math.max(0, adjTarget - total);
+  // Weighted total (same formula for all non-leave paths)
+  let total = 0;
+  for (const t of (tasks || [])) {
+    total += (parseFloat(counts?.[t.name]) || 0) * (50 / t.target);
+  }
+  total = +total.toFixed(2);
 
-  return { total, adjTarget, prodPct, deficit };
+  // PATH B — Legacy Auth (frozen historical behaviour)
+  if (isLegacyAuth) {
+    const prodPct = total > 0 ? +Math.min((total / 50) * 100, 999).toFixed(1) : 0;
+    return { total, adjTarget: 50, prodPct, deficit: 0, deficitPct: 0, isLeave: false, shiftHours: SHIFT_H, baseTarget: 50 };
+  }
+
+  // PATH D — Half-day feeds PATH C with adjusted inputs
+  const isHalfDay = HALF_DAY_STATUSES.includes(attendanceStatus);
+  const shiftHours = isHalfDay ? 4 : SHIFT_H;
+  const baseTarget = isHalfDay ? overallTarget * 0.5 : overallTarget;
+
+  // PATH C — Standard
+  const eff = Math.max(0, (shiftHours - (parseFloat(downtimeHours) || 0)) / shiftHours);
+  const adjTarget = +(baseTarget * eff).toFixed(2);
+  const prodPct   = adjTarget > 0 ? +((total / adjTarget) * 100).toFixed(1) : 0;
+  const deficit   = +(Math.max(0, adjTarget - total)).toFixed(2);
+  return { total, adjTarget, prodPct, deficit, deficitPct: +(100 - prodPct).toFixed(1), isLeave: false, shiftHours, baseTarget };
 }
 
 /** True if user works on the AUTH process */
@@ -155,9 +195,9 @@ export function userIsAuth(user) {
 
 // ── AI helper ─────────────────────────────────────────────────────────────────
 
-export async function callAI(prompt, maxTokens = 1024) {
-  const key = import.meta.env.VITE_ANTHROPIC_KEY;
-  if (!key) throw new Error('VITE_ANTHROPIC_KEY not configured');
+export async function callAI(prompt, maxTokens = 1024, apiKey = null) {
+  const key = apiKey || import.meta.env.VITE_ANTHROPIC_KEY;
+  if (!key) throw new Error('NO_KEY');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -167,7 +207,7 @@ export async function callAI(prompt, maxTokens = 1024) {
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-4-5',
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
     }),

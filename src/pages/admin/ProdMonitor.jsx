@@ -11,7 +11,7 @@ function StatusBadge({ prod, bypassed }) {
   if (bypassed) return <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--accent)' }}>Bypassed</span>;
   if (prod == null) return <span className="badge badge-gray">No Data</span>;
   if (prod >= 100) return <span className="badge badge-green">On Track</span>;
-  if (prod >= 85)  return <span className="badge badge-yellow">At Risk</span>;
+  if (prod >= 75)  return <span className="badge badge-yellow">At Risk</span>;
   return <span className="badge badge-red">Below Target</span>;
 }
 
@@ -70,7 +70,7 @@ export default function ProdMonitor({ user }) {
         emp_id: bypassTarget.emp_id,
         emp_name: bypassTarget.name ?? bypassTarget.emp_id,
         date,
-        process: bypassTarget.access ?? 'MCO',
+        process: bypassTarget.process || bypassTarget.access || 'MCO',
         total: 0, target: bypassTarget.target ?? 50, adj_target: bypassTarget.target ?? 50,
         bypass_reason: bypassReason.trim(),
         submitted: false,
@@ -103,7 +103,9 @@ export default function ProdMonitor({ user }) {
   const employees = allUsers.filter(u => u.role === 'employee');
   const filteredUsers = filterProc === 'ALL'
     ? employees
-    : employees.filter(u => u.access === filterProc || u.access === 'ALL');
+    : employees.filter(u =>
+        u.access === filterProc || u.access === 'ALL' ||
+        u.process === filterProc || u.process === 'ALL');
 
   const filteredLogs = filterProc === 'ALL' ? logs : logs.filter(l => l.process === filterProc);
 

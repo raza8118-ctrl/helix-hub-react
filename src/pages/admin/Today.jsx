@@ -49,7 +49,9 @@ export default function Today({ user }) {
   const employees = allUsers.filter(u => u.role === 'employee');
   const filteredUsers = filterProc === 'ALL'
     ? employees
-    : employees.filter(u => u.access === filterProc || u.access === 'ALL');
+    : employees.filter(u =>
+        u.access === filterProc || u.access === 'ALL' ||
+        u.process === filterProc || u.process === 'ALL');
 
   const filteredLogs = filterProc === 'ALL'
     ? logs

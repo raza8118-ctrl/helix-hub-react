@@ -50,7 +50,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
   const filteredUsers = allUsers.filter(u => {
     if (u.role !== 'employee') return false;
-    const procOk  = filterProc === 'ALL' || u.access === filterProc || u.access === 'ALL';
+    const procOk  = filterProc === 'ALL' || u.access === filterProc || u.access === 'ALL' || u.process === filterProc || u.process === 'ALL';
     const agentOk = agentId === 'ALL' || u.emp_id === agentId;
     return procOk && agentOk;
   });

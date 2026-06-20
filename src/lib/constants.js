@@ -3,6 +3,15 @@ export const MONTHS = [
   'Jul','Aug','Sep','Oct','Nov','Dec',
 ];
 
+export const LEGACY_AUTH_CUTOFF = '2026-06-16';
+
+export const LEAVE_STATUSES    = ['full_leave', 'planned_leave', 'csl', 'absent'];
+export const HALF_DAY_STATUSES = ['half_day_1', 'half_day_2'];
+export const ATTENDANCE_STATUSES = [
+  'present', 'half_day_1', 'half_day_2',
+  'full_leave', 'planned_leave', 'csl', 'absent',
+];
+
 export const SHIFT_H = 8;
 
 export const HOURLY_SLOTS = [

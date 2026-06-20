@@ -13,7 +13,7 @@ export default function Settings({ user }) {
   const [taskCfg, setTaskCfg]     = useState(() => {
     const cfg = {};
     PROCESSES.forEach(p => {
-      cfg[p] = (DEFAULT_TASKS[p] ?? []).map(t => ({ name: t.name, target: '' }));
+      cfg[p] = (DEFAULT_TASKS[p] ?? []).map(t => ({ name: t.name, target: '', weight: '' }));
     });
     return cfg;
   });
@@ -34,7 +34,12 @@ export default function Settings({ user }) {
       PROCESSES.forEach(p => {
         cfg[p] = (DEFAULT_TASKS[p] ?? []).map(t => {
           const saved = rows.find(r => r.process === p && r.name === t.name);
-          return { name: t.name, target: saved?.target ?? '' };
+          const tgt = saved?.target;
+          return {
+            name: t.name,
+            target: tgt != null ? String(tgt) : '',
+            weight: tgt ? String(+(50 / tgt).toFixed(3)) : '',
+          };
         });
       });
       setTaskCfg(cfg);
@@ -60,9 +65,26 @@ export default function Settings({ user }) {
   }
 
   function updateTarget(proc, name, value) {
+    const tgt = parseFloat(value);
     setTaskCfg(prev => ({
       ...prev,
-      [proc]: prev[proc].map(t => t.name === name ? { ...t, target: value } : t),
+      [proc]: prev[proc].map(t => t.name === name ? {
+        ...t,
+        target: value,
+        weight: value !== '' && tgt > 0 ? String(+(50 / tgt).toFixed(3)) : '',
+      } : t),
+    }));
+  }
+
+  function updateWeight(proc, name, value) {
+    const wt = parseFloat(value);
+    setTaskCfg(prev => ({
+      ...prev,
+      [proc]: prev[proc].map(t => t.name === name ? {
+        ...t,
+        weight: value,
+        target: value !== '' && wt > 0 ? String(Math.round(50 / wt)) : '',
+      } : t),
     }));
   }
 
@@ -153,7 +175,7 @@ export default function Settings({ user }) {
           </div>
         </div>
         <p className="text-muted text-sm" style={{ marginBottom: 16 }}>
-          Set daily targets per task. Weights show each task's share of the total.
+          Set target <strong>or</strong> weight per task — they auto-sync. Weight = 50 ÷ Target (the multiplier used in the productivity formula).
         </p>
 
         {cfgLoading ? (
@@ -161,42 +183,53 @@ export default function Settings({ user }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 24 }}>
             {PROCESSES.map(proc => {
-              const total = totalWeight(proc);
+              const configured = (taskCfg[proc] ?? []).filter(t => t.target !== '').length;
               return (
                 <div key={proc}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: 'var(--accent)', display: 'flex', justifyContent: 'space-between' }}>
                     <span>{proc} Tasks</span>
-                    {total > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>Total: {total}</span>}
+                    {configured > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{configured} customised</span>}
                   </div>
                   <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                     <thead>
                       <tr>
                         <th style={{ textAlign: 'left', padding: '7px 8px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>Task</th>
+                        <th style={{ textAlign: 'right', padding: '7px 8px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>Default</th>
                         <th style={{ textAlign: 'right', padding: '7px 8px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>Target</th>
-                        <th style={{ textAlign: 'right', padding: '7px 8px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>Weight</th>
+                        <th style={{ textAlign: 'right', padding: '7px 8px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>Weight ×</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(taskCfg[proc] ?? []).map(t => {
-                        const tgt = parseFloat(t.target) || 0;
-                        const wt  = total > 0 ? ((tgt / total) * 100).toFixed(0) + '%' : '—';
+                        const defTgt = DEFAULT_TASKS[proc]?.find(d => d.name === t.name)?.target ?? '—';
                         return (
                           <tr key={t.name}>
                             <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', color: 'var(--text)' }}>
                               {t.name}
                             </td>
+                            <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'right', color: 'var(--text-muted)', fontSize: 12 }}>
+                              {defTgt}
+                            </td>
                             <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>
                               <input
                                 type="number"
-                                min="0"
+                                min="1"
                                 value={t.target}
                                 onChange={e => updateTarget(proc, t.name, e.target.value)}
-                                placeholder="—"
-                                style={{ width: 80, textAlign: 'right', padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12 }}
+                                placeholder={String(defTgt)}
+                                style={{ width: 72, textAlign: 'right', padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12 }}
                               />
                             </td>
-                            <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'right', color: 'var(--text-muted)', fontSize: 12 }}>
-                              {wt}
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>
+                              <input
+                                type="number"
+                                min="0.001"
+                                step="0.001"
+                                value={t.weight}
+                                onChange={e => updateWeight(proc, t.name, e.target.value)}
+                                placeholder={defTgt !== '—' ? String(+(50 / defTgt).toFixed(3)) : '—'}
+                                style={{ width: 72, textAlign: 'right', padding: '4px 8px', border: '1px solid var(--accent)', borderRadius: 4, background: 'var(--surface)', color: 'var(--accent)', fontSize: 12, fontWeight: 700 }}
+                              />
                             </td>
                           </tr>
                         );

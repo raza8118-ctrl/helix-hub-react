@@ -8,8 +8,7 @@ import { KPI, H2, Btn, SectionLabel } from './UI';
 function pColor(p) {
   if (p == null) return 'var(--col-neutral)';
   if (p >= 100) return 'var(--col-green)';
-  if (p >= 85)  return 'var(--col-yellow)';
-  if (p >= 70)  return 'var(--col-orange)';
+  if (p >= 75)  return 'var(--col-orange)';
   return 'var(--col-red)';
 }
 

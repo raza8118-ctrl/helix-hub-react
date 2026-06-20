@@ -65,7 +65,7 @@ export default function TeamMgmt({ user }) {
   const displayUsers = allUsers.filter(u => {
     const q      = search.toLowerCase();
     const nameOk = !q || (u.name ?? '').toLowerCase().includes(q) || (u.emp_id ?? '').toLowerCase().includes(q);
-    const procOk = procFilter === 'ALL' || u.access === procFilter || u.access === 'ALL';
+    const procOk = procFilter === 'ALL' || u.access === procFilter || u.access === 'ALL' || u.process === procFilter || u.process === 'ALL';
     return nameOk && procOk;
   });
 
@@ -76,9 +76,9 @@ export default function TeamMgmt({ user }) {
     setEditUser(u);
     setForm({
       emp_id: u.emp_id, name: u.name ?? '',
-      password: u.password ?? '', access: u.access ?? 'MCO',
+      password: u.password ?? '', access: u.access || u.process || 'MCO',
       role: u.role ?? 'employee', target: u.target ?? '',
-      processes: u.processes ?? [u.access ?? 'MCO'],
+      processes: u.processes ?? [u.access || u.process || 'MCO'],
       supervisor_ids: u.supervisor_ids ?? [],
     });
     setShowForm(true);
@@ -247,7 +247,7 @@ export default function TeamMgmt({ user }) {
                       {u.role}
                     </span>
                   </td>
-                  <td>{u.access}</td>
+                  <td>{u.access || u.process || '—'}</td>
                   <td className="right">{u.target ?? '—'}</td>
                   <td className="center">
                     <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
