@@ -197,7 +197,7 @@ export function calcProd(tasks, counts, overallTarget, downtimeHours, opts = {})
 
   // PATH D — Half-day feeds PATH C with adjusted inputs
   const isHalfDay = HALF_DAY_STATUSES.includes(attendanceStatus);
-  const shiftHours = isHalfDay ? 4 : SHIFT_H;
+  const shiftHours = isHalfDay ? 4.5 : SHIFT_H;
   const baseTarget = isHalfDay ? overallTarget * 0.5 : overallTarget;
 
   // PATH C — Standard

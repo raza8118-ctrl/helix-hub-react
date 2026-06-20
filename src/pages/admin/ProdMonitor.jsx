@@ -7,7 +7,7 @@ import EmpDetail from '../../components/shared/EmpDetail';
 
 const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
-const STATUS_LABELS = { present: 'Present', half_day_1: 'Half Day AM', half_day_2: 'Half Day PM', absent: 'Absent' };
+const STATUS_LABELS = { present: 'Present', half_day_1: 'First Half', half_day_2: 'Second Half', absent: 'Absent' };
 
 function StatusBadge({ prod, bypassed }) {
   if (bypassed) return <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--accent)' }}>Bypassed</span>;

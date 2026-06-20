@@ -29,7 +29,7 @@ function calcProd(taskDefs, counts, overallTarget, downtimeHours, attendanceStat
 
   // PATH D — half-day feeds PATH C with adjusted inputs
   const isHalfDay = HALF_DAY_STATUSES.includes(attendanceStatus);
-  const shiftHours = isHalfDay ? 4 : SHIFT_H;
+  const shiftHours = isHalfDay ? 4.5 : SHIFT_H;
   const baseTarget = isHalfDay ? overallTarget * 0.5 : overallTarget;
 
   // PATH C — Standard
@@ -55,8 +55,8 @@ function pColor(pct) {
 
 const ATTEND_LABELS = {
   present:    'Present',
-  half_day_1: 'Half Day AM',
-  half_day_2: 'Half Day PM',
+  half_day_1: 'First Half',
+  half_day_2: 'Second Half',
   absent:     'Absent',
 };
 
@@ -100,7 +100,7 @@ export default function ProdReport({ user }) {
   const isLegacyAuth = isOnlyAuth && date < LEGACY_AUTH_CUTOFF;
   const isLeave      = LEAVE_STATUSES.includes(attendanceStatus);
   const isHalfDay    = HALF_DAY_STATUSES.includes(attendanceStatus);
-  const maxDowntime  = isHalfDay ? 4 : SHIFT_H;
+  const maxDowntime  = isHalfDay ? 4.5 : SHIFT_H;
 
   // ── Load task configs from DB once ───────────────────────────────────────
   useEffect(() => {
@@ -434,7 +434,7 @@ export default function ProdReport({ user }) {
         )}
         {isHalfDay && (
           <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, fontSize: 13, color: '#d97706' }}>
-            ⏱ Half-day: target halved to <strong>{overallTarget * 0.5}</strong>, shift capped at <strong>4 hours</strong>, downtime max 4h.
+            ⏱ Half-day: target halved to <strong>{overallTarget * 0.5}</strong>, shift capped at <strong>4.5 hours</strong>, downtime max 4.5h.
           </div>
         )}
       </div>
