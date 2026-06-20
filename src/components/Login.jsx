@@ -84,6 +84,7 @@ export default function Login({ onLogin }) {
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotOk, setForgotOk]   = useState(false);
   const [loading, setLoading]     = useState(false);
+  const [showPw, setShowPw]       = useState(false);
 
   useEffect(() => { ensureAdmin(); }, []);
 
@@ -159,16 +160,28 @@ export default function Login({ onLogin }) {
             </div>
             <div style={FIELD}>
               <label style={LBL} htmlFor="login-pw">Password</label>
-              <input
-                id="login-pw"
-                style={INP}
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="login-pw"
+                  style={{ ...INP, paddingRight: 36 }}
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                />
+                <span
+                  onClick={() => setShowPw(v => !v)}
+                  title={showPw ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    cursor: 'pointer', fontSize: 15, color: '#64748b', userSelect: 'none',
+                  }}
+                >
+                  {showPw ? '🙈' : '👁️'}
+                </span>
+              </div>
             </div>
 
             {error && (
