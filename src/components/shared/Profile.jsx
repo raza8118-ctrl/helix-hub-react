@@ -2,12 +2,50 @@ import { useState, useEffect } from 'react';
 import { THEMES } from '../../lib/constants';
 import { S } from '../../lib/supabase';
 
+// Resize + compress an uploaded image client-side so it stores compactly as a data URL
+function fileToResizedDataUrl(file, maxSize = 300, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Profile({ user, theme: currentTheme, onTheme, onClose, onSave }) {
   const [name, setName]         = useState(user.name || '');
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url || '');
   const [newPw, setNewPw]       = useState('');
   const [saving, setSaving]     = useState(false);
   const [msg, setMsg]           = useState('');
+  const [uploadErr, setUploadErr] = useState('');
+
+  async function handlePhotoPick(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setUploadErr('Please pick an image file.'); return; }
+    setUploadErr('');
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setAvatarUrl(dataUrl);
+    } catch {
+      setUploadErr('Could not read that image — try a different file.');
+    }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -78,6 +116,25 @@ export default function Profile({ user, theme: currentTheme, onTheme, onClose, o
                 {initials}
               </div>
             )}
+            <label
+              htmlFor="avatar-upload"
+              style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}
+            >
+              📷 Upload Photo
+            </label>
+            <input
+              id="avatar-upload" type="file" accept="image/*"
+              onChange={handlePhotoPick} style={{ display: 'none' }}
+            />
+            {avatarUrl && (
+              <button
+                onClick={() => setAvatarUrl('')}
+                style={{ marginTop: 2, background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Remove photo
+              </button>
+            )}
+            {uploadErr && <div style={{ color: '#dc2626', fontSize: 11, marginTop: 4 }}>{uploadErr}</div>}
             <div style={{ fontWeight: 700, fontSize: 16, marginTop: 10 }}>{user.name || user.emp_id}</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 3, display: 'flex', gap: 8 }}>
               <span>{user.emp_id}</span>
@@ -93,7 +150,7 @@ export default function Profile({ user, theme: currentTheme, onTheme, onClose, o
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Enter your name" />
           </div>
           <div className="form-group">
-            <label>Profile Picture URL</label>
+            <label>Profile Picture URL (alternative to uploading)</label>
             <input type="url" value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://..." />
           </div>
           <div className="form-group">
