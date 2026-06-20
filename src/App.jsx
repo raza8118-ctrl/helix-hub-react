@@ -53,7 +53,8 @@ export default function App() {
         const u = JSON.parse(raw);
         setCurrentUser(u);
         const isAdmin = u.role === 'admin' || u.role === 'manager';
-        setActiveTab(isAdmin ? 'today' : 'prodreport');
+        const savedTab = sessionStorage.getItem('hh_tab');
+        setActiveTab(savedTab || (isAdmin ? 'today' : 'prodreport'));
 
         let t = u.theme || THEMES[0].id;
         try {
@@ -83,12 +84,23 @@ export default function App() {
     if (!currentUser) return;
     const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
     if (isAdmin) return;
-    S.get('feedback').then(all => {
-      const cnt = (all ?? []).filter(f =>
-        (f.to_emp_id === currentUser.emp_id || f.to_emp_id === null) && !f.acknowledged
-      ).length;
+
+    async function checkUnread() {
+      const [all, acks] = await Promise.all([
+        S.get('feedback'),
+        S.get('feedback_acks', { emp_id: currentUser.emp_id }),
+      ]);
+      const ackedBroadcastIds = new Set((acks ?? []).map(a => a.feedback_id));
+      const cnt = (all ?? []).filter(f => {
+        const mine = f.to_emp_id === currentUser.emp_id || f.to_emp_id === null;
+        if (!mine) return false;
+        return f.to_emp_id ? !f.acknowledged : !ackedBroadcastIds.has(f.id);
+      }).length;
       setUnreadFeedback(cnt);
-    }).catch(() => {});
+    }
+    checkUnread().catch(() => {});
+    const id = setInterval(() => checkUnread().catch(() => {}), 25000);
+    return () => clearInterval(id);
   }, [currentUser]);
 
   // ── Deficit check (admins only, today's data) ───────────────────────────────
@@ -107,12 +119,20 @@ export default function App() {
     }).catch(() => {});
   }, [currentUser]);
 
+  // ── Tab switch (persisted so a browser refresh stays on the same tab) ───────
+  function handleSetTab(tabId) {
+    setActiveTab(tabId);
+    sessionStorage.setItem('hh_tab', tabId);
+  }
+
   // ── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin(u) {
     const isAdmin = u.role === 'admin' || u.role === 'manager';
     setCurrentUser(u);
-    setActiveTab(isAdmin ? 'today' : 'prodreport');
+    const startTab = isAdmin ? 'today' : 'prodreport';
+    setActiveTab(startTab);
     sessionStorage.setItem('hh_user', JSON.stringify(u));
+    sessionStorage.setItem('hh_tab', startTab);
 
     // Load saved theme from rcm:prefs:{empId}
     let t = u.theme || THEMES[0].id;
@@ -129,6 +149,7 @@ export default function App() {
   // ── Logout ──────────────────────────────────────────────────────────────────
   function handleLogout() {
     sessionStorage.removeItem('hh_user');
+    sessionStorage.removeItem('hh_tab');
     setCurrentUser(null);
     setActiveTab('today');
     setShowProfile(false);
@@ -184,7 +205,7 @@ export default function App() {
         onLogout={handleLogout}
         onOpenProfile={() => setShowProfile(true)}
         activeTab={activeTab}
-        onTab={setActiveTab}
+        onTab={handleSetTab}
         tabs={tabs}
         clock={clock}
         deficitCount={hasDeficit ? 1 : 0}

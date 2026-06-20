@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { S, storage } from '../../lib/supabase';
 import { today, fmtD, resizeImage } from '../../lib/helpers';
 import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import ReactionBar from '../../components/shared/ReactionBar';
 import CommentThread from '../../components/shared/CommentThread';
+import Toast from '../../components/shared/Toast';
+
+const POLL_MS = 25000;
 
 function PriorityBadge({ priority }) {
   const p = PRIORITIES.find(x => x.id === priority) ?? PRIORITIES[1];
@@ -26,11 +29,19 @@ export default function AdminFeedback({ user }) {
   const [sending, setSending]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
   const [acks, setAcks]           = useState([]);
+  const [toast, setToast]         = useState('');
+  const lastAckCountRef = useRef(null);
 
   useEffect(() => { loadAll(); }, []);
 
-  async function loadAll() {
-    setLoading(true);
+  // Poll so admin sees new acknowledgements/comments without a manual refresh.
+  useEffect(() => {
+    const id = setInterval(() => loadAll(true), POLL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  async function loadAll(silent = false) {
+    if (!silent) setLoading(true);
     const [u, f, a] = await Promise.all([
       S.get('users', { active: true }),
       S.get('feedback'),
@@ -41,7 +52,13 @@ export default function AdminFeedback({ user }) {
       (f ?? []).sort((a, b) => (b.created_at ?? b.date) > (a.created_at ?? a.date) ? 1 : -1)
     );
     setAcks(a ?? []);
-    setLoading(false);
+
+    if (lastAckCountRef.current != null && (a ?? []).length > lastAckCountRef.current) {
+      const diff = (a ?? []).length - lastAckCountRef.current;
+      setToast(`${diff} new acknowledgement${diff > 1 ? 's' : ''}`);
+    }
+    lastAckCountRef.current = (a ?? []).length;
+    if (!silent) setLoading(false);
   }
 
   // Who an announcement actually reached: the one named recipient, or every active
@@ -125,6 +142,7 @@ export default function AdminFeedback({ user }) {
           </div>
           <div className="page-subtitle">Send updates and priorities to your team</div>
         </div>
+        <button className="btn-sm" onClick={() => loadAll()}>↺ Refresh</button>
       </div>
 
       <div className="grid-2" style={{ gap: 20, alignItems: 'start' }}>
@@ -307,6 +325,7 @@ export default function AdminFeedback({ user }) {
           </div>
         </Modal>
       )}
+      <Toast message={toast} onClose={() => setToast('')} />
     </div>
   );
 }

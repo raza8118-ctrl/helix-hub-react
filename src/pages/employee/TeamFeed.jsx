@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { S, storage } from '../../lib/supabase';
 import { canViewPost, resizeImage } from '../../lib/helpers';
 import { POST_VISIBILITY, FEED_BUCKET } from '../../lib/constants';
@@ -6,6 +6,9 @@ import { searchGifs } from '../../lib/giphy';
 import FriendsPanel from '../../components/shared/FriendsPanel';
 import ReactionBar from '../../components/shared/ReactionBar';
 import CommentThread from '../../components/shared/CommentThread';
+import Toast from '../../components/shared/Toast';
+
+const POLL_MS = 25000;
 
 function timeAgo(iso) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -80,11 +83,19 @@ export default function TeamFeed({ user }) {
   const [gifLoading, setGifLoading] = useState(false);
   const [gifErr, setGifErr]       = useState('');
   const [posting, setPosting]     = useState(false);
+  const [toast, setToast]         = useState('');
+  const lastSeenIdRef = useRef(null);
 
   useEffect(() => { load(); }, []);
 
-  async function load() {
-    setLoading(true);
+  // Poll for new posts in the background so people see updates without a manual refresh.
+  useEffect(() => {
+    const id = setInterval(() => load(true), POLL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     const [u, r, c, p] = await Promise.all([
       S.get('users'),
       S.get('friend_requests'),
@@ -94,8 +105,16 @@ export default function TeamFeed({ user }) {
     setAllUsers(u ?? []);
     setRequests(r ?? []);
     setCloseFriends((c ?? []).filter(x => x.owner_emp_id === user.emp_id));
-    setPosts((p ?? []).filter(x => !x.admin_hidden));
-    setLoading(false);
+    const filtered = (p ?? []).filter(x => !x.admin_hidden);
+    setPosts(filtered);
+
+    const maxId = filtered.reduce((m, x) => Math.max(m, x.id), 0);
+    if (lastSeenIdRef.current != null) {
+      const fresh = filtered.filter(x => x.id > lastSeenIdRef.current && x.emp_id !== user.emp_id);
+      if (fresh.length > 0) setToast(`${fresh.length} new post${fresh.length > 1 ? 's' : ''} on Team Feed`);
+    }
+    lastSeenIdRef.current = maxId;
+    if (!silent) setLoading(false);
   }
 
   const userById = id => allUsers.find(u => u.emp_id === id);
@@ -187,7 +206,10 @@ export default function TeamFeed({ user }) {
           <div className="page-title">Team Feed</div>
           <div className="page-subtitle">Share updates, photos, and GIFs with your team</div>
         </div>
-        <button className="btn-primary" onClick={() => setShowFriends(true)}>👥 Friends</button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn-sm" onClick={() => load()}>↺ Refresh</button>
+          <button className="btn-primary" onClick={() => setShowFriends(true)}>👥 Friends</button>
+        </div>
       </div>
 
       {/* Composer */}
@@ -259,6 +281,7 @@ export default function TeamFeed({ user }) {
       )}
 
       {showFriends && <FriendsPanel user={user} onClose={() => setShowFriends(false)} />}
+      <Toast message={toast} onClose={() => setToast('')} />
     </div>
   );
 }

@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { S } from '../../lib/supabase';
 import { fmtD } from '../../lib/helpers';
 import { PRIORITIES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import ReactionBar from '../../components/shared/ReactionBar';
 import CommentThread from '../../components/shared/CommentThread';
+import Toast from '../../components/shared/Toast';
+
+const POLL_MS = 25000;
 
 function PriorityBadge({ priority }) {
   const p = PRIORITIES.find(x => x.id === priority) ?? PRIORITIES[1];
@@ -16,11 +19,19 @@ export default function EmpFeedback({ user }) {
   const [myAcks, setMyAcks]       = useState([]);
   const [loading, setLoading]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
+  const [toast, setToast]         = useState('');
+  const lastSeenIdRef = useRef(null);
 
   useEffect(() => { load(); }, []);
 
-  async function load() {
-    setLoading(true);
+  // Poll so new announcements show up without a manual refresh.
+  useEffect(() => {
+    const id = setInterval(() => load(true), POLL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     const [all, acks] = await Promise.all([
       S.get('feedback'),
       S.get('feedback_acks', { emp_id: user.emp_id }),
@@ -30,7 +41,14 @@ export default function EmpFeedback({ user }) {
       .sort((a, b) => (b.created_at ?? b.date) > (a.created_at ?? a.date) ? 1 : -1);
     setFeedbacks(mine);
     setMyAcks(acks ?? []);
-    setLoading(false);
+
+    const maxId = mine.reduce((m, x) => Math.max(m, x.id), 0);
+    if (lastSeenIdRef.current != null && maxId > lastSeenIdRef.current) {
+      const fresh = mine.filter(x => x.id > lastSeenIdRef.current);
+      if (fresh.length > 0) setToast(`${fresh.length} new announcement${fresh.length > 1 ? 's' : ''}`);
+    }
+    lastSeenIdRef.current = maxId;
+    if (!silent) setLoading(false);
   }
 
   // A team-wide announcement tracks acknowledgement per person (feedback_acks);
@@ -68,6 +86,7 @@ export default function EmpFeedback({ user }) {
           </div>
           <div className="page-subtitle">Updates and priorities from your team lead and supervisor</div>
         </div>
+        <button className="btn-sm" onClick={() => load()}>↺ Refresh</button>
       </div>
 
       {/* KPI row */}
@@ -214,6 +233,7 @@ export default function EmpFeedback({ user }) {
           </div>
         </Modal>
       )}
+      <Toast message={toast} onClose={() => setToast('')} />
     </div>
   );
 }
