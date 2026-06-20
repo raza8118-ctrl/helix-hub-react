@@ -40,13 +40,19 @@ export default function EmpFeedback({ user }) {
     return f.to_emp_id ? !!f.acknowledged : myAcks.some(a => a.feedback_id === f.id);
   }
 
+  function myAckTime(f) {
+    if (f.to_emp_id) return f.acknowledged_at;
+    return myAcks.find(a => a.feedback_id === f.id)?.acknowledged_at;
+  }
+
   async function ack(item) {
+    const now = new Date().toISOString();
     if (item.to_emp_id) {
-      await S.update('feedback', { acknowledged: true }, { id: item.id });
-      setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: true } : f));
+      await S.update('feedback', { acknowledged: true, acknowledged_at: now }, { id: item.id });
+      setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: true, acknowledged_at: now } : f));
     } else {
-      await S.set('feedback_acks', { feedback_id: item.id, emp_id: user.emp_id }, ['feedback_id', 'emp_id']);
-      setMyAcks(prev => [...prev, { feedback_id: item.id, emp_id: user.emp_id }]);
+      await S.set('feedback_acks', { feedback_id: item.id, emp_id: user.emp_id, acknowledged_at: now }, ['feedback_id', 'emp_id']);
+      setMyAcks(prev => [...prev, { feedback_id: item.id, emp_id: user.emp_id, acknowledged_at: now }]);
     }
   }
 
@@ -146,7 +152,9 @@ export default function EmpFeedback({ user }) {
             {/* Status + Ack button */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
               <span className={`badge ${acked ? 'badge-green' : 'badge-yellow'}`} style={{ fontSize: 10 }}>
-                {acked ? 'Acknowledged' : 'Awaiting Acknowledgement'}
+                {acked
+                  ? `Acknowledged${myAckTime(f) ? ' · ' + new Date(myAckTime(f)).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}`
+                  : 'Awaiting Acknowledgement'}
               </span>
               {!acked && (
                 <button
@@ -184,6 +192,12 @@ export default function EmpFeedback({ user }) {
                 {isAcked(viewItem) ? 'Acknowledged' : 'Awaiting'}
               </span>
             </div>
+            {isAcked(viewItem) && myAckTime(viewItem) && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span className="text-muted">Acknowledged At</span>
+                <span className="bold">{new Date(myAckTime(viewItem)).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            )}
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '6px 0' }} />
             <p style={{ lineHeight: 1.75, color: 'var(--text)', whiteSpace: 'pre-wrap', fontSize: 13 }}>
               {viewItem.message}

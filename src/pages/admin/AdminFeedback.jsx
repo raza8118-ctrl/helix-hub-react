@@ -97,8 +97,10 @@ export default function AdminFeedback({ user }) {
   }
 
   async function toggleAck(item) {
-    await S.update('feedback', { acknowledged: !item.acknowledged }, { id: item.id });
-    setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: !f.acknowledged } : f));
+    const next = !item.acknowledged;
+    const ackedAt = next ? new Date().toISOString() : null;
+    await S.update('feedback', { acknowledged: next, acknowledged_at: ackedAt }, { id: item.id });
+    setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: next, acknowledged_at: ackedAt } : f));
   }
 
   const filteredEmpUsers = filterProc === 'ALL'
@@ -224,9 +226,11 @@ export default function AdminFeedback({ user }) {
         {displayFeedbacks.map(f => {
           const isBroadcast = !f.to_emp_id;
           const audience = audienceFor(f);
-          const ackedIds = new Set(acks.filter(a => a.feedback_id === f.id).map(a => a.emp_id));
-          const acked = audience.filter(u => ackedIds.has(u.emp_id));
-          const pending = audience.filter(u => !ackedIds.has(u.emp_id));
+          const myAcks = acks.filter(a => a.feedback_id === f.id);
+          const ackTimeOf = empId => myAcks.find(a => a.emp_id === empId)?.acknowledged_at;
+          const acked = audience.filter(u => myAcks.some(a => a.emp_id === u.emp_id));
+          const pending = audience.filter(u => !myAcks.some(a => a.emp_id === u.emp_id));
+          const fmtTime = iso => iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
           return (
             <div key={f.id} className="card" style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
@@ -245,16 +249,22 @@ export default function AdminFeedback({ user }) {
 
               <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 {isBroadcast ? (
-                  <span className="badge badge-green" title={acked.map(u => u.name ?? u.emp_id).join(', ')}>
-                    ✓ Acknowledged {acked.length}/{audience.length}
-                  </span>
+                  <span className="badge badge-green">✓ Acknowledged {acked.length}/{audience.length}</span>
                 ) : (
                   <button className="btn-sm" onClick={() => toggleAck(f)}>
                     {f.acknowledged ? <span className="badge badge-green">Acknowledged</span> : <span className="badge badge-yellow">Awaiting</span>}
                   </button>
                 )}
+                {!isBroadcast && f.acknowledged && f.acknowledged_at && (
+                  <span className="text-muted text-sm">at {fmtTime(f.acknowledged_at)}</span>
+                )}
                 <button className="btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }} onClick={() => deleteFeedback(f.id)}>Delete</button>
               </div>
+              {isBroadcast && acked.length > 0 && (
+                <div className="text-muted text-sm" style={{ marginBottom: 4 }}>
+                  ✓ {acked.map(u => `${u.name ?? u.emp_id} (${fmtTime(ackTimeOf(u.emp_id))})`).join(', ')}
+                </div>
+              )}
               {isBroadcast && pending.length > 0 && (
                 <div className="text-muted text-sm" style={{ marginBottom: 8 }}>
                   ⏳ Pending: {pending.map(u => u.name ?? u.emp_id).join(', ')}
