@@ -1,19 +1,31 @@
 import { useState, useEffect } from 'react';
-import { S } from '../../lib/supabase';
-import { today, fmtD } from '../../lib/helpers';
-import { ACCESSES } from '../../lib/constants';
+import { S, storage } from '../../lib/supabase';
+import { today, fmtD, resizeImage } from '../../lib/helpers';
+import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
+import ReactionBar from '../../components/shared/ReactionBar';
+import CommentThread from '../../components/shared/CommentThread';
+
+function PriorityBadge({ priority }) {
+  const p = PRIORITIES.find(x => x.id === priority) ?? PRIORITIES[1];
+  return <span className="badge" style={{ background: `${p.color}22`, color: p.color }}>{p.label}</span>;
+}
 
 export default function AdminFeedback({ user }) {
   const [toEmpId, setToEmpId]     = useState('ALL');
   const [filterProc, setProc]     = useState('ALL');
   const [message, setMessage]     = useState('');
+  const [priority, setPriority]   = useState('normal');
+  const [imageUrl, setImageUrl]   = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState('');
   const [date, setDate]           = useState(today());
   const [allUsers, setAllUsers]   = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading]     = useState(false);
   const [sending, setSending]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
+  const [openComments, setOpenComments] = useState({});
 
   useEffect(() => { loadAll(); }, []);
 
@@ -30,6 +42,23 @@ export default function AdminFeedback({ user }) {
     setLoading(false);
   }
 
+  async function pickImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setUploadErr('Please pick an image file.'); return; }
+    setUploadErr(''); setUploading(true);
+    try {
+      const blob = await resizeImage(file);
+      const url = await storage.uploadFile(FEED_BUCKET, `announcements/${user.emp_id}/${Date.now()}.jpg`, blob);
+      if (!url) throw new Error('upload failed');
+      setImageUrl(url);
+    } catch {
+      setUploadErr('Upload failed — check the "feed-media" Storage bucket exists and is public.');
+    }
+    setUploading(false);
+  }
+
   async function sendFeedback(e) {
     e.preventDefault();
     if (!message.trim()) return;
@@ -41,17 +70,19 @@ export default function AdminFeedback({ user }) {
       to_name: toEmpId === 'ALL' ? 'Team' : (allUsers.find(u => u.emp_id === toEmpId)?.name ?? toEmpId),
       process: filterProc === 'ALL' ? null : filterProc,
       message: message.trim(),
+      priority,
+      image_url: imageUrl || null,
       date,
       acknowledged: false,
       created_at: new Date().toISOString(),
     });
-    setMessage('');
+    setMessage(''); setPriority('normal'); setImageUrl('');
     setSending(false);
     await loadAll();
   }
 
   async function deleteFeedback(id) {
-    if (!window.confirm('Delete this feedback?')) return;
+    if (!window.confirm('Delete this announcement?')) return;
     await S.del('feedback', { id });
     setFeedbacks(prev => prev.filter(f => f.id !== id));
   }
@@ -78,21 +109,21 @@ export default function AdminFeedback({ user }) {
       <div className="page-header">
         <div>
           <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            Team Feedback
+            Announcements
             {unread > 0 && <span className="badge badge-red">{unread} unread</span>}
           </div>
-          <div className="page-subtitle">Send and track feedback for team members</div>
+          <div className="page-subtitle">Send updates and priorities to your team</div>
         </div>
       </div>
 
       <div className="grid-2" style={{ gap: 20, alignItems: 'start' }}>
         {/* Send form */}
         <div className="card">
-          <div className="card-header"><div className="card-title">Send Feedback</div></div>
+          <div className="card-header"><div className="card-title">New Announcement</div></div>
           <form onSubmit={sendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="field">
-                <label>Process Filter</label>
+                <label>Process</label>
                 <select value={filterProc} onChange={e => setProc(e.target.value)}>
                   <option value="ALL">All Processes</option>
                   {ACCESSES.slice(0, 4).map(a => <option key={a}>{a}</option>)}
@@ -105,10 +136,16 @@ export default function AdminFeedback({ user }) {
                   {filteredEmpUsers.map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
                 </select>
               </div>
-            </div>
-            <div className="field">
-              <label>Date</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+              <div className="field">
+                <label>Date</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Priority</label>
+                <select value={priority} onChange={e => setPriority(e.target.value)}>
+                  {PRIORITIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </div>
             </div>
             <div className="field">
               <label>Message</label>
@@ -116,13 +153,28 @@ export default function AdminFeedback({ user }) {
                 rows={5}
                 value={message}
                 onChange={e => setMessage(e.target.value)}
-                placeholder="Enter feedback, comments, or recognition…"
+                placeholder="e.g. Pending emails for today, what to work on, process update…"
                 required
                 style={{ resize: 'vertical' }}
               />
             </div>
+            <div className="field">
+              <label>Snapshot (optional)</label>
+              {imageUrl ? (
+                <div style={{ position: 'relative', maxWidth: 200 }}>
+                  <img src={imageUrl} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />
+                  <button type="button" className="btn-sm" onClick={() => setImageUrl('')} style={{ position: 'absolute', top: 4, right: 4 }}>✕</button>
+                </div>
+              ) : (
+                <label className="btn-sm" style={{ cursor: 'pointer', width: 'fit-content' }}>
+                  📷 {uploading ? 'Uploading…' : 'Add Snapshot'}
+                  <input type="file" accept="image/*" onChange={pickImage} disabled={uploading} style={{ display: 'none' }} />
+                </label>
+              )}
+              {uploadErr && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{uploadErr}</div>}
+            </div>
             <button className="btn-primary" type="submit" disabled={sending || !message.trim()}>
-              {sending ? 'Sending…' : '✉ Send Feedback'}
+              {sending ? 'Sending…' : '✉ Send Announcement'}
             </button>
           </form>
         </div>
@@ -152,69 +204,46 @@ export default function AdminFeedback({ user }) {
         </div>
       </div>
 
-      {/* Feedback history */}
-      <div className="card mt-4">
-        <div className="card-header">
-          <div className="card-title">Feedback History</div>
-          {loading && <span className="text-muted text-sm">Loading…</span>}
+      {/* Announcement feed */}
+      <div className="mt-4">
+        <div className="card-title" style={{ marginBottom: 10 }}>
+          Announcement History {loading && <span className="text-muted text-sm">Loading…</span>}
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Process</th>
-                <th>Message</th>
-                <th className="center">Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayFeedbacks.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No feedback found</td></tr>
-              )}
-              {displayFeedbacks.map(f => (
-                <tr key={f.id} style={!f.acknowledged ? { background: 'rgba(59,130,246,0.04)' } : undefined}>
-                  <td className="text-sm">{fmtD(f.date)}</td>
-                  <td className="bold text-sm">{f.from_name ?? f.from_emp_id}</td>
-                  <td className="text-sm">
-                    {f.to_emp_id ? (f.to_name ?? f.to_emp_id) : <span className="badge badge-blue">Team</span>}
-                  </td>
-                  <td className="text-sm text-muted">{f.process ?? '—'}</td>
-                  <td
-                    className="text-sm"
-                    style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                    title={f.message}
-                    onClick={() => setViewItem(f)}
-                  >
-                    {f.message}
-                  </td>
-                  <td className="center">
-                    <button onClick={() => toggleAck(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15 }}
-                      title={f.acknowledged ? 'Mark unread' : 'Mark acknowledged'}>
-                      {f.acknowledged
-                        ? <span className="badge badge-green">Acknowledged</span>
-                        : <span className="badge badge-yellow">Awaiting</span>}
-                    </button>
-                  </td>
-                  <td>
-                    <button className="btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                      onClick={() => deleteFeedback(f.id)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {displayFeedbacks.length === 0 && (
+          <div className="card" style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No announcements found</div>
+        )}
+        {displayFeedbacks.map(f => (
+          <div key={f.id} className="card" style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span className="bold text-sm">{f.from_name ?? f.from_emp_id}</span>
+                <span className="text-muted text-sm">→ {f.to_emp_id ? (f.to_name ?? f.to_emp_id) : 'Team'}</span>
+                {f.process && <span className="badge badge-yellow">{f.process}</span>}
+                <PriorityBadge priority={f.priority} />
+              </div>
+              <span className="text-sm text-muted">{fmtD(f.date)}</span>
+            </div>
+            <p style={{ fontSize: 13, lineHeight: 1.55, cursor: 'pointer' }} onClick={() => setViewItem(f)}>{f.message}</p>
+            {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, marginBottom: 8 }} />}
+
+            <ReactionBar targetType="feedback" targetId={f.id} user={user} />
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8, alignItems: 'center' }}>
+              <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [f.id]: !prev[f.id] }))}>💬 Comment</button>
+              <button className="btn-sm" onClick={() => toggleAck(f)}>
+                {f.acknowledged ? <span className="badge badge-green">Acknowledged</span> : <span className="badge badge-yellow">Awaiting</span>}
+              </button>
+              <button className="btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }} onClick={() => deleteFeedback(f.id)}>Delete</button>
+            </div>
+
+            {openComments[f.id] && <CommentThread targetType="feedback" targetId={f.id} user={user} />}
+          </div>
+        ))}
       </div>
 
-      {/* View full feedback */}
+      {/* View full announcement */}
       {viewItem && (
-        <Modal title={`Feedback — ${fmtD(viewItem.date)}`} onClose={() => setViewItem(null)}>
+        <Modal title={`Announcement — ${fmtD(viewItem.date)}`} onClose={() => setViewItem(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
             {[
               ['From', viewItem.from_name ?? viewItem.from_emp_id],
@@ -229,6 +258,7 @@ export default function AdminFeedback({ user }) {
             ))}
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '6px 0' }} />
             <p style={{ lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{viewItem.message}</p>
+            {viewItem.image_url && <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />}
           </div>
           <div className="form-actions">
             {!viewItem.acknowledged && (

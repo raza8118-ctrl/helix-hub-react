@@ -1,33 +1,11 @@
 import { useState, useEffect } from 'react';
 import { S, storage } from '../../lib/supabase';
-import { canViewPost } from '../../lib/helpers';
-import { POST_VISIBILITY, FEED_BUCKET, REACTIONS } from '../../lib/constants';
+import { canViewPost, resizeImage } from '../../lib/helpers';
+import { POST_VISIBILITY, FEED_BUCKET } from '../../lib/constants';
 import { searchGifs } from '../../lib/giphy';
 import FriendsPanel from '../../components/shared/FriendsPanel';
-import EmojiPicker from '../../components/shared/EmojiPicker';
-
-// Resize an image file down before upload — keeps the feed fast and storage small.
-function resizeImage(file, maxSize = 1280, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
+import ReactionBar from '../../components/shared/ReactionBar';
+import CommentThread from '../../components/shared/CommentThread';
 
 function timeAgo(iso) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -40,15 +18,10 @@ function timeAgo(iso) {
 // Defined at module scope (not inside TeamFeed) so React keeps a stable identity
 // across re-renders — otherwise every post (and any open EmojiPicker popover)
 // would unmount/remount on every unrelated state change in the parent.
-function PostCard({ post, user, userById, posts, reactions, comments, openComments, setOpenComments, commentDraft, setCommentDraft, reactToPost, addComment, sharePost, deletePost }) {
+function PostCard({ post, user, userById, posts, openComments, setOpenComments, sharePost, deletePost }) {
   const author = userById(post.emp_id);
   const shared = post.shared_from_post_id ? posts.find(p => p.id === post.shared_from_post_id) : null;
   const sharedAuthor = shared ? userById(shared.emp_id) : null;
-  const postReactions = reactions.filter(r => r.target_type === 'post' && r.target_id === post.id);
-  const myReaction = postReactions.find(r => r.emp_id === user.emp_id)?.emoji ?? null;
-  const counts = {};
-  postReactions.forEach(r => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
-  const postComments = comments.filter(c => c.post_id === post.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const visLabel = POST_VISIBILITY.find(v => v.id === post.visibility)?.label ?? post.visibility;
 
   return (
@@ -76,39 +49,16 @@ function PostCard({ post, user, userById, posts, reactions, comments, openCommen
       {post.image_url && <img src={post.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
       {post.gif_url && <img src={post.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
 
-      {Object.keys(counts).length > 0 && (
-        <div className="text-muted text-sm" style={{ marginBottom: 6 }}>
-          {REACTIONS.filter(r => counts[r.id]).map(r => `${r.emoji}${counts[r.id]}`).join('  ')}
-        </div>
-      )}
+      <ReactionBar targetType="post" targetId={post.id} user={user} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <EmojiPicker myReaction={myReaction} onReact={id => reactToPost(post.id, id)} />
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8 }}>
         <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}>
-          💬 {postComments.length > 0 ? postComments.length : 'Comment'}
+          💬 Comment
         </button>
         <button className="btn-sm" onClick={() => sharePost(post)}>🔁 Share</button>
       </div>
 
-      {openComments[post.id] && (
-        <div>
-          {postComments.map(c => (
-            <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
-              <strong>{c.emp_name ?? c.emp_id}:</strong> {c.content}
-            </div>
-          ))}
-          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-            <input
-              type="text" placeholder="Write a comment…"
-              value={commentDraft[post.id] ?? ''}
-              onChange={e => setCommentDraft(prev => ({ ...prev, [post.id]: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && addComment(post.id)}
-              style={{ flex: 1 }}
-            />
-            <button className="btn-sm" onClick={() => addComment(post.id)}>Post</button>
-          </div>
-        </div>
-      )}
+      {openComments[post.id] && <CommentThread targetType="post" targetId={post.id} user={user} />}
     </div>
   );
 }
@@ -118,8 +68,6 @@ export default function TeamFeed({ user }) {
   const [requests, setRequests]   = useState([]);
   const [closeFriends, setCloseFriends] = useState([]);
   const [posts, setPosts]         = useState([]);
-  const [reactions, setReactions] = useState([]);
-  const [comments, setComments]   = useState([]);
   const [loading, setLoading]     = useState(false);
   const [showFriends, setShowFriends] = useState(false);
 
@@ -136,26 +84,21 @@ export default function TeamFeed({ user }) {
   const [posting, setPosting]     = useState(false);
 
   const [openComments, setOpenComments] = useState({});
-  const [commentDraft, setCommentDraft]  = useState({});
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const [u, r, c, p, rx, cm] = await Promise.all([
+    const [u, r, c, p] = await Promise.all([
       S.get('users'),
       S.get('friend_requests'),
       S.get('close_friends'),
       S.get('feed_posts'),
-      S.get('feed_reactions'),
-      S.get('feed_comments'),
     ]);
     setAllUsers(u ?? []);
     setRequests(r ?? []);
     setCloseFriends((c ?? []).filter(x => x.owner_emp_id === user.emp_id));
     setPosts((p ?? []).filter(x => !x.admin_hidden));
-    setReactions(rx ?? []);
-    setComments(cm ?? []);
     setLoading(false);
   }
 
@@ -220,23 +163,6 @@ export default function TeamFeed({ user }) {
     if (post.emp_id !== user.emp_id) return;
     if (!window.confirm('Delete this post?')) return;
     await S.del('feed_posts', { id: post.id });
-    await load();
-  }
-
-  async function reactToPost(postId, emojiId) {
-    if (emojiId == null) {
-      await S.del('feed_reactions', { target_type: 'post', target_id: postId, emp_id: user.emp_id });
-    } else {
-      await S.set('feed_reactions', { target_type: 'post', target_id: postId, emp_id: user.emp_id, emoji: emojiId }, ['target_type', 'target_id', 'emp_id']);
-    }
-    await load();
-  }
-
-  async function addComment(postId) {
-    const text = (commentDraft[postId] ?? '').trim();
-    if (!text) return;
-    await S.set('feed_comments', { post_id: postId, emp_id: user.emp_id, emp_name: user.name ?? user.emp_id, content: text, created_at: new Date().toISOString() });
-    setCommentDraft(prev => ({ ...prev, [postId]: '' }));
     await load();
   }
 
@@ -331,10 +257,8 @@ export default function TeamFeed({ user }) {
         visiblePosts.map(post => (
           <PostCard
             key={post.id} post={post} user={user} userById={userById} posts={posts}
-            reactions={reactions} comments={comments}
             openComments={openComments} setOpenComments={setOpenComments}
-            commentDraft={commentDraft} setCommentDraft={setCommentDraft}
-            reactToPost={reactToPost} addComment={addComment} sharePost={sharePost} deletePost={deletePost}
+            sharePost={sharePost} deletePost={deletePost}
           />
         ))
       )}

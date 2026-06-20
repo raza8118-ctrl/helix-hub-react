@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { fmtD } from '../../lib/helpers';
+import { PRIORITIES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
+import ReactionBar from '../../components/shared/ReactionBar';
+import CommentThread from '../../components/shared/CommentThread';
+
+function PriorityBadge({ priority }) {
+  const p = PRIORITIES.find(x => x.id === priority) ?? PRIORITIES[1];
+  return <span className="badge" style={{ background: `${p.color}22`, color: p.color }}>{p.label}</span>;
+}
 
 export default function EmpFeedback({ user }) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
+  const [openComments, setOpenComments] = useState({});
 
   useEffect(() => { load(); }, []);
 
@@ -33,10 +42,10 @@ export default function EmpFeedback({ user }) {
       <div className="page-header">
         <div>
           <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            My Feedback
+            My Announcements
             {unread > 0 && <span className="badge badge-red">{unread} unread</span>}
           </div>
-          <div className="page-subtitle">Messages from your team lead and supervisor</div>
+          <div className="page-subtitle">Updates and priorities from your team lead and supervisor</div>
         </div>
       </div>
 
@@ -85,6 +94,7 @@ export default function EmpFeedback({ user }) {
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{f.from_name ?? f.from_emp_id}</span>
                 {f.to_emp_id === null && <span className="badge badge-blue">Team</span>}
                 {f.process && <span className="badge badge-yellow">{f.process}</span>}
+                <PriorityBadge priority={f.priority} />
                 {!f.acknowledged && <span className="badge badge-red">New</span>}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
@@ -108,6 +118,15 @@ export default function EmpFeedback({ user }) {
             }}>
               {f.message}
             </p>
+            {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 200, borderRadius: 8, marginBottom: 8 }} />}
+
+            <div onClick={e => e.stopPropagation()}>
+              <ReactionBar targetType="feedback" targetId={f.id} user={user} />
+              <div style={{ marginTop: 8, marginBottom: 4 }}>
+                <button className="btn-sm" onClick={() => setOpenComments(prev => ({ ...prev, [f.id]: !prev[f.id] }))}>💬 Comment</button>
+              </div>
+              {openComments[f.id] && <CommentThread targetType="feedback" targetId={f.id} user={user} />}
+            </div>
 
             {/* Status + Ack button */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
@@ -136,6 +155,7 @@ export default function EmpFeedback({ user }) {
               ['Date',    fmtD(viewItem.date)],
               ['Time',    viewItem.created_at ? new Date(viewItem.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'],
               ['Process', viewItem.process ?? '—'],
+              ['Priority', <PriorityBadge key="p" priority={viewItem.priority} />],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="text-muted">{k}</span>
@@ -152,6 +172,7 @@ export default function EmpFeedback({ user }) {
             <p style={{ lineHeight: 1.75, color: 'var(--text)', whiteSpace: 'pre-wrap', fontSize: 13 }}>
               {viewItem.message}
             </p>
+            {viewItem.image_url && <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />}
           </div>
           <div className="form-actions">
             {!viewItem.acknowledged && (

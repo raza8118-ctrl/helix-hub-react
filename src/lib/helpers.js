@@ -82,6 +82,29 @@ export function avg(arr) {
   return valid.reduce((a, b) => a + b, 0) / valid.length;
 }
 
+/** Resize/compress an image file client-side before upload, returns a Blob. */
+export function resizeImage(file, maxSize = 1280, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /** Escape HTML special characters */
 export function esc(str) {
   return String(str ?? '')

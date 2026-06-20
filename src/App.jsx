@@ -25,7 +25,7 @@ const ADMIN_TABS = [
   { id: 'hourlymon',   label: 'Hourly'        },
   { id: 'weekly',      label: 'Weekly'        },
   { id: 'monthly',     label: 'Monthly'       },
-  { id: 'feedback',    label: 'Feedback'      },
+  { id: 'feedback',    label: 'Announcements' },
   { id: 'team',        label: 'Team'          },
   { id: 'allocation',  label: 'Work Alloc'    },
   { id: 'allocmon',    label: 'Alloc Monitor' },
@@ -169,7 +169,7 @@ export default function App() {
     { id: 'myreports',    label: 'My Reports'     },
     { id: 'progress',     label: 'Progress'       },
     { id: 'myallocation', label: 'My Allocation'  },
-    { id: 'feedback',     label: unreadFeedback > 0 ? `Feedback (${unreadFeedback})` : 'Feedback' },
+    { id: 'feedback',     label: unreadFeedback > 0 ? `Announcements (${unreadFeedback})` : 'Announcements' },
     { id: 'feed',         label: 'Team Feed'      },
   ];
 

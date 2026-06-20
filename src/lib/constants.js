@@ -48,6 +48,13 @@ export const POST_VISIBILITY = [
   { id: 'close_friends', label: 'Close Friends' },
 ];
 
+export const PRIORITIES = [
+  { id: 'low',    label: 'Low',    color: '#94a3b8' },
+  { id: 'normal', label: 'Normal', color: '#3b82f6' },
+  { id: 'high',   label: 'High',   color: '#f59e0b' },
+  { id: 'urgent', label: 'Urgent', color: '#ef4444' },
+];
+
 export const FEED_BUCKET = 'feed-media';
 export const GIPHY_API_KEY = 'O7xoQ2OykXwLJWW9WkTbfT6mOCmUC7NJ';
 
