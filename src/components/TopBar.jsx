@@ -1,8 +1,29 @@
+import { useState, useEffect } from 'react';
 import { THEMES } from '../lib/constants';
 
 function initials(name, empId) {
   return (name || empId || '?')
     .split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+}
+
+// Owns its own 1s tick so the rest of the app (and whatever heavy admin
+// table is mounted) doesn't re-render every second along with it.
+function Clock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div style={{ flex: 1, textAlign: 'center', lineHeight: 1.35 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--topbar-text)', fontVariantNumeric: 'tabular-nums' }}>
+        {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+      </div>
+    </div>
+  );
 }
 
 export default function TopBar({
@@ -14,7 +35,6 @@ export default function TopBar({
   activeTab,
   onTab,
   tabs = [],
-  clock = '',
   deficitCount = 0,
 }) {
   const isDark = THEMES.find(t => t.id === theme)?.dark ?? false;
@@ -25,8 +45,7 @@ export default function TopBar({
   }
 
   return (
-    <header style={{
-      background: 'var(--topbar-bg)',
+    <header className="topbar-blur" style={{
       borderBottom: '1px solid var(--topbar-border)',
       position: 'sticky', top: 0, zIndex: 100,
       boxShadow: 'var(--shadow)',
@@ -58,16 +77,7 @@ export default function TopBar({
         </div>
 
         {/* Live clock */}
-        <div style={{ flex: 1, textAlign: 'center', lineHeight: 1.35 }}>
-          {clock && (
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--topbar-text)', fontVariantNumeric: 'tabular-nums' }}>
-              {clock}
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-          </div>
-        </div>
+        <Clock />
 
         {/* Right controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -154,14 +164,7 @@ export default function TopBar({
             role="tab"
             aria-selected={activeTab === tab.id}
             onClick={() => onTab(tab.id)}
-            style={{
-              padding: '9px 16px', fontSize: 13, background: 'transparent', border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
-              color: activeTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
-              fontWeight: activeTab === tab.id ? 700 : 400,
-              cursor: 'pointer', whiteSpace: 'nowrap',
-              transition: 'color 0.15s, border-color 0.15s',
-            }}
+            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
           >
             {tab.label}
           </button>

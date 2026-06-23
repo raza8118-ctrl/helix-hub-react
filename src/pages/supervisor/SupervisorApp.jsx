@@ -1,10 +1,12 @@
-import Today         from '../admin/Today';
-import ProdMonitor   from '../admin/ProdMonitor';
-import HourlyMonitor from '../admin/HourlyMonitor';
-import Summary       from '../admin/Summary';
-import AdminFeedback from '../admin/AdminFeedback';
-import TeamFeed      from '../employee/TeamFeed';
-import SupervisorTeam from './SupervisorTeam';
+import { lazy } from 'react';
+
+const Today          = lazy(() => import('../admin/Today'));
+const ProdMonitor     = lazy(() => import('../admin/ProdMonitor'));
+const HourlyMonitor   = lazy(() => import('../admin/HourlyMonitor'));
+const Summary         = lazy(() => import('../admin/Summary'));
+const AdminFeedback   = lazy(() => import('../admin/AdminFeedback'));
+const TeamFeed        = lazy(() => import('../employee/TeamFeed'));
+const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
 
 /**
  * Routes supervisor tabs to the correct page component — reuses the admin

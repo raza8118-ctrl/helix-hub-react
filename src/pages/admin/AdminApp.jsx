@@ -1,13 +1,15 @@
-import Today         from './Today';
-import ProdMonitor   from './ProdMonitor';
-import HourlyMonitor from './HourlyMonitor';
-import Summary       from './Summary';
-import AdminFeedback from './AdminFeedback';
-import TeamMgmt      from './TeamMgmt';
-import WorkAllocation from './WorkAllocation';
-import AllocMonitor  from './AllocMonitor';
-import Settings      from './Settings';
-import FeedMonitor   from './FeedMonitor';
+import { lazy } from 'react';
+
+const Today         = lazy(() => import('./Today'));
+const ProdMonitor    = lazy(() => import('./ProdMonitor'));
+const HourlyMonitor  = lazy(() => import('./HourlyMonitor'));
+const Summary        = lazy(() => import('./Summary'));
+const AdminFeedback  = lazy(() => import('./AdminFeedback'));
+const TeamMgmt       = lazy(() => import('./TeamMgmt'));
+const WorkAllocation = lazy(() => import('./WorkAllocation'));
+const AllocMonitor   = lazy(() => import('./AllocMonitor'));
+const Settings       = lazy(() => import('./Settings'));
+const FeedMonitor    = lazy(() => import('./FeedMonitor'));
 
 /**
  * Routes admin tabs to the correct page component.

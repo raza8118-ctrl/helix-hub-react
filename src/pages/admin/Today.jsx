@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
@@ -58,34 +58,35 @@ export default function Today({ user }) {
     setPinned(next);
   }
 
-  const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
-    if (u.role !== 'employee') return false;
-    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
-    const statusOk = statusFilter === 'all' ||
-      (statusFilter === 'active' ? u.active !== false : u.active === false);
-    const pinOk    = !pinnedOnly || pinned.includes(u.emp_id);
-    return procOk && statusOk && pinOk;
-  });
-  const filteredUsers = employees;
+  const { filteredUsers, submitted, pending, avgProd, avgQuality, chartData, tableRows } = useMemo(() => {
+    const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
+      if (u.role !== 'employee') return false;
+      const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+      const statusOk = statusFilter === 'all' ||
+        (statusFilter === 'active' ? u.active !== false : u.active === false);
+      const pinOk    = !pinnedOnly || pinned.includes(u.emp_id);
+      return procOk && statusOk && pinOk;
+    });
 
-  const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
-  const filteredLogs = logs.filter(l => {
-    return logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id);
-  });
+    const teamEmpIds = new Set(employees.map(u => u.emp_id));
+    const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id));
 
-  const submitted  = filteredLogs.filter(l => l.submitted).length;
-  const pending    = filteredUsers.length - submitted;
-  const avgProd    = avg(filteredLogs.map(l => p(l.total, l.adj_target ?? l.target)));
-  const avgQuality = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
+    const submitted  = filteredLogs.filter(l => l.submitted).length;
+    const pending    = employees.length - submitted;
+    const avgProd    = avg(filteredLogs.map(l => p(l.total, l.adj_target ?? l.target)));
+    const avgQuality = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
 
-  const chartData = [...filteredLogs]
-    .map(l => ({ name: l.emp_name ?? l.emp_id, prod: p(l.total, l.adj_target ?? l.target) ?? 0 }))
-    .sort((a, b) => b.prod - a.prod);
+    const chartData = [...filteredLogs]
+      .map(l => ({ name: l.emp_name ?? l.emp_id, prod: p(l.total, l.adj_target ?? l.target) ?? 0 }))
+      .sort((a, b) => b.prod - a.prod);
 
-  const tableRows = filteredUsers.map(u => ({
-    ...u,
-    log: filteredLogs.find(l => l.emp_id === u.emp_id) ?? null,
-  })).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
+    const tableRows = employees.map(u => ({
+      ...u,
+      log: filteredLogs.find(l => l.emp_id === u.emp_id) ?? null,
+    })).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
+
+    return { filteredUsers: employees, submitted, pending, avgProd, avgQuality, chartData, tableRows };
+  }, [allUsers, logs, user, customProcs, filterProc, statusFilter, pinnedOnly, pinned]);
 
   async function toggleHoliday() {
     if (holiday) {

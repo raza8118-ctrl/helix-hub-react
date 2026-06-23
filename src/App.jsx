@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import Login       from './components/Login';
 import TopBar      from './components/TopBar';
 import Profile     from './components/shared/Profile';
-import AdminApp      from './pages/admin/AdminApp';
-import SupervisorApp from './pages/supervisor/SupervisorApp';
-import EmployeeApp   from './pages/employee/EmployeeApp';
 import { THEMES }  from './lib/constants';
 import { S, kv }   from './lib/supabase';
 import './index.css';
+
+// Lazy-loaded per role — a given user only ever needs one of these three bundles.
+const AdminApp      = lazy(() => import('./pages/admin/AdminApp'));
+const SupervisorApp = lazy(() => import('./pages/supervisor/SupervisorApp'));
+const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
 function applyTheme(themeId) {
@@ -52,7 +54,6 @@ export default function App() {
   const [activeTab, setActiveTab]     = useState('today');
   const [showProfile, setShowProfile] = useState(false);
   const [hasDeficit, setHasDeficit]   = useState(false);
-  const [clock, setClock]             = useState('');
   const [unreadFeedback, setUnreadFeedback] = useState(0);
 
   // ── Restore session on mount ────────────────────────────────────────────────
@@ -77,18 +78,6 @@ export default function App() {
         applyTheme(t);
       } catch { /* ignore corrupt session */ }
     })();
-  }, []);
-
-  // ── Live clock ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    function tick() {
-      setClock(new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-      }));
-    }
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
   }, []);
 
   // ── Unread feedback count (employees only) ──────────────────────────────────
@@ -229,17 +218,20 @@ export default function App() {
         activeTab={activeTab}
         onTab={handleSetTab}
         tabs={tabs}
-        clock={clock}
         deficitCount={hasDeficit ? 1 : 0}
       />
 
-      <main className="main-content fade-in">
-        {isAdmin
-          ? <AdminApp      activeTab={activeTab} user={currentUser} />
-          : isSupervisor
-          ? <SupervisorApp activeTab={activeTab} user={currentUser} />
-          : <EmployeeApp   activeTab={activeTab} user={currentUser} />
-        }
+      <main className="main-content">
+        <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
+          <div key={activeTab} className="page-transition">
+            {isAdmin
+              ? <AdminApp      activeTab={activeTab} user={currentUser} />
+              : isSupervisor
+              ? <SupervisorApp activeTab={activeTab} user={currentUser} />
+              : <EmployeeApp   activeTab={activeTab} user={currentUser} />
+            }
+          </div>
+        </Suspense>
       </main>
 
       {/* Profile modal — managed at App level */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
 import { today, fmtD, procIncludes, scopeToSupervisor } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
@@ -53,29 +53,33 @@ export default function HourlyMonitor({ user }) {
     setLastRefresh(new Date());
   }
 
-  const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
-    if (u.role !== 'employee') return false;
-    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
-    const searchOk = !search.trim() || (u.name ?? u.emp_id).toLowerCase().includes(search.toLowerCase());
-    const statusOk = statusFilter === 'all' ||
-      (statusFilter === 'active' ? u.active !== false : u.active === false);
-    return procOk && searchOk && statusOk;
-  });
+  const { tableRows, slotTotals, grandTotal, filed, pending } = useMemo(() => {
+    const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
+      if (u.role !== 'employee') return false;
+      const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+      const searchOk = !search.trim() || (u.name ?? u.emp_id).toLowerCase().includes(search.toLowerCase());
+      const statusOk = statusFilter === 'all' ||
+        (statusFilter === 'active' ? u.active !== false : u.active === false);
+      return procOk && searchOk && statusOk;
+    });
 
-  const tableRows = filteredUsers.map(u => {
-    const row   = hourlyData.find(h => h.emp_id === u.emp_id) ?? null;
-    const slots = SLOT_KEYS.map(k => row?.[k] ?? null);
-    const total = row ? slots.reduce((s, v) => s + (v ?? 0), 0) : null;
-    return { ...u, row, slots, total };
-  });
+    const tableRows = filteredUsers.map(u => {
+      const row   = hourlyData.find(h => h.emp_id === u.emp_id) ?? null;
+      const slots = SLOT_KEYS.map(k => row?.[k] ?? null);
+      const total = row ? slots.reduce((s, v) => s + (v ?? 0), 0) : null;
+      return { ...u, row, slots, total };
+    });
 
-  const slotTotals = SLOT_KEYS.map((_, si) =>
-    tableRows.reduce((s, r) => s + (r.slots[si] ?? 0), 0)
-  );
-  const grandTotal = slotTotals.reduce((s, v) => s + v, 0);
+    const slotTotals = SLOT_KEYS.map((_, si) =>
+      tableRows.reduce((s, r) => s + (r.slots[si] ?? 0), 0)
+    );
+    const grandTotal = slotTotals.reduce((s, v) => s + v, 0);
 
-  const filed   = tableRows.filter(r => r.row).length;
-  const pending = tableRows.filter(r => !r.row).length;
+    const filed   = tableRows.filter(r => r.row).length;
+    const pending = tableRows.filter(r => !r.row).length;
+
+    return { tableRows, slotTotals, grandTotal, filed, pending };
+  }, [allUsers, hourlyData, user, customProcs, filterProc, search, statusFilter]);
 
   return (
     <div>

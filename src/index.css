@@ -131,9 +131,15 @@ a:hover { text-decoration: underline; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 20px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .card + .card { margin-top: 16px; }
+
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
 
 /* ─── Buttons ─── */
 .btn {
@@ -168,6 +174,16 @@ a:hover { text-decoration: underline; }
 
 .btn-success { background: var(--success); color: #fff; }
 .btn-success:hover:not(:disabled) { opacity: 0.85; }
+
+.btn-login { background: linear-gradient(135deg, #7c3aed, #4338ca); color: #fff; width: 100%; font-weight: 700; justify-content: center; }
+.btn-login:hover:not(:disabled) { filter: brightness(1.08); box-shadow: var(--shadow-md); }
+
+.btn-link {
+  background: none; border: none; color: #7c3aed;
+  font-size: 12px; cursor: pointer; width: 100%; text-align: center;
+  padding: 4px;
+}
+.btn-link:hover { text-decoration: underline; }
 
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 .btn-lg { padding: 10px 20px; font-size: 14px; }
@@ -314,8 +330,16 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
   100% { background-position: -200% 0; }
 }
 
-.fade-in       { animation: fadeIn 0.2s ease forwards; }
-.fade-in-scale { animation: fadeInScale 0.2s ease forwards; }
+.fade-in          { animation: fadeIn 0.2s ease forwards; }
+.fade-in-scale    { animation: fadeInScale 0.2s ease forwards; }
+.page-transition  { animation: fadeIn 0.18s ease forwards; }
+
+/* ─── TopBar (sticky, frosted) ─── */
+.topbar-blur {
+  background: color-mix(in srgb, var(--topbar-bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
 
 /* ─── Loading ─── */
 .spinner {
@@ -473,7 +497,8 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
 }
 
 .tab-btn {
-  padding: 7px 14px;
+  position: relative;
+  padding: 9px 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
@@ -482,16 +507,29 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
   border-bottom: 2px solid transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-.tab-btn:hover { color: var(--text); }
+.tab-btn:hover { color: var(--text); background: var(--surface-2); }
 
 .tab-btn.active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
   font-weight: 600;
 }
+
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  left: 8px; right: 8px; bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.tab-btn.active::after { transform: scaleX(1); }
 
 /* ─── Grid Utilities ─── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

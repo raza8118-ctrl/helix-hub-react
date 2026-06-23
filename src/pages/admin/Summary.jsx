@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI, procIncludes, logMatchesProc, scopeToSupervisor } from '../../lib/helpers';
 import { MONTHS, ACCESSES } from '../../lib/constants';
@@ -28,9 +28,9 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const [empDetail, setEmpDetail] = useState(null);
   const [customProcs, setCustomProcs] = useState([]);
 
-  const workDays = mode === 'weekly'
-    ? wDays(refDate)
-    : mDays(refMonth.y, refMonth.m);
+  const workDays = useMemo(() => (
+    mode === 'weekly' ? wDays(refDate) : mDays(refMonth.y, refMonth.m)
+  ), [mode, refDate, refMonth]);
 
   useEffect(() => { load(); }, [mode, refDate, refMonth]);
 
@@ -49,52 +49,58 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
     setLoading(false);
   }
 
-  const holidayDates = new Set((holidays ?? []).map(h => h.date));
-  const activeDays   = workDays.filter(d => !holidayDates.has(d));
+  const {
+    kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
+  } = useMemo(() => {
+    const holidayDates = new Set((holidays ?? []).map(h => h.date));
+    const activeDays   = workDays.filter(d => !holidayDates.has(d));
 
-  const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
-    if (u.role !== 'employee') return false;
-    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
-    const agentOk  = agentId === 'ALL' || u.emp_id === agentId;
-    const statusOk = statusFilter === 'all' ||
-      (statusFilter === 'active' ? u.active !== false : u.active === false);
-    return procOk && agentOk && statusOk;
-  });
+    const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
+      if (u.role !== 'employee') return false;
+      const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+      const agentOk  = agentId === 'ALL' || u.emp_id === agentId;
+      const statusOk = statusFilter === 'all' ||
+        (statusFilter === 'active' ? u.active !== false : u.active === false);
+      return procOk && agentOk && statusOk;
+    });
 
-  const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
-  const filteredLogs = logs.filter(l => {
-    const procOk  = logMatchesProc(l, filterProc);
-    const agentOk = agentId === 'ALL' || l.emp_id === agentId;
-    const teamOk  = teamEmpIds.has(l.emp_id);
-    return procOk && agentOk && teamOk && !holidayDates.has(l.date);
-  });
+    const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
+    const filteredLogs = logs.filter(l => {
+      const procOk  = logMatchesProc(l, filterProc);
+      const agentOk = agentId === 'ALL' || l.emp_id === agentId;
+      const teamOk  = teamEmpIds.has(l.emp_id);
+      return procOk && agentOk && teamOk && !holidayDates.has(l.date);
+    });
 
-  const allProds   = filteredLogs.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
-  const kpiDays    = activeDays.length;
-  const kpiAgents  = filteredUsers.length;
-  const kpiAvgProd = avg(allProds);
-  const kpiAvgQ    = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
-  const kpiTotal   = filteredLogs.reduce((s, l) => s + (l.total ?? 0), 0);
+    const allProds   = filteredLogs.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
+    const kpiDays    = activeDays.length;
+    const kpiAgents  = filteredUsers.length;
+    const kpiAvgProd = avg(allProds);
+    const kpiAvgQ    = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
+    const kpiTotal   = filteredLogs.reduce((s, l) => s + (l.total ?? 0), 0);
 
-  const barData = activeDays.map(d => {
-    const dl = filteredLogs.filter(l => l.date === d);
-    const dp = dl.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
-    return { name: fmtSh(d), prod: avg(dp) != null ? Math.round(avg(dp)) : 0 };
-  });
+    const barData = activeDays.map(d => {
+      const dl = filteredLogs.filter(l => l.date === d);
+      const dp = dl.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
+      return { name: fmtSh(d), prod: avg(dp) != null ? Math.round(avg(dp)) : 0 };
+    });
 
-  const lineData = barData.map(d => ({ name: d.name, v: d.prod }));
+    const lineData = barData.map(d => ({ name: d.name, v: d.prod }));
 
-  const rankings = filteredUsers.map(u => {
-    const ul = filteredLogs.filter(l => l.emp_id === u.emp_id);
-    const up = ul.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
-    return {
-      ...u,
-      avgProd: avg(up),
-      avgQuality: avg(ul.map(l => l.quality).filter(v => v != null)),
-      total: ul.reduce((s, l) => s + (l.total ?? 0), 0),
-      days: ul.length,
-    };
-  }).sort((a, b) => (b.avgProd ?? -1) - (a.avgProd ?? -1));
+    const rankings = filteredUsers.map(u => {
+      const ul = filteredLogs.filter(l => l.emp_id === u.emp_id);
+      const up = ul.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
+      return {
+        ...u,
+        avgProd: avg(up),
+        avgQuality: avg(ul.map(l => l.quality).filter(v => v != null)),
+        total: ul.reduce((s, l) => s + (l.total ?? 0), 0),
+        days: ul.length,
+      };
+    }).sort((a, b) => (b.avgProd ?? -1) - (a.avgProd ?? -1));
+
+    return { activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings };
+  }, [holidays, workDays, allUsers, user, customProcs, filterProc, agentId, statusFilter, logs]);
 
   function navPrev() {
     if (mode === 'weekly') setRefDate(d => addDays(d, -7));

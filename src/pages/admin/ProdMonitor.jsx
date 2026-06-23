@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
 import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit } from '../../lib/helpers';
 import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
@@ -146,33 +146,32 @@ export default function ProdMonitor({ user }) {
     await load();
   }
 
-  const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
-    if (u.role !== 'employee') return false;
-    const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
-    const statusOk = statusFilter === 'all' ||
-      (statusFilter === 'active' ? u.active !== false : u.active === false);
-    const pinOk    = !pinnedOnly || pinned.includes(u.emp_id);
-    return procOk && statusOk && pinOk;
-  });
-  const filteredUsers = employees;
+  const tableRows = useMemo(() => {
+    const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
+      if (u.role !== 'employee') return false;
+      const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
+      const statusOk = statusFilter === 'all' ||
+        (statusFilter === 'active' ? u.active !== false : u.active === false);
+      const pinOk    = !pinnedOnly || pinned.includes(u.emp_id);
+      return procOk && statusOk && pinOk;
+    });
 
-  const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
-  const filteredLogs = logs.filter(l => {
-    return logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id);
-  });
+    const teamEmpIds = new Set(employees.map(u => u.emp_id));
+    const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id));
 
-  const tableRows = filteredUsers.map(u => {
-    const log  = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
-    const adjT = log?.adj_target ?? (log?.target != null && log?.downtime != null
-      ? Math.round(log.target * ((SHIFT_H - log.downtime) / SHIFT_H))
-      : log?.target ?? null);
-    const prod    = p(log?.total, adjT);
-    const deficit = adjT != null && log?.total != null ? adjT - log.total : null;
-    return { ...u, log, adjT, prod, deficit };
-  }).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
+    return employees.map(u => {
+      const log  = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
+      const adjT = log?.adj_target ?? (log?.target != null && log?.downtime != null
+        ? Math.round(log.target * ((SHIFT_H - log.downtime) / SHIFT_H))
+        : log?.target ?? null);
+      const prod    = p(log?.total, adjT);
+      const deficit = adjT != null && log?.total != null ? adjT - log.total : null;
+      return { ...u, log, adjT, prod, deficit };
+    }).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
+  }, [allUsers, logs, user, customProcs, filterProc, statusFilter, pinnedOnly, pinned]);
 
   const avgProd    = avg(tableRows.map(r => r.prod).filter(v => v != null));
-  const avgQuality = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
+  const avgQuality = avg(tableRows.map(r => r.log?.quality).filter(v => v != null));
 
   return (
     <div>
@@ -230,7 +229,7 @@ export default function ProdMonitor({ user }) {
       <div className="grid-4 mb-16">
         <div className="stat-card">
           <div className="stat-label">Total Employees</div>
-          <div className="stat-value">{filteredUsers.length}</div>
+          <div className="stat-value">{tableRows.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">On Track (≥100%)</div>

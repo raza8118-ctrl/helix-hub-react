@@ -1,9 +1,11 @@
-import ProdReport    from './ProdReport';
-import MyReports     from './MyReports';
-import Progress      from './Progress';
-import MyAllocation  from './MyAllocation';
-import EmpFeedback   from './EmpFeedback';
-import TeamFeed      from './TeamFeed';
+import { lazy } from 'react';
+
+const ProdReport   = lazy(() => import('./ProdReport'));
+const MyReports    = lazy(() => import('./MyReports'));
+const Progress     = lazy(() => import('./Progress'));
+const MyAllocation = lazy(() => import('./MyAllocation'));
+const EmpFeedback  = lazy(() => import('./EmpFeedback'));
+const TeamFeed     = lazy(() => import('./TeamFeed'));
 
 /**
  * Routes employee tabs to the correct page component.

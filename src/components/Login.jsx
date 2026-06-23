@@ -67,13 +67,17 @@ const CARD = {
   alignItems: 'center',
 };
 
-const FIELD = { marginBottom: 14, width: '100%' };
+// Login's own light-card inputs/labels — same shape as the global `.form-group`/
+// `input`/`label` rules in index.css, but forced to light colors since this page
+// renders before any theme preference is loaded (always a white card).
 const LBL = { display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 5 };
 const INP = {
   width: '100%', padding: '9px 12px', border: '1px solid #e2e8f0',
   borderRadius: 6, fontSize: 13, outline: 'none', boxSizing: 'border-box',
   color: '#1a202c', background: '#f8fafc',
+  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
 };
+const INP_FOCUS = { borderColor: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,0.15)' };
 
 export default function Login({ onLogin }) {
   const [view, setView]         = useState('login');
@@ -85,6 +89,7 @@ export default function Login({ onLogin }) {
   const [forgotOk, setForgotOk]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [showPw, setShowPw]       = useState(false);
+  const [focused, setFocused]     = useState('');
 
   useEffect(() => { ensureAdmin(); }, []);
 
@@ -132,7 +137,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div style={WRAP}>
-      <div style={CARD}>
+      <div style={CARD} className="fade-in-scale">
         {/* Logo */}
         <HexLogo />
         <div style={{ fontSize: 22, fontWeight: 800, color: '#1a202c', marginTop: 12, letterSpacing: '-0.5px' }}>
@@ -144,29 +149,33 @@ export default function Login({ onLogin }) {
 
         {view === 'login' ? (
           <form onSubmit={doLogin} style={{ width: '100%' }}>
-            <div style={FIELD}>
+            <div className="form-group">
               <label style={LBL} htmlFor="emp-id">Employee ID</label>
               <input
                 id="emp-id"
-                style={INP}
+                style={focused === 'emp-id' ? { ...INP, ...INP_FOCUS } : INP}
                 type="text"
                 value={empId}
                 onChange={e => setEmpId(e.target.value)}
+                onFocus={() => setFocused('emp-id')}
+                onBlur={() => setFocused('')}
                 placeholder="e.g. EMP001"
                 required
                 autoFocus
                 autoComplete="username"
               />
             </div>
-            <div style={FIELD}>
+            <div className="form-group">
               <label style={LBL} htmlFor="login-pw">Password</label>
               <div style={{ position: 'relative' }}>
                 <input
                   id="login-pw"
-                  style={{ ...INP, paddingRight: 36 }}
+                  style={focused === 'login-pw' ? { ...INP, ...INP_FOCUS, paddingRight: 36 } : { ...INP, paddingRight: 36 }}
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  onFocus={() => setFocused('login-pw')}
+                  onBlur={() => setFocused('')}
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
@@ -190,24 +199,11 @@ export default function Login({ onLogin }) {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 7, border: 'none',
-                background: 'linear-gradient(135deg, #7c3aed, #4338ca)',
-                color: '#fff', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1, marginBottom: 12,
-              }}
-            >
+            <button type="submit" disabled={loading} className="btn btn-login btn-lg" style={{ marginBottom: 12 }}>
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
 
-            <button
-              type="button"
-              onClick={toForgot}
-              style={{ background: 'none', border: 'none', color: '#7c3aed', fontSize: 12, cursor: 'pointer', width: '100%', textAlign: 'center' }}
-            >
+            <button type="button" onClick={toForgot} className="btn-link">
               Forgot Password?
             </button>
           </form>
@@ -216,14 +212,16 @@ export default function Login({ onLogin }) {
             <p style={{ fontSize: 12, color: '#64748b', marginBottom: 16, textAlign: 'center', lineHeight: 1.5 }}>
               Enter your Employee ID and your administrator will reset your password.
             </p>
-            <div style={FIELD}>
+            <div className="form-group">
               <label style={LBL} htmlFor="forgot-id">Employee ID</label>
               <input
                 id="forgot-id"
-                style={INP}
+                style={focused === 'forgot-id' ? { ...INP, ...INP_FOCUS } : INP}
                 type="text"
                 value={forgotId}
                 onChange={e => setForgotId(e.target.value)}
+                onFocus={() => setFocused('forgot-id')}
+                onBlur={() => setFocused('')}
                 placeholder="e.g. EMP001"
                 required
                 autoFocus
@@ -241,25 +239,12 @@ export default function Login({ onLogin }) {
             )}
 
             {!forgotOk && (
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: '100%', padding: '10px', borderRadius: 7, border: 'none',
-                  background: 'linear-gradient(135deg, #7c3aed, #4338ca)',
-                  color: '#fff', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1, marginBottom: 12,
-                }}
-              >
+              <button type="submit" disabled={loading} className="btn btn-login btn-lg" style={{ marginBottom: 12 }}>
                 {loading ? 'Checking…' : 'Submit'}
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={toLogin}
-              style={{ background: 'none', border: 'none', color: '#7c3aed', fontSize: 12, cursor: 'pointer', width: '100%', textAlign: 'center' }}
-            >
+            <button type="button" onClick={toLogin} className="btn-link">
               ← Back to Sign In
             </button>
           </form>
