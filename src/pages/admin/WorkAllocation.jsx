@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { S, kv } from '../../lib/supabase';
 
@@ -83,9 +83,19 @@ export default function WorkAllocation({ user }) {
     setFilters(prev => { const n = { ...prev }; delete n[col]; return n; });
   }
 
+  // Distinct values per column, for the header "select to filter" dropdowns.
+  const columnValues = useMemo(() => {
+    if (!parsed) return {};
+    return Object.fromEntries(parsed.headers.map(h => {
+      const vals = [...new Set(parsed.rows.map(r => String(r[h] ?? '').trim()).filter(Boolean))];
+      vals.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      return [h, vals];
+    }));
+  }, [parsed]);
+
   const filteredRows = parsed?.rows.filter(row =>
     Object.entries(filters).every(([col, val]) =>
-      !val || String(row[col] ?? '').toLowerCase().includes(val.toLowerCase())
+      !val || String(row[col] ?? '').trim() === val
     )
   ) ?? [];
 
@@ -242,21 +252,22 @@ export default function WorkAllocation({ user }) {
                 <thead>
                   <tr>
                     {parsed.headers.map(h => (
-                      <th key={h} style={{ minWidth: 120 }}>
+                      <th key={h} style={{ minWidth: 140 }}>
                         <div style={{ fontWeight: 700, marginBottom: 4 }}>{h}</div>
-                        <input
-                          type="text"
+                        <select
                           value={filters[h] ?? ''}
                           onChange={e => setFilter(h, e.target.value)}
-                          placeholder="Filter…"
                           style={{
-                            width: '100%', padding: '3px 7px', fontSize: 11,
+                            width: '100%', padding: '3px 5px', fontSize: 11,
                             border: '1px solid var(--border)', borderRadius: 4,
                             background: 'var(--surface)', color: 'var(--text)',
                             fontWeight: 400, letterSpacing: 'normal',
                           }}
                           onClick={e => e.stopPropagation()}
-                        />
+                        >
+                          <option value="">All ({(columnValues[h] ?? []).length})</option>
+                          {(columnValues[h] ?? []).map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
                       </th>
                     ))}
                   </tr>

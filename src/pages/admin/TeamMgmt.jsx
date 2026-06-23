@@ -54,32 +54,21 @@ export default function TeamMgmt({ user }) {
   const [saving, setSaving]           = useState(false);
   const [newProc, setNewProc]         = useState('');
   const [newProcProject, setNewProcProject] = useState(DEFAULT_PROJECT);
-  const [auditLog, setAuditLog]       = useState([]);
-  const [auditSearch, setAuditSearch] = useState('');
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const [u, rr, cp, al] = await Promise.all([
+    const [u, rr, cp] = await Promise.all([
       S.get('users'),
       S.get('reset_requests'),
       S.get('processes'),
-      S.get('audit_log'),
     ]);
     setAllUsers(u ?? []);
     setResetReqs(rr ?? []);
     setCustomProcs(cp ?? []);
-    setAuditLog((al ?? []).sort((a, b) => (b.created_at > a.created_at ? 1 : -1)).slice(0, 200));
     setLoading(false);
   }
-
-  const displayAuditLog = auditLog.filter(a => {
-    const q = auditSearch.trim().toLowerCase();
-    if (!q) return true;
-    return (a.actor_name ?? a.actor_emp_id ?? '').toLowerCase().includes(q) ||
-      (a.target_name ?? a.target_emp_id ?? '').toLowerCase().includes(q);
-  });
 
   const allProjects  = [DEFAULT_PROJECT, ...new Set(customProcs.map(p => p.project).filter(p => p && p !== DEFAULT_PROJECT))];
   const procsByProject = Object.fromEntries(allProjects.map(proj => [proj, subProcessesOf(proj, customProcs)]));
@@ -272,35 +261,6 @@ export default function TeamMgmt({ user }) {
             onKeyDown={e => e.key === 'Enter' && addProcess()}
             style={{ maxWidth: 200 }} />
           <button className="btn-sm" onClick={addProcess}>Add Sub-Process</button>
-        </div>
-      </div>
-
-      {/* Audit log */}
-      <div className="card mb-16">
-        <div className="card-header">
-          <div className="card-title">Audit Log</div>
-          <input type="text" placeholder="Search actor / target…" value={auditSearch}
-            onChange={e => setAuditSearch(e.target.value)} style={{ maxWidth: 180 }} />
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th></tr>
-            </thead>
-            <tbody>
-              {displayAuditLog.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>No audit records</td></tr>
-              )}
-              {displayAuditLog.map(a => (
-                <tr key={a.id}>
-                  <td className="text-sm text-muted">{a.created_at ? new Date(a.created_at).toLocaleString() : '—'}</td>
-                  <td className="text-sm">{a.actor_name ?? a.actor_emp_id} <span className="text-muted">({a.actor_role})</span></td>
-                  <td className="text-sm">{a.action}</td>
-                  <td className="text-sm">{a.target_name ?? a.target_emp_id ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
 
