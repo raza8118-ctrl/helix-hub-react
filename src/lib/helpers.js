@@ -185,10 +185,19 @@ export async function setSupervisorPerms(perms) {
   return perms;
 }
 
-/** Restricts a user list to a supervisor's assigned team; admins/managers see everyone. */
+/**
+ * Restricts a user list to a supervisor's team — the union of individually picked
+ * employees (their supervisor_ids includes this supervisor) and whole processes
+ * the supervisor has been assigned (their processes overlap supervised_processes).
+ * Admins/managers see everyone.
+ */
 export function scopeToSupervisor(users, currentUser) {
   if (currentUser?.role !== 'supervisor') return users;
-  return (users || []).filter(u => u.supervisor_ids?.includes(currentUser.emp_id));
+  const watchedProcs = currentUser.supervised_processes ?? [];
+  return (users || []).filter(u =>
+    u.supervisor_ids?.includes(currentUser.emp_id) ||
+    getProcs(u).some(p => watchedProcs.includes(p))
+  );
 }
 
 /** Fire-and-forget — records who did what to whom, for the admin audit log. */

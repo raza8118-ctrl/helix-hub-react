@@ -9,6 +9,7 @@ const DEF_PROCS = ['MCO', 'MCD', 'MCR', 'AUTH'];
 const BLANK     = {
   emp_id: '', name: '', password: '', access: 'MCO',
   role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [], team_emp_ids: [],
+  supervised_processes: [],
 };
 
 const PERM_LABELS = {
@@ -118,6 +119,7 @@ export default function TeamMgmt({ user }) {
       team_emp_ids: u.role === 'supervisor'
         ? allUsers.filter(e => e.role === 'employee' && (e.supervisor_ids ?? []).includes(u.emp_id)).map(e => e.emp_id)
         : [],
+      supervised_processes: u.supervised_processes ?? [],
     });
     setShowForm(true);
   }
@@ -135,6 +137,7 @@ export default function TeamMgmt({ user }) {
       target: form.target !== '' ? parseInt(form.target) : null,
       processes: form.processes,
       supervisor_ids: form.supervisor_ids,
+      supervised_processes: form.role === 'supervisor' ? form.supervised_processes : [],
       active: true,
     };
     if (editUser) {
@@ -422,12 +425,20 @@ export default function TeamMgmt({ user }) {
               />
             )}
             {f.role === 'supervisor' && (
-              <MultiCheck
-                label="Team Members (employees this supervisor monitors)"
-                options={allUsers.filter(u => u.role === 'employee').map(u => u.emp_id)}
-                selected={f.team_emp_ids}
-                onChange={v => setF({ team_emp_ids: v })}
-              />
+              <>
+                <MultiCheck
+                  label="Monitored Processes (auto-includes everyone on these processes)"
+                  options={allProcs}
+                  selected={f.supervised_processes}
+                  onChange={v => setF({ supervised_processes: v })}
+                />
+                <MultiCheck
+                  label="Team Members (additional individual employees this supervisor monitors)"
+                  options={allUsers.filter(u => u.role === 'employee').map(u => u.emp_id)}
+                  selected={f.team_emp_ids}
+                  onChange={v => setF({ team_emp_ids: v })}
+                />
+              </>
             )}
             <div className="form-actions">
               <button className="btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
