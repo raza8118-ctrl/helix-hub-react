@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { S } from '../../lib/supabase';
+import { useState, useEffect, useRef } from 'react';
+import { S, kv } from '../../lib/supabase';
 import { today, yesterday, fmtD, dlCSV } from '../../lib/helpers';
 import {
   DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H,
@@ -85,6 +85,8 @@ export default function ProdReport({ user }) {
   const [saveError, setSaveError]           = useState('');
   const [submittedAt, setSubmittedAt]       = useState(null);
   const [hourlyMsg, setHourlyMsg]           = useState('');
+  const [autoSave, setAutoSave]             = useState(false);
+  const autoSaveTimer = useRef(null);
   const [downtime, setDowntime]             = useState('');
   const [remarks, setRemarks]               = useState('');
   const [quality, setQuality]               = useState(isOnlyAuth ? '100' : '');
@@ -106,6 +108,18 @@ export default function ProdReport({ user }) {
   useEffect(() => {
     S.get('task_configs').then(rows => setTaskCfgRows(rows ?? [])).catch(() => setTaskCfgRows([]));
   }, []);
+
+  // ── Load auto-save preference once, and clear any pending debounce on unmount ──
+  useEffect(() => {
+    kv.get(`prefs_${user.emp_id}`).then(p => setAutoSave(!!p?.autoSaveHourly)).catch(() => {});
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, []);
+
+  async function toggleAutoSave(checked) {
+    setAutoSave(checked);
+    const existing = await kv.get(`prefs_${user.emp_id}`).catch(() => null);
+    await kv.set(`prefs_${user.emp_id}`, { ...(existing ?? {}), autoSaveHourly: checked });
+  }
 
   // ── Build deduped task list from all user processes ──────────────────────
   const taskDefs = (() => {
@@ -224,6 +238,10 @@ export default function ProdReport({ user }) {
       syncHourlyToTasks(next);
       return next;
     });
+    if (autoSave && isEditable) {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => saveHourly(true), 1500);
+    }
   }
 
   // ── Live calculations ────────────────────────────────────────────────────
@@ -255,15 +273,16 @@ export default function ProdReport({ user }) {
   }));
 
   // ── Save hourly only ─────────────────────────────────────────────────────
-  async function saveHourly() {
-    setSavingHourly(true); setHourlyMsg('');
+  async function saveHourly(isAutoSave = false) {
+    if (!isAutoSave) setSavingHourly(true);
+    setHourlyMsg(isAutoSave ? 'Auto-saving…' : '');
     const hPayload = { emp_id: user.emp_id, date };
     slots.forEach((sl, i) => { hPayload[`h${i}`] = parseInt(sl.count) || 0; });
     const exHr = (await S.get('hourly_logs', { emp_id: user.emp_id, date }))?.[0];
     if (exHr?.id) await S.update('hourly_logs', hPayload, { id: exHr.id });
     else await S.set('hourly_logs', hPayload);
-    setHourlyMsg(`✓ Saved! Total: ${slotGrandTotal} counts`);
-    setSavingHourly(false);
+    setHourlyMsg(isAutoSave ? `✓ Auto-saved · Total: ${slotGrandTotal} counts` : `✓ Saved! Total: ${slotGrandTotal} counts`);
+    if (!isAutoSave) setSavingHourly(false);
     setTimeout(() => setHourlyMsg(''), 3000);
   }
 
@@ -591,11 +610,16 @@ export default function ProdReport({ user }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn-primary" onClick={saveHourly} disabled={savingHourly || !isEditable}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button className="btn-primary" onClick={() => saveHourly()} disabled={savingHourly || !isEditable}
                 style={{ padding: '9px 22px', fontSize: 13, opacity: !isEditable ? 0.5 : 1 }}>
                 {savingHourly ? 'Saving…' : !isEditable ? '🔒 Locked' : '💾 Save Hourly Data'}
               </button>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', cursor: isEditable ? 'pointer' : 'not-allowed' }}>
+                <input type="checkbox" checked={autoSave} disabled={!isEditable}
+                  onChange={e => toggleAutoSave(e.target.checked)} />
+                Auto-save while entering counts
+              </label>
               {hourlyMsg && <span style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>{hourlyMsg}</span>}
             </div>
           </div>
