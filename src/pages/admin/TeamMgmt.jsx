@@ -3,6 +3,9 @@ import { S } from '../../lib/supabase';
 import { ACCESSES, DEFAULT_PROJECT } from '../../lib/constants';
 import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
+import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const ROLES     = ['employee', 'supervisor', 'manager', 'admin'];
 const BLANK     = {
@@ -19,6 +22,24 @@ const PERM_LABELS = {
   editQuality:    'Edit quality score',
   pinEmployee:    'Pin employee for close monitoring',
 };
+
+function SortableRow({ u, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: u.emp_id });
+  return (
+    <tr
+      ref={setNodeRef}
+      style={{
+        opacity: !u.active ? 0.5 : isDragging ? 0.6 : undefined,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        background: isDragging ? 'var(--bg-hover, rgba(0,0,0,0.04))' : undefined,
+      }}
+    >
+      <td style={{ width: 28, cursor: 'grab', touchAction: 'none', color: 'var(--text-muted)' }} {...attributes} {...listeners}>⠿</td>
+      {children}
+    </tr>
+  );
+}
 
 function MultiCheck({ label, options, selected, onChange }) {
   return (
@@ -54,6 +75,12 @@ export default function TeamMgmt({ user }) {
   const [saving, setSaving]           = useState(false);
   const [newProc, setNewProc]         = useState('');
   const [newProcProject, setNewProcProject] = useState(DEFAULT_PROJECT);
+  const [rowOrder, setRowOrder]       = useState({});
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   useEffect(() => { load(); }, []);
 
@@ -85,6 +112,35 @@ export default function TeamMgmt({ user }) {
       (statusFilter === 'active' ? u.active !== false : u.active === false);
     return nameOk && procOk && statusOk;
   });
+
+  const groupedUsers = (() => {
+    const groups = {};
+    for (const u of displayUsers) {
+      const key = u.access || u.process || 'Unassigned';
+      (groups[key] ??= []).push(u);
+    }
+    const orderedKeys = [...allProcs.filter(p => groups[p]), ...Object.keys(groups).filter(k => !allProcs.includes(k))];
+    return orderedKeys.map(key => {
+      const users = groups[key];
+      const savedOrder = rowOrder[key] ?? [];
+      const byId = Object.fromEntries(users.map(u => [u.emp_id, u]));
+      const sorted = [
+        ...savedOrder.filter(id => byId[id]).map(id => byId[id]),
+        ...users.filter(u => !savedOrder.includes(u.emp_id)),
+      ];
+      return [key, sorted];
+    });
+  })();
+
+  function handleDragEnd(groupKey, event) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = (groupedUsers.find(([k]) => k === groupKey)?.[1] ?? []).map(u => u.emp_id);
+    const from = ids.indexOf(active.id);
+    const to   = ids.indexOf(over.id);
+    if (from === -1 || to === -1) return;
+    setRowOrder(prev => ({ ...prev, [groupKey]: arrayMove(ids, from, to) }));
+  }
 
   const setF = patch => setForm(prev => ({ ...prev, ...patch }));
 
@@ -284,55 +340,65 @@ export default function TeamMgmt({ user }) {
             </select>
           </div>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Emp ID</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Process</th>
-                <th className="right">Target</th>
-                <th className="center">Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24 }}>Loading…</td></tr>}
-              {!loading && displayUsers.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No users found</td></tr>
-              )}
-              {displayUsers.map(u => (
-                <tr key={u.emp_id} style={!u.active ? { opacity: 0.5 } : undefined}>
-                  <td className="bold text-sm">{u.emp_id}</td>
-                  <td>{u.name ?? '—'}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'admin' ? 'badge-blue' : u.role === 'manager' ? 'badge-purple' : u.role === 'supervisor' ? 'badge-yellow' : 'badge-gray'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td>{u.access || u.process || '—'}</td>
-                  <td className="right">{u.target ?? '—'}</td>
-                  <td className="center">
-                    <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
-                      {u.active !== false ? 'Active' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="row" style={{ gap: 4 }}>
-                      <button className="btn-sm" onClick={() => openEdit(u)}>Edit</button>
-                      <button className="btn-sm"
-                        style={{ color: u.active !== false ? 'var(--danger)' : 'var(--success)' }}
-                        onClick={() => toggleActive(u)}>
-                        {u.active !== false ? 'Disable' : 'Enable'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {loading && <div style={{ textAlign: 'center', padding: 24 }}>Loading…</div>}
+        {!loading && groupedUsers.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No users found</div>
+        )}
+        {!loading && groupedUsers.map(([groupKey, users]) => (
+          <div key={groupKey} style={{ marginBottom: 18 }}>
+            <div className="text-sm bold text-muted" style={{ margin: '10px 0 4px' }}>{groupKey}</div>
+            <div className="table-wrap">
+              <DndContext sensors={dndSensors} onDragEnd={e => handleDragEnd(groupKey, e)}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Emp ID</th>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Process</th>
+                      <th className="right">Target</th>
+                      <th className="center">Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <SortableContext items={users.map(u => u.emp_id)} strategy={verticalListSortingStrategy}>
+                      {users.map(u => (
+                        <SortableRow key={u.emp_id} u={u}>
+                          <td className="bold text-sm">{u.emp_id}</td>
+                          <td>{u.name ?? '—'}</td>
+                          <td>
+                            <span className={`badge ${u.role === 'admin' ? 'badge-blue' : u.role === 'manager' ? 'badge-purple' : u.role === 'supervisor' ? 'badge-yellow' : 'badge-gray'}`}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td>{u.access || u.process || '—'}</td>
+                          <td className="right">{u.target ?? '—'}</td>
+                          <td className="center">
+                            <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
+                              {u.active !== false ? 'Active' : 'Disabled'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="row" style={{ gap: 4 }}>
+                              <button className="btn-sm" onClick={() => openEdit(u)}>Edit</button>
+                              <button className="btn-sm"
+                                style={{ color: u.active !== false ? 'var(--danger)' : 'var(--success)' }}
+                                onClick={() => toggleActive(u)}>
+                                {u.active !== false ? 'Disable' : 'Enable'}
+                              </button>
+                            </div>
+                          </td>
+                        </SortableRow>
+                      ))}
+                    </SortableContext>
+                  </tbody>
+                </table>
+              </DndContext>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Create / Edit user modal */}
