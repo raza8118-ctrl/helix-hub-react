@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, procIncludes, scopeToSupervisor } from '../../lib/helpers';
+import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
 
@@ -12,6 +12,7 @@ export default function HourlyMonitor({ user }) {
   const [statusFilter, setStatusFilter] = useState('active');
   const [search, setSearch]       = useState('');
   const [hourlyData, setHourlyData] = useState([]);
+  const [dailyLogs, setDailyLogs] = useState([]);
   const [allUsers, setAllUsers]   = useState([]);
   const [loading, setLoading]     = useState(false);
   const [empDetail, setEmpDetail] = useState(null);
@@ -31,25 +32,29 @@ export default function HourlyMonitor({ user }) {
 
   async function load() {
     setLoading(true);
-    const [u, h, cp] = await Promise.all([
+    const [u, h, dl, cp] = await Promise.all([
       S.get('users'),
       S.get('hourly_logs', { date }),
+      S.get('daily_logs', { date }),
       S.get('processes'),
     ]);
     setAllUsers(u ?? []);
     setHourlyData(h ?? []);
+    setDailyLogs(dl ?? []);
     setCustomProcs(cp ?? []);
     setLastRefresh(new Date());
     setLoading(false);
   }
 
   async function refreshSilent() {
-    const [u, h] = await Promise.all([
+    const [u, h, dl] = await Promise.all([
       S.get('users'),
       S.get('hourly_logs', { date }),
+      S.get('daily_logs', { date }),
     ]);
     setAllUsers(u ?? []);
     setHourlyData(h ?? []);
+    setDailyLogs(dl ?? []);
     setLastRefresh(new Date());
   }
 
@@ -65,9 +70,10 @@ export default function HourlyMonitor({ user }) {
 
     const tableRows = filteredUsers.map(u => {
       const row   = hourlyData.find(h => h.emp_id === u.emp_id) ?? null;
+      const log   = dailyLogs.find(l => l.emp_id === u.emp_id) ?? null;
       const slots = SLOT_KEYS.map(k => row?.[k] ?? null);
       const total = row ? slots.reduce((s, v) => s + (v ?? 0), 0) : null;
-      return { ...u, row, slots, total };
+      return { ...u, row, log, slots, total };
     });
 
     const slotTotals = SLOT_KEYS.map((_, si) =>
@@ -76,10 +82,10 @@ export default function HourlyMonitor({ user }) {
     const grandTotal = slotTotals.reduce((s, v) => s + v, 0);
 
     const filed   = tableRows.filter(r => r.row).length;
-    const pending = tableRows.filter(r => !r.row).length;
+    const pending = tableRows.filter(r => !r.row && !isOnLeave(r.log)).length;
 
     return { tableRows, slotTotals, grandTotal, filed, pending };
-  }, [allUsers, hourlyData, user, customProcs, filterProc, search, statusFilter]);
+  }, [allUsers, hourlyData, dailyLogs, user, customProcs, filterProc, search, statusFilter]);
 
   return (
     <div>
@@ -179,9 +185,11 @@ export default function HourlyMonitor({ user }) {
                   ))}
                   <td className="right bold">{row.total != null ? row.total : '—'}</td>
                   <td className="center">
-                    {row.row
-                      ? <span className="badge badge-green">Filed</span>
-                      : <span className="badge badge-red">Pending</span>}
+                    {isOnLeave(row.log)
+                      ? <span className="badge badge-blue">On Leave</span>
+                      : row.row
+                        ? <span className="badge badge-green">Filed</span>
+                        : <span className="badge badge-red">Pending</span>}
                   </td>
                 </tr>
               ))}

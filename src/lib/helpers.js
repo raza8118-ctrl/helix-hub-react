@@ -315,6 +315,11 @@ export function effectiveTarget(user, dateStr) {
   return parseInt(user.ramp_schedule[weeksElapsed]) || flat;
 }
 
+/** True if a daily log represents an approved/self-marked absence */
+export function isOnLeave(log) {
+  return !!log && LEAVE_STATUSES.includes(log.attendance_status);
+}
+
 /** True if user works on the AUTH process */
 export function userIsAuth(user) {
   return procIncludes(user, 'AUTH');

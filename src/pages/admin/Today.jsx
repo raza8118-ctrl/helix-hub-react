@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, isOnLeave } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import Modal from '../../components/shared/Modal';
@@ -130,7 +130,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       'Employee': row.name ?? row.emp_id,
       'Emp ID': row.emp_id,
       'Process': row.log?.process ?? row.access,
-      'Status': row.log?.submitted ? 'Submitted' : 'Pending',
+      'Status': isOnLeave(row.log) ? 'On Leave' : row.log?.submitted ? 'Submitted' : 'Pending',
       'Total': row.log?.total ?? '',
       'Adj.Target': row.log?.adj_target ?? row.log?.target ?? '',
       'Prod%': row.log ? (p(row.log.total, row.log.adj_target ?? row.log.target) ?? '') : '',
@@ -263,9 +263,11 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
                     </td>
                     <td>{row.log?.process ?? row.access}</td>
                     <td className="center">
-                      {row.log?.submitted
-                        ? <span className="badge badge-green">Submitted</span>
-                        : <span className="badge badge-red">Pending</span>}
+                      {isOnLeave(row.log)
+                        ? <span className="badge badge-blue">On Leave</span>
+                        : row.log?.submitted
+                          ? <span className="badge badge-green">Submitted</span>
+                          : <span className="badge badge-red">Pending</span>}
                     </td>
                     <td className="right">{row.log?.total ?? '—'}</td>
                     <td className={`right bold ${pCol(prod)}`}>{prod != null ? prod + '%' : '—'}</td>

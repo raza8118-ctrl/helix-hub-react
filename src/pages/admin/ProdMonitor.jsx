@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave } from '../../lib/helpers';
 import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
@@ -9,7 +9,8 @@ const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / ad
 
 const STATUS_LABELS = { present: 'Present', half_day_1: 'First Half', half_day_2: 'Second Half', absent: 'Absent' };
 
-function StatusBadge({ prod, bypassed }) {
+function StatusBadge({ prod, bypassed, onLeave }) {
+  if (onLeave) return <span className="badge badge-blue">On Leave</span>;
   if (bypassed) return <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--accent)' }}>Bypassed</span>;
   if (prod == null) return <span className="badge badge-gray">No Data</span>;
   if (prod >= 100) return <span className="badge badge-green">On Track</span>;
@@ -97,6 +98,9 @@ export default function ProdMonitor({ user }) {
       total: isAbsentStatus ? 0 : (bypassTarget.log?.total ?? 0),
       adj_target: isAbsentStatus ? 0 : (isHalfDayStatus ? baseTarget * 0.5 : baseTarget),
       base_target: isAbsentStatus ? 0 : (isHalfDayStatus ? baseTarget * 0.5 : baseTarget),
+      // An admin bypass finalizes the day's record just like a real submission —
+      // otherwise it sits forever as "Pending" on every monitoring sheet.
+      submitted: true,
     };
 
     if (bypassTarget.log?.id) {
@@ -111,7 +115,6 @@ export default function ProdMonitor({ user }) {
         target: baseTarget,
         ...statusFields,
         bypass_reason: bypassReason.trim(),
-        submitted: false,
         submitted_at: new Date().toISOString(),
       }, 'emp_id,date');
     }
@@ -298,7 +301,7 @@ export default function ProdMonitor({ user }) {
                       : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                   </td>
                   <td className="center">
-                    <StatusBadge prod={row.prod} bypassed={!!row.log?.bypass_reason} />
+                    <StatusBadge prod={row.prod} bypassed={!!row.log?.bypass_reason} onLeave={isOnLeave(row.log)} />
                   </td>
                   <td className="right">{row.log?.total ?? '—'}</td>
                   <td className="right">{row.adjT ?? '—'}</td>
