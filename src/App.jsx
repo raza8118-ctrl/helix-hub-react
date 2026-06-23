@@ -43,28 +43,28 @@ function applyTheme(themeId) {
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const ADMIN_TABS = [
-  { id: 'today',       label: 'Today',         icon: '📅' },
-  { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊' },
-  { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️' },
-  { id: 'weekly',      label: 'Weekly',        icon: '🗓️' },
-  { id: 'monthly',     label: 'Monthly',       icon: '📆' },
-  { id: 'feedback',    label: 'Announcements', icon: '📢' },
-  { id: 'team',        label: 'Team',          icon: '👥' },
-  { id: 'allocation',  label: 'Work Alloc',    icon: '🗂️' },
-  { id: 'allocmon',    label: 'Alloc Monitor', icon: '📋' },
-  { id: 'feedmonitor', label: 'Feed Monitor',  icon: '🖼️' },
-  { id: 'settings',    label: 'Settings',      icon: '⚙️' },
+  { id: 'today',       label: 'Today',         icon: '📅', section: 'Monitoring' },
+  { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊', section: 'Monitoring' },
+  { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️', section: 'Monitoring' },
+  { id: 'weekly',      label: 'Weekly',        icon: '🗓️', section: 'Monitoring' },
+  { id: 'monthly',     label: 'Monthly',       icon: '📆', section: 'Monitoring' },
+  { id: 'team',        label: 'Team',          icon: '👥', section: 'Team' },
+  { id: 'allocation',  label: 'Work Alloc',    icon: '🗂️', section: 'Team' },
+  { id: 'allocmon',    label: 'Alloc Monitor', icon: '📋', section: 'Team' },
+  { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
+  { id: 'feedmonitor', label: 'Feed Monitor',  icon: '🖼️', section: 'Engagement' },
+  { id: 'settings',    label: 'Settings',      icon: '⚙️', section: 'System' },
 ];
 
 const SUPERVISOR_TABS = [
-  { id: 'today',       label: 'Today',         icon: '📅' },
-  { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊' },
-  { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️' },
-  { id: 'weekly',      label: 'Weekly',        icon: '🗓️' },
-  { id: 'monthly',     label: 'Monthly',       icon: '📆' },
-  { id: 'feedback',    label: 'Announcements', icon: '📢' },
-  { id: 'myteam',      label: 'My Team',       icon: '🧑‍🤝‍🧑' },
-  { id: 'feed',        label: 'Team Feed',     icon: '💬' },
+  { id: 'today',       label: 'Today',         icon: '📅', section: 'Monitoring' },
+  { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊', section: 'Monitoring' },
+  { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️', section: 'Monitoring' },
+  { id: 'weekly',      label: 'Weekly',        icon: '🗓️', section: 'Monitoring' },
+  { id: 'monthly',     label: 'Monthly',       icon: '📆', section: 'Monitoring' },
+  { id: 'myteam',      label: 'My Team',       icon: '🧑‍🤝‍🧑', section: 'Team' },
+  { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
+  { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
 ];
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -217,12 +217,12 @@ export default function App() {
   const isSupervisor = currentUser.role === 'supervisor';
 
   const empTabs = [
-    { id: 'prodreport',   label: 'Daily Report',  icon: '📝' },
-    { id: 'myreports',    label: 'My Reports',    icon: '📄' },
-    { id: 'progress',     label: 'Progress',      icon: '📈' },
-    { id: 'myallocation', label: 'My Allocation', icon: '🗂️' },
-    { id: 'feedback',     label: unreadFeedback > 0 ? `Announcements (${unreadFeedback})` : 'Announcements', icon: '📢' },
-    { id: 'feed',         label: 'Team Feed',     icon: '💬' },
+    { id: 'prodreport',   label: 'Daily Report',  icon: '📝', section: 'My Work' },
+    { id: 'myreports',    label: 'My Reports',    icon: '📄', section: 'My Work' },
+    { id: 'progress',     label: 'Progress',      icon: '📈', section: 'My Work' },
+    { id: 'myallocation', label: 'My Allocation', icon: '🗂️', section: 'My Work' },
+    { id: 'feedback',     label: unreadFeedback > 0 ? `Announcements (${unreadFeedback})` : 'Announcements', icon: '📢', section: 'Engagement' },
+    { id: 'feed',         label: 'Team Feed',     icon: '💬', section: 'Engagement' },
   ];
 
   const tabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
@@ -244,7 +244,7 @@ export default function App() {
       <div className="content-col">
         <header className="page-topbar topbar-blur">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{pageTitle}</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15.5, color: 'var(--text)' }}>{pageTitle}</span>
             {hasDeficit && (
               <span
                 style={{ background: '#ef4444', color: '#fff', borderRadius: 12, padding: '3px 9px', fontSize: 11, fontWeight: 700 }}

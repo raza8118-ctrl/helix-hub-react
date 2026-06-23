@@ -138,7 +138,7 @@ export default function Login({ onLogin }) {
       <div className="login-brand-panel">
         <div style={{ position: 'relative', zIndex: 1 }}>
           <HexLogo size={56} />
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', marginTop: 20, letterSpacing: '-0.5px' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: '#fff', marginTop: 20, letterSpacing: '-0.5px' }}>
             Helix Hub
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 6, maxWidth: 360, lineHeight: 1.6 }}>
@@ -161,7 +161,7 @@ export default function Login({ onLogin }) {
         <div style={CARD} className="fade-in-scale">
           {/* Logo (shown here too — the brand panel collapses on narrow screens) */}
           <HexLogo />
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#1a202c', marginTop: 12, letterSpacing: '-0.5px' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#1a202c', marginTop: 12, letterSpacing: '-0.5px' }}>
             Helix Hub
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, marginBottom: 28 }}>

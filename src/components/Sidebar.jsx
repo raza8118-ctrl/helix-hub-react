@@ -43,25 +43,27 @@ export default function Sidebar({
       <div className="sidebar-brand">
         <HexLogo />
         <div>
-          <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--topbar-text)', lineHeight: 1.2, letterSpacing: '-0.3px' }}>
-            Helix Hub
-          </div>
+          <div className="brand-name">Helix Hub</div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1 }}>3Gen Consulting</div>
         </div>
       </div>
 
       <nav className="sidebar-nav" role="tablist">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => onTab(tab.id)}
-            className={`sidebar-link ${activeTab === tab.id ? 'active' : ''}`}
-          >
-            <span className="icon">{tab.icon ?? '•'}</span>
-            <span>{tab.label}</span>
-          </button>
+        {tabs.map((tab, i) => (
+          <div key={tab.id}>
+            {tab.section && tab.section !== tabs[i - 1]?.section && (
+              <div className="sidebar-section-label">{tab.section}</div>
+            )}
+            <button
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => onTab(tab.id)}
+              className={`sidebar-link ${activeTab === tab.id ? 'active' : ''}`}
+            >
+              <span className="icon">{tab.icon ?? '•'}</span>
+              <span>{tab.label}</span>
+            </button>
+          </div>
         ))}
       </nav>
 
