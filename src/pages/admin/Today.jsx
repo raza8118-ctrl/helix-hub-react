@@ -22,6 +22,7 @@ export default function Today({ user }) {
   const [emailBody, setEmailBody]     = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [empDetail, setEmpDetail] = useState(null);
+  const [customProcs, setCustomProcs] = useState([]);
 
   useEffect(() => { load(); }, [date]);
   useEffect(() => { getPinned().then(setPinned); }, []);
@@ -39,14 +40,16 @@ export default function Today({ user }) {
 
   async function load() {
     setLoading(true);
-    const [u, l, h] = await Promise.all([
+    const [u, l, h, cp] = await Promise.all([
       S.get('users'),
       S.get('daily_logs', { date }),
       S.get('holidays', { date }),
+      S.get('processes'),
     ]);
     setAllUsers(u ?? []);
     setLogs(l ?? []);
     setHoliday(h?.[0] ?? null);
+    setCustomProcs(cp ?? []);
     setLoading(false);
   }
 
@@ -55,7 +58,7 @@ export default function Today({ user }) {
     setPinned(next);
   }
 
-  const employees = scopeToSupervisor(allUsers, user).filter(u => {
+  const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const statusOk = statusFilter === 'all' ||
@@ -67,8 +70,7 @@ export default function Today({ user }) {
 
   const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
   const filteredLogs = logs.filter(l => {
-    const teamOk = user.role !== 'supervisor' || teamEmpIds.has(l.emp_id);
-    return logMatchesProc(l, filterProc) && teamOk;
+    return logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id);
   });
 
   const submitted  = filteredLogs.filter(l => l.submitted).length;

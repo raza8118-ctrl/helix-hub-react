@@ -17,6 +17,7 @@ export default function HourlyMonitor({ user }) {
   const [empDetail, setEmpDetail] = useState(null);
 
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [customProcs, setCustomProcs] = useState([]);
 
   useEffect(() => { load(); }, [date]);
 
@@ -30,12 +31,14 @@ export default function HourlyMonitor({ user }) {
 
   async function load() {
     setLoading(true);
-    const [u, h] = await Promise.all([
+    const [u, h, cp] = await Promise.all([
       S.get('users'),
       S.get('hourly_logs', { date }),
+      S.get('processes'),
     ]);
     setAllUsers(u ?? []);
     setHourlyData(h ?? []);
+    setCustomProcs(cp ?? []);
     setLastRefresh(new Date());
     setLoading(false);
   }
@@ -50,7 +53,7 @@ export default function HourlyMonitor({ user }) {
     setLastRefresh(new Date());
   }
 
-  const filteredUsers = scopeToSupervisor(allUsers, user).filter(u => {
+  const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const searchOk = !search.trim() || (u.name ?? u.emp_id).toLowerCase().includes(search.toLowerCase());

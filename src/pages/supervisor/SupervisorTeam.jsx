@@ -1,25 +1,23 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { scopeToSupervisor, getSupervisorPerms, logAudit } from '../../lib/helpers';
+import { scopeToSupervisor, permsFor, logAudit } from '../../lib/helpers';
 
 export default function SupervisorTeam({ user }) {
   const [allUsers, setAllUsers]   = useState([]);
   const [resetReqs, setResetReqs] = useState([]);
-  const [perms, setPerms]         = useState(null);
+  const perms = permsFor(user);
   const [loading, setLoading]     = useState(false);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const [u, rr, p] = await Promise.all([
+    const [u, rr] = await Promise.all([
       S.get('users'),
       S.get('reset_requests'),
-      getSupervisorPerms(),
     ]);
     setAllUsers(u ?? []);
     setResetReqs(rr ?? []);
-    setPerms(p);
     setLoading(false);
   }
 

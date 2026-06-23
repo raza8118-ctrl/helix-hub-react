@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, getSupervisorPerms, logAudit } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit } from '../../lib/helpers';
 import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
@@ -39,27 +39,29 @@ export default function ProdMonitor({ user }) {
   const [qualityVal, setQualityVal]       = useState('');
   const [qualityLoading, setQualityLoading] = useState(false);
 
-  const isSupervisor = user.role === 'supervisor';
-  const [perms, setPerms] = useState(null);
+  const isScopedRole = user.role === 'supervisor' || user.role === 'manager';
+  const perms = isScopedRole ? permsFor(user) : null;
+  const [customProcs, setCustomProcs] = useState([]);
 
   useEffect(() => { load(); }, [date]);
   useEffect(() => { getPinned().then(setPinned); }, []);
-  useEffect(() => { if (isSupervisor) getSupervisorPerms().then(setPerms); }, [isSupervisor]);
 
-  const canBypass  = !isSupervisor || perms?.bypassDeadline;
-  const canQuality = !isSupervisor || perms?.editQuality;
-  const canPin     = !isSupervisor || perms?.pinEmployee;
+  const canBypass  = !isScopedRole || perms?.bypassDeadline;
+  const canQuality = !isScopedRole || perms?.editQuality;
+  const canPin     = !isScopedRole || perms?.pinEmployee;
 
   async function load() {
     setLoading(true);
-    const [u, l, h] = await Promise.all([
+    const [u, l, h, cp] = await Promise.all([
       S.get('users'),
       S.get('daily_logs', { date }),
       S.get('holidays', { date }),
+      S.get('processes'),
     ]);
     setAllUsers(u ?? []);
     setLogs(l ?? []);
     setHoliday(h?.[0] ?? null);
+    setCustomProcs(cp ?? []);
     setLoading(false);
   }
 
@@ -144,7 +146,7 @@ export default function ProdMonitor({ user }) {
     await load();
   }
 
-  const employees = scopeToSupervisor(allUsers, user).filter(u => {
+  const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const statusOk = statusFilter === 'all' ||
@@ -156,8 +158,7 @@ export default function ProdMonitor({ user }) {
 
   const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
   const filteredLogs = logs.filter(l => {
-    const teamOk = user.role !== 'supervisor' || teamEmpIds.has(l.emp_id);
-    return logMatchesProc(l, filterProc) && teamOk;
+    return logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id);
   });
 
   const tableRows = filteredUsers.map(u => {

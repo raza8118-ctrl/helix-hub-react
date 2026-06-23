@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { ACCESSES } from '../../lib/constants';
-import { DEFAULT_SUPERVISOR_PERMS, getSupervisorPerms, setSupervisorPerms, logAudit } from '../../lib/helpers';
+import { ACCESSES, DEFAULT_PROJECT } from '../../lib/constants';
+import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 
 const ROLES     = ['employee', 'supervisor', 'manager', 'admin'];
-const DEF_PROCS = ['MCO', 'MCD', 'MCR', 'AUTH'];
 const BLANK     = {
   emp_id: '', name: '', password: '', access: 'MCO',
   role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [], team_emp_ids: [],
-  supervised_processes: [],
+  supervised_processes: [], supervised_projects: [], all_projects: false,
+  permissions: DEFAULT_SUPERVISOR_PERMS,
 };
 
 const PERM_LABELS = {
@@ -53,7 +53,7 @@ export default function TeamMgmt({ user }) {
   const [form, setForm]               = useState(BLANK);
   const [saving, setSaving]           = useState(false);
   const [newProc, setNewProc]         = useState('');
-  const [perms, setPerms]             = useState(DEFAULT_SUPERVISOR_PERMS);
+  const [newProcProject, setNewProcProject] = useState(DEFAULT_PROJECT);
   const [auditLog, setAuditLog]       = useState([]);
   const [auditSearch, setAuditSearch] = useState('');
 
@@ -61,27 +61,17 @@ export default function TeamMgmt({ user }) {
 
   async function load() {
     setLoading(true);
-    const [u, rr, cp, p, al] = await Promise.all([
+    const [u, rr, cp, al] = await Promise.all([
       S.get('users'),
       S.get('reset_requests'),
       S.get('processes'),
-      getSupervisorPerms(),
       S.get('audit_log'),
     ]);
     setAllUsers(u ?? []);
     setResetReqs(rr ?? []);
     setCustomProcs(cp ?? []);
-    setPerms(p);
     setAuditLog((al ?? []).sort((a, b) => (b.created_at > a.created_at ? 1 : -1)).slice(0, 200));
     setLoading(false);
-  }
-
-  async function togglePerm(key) {
-    const next = { ...perms, [key]: !perms[key] };
-    setPerms(next);
-    await setSupervisorPerms(next);
-    logAudit({ actor: user, action: 'permission_change', details: { perms: next } });
-    await load();
   }
 
   const displayAuditLog = auditLog.filter(a => {
@@ -91,7 +81,9 @@ export default function TeamMgmt({ user }) {
       (a.target_name ?? a.target_emp_id ?? '').toLowerCase().includes(q);
   });
 
-  const allProcs     = [...DEF_PROCS, ...customProcs.map(p => p.name)];
+  const allProjects  = [DEFAULT_PROJECT, ...new Set(customProcs.map(p => p.project).filter(p => p && p !== DEFAULT_PROJECT))];
+  const procsByProject = Object.fromEntries(allProjects.map(proj => [proj, subProcessesOf(proj, customProcs)]));
+  const allProcs     = Object.values(procsByProject).flat();
   const supervisors  = allUsers.filter(u => u.role === 'supervisor' || u.role === 'manager' || u.role === 'admin');
   const pendingResets = (resetReqs ?? []).filter(r => r.status === 'pending');
 
@@ -120,6 +112,9 @@ export default function TeamMgmt({ user }) {
         ? allUsers.filter(e => e.role === 'employee' && (e.supervisor_ids ?? []).includes(u.emp_id)).map(e => e.emp_id)
         : [],
       supervised_processes: u.supervised_processes ?? [],
+      supervised_projects: (u.supervised_projects ?? []).filter(p => p !== 'ALL'),
+      all_projects: (u.supervised_projects ?? []).includes('ALL'),
+      permissions: { ...DEFAULT_SUPERVISOR_PERMS, ...(u.permissions ?? {}) },
     });
     setShowForm(true);
   }
@@ -138,6 +133,8 @@ export default function TeamMgmt({ user }) {
       processes: form.processes,
       supervisor_ids: form.supervisor_ids,
       supervised_processes: form.role === 'supervisor' ? form.supervised_processes : [],
+      supervised_projects: form.role === 'manager' ? (form.all_projects ? ['ALL'] : form.supervised_projects) : [],
+      permissions: (form.role === 'supervisor' || form.role === 'manager') ? form.permissions : null,
       active: true,
     };
     if (editUser) {
@@ -182,8 +179,10 @@ export default function TeamMgmt({ user }) {
   async function addProcess() {
     const name = newProc.trim().toUpperCase();
     if (!name) return;
-    await S.set('processes', { name, active: true });
+    const project = (newProcProject.trim() || DEFAULT_PROJECT).toUpperCase();
+    await S.set('processes', { name, project, active: true });
     setNewProc('');
+    setNewProcProject(DEFAULT_PROJECT);
     await load();
   }
 
@@ -246,38 +245,33 @@ export default function TeamMgmt({ user }) {
       {/* Process management */}
       <div className="card mb-16">
         <div className="card-header"><div className="card-title">Process / Project Management</div></div>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-          {DEF_PROCS.map(p => <span key={p} className="badge badge-blue">{p}</span>)}
-          {customProcs.map(p => (
-            <span key={p.id} className="badge badge-yellow" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {p.name}
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0, fontSize: 12, lineHeight: 1 }}
-                onClick={() => deleteProcess(p.id)}>✕</button>
-            </span>
-          ))}
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          <input type="text" placeholder="New process name…" value={newProc}
+        {allProjects.map(proj => (
+          <div key={proj} style={{ marginBottom: 10 }}>
+            <div className="text-sm bold text-muted" style={{ marginBottom: 4 }}>{proj}</div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+              {procsByProject[proj].map(name => {
+                const custom = customProcs.find(p => p.name === name && (p.project ?? DEFAULT_PROJECT) === proj);
+                return (
+                  <span key={name} className={`badge ${custom ? 'badge-yellow' : 'badge-blue'}`} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {name}
+                    {custom && (
+                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0, fontSize: 12, lineHeight: 1 }}
+                        onClick={() => deleteProcess(custom.id)}>✕</button>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <div className="row" style={{ gap: 8, marginTop: 8 }}>
+          <input type="text" placeholder="Project (e.g. PMB)" value={newProcProject}
+            onChange={e => setNewProcProject(e.target.value)} style={{ maxWidth: 140 }} />
+          <input type="text" placeholder="New sub-process name…" value={newProc}
             onChange={e => setNewProc(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addProcess()}
             style={{ maxWidth: 200 }} />
-          <button className="btn-sm" onClick={addProcess}>Add Process</button>
-        </div>
-      </div>
-
-      {/* Supervisor permissions */}
-      <div className="card mb-16">
-        <div className="card-header"><div className="card-title">Supervisor Permissions</div></div>
-        <div className="page-subtitle" style={{ marginBottom: 10 }}>
-          Applies to every supervisor, scoped to their own assigned team
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-          {Object.keys(DEFAULT_SUPERVISOR_PERMS).map(key => (
-            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-              <input type="checkbox" checked={!!perms[key]} onChange={() => togglePerm(key)} />
-              {PERM_LABELS[key] ?? key}
-            </label>
-          ))}
+          <button className="btn-sm" onClick={addProcess}>Add Sub-Process</button>
         </div>
       </div>
 
@@ -439,6 +433,36 @@ export default function TeamMgmt({ user }) {
                   onChange={v => setF({ team_emp_ids: v })}
                 />
               </>
+            )}
+            {f.role === 'manager' && (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={f.all_projects} onChange={e => setF({ all_projects: e.target.checked })} />
+                  All Projects (sees every project, current and future)
+                </label>
+                {!f.all_projects && (
+                  <MultiCheck
+                    label="Projects (grants every sub-process under each, including future ones)"
+                    options={allProjects}
+                    selected={f.supervised_projects}
+                    onChange={v => setF({ supervised_projects: v })}
+                  />
+                )}
+              </>
+            )}
+            {(f.role === 'supervisor' || f.role === 'manager') && (
+              <div className="field">
+                <label>Permissions</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 4 }}>
+                  {Object.keys(DEFAULT_SUPERVISOR_PERMS).map(key => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!!f.permissions[key]}
+                        onChange={e => setF({ permissions: { ...f.permissions, [key]: e.target.checked } })} />
+                      {PERM_LABELS[key] ?? key}
+                    </label>
+                  ))}
+                </div>
+              </div>
             )}
             <div className="form-actions">
               <button className="btn-sm" onClick={() => setShowForm(false)}>Cancel</button>

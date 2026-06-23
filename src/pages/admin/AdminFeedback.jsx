@@ -30,6 +30,7 @@ export default function AdminFeedback({ user }) {
   const [viewItem, setViewItem]   = useState(null);
   const [acks, setAcks]           = useState([]);
   const [toast, setToast]         = useState('');
+  const [customProcs, setCustomProcs] = useState([]);
   const lastAckCountRef = useRef(null);
 
   useEffect(() => { loadAll(); }, []);
@@ -42,16 +43,18 @@ export default function AdminFeedback({ user }) {
 
   async function loadAll(silent = false) {
     if (!silent) setLoading(true);
-    const [u, f, a] = await Promise.all([
+    const [u, f, a, cp] = await Promise.all([
       S.get('users', { active: true }),
       S.get('feedback'),
       S.get('feedback_acks'),
+      S.get('processes'),
     ]);
     setAllUsers(u ?? []);
     setFeedbacks(
       (f ?? []).sort((a, b) => (b.created_at ?? b.date) > (a.created_at ?? a.date) ? 1 : -1)
     );
     setAcks(a ?? []);
+    setCustomProcs(cp ?? []);
 
     if (lastAckCountRef.current != null && (a ?? []).length > lastAckCountRef.current) {
       const diff = (a ?? []).length - lastAckCountRef.current;
@@ -63,12 +66,12 @@ export default function AdminFeedback({ user }) {
 
   // Who an announcement actually reached: the one named recipient, or every active
   // employee in the targeted process (or everyone, if it went to the whole team) —
-  // except a supervisor's broadcast, which only ever reaches their own assigned team.
+  // except a supervisor's/manager's broadcast, which only ever reaches their own scoped team.
   function audienceFor(f) {
     if (f.to_emp_id) return allUsers.filter(u => u.emp_id === f.to_emp_id);
     const sender = allUsers.find(u => u.emp_id === f.from_emp_id);
-    if (sender?.role === 'supervisor') {
-      return allUsers.filter(u => u.supervisor_ids?.includes(sender.emp_id));
+    if (sender?.role === 'supervisor' || sender?.role === 'manager') {
+      return scopeToSupervisor(allUsers, sender, customProcs).filter(u => u.role === 'employee');
     }
     return allUsers.filter(u => u.role === 'employee' && (!f.process || u.access === f.process || u.access === 'ALL'));
   }
@@ -125,10 +128,11 @@ export default function AdminFeedback({ user }) {
     setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: next, acknowledged_at: ackedAt } : f));
   }
 
-  const isSupervisor = user.role === 'supervisor';
-  const scopedUsers = scopeToSupervisor(allUsers, user);
+  const isScopedRole = user.role === 'supervisor' || user.role === 'manager';
+  const scopedUsers = scopeToSupervisor(allUsers, user, customProcs);
+  const isRestricted = isScopedRole && scopedUsers.length !== allUsers.length;
 
-  const filteredEmpUsers = isSupervisor || filterProc === 'ALL'
+  const filteredEmpUsers = isScopedRole || filterProc === 'ALL'
     ? scopedUsers
     : scopedUsers.filter(u => u.access === filterProc || u.access === 'ALL');
 
@@ -136,7 +140,7 @@ export default function AdminFeedback({ user }) {
   const displayFeedbacks = feedbacks.filter(f => {
     const procOk  = filterProc === 'ALL' || f.process === filterProc || f.process == null;
     const agentOk = toEmpId === 'ALL' || f.to_emp_id === toEmpId || f.from_emp_id === toEmpId;
-    const teamOk  = !isSupervisor || f.from_emp_id === user.emp_id ||
+    const teamOk  = !isRestricted || f.from_emp_id === user.emp_id ||
       scopedEmpIds.has(f.to_emp_id) || (f.to_emp_id == null && audienceFor(f).some(u => scopedEmpIds.has(u.emp_id)));
     return procOk && agentOk && teamOk;
   });
@@ -162,7 +166,7 @@ export default function AdminFeedback({ user }) {
           <div className="card-header"><div className="card-title">New Announcement</div></div>
           <form onSubmit={sendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {!isSupervisor && (
+              {!isScopedRole && (
                 <div className="field">
                   <label>Process</label>
                   <select value={filterProc} onChange={e => setProc(e.target.value)}>
@@ -174,7 +178,7 @@ export default function AdminFeedback({ user }) {
               <div className="field">
                 <label>To Employee</label>
                 <select value={toEmpId} onChange={e => setToEmpId(e.target.value)}>
-                  <option value="ALL">{isSupervisor ? 'My Team' : 'Entire Team'}</option>
+                  <option value="ALL">{isRestricted ? 'My Team' : 'Entire Team'}</option>
                   {filteredEmpUsers.map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
                 </select>
               </div>

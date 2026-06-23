@@ -33,6 +33,10 @@ export const AUTH_HOURLY_TASKS = [
 
 export const ACCESSES = ['MCO', 'MCD', 'MCR', 'AUTH', 'ALL'];
 
+// The current (and so far only) project's sub-processes — implicitly under project 'PMB'.
+export const DEF_PROCS = ['MCO', 'MCD', 'MCR', 'AUTH'];
+export const DEFAULT_PROJECT = 'PMB';
+
 export const REACTIONS = [
   { id: 'like',  emoji: '👍' },
   { id: 'love',  emoji: '❤️' },

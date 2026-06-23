@@ -1,4 +1,4 @@
-import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES } from './constants.js';
+import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT } from './constants.js';
 import { kv, S } from './supabase.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -175,23 +175,32 @@ export const DEFAULT_SUPERVISOR_PERMS = {
   pinEmployee:    true,
 };
 
-export async function getSupervisorPerms() {
-  const stored = await kv.get('supervisor_permissions');
-  return { ...DEFAULT_SUPERVISOR_PERMS, ...(stored || {}) };
+/** Synchronous — permissions ride along on the already-loaded user object, per person. */
+export function permsFor(user) {
+  return { ...DEFAULT_SUPERVISOR_PERMS, ...(user?.permissions || {}) };
 }
 
-export async function setSupervisorPerms(perms) {
-  await kv.set('supervisor_permissions', perms);
-  return perms;
+/** All sub-process names belonging to a project: built-ins for the default project, plus any custom rows tagged with it. */
+export function subProcessesOf(project, customProcs = []) {
+  const custom = (customProcs ?? []).filter(p => (p.project ?? DEFAULT_PROJECT) === project).map(p => p.name);
+  return project === DEFAULT_PROJECT ? [...new Set([...DEF_PROCS, ...custom])] : custom;
 }
 
 /**
- * Restricts a user list to a supervisor's team — the union of individually picked
- * employees (their supervisor_ids includes this supervisor) and whole processes
- * the supervisor has been assigned (their processes overlap supervised_processes).
- * Admins/managers see everyone.
+ * Restricts a user list to a scoped role's team.
+ * - supervisor: union of individually picked employees (supervisor_ids) and whole
+ *   sub-processes they've been assigned (supervised_processes).
+ * - manager: whole projects they've been assigned (supervised_projects), each project
+ *   resolving to every sub-process under it — empty or ['ALL'] means unrestricted.
+ * - admin/employee: passthrough, sees everyone.
  */
-export function scopeToSupervisor(users, currentUser) {
+export function scopeToSupervisor(users, currentUser, customProcs = []) {
+  if (currentUser?.role === 'manager') {
+    const projects = currentUser.supervised_projects ?? [];
+    if (projects.length === 0 || projects.includes('ALL')) return users;
+    const allowedProcs = new Set(projects.flatMap(p => subProcessesOf(p, customProcs)));
+    return (users || []).filter(u => getProcs(u).some(p => allowedProcs.has(p)));
+  }
   if (currentUser?.role !== 'supervisor') return users;
   const watchedProcs = currentUser.supervised_processes ?? [];
   return (users || []).filter(u =>

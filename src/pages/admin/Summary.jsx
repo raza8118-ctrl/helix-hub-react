@@ -26,6 +26,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const [emailBody, setEmailBody]     = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [empDetail, setEmpDetail] = useState(null);
+  const [customProcs, setCustomProcs] = useState([]);
 
   const workDays = mode === 'weekly'
     ? wDays(refDate)
@@ -35,12 +36,14 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
   async function load() {
     setLoading(true);
-    const [u, h] = await Promise.all([
+    const [u, h, cp] = await Promise.all([
       S.get('users'),
       S.get('holidays'),
+      S.get('processes'),
     ]);
     setAllUsers(u ?? []);
     setHolidays(h ?? []);
+    setCustomProcs(cp ?? []);
     const batched = await Promise.all(workDays.map(d => S.get('daily_logs', { date: d })));
     setLogs(batched.flat().filter(Boolean));
     setLoading(false);
@@ -49,7 +52,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const holidayDates = new Set((holidays ?? []).map(h => h.date));
   const activeDays   = workDays.filter(d => !holidayDates.has(d));
 
-  const filteredUsers = scopeToSupervisor(allUsers, user).filter(u => {
+  const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const agentOk  = agentId === 'ALL' || u.emp_id === agentId;
@@ -62,7 +65,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const filteredLogs = logs.filter(l => {
     const procOk  = logMatchesProc(l, filterProc);
     const agentOk = agentId === 'ALL' || l.emp_id === agentId;
-    const teamOk  = user.role !== 'supervisor' || teamEmpIds.has(l.emp_id);
+    const teamOk  = teamEmpIds.has(l.emp_id);
     return procOk && agentOk && teamOk && !holidayDates.has(l.date);
   });
 
