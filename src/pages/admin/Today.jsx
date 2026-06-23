@@ -58,7 +58,7 @@ export default function Today({ user }) {
     setPinned(next);
   }
 
-  const { filteredUsers, submitted, pending, avgProd, avgQuality, chartData, tableRows } = useMemo(() => {
+  const { filteredUsers, submitted, onLeave, pending, avgProd, avgQuality, chartData, tableRows } = useMemo(() => {
     const employees = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
       if (u.role !== 'employee') return false;
       const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
@@ -71,8 +71,9 @@ export default function Today({ user }) {
     const teamEmpIds = new Set(employees.map(u => u.emp_id));
     const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id));
 
-    const submitted  = filteredLogs.filter(l => l.submitted).length;
-    const pending    = employees.length - submitted;
+    const onLeave    = filteredLogs.filter(l => isOnLeave(l)).length;
+    const submitted  = filteredLogs.filter(l => l.submitted && !isOnLeave(l)).length;
+    const pending    = employees.length - submitted - onLeave;
     const avgProd    = avg(filteredLogs.map(l => p(l.total, l.adj_target ?? l.target)));
     const avgQuality = avg(filteredLogs.map(l => l.quality).filter(v => v != null));
 
@@ -85,7 +86,7 @@ export default function Today({ user }) {
       log: filteredLogs.find(l => l.emp_id === u.emp_id) ?? null,
     })).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
 
-    return { filteredUsers: employees, submitted, pending, avgProd, avgQuality, chartData, tableRows };
+    return { filteredUsers: employees, submitted, onLeave, pending, avgProd, avgQuality, chartData, tableRows };
   }, [allUsers, logs, user, customProcs, filterProc, statusFilter, pinnedOnly, pinned]);
 
   async function toggleHoliday() {
@@ -193,10 +194,11 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       </div>
 
       {/* KPI cards */}
-      <div className="grid-4 mb-16">
+      <div className="grid-5 mb-16">
         {[
           { label: 'Team Size',        value: filteredUsers.length, sub: `${statusFilter} employees`, cls: '' },
           { label: 'Submitted',        value: submitted,             sub: `${pending} pending`,  cls: 'col-green' },
+          { label: 'On Leave',         value: onLeave,                sub: 'absent today', cls: 'col-blue' },
           { label: 'Avg Productivity', value: avgProd != null ? avgProd.toFixed(1) + '%' : '—', sub: 'target 100%', cls: pCol(avgProd) },
           { label: 'Avg Quality',      value: avgQuality != null ? avgQuality.toFixed(1) + '%' : '—', sub: 'target ≥95%', cls: pCol(avgQuality) },
         ].map(kpi => (

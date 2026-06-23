@@ -403,6 +403,8 @@ label {
 .col-orange  { color: var(--col-orange);  font-weight: 600; }
 .col-red     { color: var(--col-red);     font-weight: 600; }
 .col-neutral { color: var(--col-neutral); }
+.col-blue    { color: #1d4ed8; font-weight: 600; }
+body.dark .col-blue { color: #93c5fd; }
 
 /* ─── Badges ─── */
 .badge {
@@ -732,9 +734,10 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.grid-5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 16px; }
 
 @media (max-width: 768px) {
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
   .main-content { padding: 16px; }
 }
 
