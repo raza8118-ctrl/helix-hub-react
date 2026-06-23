@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, getSupervisorPerms, logAudit } from '../../lib/helpers';
 import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
@@ -39,8 +39,16 @@ export default function ProdMonitor({ user }) {
   const [qualityVal, setQualityVal]       = useState('');
   const [qualityLoading, setQualityLoading] = useState(false);
 
+  const isSupervisor = user.role === 'supervisor';
+  const [perms, setPerms] = useState(null);
+
   useEffect(() => { load(); }, [date]);
   useEffect(() => { getPinned().then(setPinned); }, []);
+  useEffect(() => { if (isSupervisor) getSupervisorPerms().then(setPerms); }, [isSupervisor]);
+
+  const canBypass  = !isSupervisor || perms?.bypassDeadline;
+  const canQuality = !isSupervisor || perms?.editQuality;
+  const canPin     = !isSupervisor || perms?.pinEmployee;
 
   async function load() {
     setLoading(true);
@@ -56,8 +64,10 @@ export default function ProdMonitor({ user }) {
   }
 
   async function togglePin(empId) {
+    const wasPinned = pinned.includes(empId);
     const next = await togglePinned(empId, pinned);
     setPinned(next);
+    logAudit({ actor: user, action: wasPinned ? 'unpin' : 'pin', targetEmpId: empId });
   }
 
   async function toggleHoliday() {
@@ -103,6 +113,10 @@ export default function ProdMonitor({ user }) {
         submitted_at: new Date().toISOString(),
       }, 'emp_id,date');
     }
+    logAudit({
+      actor: user, action: 'bypass', targetEmpId: bypassTarget.emp_id, targetName: bypassTarget.name,
+      details: { reason: bypassReason.trim(), status: bypassStatus },
+    });
     setBypassTarget(null);
     setBypassReason('');
     setBypassStatus('absent');
@@ -114,6 +128,7 @@ export default function ProdMonitor({ user }) {
   async function removeBypass(row) {
     if (!window.confirm('Remove bypass for this employee?')) return;
     await S.update('daily_logs', { bypass_reason: null }, { id: row.log.id });
+    logAudit({ actor: user, action: 'remove_bypass', targetEmpId: row.emp_id, targetName: row.name });
     await load();
   }
 
@@ -122,13 +137,14 @@ export default function ProdMonitor({ user }) {
     if (!qualityTarget || isNaN(q) || q < 0 || q > 100) return;
     setQualityLoading(true);
     await S.update('daily_logs', { quality: q }, { id: qualityTarget.log.id });
+    logAudit({ actor: user, action: 'edit_quality', targetEmpId: qualityTarget.emp_id, targetName: qualityTarget.name, details: { value: q } });
     setQualityTarget(null);
     setQualityVal('');
     setQualityLoading(false);
     await load();
   }
 
-  const employees = allUsers.filter(u => {
+  const employees = scopeToSupervisor(allUsers, user).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const statusOk = statusFilter === 'all' ||
@@ -138,7 +154,11 @@ export default function ProdMonitor({ user }) {
   });
   const filteredUsers = employees;
 
-  const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc));
+  const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
+  const filteredLogs = logs.filter(l => {
+    const teamOk = user.role !== 'supervisor' || teamEmpIds.has(l.emp_id);
+    return logMatchesProc(l, filterProc) && teamOk;
+  });
 
   const tableRows = filteredUsers.map(u => {
     const log  = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
@@ -258,13 +278,15 @@ export default function ProdMonitor({ user }) {
                 return (
                 <tr key={row.emp_id} style={isPinned ? { borderLeft: '3px solid var(--accent)' } : undefined}>
                   <td className="bold">
-                    <span
-                      onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
-                      style={{ cursor: 'pointer', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
-                      title={isPinned ? 'Unpin' : 'Pin for close monitoring'}
-                    >
-                      📌
-                    </span>
+                    {canPin && (
+                      <span
+                        onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
+                        style={{ cursor: 'pointer', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
+                        title={isPinned ? 'Unpin' : 'Pin for close monitoring'}
+                      >
+                        📌
+                      </span>
+                    )}
                     <span style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setEmpDetail(row)}>
                       {row.name ?? row.emp_id}
                     </span>
@@ -297,15 +319,15 @@ export default function ProdMonitor({ user }) {
                   </td>
                   <td>
                     <div className="row" style={{ gap: 4 }}>
-                      {!row.log?.bypass_reason && (
+                      {canBypass && !row.log?.bypass_reason && (
                         <button className="btn-sm" onClick={() => { setBypassTarget(row); setBypassReason(''); setBypassStatus(row.log?.attendance_status || 'absent'); setBypassLeaveType(row.log?.leave_type || 'planned'); }}>
                           {row.log ? 'Bypass' : '+ Note'}
                         </button>
                       )}
-                      {row.log?.bypass_reason && (
+                      {canBypass && row.log?.bypass_reason && (
                         <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeBypass(row)}>Remove</button>
                       )}
-                      {row.log && (
+                      {canQuality && row.log && (
                         <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log.quality ?? ''); }}>Quality</button>
                       )}
                     </div>

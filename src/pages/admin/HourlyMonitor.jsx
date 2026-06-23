@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, procIncludes } from '../../lib/helpers';
+import { today, fmtD, procIncludes, scopeToSupervisor } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
 
@@ -50,7 +50,7 @@ export default function HourlyMonitor({ user }) {
     setLastRefresh(new Date());
   }
 
-  const filteredUsers = allUsers.filter(u => {
+  const filteredUsers = scopeToSupervisor(allUsers, user).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const searchOk = !search.trim() || (u.name ?? u.emp_id).toLowerCase().includes(search.toLowerCase());

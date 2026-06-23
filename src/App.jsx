@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import Login       from './components/Login';
 import TopBar      from './components/TopBar';
 import Profile     from './components/shared/Profile';
-import AdminApp    from './pages/admin/AdminApp';
-import EmployeeApp from './pages/employee/EmployeeApp';
+import AdminApp      from './pages/admin/AdminApp';
+import SupervisorApp from './pages/supervisor/SupervisorApp';
+import EmployeeApp   from './pages/employee/EmployeeApp';
 import { THEMES }  from './lib/constants';
 import { S, kv }   from './lib/supabase';
 import './index.css';
@@ -33,6 +34,17 @@ const ADMIN_TABS = [
   { id: 'settings',    label: 'Settings'      },
 ];
 
+const SUPERVISOR_TABS = [
+  { id: 'today',       label: 'Today'         },
+  { id: 'prodmonitor', label: 'Prod Monitor'  },
+  { id: 'hourlymon',   label: 'Hourly'        },
+  { id: 'weekly',      label: 'Weekly'        },
+  { id: 'monthly',     label: 'Monthly'       },
+  { id: 'feedback',    label: 'Announcements' },
+  { id: 'myteam',      label: 'My Team'       },
+  { id: 'feed',        label: 'Team Feed'     },
+];
+
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -52,8 +64,9 @@ export default function App() {
         const u = JSON.parse(raw);
         setCurrentUser(u);
         const isAdmin = u.role === 'admin' || u.role === 'manager';
+        const isSupervisor = u.role === 'supervisor';
         const savedTab = sessionStorage.getItem('hh_tab');
-        setActiveTab(savedTab || (isAdmin ? 'today' : 'prodreport'));
+        setActiveTab(savedTab || ((isAdmin || isSupervisor) ? 'today' : 'prodreport'));
 
         let t = u.theme || THEMES[0].id;
         try {
@@ -85,13 +98,21 @@ export default function App() {
     if (isAdmin) return;
 
     async function checkUnread() {
-      const [all, acks] = await Promise.all([
+      const [all, acks, users] = await Promise.all([
         S.get('feedback'),
         S.get('feedback_acks', { emp_id: currentUser.emp_id }),
+        S.get('users'),
       ]);
       const ackedBroadcastIds = new Set((acks ?? []).map(a => a.feedback_id));
+      const mySupervisorIds = users?.find(u => u.emp_id === currentUser.emp_id)?.supervisor_ids ?? [];
       const cnt = (all ?? []).filter(f => {
-        const mine = f.to_emp_id === currentUser.emp_id || f.to_emp_id === null;
+        let mine;
+        if (f.to_emp_id) {
+          mine = f.to_emp_id === currentUser.emp_id;
+        } else {
+          const sender = users?.find(u => u.emp_id === f.from_emp_id);
+          mine = sender?.role === 'supervisor' ? mySupervisorIds.includes(sender.emp_id) : true;
+        }
         if (!mine) return false;
         return f.to_emp_id ? !f.acknowledged : !ackedBroadcastIds.has(f.id);
       }).length;
@@ -127,8 +148,9 @@ export default function App() {
   // ── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin(u) {
     const isAdmin = u.role === 'admin' || u.role === 'manager';
+    const isSupervisor = u.role === 'supervisor';
     setCurrentUser(u);
-    const startTab = isAdmin ? 'today' : 'prodreport';
+    const startTab = (isAdmin || isSupervisor) ? 'today' : 'prodreport';
     setActiveTab(startTab);
     sessionStorage.setItem('hh_user', JSON.stringify(u));
     sessionStorage.setItem('hh_tab', startTab);
@@ -183,6 +205,7 @@ export default function App() {
   if (!currentUser) return <Login onLogin={handleLogin} />;
 
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+  const isSupervisor = currentUser.role === 'supervisor';
 
   const empTabs = [
     { id: 'prodreport',   label: 'Daily Report'   },
@@ -193,7 +216,7 @@ export default function App() {
     { id: 'feed',         label: 'Team Feed'      },
   ];
 
-  const tabs = isAdmin ? ADMIN_TABS : empTabs;
+  const tabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
 
   return (
     <div className="app-shell">
@@ -212,8 +235,10 @@ export default function App() {
 
       <main className="main-content fade-in">
         {isAdmin
-          ? <AdminApp    activeTab={activeTab} user={currentUser} />
-          : <EmployeeApp activeTab={activeTab} user={currentUser} />
+          ? <AdminApp      activeTab={activeTab} user={currentUser} />
+          : isSupervisor
+          ? <SupervisorApp activeTab={activeTab} user={currentUser} />
+          : <EmployeeApp   activeTab={activeTab} user={currentUser} />
         }
       </main>
 

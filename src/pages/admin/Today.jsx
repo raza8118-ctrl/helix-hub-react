@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import Modal from '../../components/shared/Modal';
@@ -55,7 +55,7 @@ export default function Today({ user }) {
     setPinned(next);
   }
 
-  const employees = allUsers.filter(u => {
+  const employees = scopeToSupervisor(allUsers, user).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const statusOk = statusFilter === 'all' ||
@@ -65,7 +65,11 @@ export default function Today({ user }) {
   });
   const filteredUsers = employees;
 
-  const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc));
+  const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
+  const filteredLogs = logs.filter(l => {
+    const teamOk = user.role !== 'supervisor' || teamEmpIds.has(l.emp_id);
+    return logMatchesProc(l, filterProc) && teamOk;
+  });
 
   const submitted  = filteredLogs.filter(l => l.submitted).length;
   const pending    = filteredUsers.length - submitted;

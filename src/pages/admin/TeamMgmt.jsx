@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { ACCESSES } from '../../lib/constants';
+import { DEFAULT_SUPERVISOR_PERMS, getSupervisorPerms, setSupervisorPerms, logAudit } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 
 const ROLES     = ['employee', 'supervisor', 'manager', 'admin'];
@@ -8,6 +9,14 @@ const DEF_PROCS = ['MCO', 'MCD', 'MCR', 'AUTH'];
 const BLANK     = {
   emp_id: '', name: '', password: '', access: 'MCO',
   role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [],
+};
+
+const PERM_LABELS = {
+  resetPassword:  'Reset employee password',
+  bypassDeadline: 'Bypass deadline / attendance',
+  editCounts:     'Edit submitted counts',
+  editQuality:    'Edit quality score',
+  pinEmployee:    'Pin employee for close monitoring',
 };
 
 function MultiCheck({ label, options, selected, onChange }) {
@@ -43,21 +52,43 @@ export default function TeamMgmt({ user }) {
   const [form, setForm]               = useState(BLANK);
   const [saving, setSaving]           = useState(false);
   const [newProc, setNewProc]         = useState('');
+  const [perms, setPerms]             = useState(DEFAULT_SUPERVISOR_PERMS);
+  const [auditLog, setAuditLog]       = useState([]);
+  const [auditSearch, setAuditSearch] = useState('');
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const [u, rr, cp] = await Promise.all([
+    const [u, rr, cp, p, al] = await Promise.all([
       S.get('users'),
       S.get('reset_requests'),
       S.get('processes'),
+      getSupervisorPerms(),
+      S.get('audit_log'),
     ]);
     setAllUsers(u ?? []);
     setResetReqs(rr ?? []);
     setCustomProcs(cp ?? []);
+    setPerms(p);
+    setAuditLog((al ?? []).sort((a, b) => (b.created_at > a.created_at ? 1 : -1)).slice(0, 200));
     setLoading(false);
   }
+
+  async function togglePerm(key) {
+    const next = { ...perms, [key]: !perms[key] };
+    setPerms(next);
+    await setSupervisorPerms(next);
+    logAudit({ actor: user, action: 'permission_change', details: { perms: next } });
+    await load();
+  }
+
+  const displayAuditLog = auditLog.filter(a => {
+    const q = auditSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (a.actor_name ?? a.actor_emp_id ?? '').toLowerCase().includes(q) ||
+      (a.target_name ?? a.target_emp_id ?? '').toLowerCase().includes(q);
+  });
 
   const allProcs     = [...DEF_PROCS, ...customProcs.map(p => p.name)];
   const supervisors  = allUsers.filter(u => u.role === 'supervisor' || u.role === 'manager' || u.role === 'admin');
@@ -121,6 +152,7 @@ export default function TeamMgmt({ user }) {
     const temp = `Temp@${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     await S.update('users', { password: temp }, { emp_id: rr.emp_id });
     await S.update('reset_requests', { status: 'approved', temp_password: temp }, { id: rr.id });
+    logAudit({ actor: user, action: 'reset_password', targetEmpId: rr.emp_id, targetName: rr.emp_name });
     window.alert(`Password reset approved.\nEmployee: ${rr.emp_name ?? rr.emp_id}\nTemp password: ${temp}\n\nShare securely.`);
     await load();
   }
@@ -208,6 +240,51 @@ export default function TeamMgmt({ user }) {
             onKeyDown={e => e.key === 'Enter' && addProcess()}
             style={{ maxWidth: 200 }} />
           <button className="btn-sm" onClick={addProcess}>Add Process</button>
+        </div>
+      </div>
+
+      {/* Supervisor permissions */}
+      <div className="card mb-16">
+        <div className="card-header"><div className="card-title">Supervisor Permissions</div></div>
+        <div className="page-subtitle" style={{ marginBottom: 10 }}>
+          Applies to every supervisor, scoped to their own assigned team
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+          {Object.keys(DEFAULT_SUPERVISOR_PERMS).map(key => (
+            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+              <input type="checkbox" checked={!!perms[key]} onChange={() => togglePerm(key)} />
+              {PERM_LABELS[key] ?? key}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Audit log */}
+      <div className="card mb-16">
+        <div className="card-header">
+          <div className="card-title">Audit Log</div>
+          <input type="text" placeholder="Search actor / target…" value={auditSearch}
+            onChange={e => setAuditSearch(e.target.value)} style={{ maxWidth: 180 }} />
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th></tr>
+            </thead>
+            <tbody>
+              {displayAuditLog.length === 0 && (
+                <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>No audit records</td></tr>
+              )}
+              {displayAuditLog.map(a => (
+                <tr key={a.id}>
+                  <td className="text-sm text-muted">{a.created_at ? new Date(a.created_at).toLocaleString() : '—'}</td>
+                  <td className="text-sm">{a.actor_name ?? a.actor_emp_id} <span className="text-muted">({a.actor_role})</span></td>
+                  <td className="text-sm">{a.action}</td>
+                  <td className="text-sm">{a.target_name ?? a.target_emp_id ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

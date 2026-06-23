@@ -1,5 +1,5 @@
 import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES } from './constants.js';
-import { kv } from './supabase.js';
+import { kv, S } from './supabase.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -163,6 +163,46 @@ export async function togglePinned(empId, current) {
   const next = current.includes(empId) ? current.filter(id => id !== empId) : [...current, empId];
   await kv.set('pinned_emp_ids', next);
   return next;
+}
+
+// ── Supervisor team scoping, permissions, and audit log ────────────────────────
+
+export const DEFAULT_SUPERVISOR_PERMS = {
+  resetPassword:  true,
+  bypassDeadline: true,
+  editCounts:     true,
+  editQuality:    true,
+  pinEmployee:    true,
+};
+
+export async function getSupervisorPerms() {
+  const stored = await kv.get('supervisor_permissions');
+  return { ...DEFAULT_SUPERVISOR_PERMS, ...(stored || {}) };
+}
+
+export async function setSupervisorPerms(perms) {
+  await kv.set('supervisor_permissions', perms);
+  return perms;
+}
+
+/** Restricts a user list to a supervisor's assigned team; admins/managers see everyone. */
+export function scopeToSupervisor(users, currentUser) {
+  if (currentUser?.role !== 'supervisor') return users;
+  return (users || []).filter(u => u.supervisor_ids?.includes(currentUser.emp_id));
+}
+
+/** Fire-and-forget — records who did what to whom, for the admin audit log. */
+export function logAudit({ actor, action, targetEmpId = null, targetName = null, details = null }) {
+  S.set('audit_log', {
+    actor_emp_id: actor?.emp_id,
+    actor_name:   actor?.name ?? actor?.emp_id,
+    actor_role:   actor?.role,
+    action,
+    target_emp_id: targetEmpId,
+    target_name:   targetName,
+    details,
+    created_at: new Date().toISOString(),
+  }).catch(() => {});
 }
 
 /** Merges taskConfig with user's processes, returns deduped flat array (first-seen name wins) */

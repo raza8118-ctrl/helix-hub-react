@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { S, storage } from '../../lib/supabase';
-import { today, fmtD, resizeImage } from '../../lib/helpers';
+import { today, fmtD, resizeImage, scopeToSupervisor } from '../../lib/helpers';
 import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import ReactionBar from '../../components/shared/ReactionBar';
@@ -62,9 +62,14 @@ export default function AdminFeedback({ user }) {
   }
 
   // Who an announcement actually reached: the one named recipient, or every active
-  // employee in the targeted process (or everyone, if it went to the whole team).
+  // employee in the targeted process (or everyone, if it went to the whole team) —
+  // except a supervisor's broadcast, which only ever reaches their own assigned team.
   function audienceFor(f) {
     if (f.to_emp_id) return allUsers.filter(u => u.emp_id === f.to_emp_id);
+    const sender = allUsers.find(u => u.emp_id === f.from_emp_id);
+    if (sender?.role === 'supervisor') {
+      return allUsers.filter(u => u.supervisor_ids?.includes(sender.emp_id));
+    }
     return allUsers.filter(u => u.role === 'employee' && (!f.process || u.access === f.process || u.access === 'ALL'));
   }
 
@@ -120,14 +125,20 @@ export default function AdminFeedback({ user }) {
     setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: next, acknowledged_at: ackedAt } : f));
   }
 
-  const filteredEmpUsers = filterProc === 'ALL'
-    ? allUsers
-    : allUsers.filter(u => u.access === filterProc || u.access === 'ALL');
+  const isSupervisor = user.role === 'supervisor';
+  const scopedUsers = scopeToSupervisor(allUsers, user);
 
+  const filteredEmpUsers = isSupervisor || filterProc === 'ALL'
+    ? scopedUsers
+    : scopedUsers.filter(u => u.access === filterProc || u.access === 'ALL');
+
+  const scopedEmpIds = new Set(scopedUsers.map(u => u.emp_id));
   const displayFeedbacks = feedbacks.filter(f => {
     const procOk  = filterProc === 'ALL' || f.process === filterProc || f.process == null;
     const agentOk = toEmpId === 'ALL' || f.to_emp_id === toEmpId || f.from_emp_id === toEmpId;
-    return procOk && agentOk;
+    const teamOk  = !isSupervisor || f.from_emp_id === user.emp_id ||
+      scopedEmpIds.has(f.to_emp_id) || (f.to_emp_id == null && audienceFor(f).some(u => scopedEmpIds.has(u.emp_id)));
+    return procOk && agentOk && teamOk;
   });
 
   const unread = feedbacks.filter(f => !f.acknowledged).length;
@@ -151,17 +162,19 @@ export default function AdminFeedback({ user }) {
           <div className="card-header"><div className="card-title">New Announcement</div></div>
           <form onSubmit={sendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field">
-                <label>Process</label>
-                <select value={filterProc} onChange={e => setProc(e.target.value)}>
-                  <option value="ALL">All Processes</option>
-                  {ACCESSES.slice(0, 4).map(a => <option key={a}>{a}</option>)}
-                </select>
-              </div>
+              {!isSupervisor && (
+                <div className="field">
+                  <label>Process</label>
+                  <select value={filterProc} onChange={e => setProc(e.target.value)}>
+                    <option value="ALL">All Processes</option>
+                    {ACCESSES.slice(0, 4).map(a => <option key={a}>{a}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="field">
                 <label>To Employee</label>
                 <select value={toEmpId} onChange={e => setToEmpId(e.target.value)}>
-                  <option value="ALL">Entire Team</option>
+                  <option value="ALL">{isSupervisor ? 'My Team' : 'Entire Team'}</option>
                   {filteredEmpUsers.map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
                 </select>
               </div>
@@ -215,7 +228,7 @@ export default function AdminFeedback({ user }) {
             <label>View by Employee</label>
             <select value={toEmpId} onChange={e => setToEmpId(e.target.value)}>
               <option value="ALL">All</option>
-              {allUsers.map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
+              {scopedUsers.map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>

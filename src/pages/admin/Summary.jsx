@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI, procIncludes, logMatchesProc } from '../../lib/helpers';
+import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI, procIncludes, logMatchesProc, scopeToSupervisor } from '../../lib/helpers';
 import { MONTHS, ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import LineChart from '../../components/shared/LineChart';
@@ -49,7 +49,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const holidayDates = new Set((holidays ?? []).map(h => h.date));
   const activeDays   = workDays.filter(d => !holidayDates.has(d));
 
-  const filteredUsers = allUsers.filter(u => {
+  const filteredUsers = scopeToSupervisor(allUsers, user).filter(u => {
     if (u.role !== 'employee') return false;
     const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
     const agentOk  = agentId === 'ALL' || u.emp_id === agentId;
@@ -58,10 +58,12 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
     return procOk && agentOk && statusOk;
   });
 
+  const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
   const filteredLogs = logs.filter(l => {
     const procOk  = logMatchesProc(l, filterProc);
     const agentOk = agentId === 'ALL' || l.emp_id === agentId;
-    return procOk && agentOk && !holidayDates.has(l.date);
+    const teamOk  = user.role !== 'supervisor' || teamEmpIds.has(l.emp_id);
+    return procOk && agentOk && teamOk && !holidayDates.has(l.date);
   });
 
   const allProds   = filteredLogs.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);

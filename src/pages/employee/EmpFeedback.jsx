@@ -32,12 +32,19 @@ export default function EmpFeedback({ user }) {
 
   async function load(silent = false) {
     if (!silent) setLoading(true);
-    const [all, acks] = await Promise.all([
+    const [all, acks, users] = await Promise.all([
       S.get('feedback'),
       S.get('feedback_acks', { emp_id: user.emp_id }),
+      S.get('users'),
     ]);
+    const mySupervisorIds = users?.find(u => u.emp_id === user.emp_id)?.supervisor_ids ?? user.supervisor_ids ?? [];
     const mine = (all ?? [])
-      .filter(f => f.to_emp_id === user.emp_id || f.to_emp_id === null)
+      .filter(f => {
+        if (f.to_emp_id) return f.to_emp_id === user.emp_id;
+        const sender = users?.find(u => u.emp_id === f.from_emp_id);
+        if (sender?.role === 'supervisor') return mySupervisorIds.includes(sender.emp_id);
+        return true;
+      })
       .sort((a, b) => (b.created_at ?? b.date) > (a.created_at ?? a.date) ? 1 : -1);
     setFeedbacks(mine);
     setMyAcks(acks ?? []);
