@@ -8,7 +8,7 @@ const ROLES     = ['employee', 'supervisor', 'manager', 'admin'];
 const DEF_PROCS = ['MCO', 'MCD', 'MCR', 'AUTH'];
 const BLANK     = {
   emp_id: '', name: '', password: '', access: 'MCO',
-  role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [],
+  role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [], team_emp_ids: [],
 };
 
 const PERM_LABELS = {
@@ -115,6 +115,9 @@ export default function TeamMgmt({ user }) {
       role: u.role ?? 'employee', target: u.target ?? '',
       processes: u.processes ?? [u.access || u.process || 'MCO'],
       supervisor_ids: u.supervisor_ids ?? [],
+      team_emp_ids: u.role === 'supervisor'
+        ? allUsers.filter(e => e.role === 'employee' && (e.supervisor_ids ?? []).includes(u.emp_id)).map(e => e.emp_id)
+        : [],
     });
     setShowForm(true);
   }
@@ -122,8 +125,9 @@ export default function TeamMgmt({ user }) {
   async function saveUser() {
     if (!form.emp_id.trim() || !form.name.trim()) return;
     setSaving(true);
+    const empId = form.emp_id.trim().toUpperCase();
     const payload = {
-      emp_id: form.emp_id.trim().toUpperCase(),
+      emp_id: empId,
       name: form.name.trim(),
       password: form.password,
       access: form.access,
@@ -137,6 +141,21 @@ export default function TeamMgmt({ user }) {
       await S.update('users', payload, { emp_id: editUser.emp_id });
     } else {
       await S.set('users', payload);
+    }
+    if (form.role === 'supervisor') {
+      // Reconcile the other side of the relationship: each employee's own supervisor_ids
+      // array is the source of truth, so adding/removing someone from "Team Members" here
+      // means adding/removing this supervisor's emp_id on those employee rows.
+      const newTeam = new Set(form.team_emp_ids ?? []);
+      const affected = allUsers.filter(e =>
+        e.role === 'employee' && ((e.supervisor_ids ?? []).includes(empId) || newTeam.has(e.emp_id))
+      );
+      await Promise.all(affected.map(e => {
+        const cur = new Set(e.supervisor_ids ?? []);
+        if (newTeam.has(e.emp_id)) cur.add(empId); else cur.delete(empId);
+        return S.update('users', { supervisor_ids: [...cur] }, { emp_id: e.emp_id });
+      }));
+      logAudit({ actor: user, action: 'assign_team', targetEmpId: empId, targetName: form.name.trim(), details: { team: [...newTeam] } });
     }
     setSaving(false);
     setShowForm(false);
@@ -394,12 +413,20 @@ export default function TeamMgmt({ user }) {
             </div>
             <MultiCheck label="Permissions" options={allProcs} selected={f.processes}
               onChange={v => setF({ processes: v })} />
-            {supervisors.length > 0 && (
+            {f.role === 'employee' && supervisors.length > 0 && (
               <MultiCheck
                 label="Supervisor Access (who can see this user)"
                 options={supervisors.map(s => s.emp_id)}
                 selected={f.supervisor_ids}
                 onChange={v => setF({ supervisor_ids: v })}
+              />
+            )}
+            {f.role === 'supervisor' && (
+              <MultiCheck
+                label="Team Members (employees this supervisor monitors)"
+                options={allUsers.filter(u => u.role === 'employee').map(u => u.emp_id)}
+                selected={f.team_emp_ids}
+                onChange={v => setF({ team_emp_ids: v })}
               />
             )}
             <div className="form-actions">
