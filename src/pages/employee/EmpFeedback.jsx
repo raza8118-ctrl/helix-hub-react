@@ -3,8 +3,7 @@ import { S } from '../../lib/supabase';
 import { fmtD, scopeToSupervisor } from '../../lib/helpers';
 import { PRIORITIES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
-import ReactionBar from '../../components/shared/ReactionBar';
-import CommentThread from '../../components/shared/CommentThread';
+import Discussion from '../../components/shared/Discussion';
 import Toast from '../../components/shared/Toast';
 
 const POLL_MS = 25000;
@@ -12,6 +11,10 @@ const POLL_MS = 25000;
 function PriorityBadge({ priority }) {
   const p = PRIORITIES.find(x => x.id === priority) ?? PRIORITIES[1];
   return <span className="badge" style={{ background: `${p.color}22`, color: p.color }}>{p.label}</span>;
+}
+
+function initials(name, empId) {
+  return (name || empId || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
 }
 
 export default function EmpFeedback({ user }) {
@@ -127,71 +130,75 @@ export default function EmpFeedback({ user }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {feedbacks.map(f => {
           const acked = isAcked(f);
+          const prio = PRIORITIES.find(x => x.id === f.priority) ?? PRIORITIES[1];
           return (
           <div
             key={f.id}
-            className="card fade-in"
-            style={{
-              borderLeft: `3px solid ${acked ? 'var(--col-green)' : '#f59e0b'}`,
-              background: acked ? undefined : 'rgba(245,158,11,0.03)',
-              cursor: 'pointer',
-              transition: 'box-shadow 0.15s',
-            }}
-            onClick={() => setViewItem(f)}
+            className="card card-hover fade-in"
+            style={{ borderLeft: `3px solid ${prio.color}`, padding: 0, overflow: 'hidden' }}
           >
-            {/* Card header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>{f.from_name ?? f.from_emp_id}</span>
-                {f.to_emp_id === null && <span className="badge badge-blue">Team</span>}
-                {f.process && <span className="badge badge-yellow">{f.process}</span>}
-                <PriorityBadge priority={f.priority} />
-                {!acked && <span className="badge badge-red">New</span>}
+            <div style={{ padding: '16px 20px', cursor: 'pointer' }} onClick={() => setViewItem(f)}>
+              {/* Card header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    background: 'linear-gradient(135deg, #7c3aed, #4338ca)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700,
+                  }}>
+                    {initials(f.from_name, f.from_emp_id)}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{f.from_name ?? f.from_emp_id}</span>
+                      {f.to_emp_id === null && <span className="badge badge-blue">Team</span>}
+                      {!acked && <span className="badge badge-red">New</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <span className="text-sm text-muted">{fmtD(f.date)}</span>
+                      {f.process && <span className="badge badge-yellow">{f.process}</span>}
+                    </div>
+                  </div>
+                </div>
+                <span className="badge" style={{ background: `${prio.color}1a`, color: prio.color, fontWeight: 700 }}>
+                  {prio.label}
+                </span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                <span className="text-sm text-muted">{fmtD(f.date)}</span>
-                {f.created_at && (
-                  <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>
-                    {new Date(f.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-            </div>
 
-            {/* Message preview */}
-            <p style={{
-              fontSize: 13, lineHeight: 1.55,
-              color: acked ? 'var(--text-muted)' : 'var(--text)',
-              overflow: 'hidden',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-            }}>
-              {f.message}
-            </p>
-            {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 200, borderRadius: 8, marginBottom: 8 }} />}
-
-            <div onClick={e => e.stopPropagation()}>
-              <ReactionBar targetType="feedback" targetId={f.id} user={user} />
-              <div className="text-muted text-sm bold" style={{ marginTop: 8, marginBottom: 4 }}>💬 Comments</div>
-              <CommentThread targetType="feedback" targetId={f.id} user={user} />
+              {/* Message preview */}
+              <p style={{
+                fontSize: 13.5, lineHeight: 1.6,
+                color: acked ? 'var(--text-muted)' : 'var(--text)',
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}>
+                {f.message}
+              </p>
+              {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 200, borderRadius: 8, marginTop: 8 }} />}
             </div>
 
             {/* Status + Ack button */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 20px', borderTop: '1px solid var(--border)', background: 'var(--surface-2)',
+            }}>
               <span className={`badge ${acked ? 'badge-green' : 'badge-yellow'}`} style={{ fontSize: 10 }}>
                 {acked
                   ? `Acknowledged${myAckTime(f) ? ' · ' + new Date(myAckTime(f)).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}`
                   : 'Awaiting Acknowledgement'}
               </span>
               {!acked && (
-                <button
-                  className="btn-sm"
-                  onClick={e => { e.stopPropagation(); ack(f); }}
-                >
+                <button className="btn-sm" onClick={() => ack(f)}>
                   ✓ Acknowledge
                 </button>
               )}
+            </div>
+
+            <div style={{ padding: '10px 20px' }}>
+              <Discussion targetType="feedback" targetId={f.id} user={user} />
             </div>
           </div>
           );

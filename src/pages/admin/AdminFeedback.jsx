@@ -3,9 +3,12 @@ import { S, storage } from '../../lib/supabase';
 import { today, fmtD, resizeImage, scopeToSupervisor } from '../../lib/helpers';
 import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
-import ReactionBar from '../../components/shared/ReactionBar';
-import CommentThread from '../../components/shared/CommentThread';
+import Discussion from '../../components/shared/Discussion';
 import Toast from '../../components/shared/Toast';
+
+function initials(name, empId) {
+  return (name || empId || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+}
 
 const POLL_MS = 25000;
 
@@ -266,48 +269,86 @@ export default function AdminFeedback({ user }) {
           const acked = audience.filter(u => myAcks.some(a => a.emp_id === u.emp_id));
           const pending = audience.filter(u => !myAcks.some(a => a.emp_id === u.emp_id));
           const fmtTime = iso => iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          const ackPct = audience.length > 0 ? Math.round((acked.length / audience.length) * 100) : 0;
+          const prio = PRIORITIES.find(x => x.id === f.priority) ?? PRIORITIES[1];
           return (
-            <div key={f.id} className="card" style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span className="bold text-sm">{f.from_name ?? f.from_emp_id}</span>
-                  <span className="text-muted text-sm">→ {f.to_emp_id ? (f.to_name ?? f.to_emp_id) : 'Team'}</span>
-                  {f.process && <span className="badge badge-yellow">{f.process}</span>}
-                  <PriorityBadge priority={f.priority} />
+            <div key={f.id} className="card card-hover" style={{ marginBottom: 12, borderLeft: `3px solid ${prio.color}`, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px' }}>
+                {/* Sender row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                      background: 'linear-gradient(135deg, #7c3aed, #4338ca)', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, fontWeight: 700,
+                    }}>
+                      {initials(f.from_name, f.from_emp_id)}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span className="bold text-sm">{f.from_name ?? f.from_emp_id}</span>
+                        <span className="text-muted text-sm">→ {f.to_emp_id ? (f.to_name ?? f.to_emp_id) : 'Team'}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <span className="text-sm text-muted">{fmtD(f.date)}</span>
+                        {f.process && <span className="badge badge-yellow">{f.process}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="badge" style={{ background: `${prio.color}1a`, color: prio.color, fontWeight: 700 }}>
+                    {prio.label}
+                  </span>
                 </div>
-                <span className="text-sm text-muted">{fmtD(f.date)}</span>
+
+                <p style={{ fontSize: 13.5, lineHeight: 1.6, cursor: 'pointer', color: 'var(--text)' }} onClick={() => setViewItem(f)}>{f.message}</p>
+                {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, marginTop: 8 }} />}
+
+                {/* Acknowledgement status */}
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  {isBroadcast ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span className="text-sm bold">Acknowledged {acked.length}/{audience.length}</span>
+                        <span className={`text-sm bold ${ackPct === 100 ? 'col-green' : 'col-yellow'}`}>{ackPct}%</span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 4, background: 'var(--surface-2)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${ackPct}%`, background: ackPct === 100 ? 'var(--success)' : 'var(--warning)', transition: 'width 0.3s ease' }} />
+                      </div>
+                      {(acked.length > 0 || pending.length > 0) && (
+                        <details style={{ marginTop: 8 }}>
+                          <summary className="text-muted text-sm" style={{ cursor: 'pointer' }}>View who's acknowledged</summary>
+                          {acked.length > 0 && (
+                            <div className="text-muted text-sm" style={{ marginTop: 6 }}>
+                              ✓ {acked.map(u => `${u.name ?? u.emp_id} (${fmtTime(ackTimeOf(u.emp_id))})`).join(', ')}
+                            </div>
+                          )}
+                          {pending.length > 0 && (
+                            <div className="text-muted text-sm" style={{ marginTop: 4 }}>
+                              ⏳ Pending: {pending.map(u => u.name ?? u.emp_id).join(', ')}
+                            </div>
+                          )}
+                        </details>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button className="btn-sm" onClick={() => toggleAck(f)}>
+                        {f.acknowledged ? <span className="badge badge-green">Acknowledged</span> : <span className="badge badge-yellow">Awaiting</span>}
+                      </button>
+                      {f.acknowledged && f.acknowledged_at && (
+                        <span className="text-muted text-sm">at {fmtTime(f.acknowledged_at)}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Discussion + actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                  <Discussion targetType="feedback" targetId={f.id} user={user} />
+                  <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => deleteFeedback(f.id)}>Delete</button>
+                </div>
               </div>
-              <p style={{ fontSize: 13, lineHeight: 1.55, cursor: 'pointer' }} onClick={() => setViewItem(f)}>{f.message}</p>
-              {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, marginBottom: 8 }} />}
-
-              <ReactionBar targetType="feedback" targetId={f.id} user={user} />
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                {isBroadcast ? (
-                  <span className="badge badge-green">✓ Acknowledged {acked.length}/{audience.length}</span>
-                ) : (
-                  <button className="btn-sm" onClick={() => toggleAck(f)}>
-                    {f.acknowledged ? <span className="badge badge-green">Acknowledged</span> : <span className="badge badge-yellow">Awaiting</span>}
-                  </button>
-                )}
-                {!isBroadcast && f.acknowledged && f.acknowledged_at && (
-                  <span className="text-muted text-sm">at {fmtTime(f.acknowledged_at)}</span>
-                )}
-                <button className="btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }} onClick={() => deleteFeedback(f.id)}>Delete</button>
-              </div>
-              {isBroadcast && acked.length > 0 && (
-                <div className="text-muted text-sm" style={{ marginBottom: 4 }}>
-                  ✓ {acked.map(u => `${u.name ?? u.emp_id} (${fmtTime(ackTimeOf(u.emp_id))})`).join(', ')}
-                </div>
-              )}
-              {isBroadcast && pending.length > 0 && (
-                <div className="text-muted text-sm" style={{ marginBottom: 8 }}>
-                  ⏳ Pending: {pending.map(u => u.name ?? u.emp_id).join(', ')}
-                </div>
-              )}
-
-              <div className="text-muted text-sm bold" style={{ marginBottom: 4 }}>💬 Comments</div>
-              <CommentThread targetType="feedback" targetId={f.id} user={user} />
             </div>
           );
         })}
@@ -321,6 +362,7 @@ export default function AdminFeedback({ user }) {
               ['From', viewItem.from_name ?? viewItem.from_emp_id],
               ['To', viewItem.to_name ?? 'Entire Team'],
               ['Process', viewItem.process ?? '—'],
+              ['Priority', <PriorityBadge key="p" priority={viewItem.priority} />],
               ['Date', fmtD(viewItem.date)],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
