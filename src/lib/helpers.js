@@ -31,10 +31,15 @@ export function fmtSh(dateStr) {
   return `${String(d).padStart(2,'0')} ${MONTH_NAMES[m-1]}`;
 }
 
+// Local Y/M/D components, not toISOString() — toISOString() converts to UTC first,
+// which silently rolls the date back a day for anyone in a timezone ahead of UTC (e.g. IST).
+function ymd(dt) {
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
 export function addDays(dateStr, n) {
   const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m - 1, d + n);
-  return dt.toISOString().slice(0, 10);
+  return ymd(new Date(y, m - 1, d + n));
 }
 
 export function getMon(dateStr) {
@@ -42,7 +47,7 @@ export function getMon(dateStr) {
   const dt = new Date(y, m - 1, d);
   const day = dt.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  return new Date(y, m - 1, d + diff).toISOString().slice(0, 10);
+  return ymd(new Date(y, m - 1, d + diff));
 }
 
 export function isWknd(dateStr) {
