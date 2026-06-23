@@ -45,20 +45,11 @@ async function ensureAdmin() {
   }
 }
 
-const WRAP = {
-  minHeight: '100vh',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-  padding: 20,
-};
-
 const CARD = {
   background: '#fff',
-  borderRadius: 16,
-  boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+  borderRadius: 18,
+  boxShadow: '0 20px 50px rgba(15,12,41,0.12)',
+  border: '1px solid #eef1f6',
   padding: '36px 32px',
   width: '100%',
   maxWidth: 380,
@@ -66,6 +57,12 @@ const CARD = {
   flexDirection: 'column',
   alignItems: 'center',
 };
+
+const FEATURES = [
+  { icon: '📊', text: 'Live productivity, attendance, and quality tracking' },
+  { icon: '👥', text: 'Role-aware dashboards for employees, supervisors, and managers' },
+  { icon: '📢', text: 'Team announcements with read receipts, all in one place' },
+];
 
 // Login's own light-card inputs/labels — same shape as the global `.form-group`/
 // `input`/`label` rules in index.css, but forced to light colors since this page
@@ -136,16 +133,40 @@ export default function Login({ onLogin }) {
   function toLogin()  { setView('login');  setForgotMsg(''); setForgotOk(false); }
 
   return (
-    <div style={WRAP}>
-      <div style={CARD} className="fade-in-scale">
-        {/* Logo */}
-        <HexLogo />
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#1a202c', marginTop: 12, letterSpacing: '-0.5px' }}>
-          Helix Hub
+    <div className="login-shell">
+      {/* Brand panel — hidden on narrow screens */}
+      <div className="login-brand-panel">
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <HexLogo size={56} />
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', marginTop: 20, letterSpacing: '-0.5px' }}>
+            Helix Hub
+          </div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 6, maxWidth: 360, lineHeight: 1.6 }}>
+            The RCM team portal for 3Gen Consulting — track performance, manage your team, and stay in sync.
+          </div>
+          {FEATURES.map(f => (
+            <div key={f.text} className="login-feature">
+              <span style={{ fontSize: 18 }}>{f.icon}</span>
+              <span>{f.text}</span>
+            </div>
+          ))}
         </div>
-        <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, marginBottom: 28 }}>
-          3Gen Consulting — RCM Team Portal
+        <div style={{ position: 'relative', zIndex: 1, color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 48 }}>
+          Created by Faizan Shah
         </div>
+      </div>
+
+      {/* Form panel */}
+      <div className="login-form-panel">
+        <div style={CARD} className="fade-in-scale">
+          {/* Logo (shown here too — the brand panel collapses on narrow screens) */}
+          <HexLogo />
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#1a202c', marginTop: 12, letterSpacing: '-0.5px' }}>
+            Helix Hub
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, marginBottom: 28 }}>
+            3Gen Consulting — RCM Team Portal
+          </div>
 
         {view === 'login' ? (
           <form onSubmit={doLogin} style={{ width: '100%' }}>
@@ -249,10 +270,7 @@ export default function Login({ onLogin }) {
             </button>
           </form>
         )}
-      </div>
-
-      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 20 }}>
-        Created by Faizan Shah
+        </div>
       </div>
     </div>
   );

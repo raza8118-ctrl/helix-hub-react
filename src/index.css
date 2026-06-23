@@ -25,10 +25,10 @@
   --topbar-text:   #1a202c;
   --topbar-border: #e2e8f0;
 
-  /* Accent */
-  --accent:        #3b82f6;
-  --accent-hover:  #2563eb;
-  --accent-dim:    #dbeafe;
+  /* Accent — matches the brand purple/indigo used on the login screen & logo */
+  --accent:        #7c3aed;
+  --accent-hover:  #6d28d9;
+  --accent-dim:    #ede9fe;
 
   /* Status */
   --success:  #10b981;
@@ -79,9 +79,9 @@ body.dark {
   --topbar-text:   #e2e8f0;
   --topbar-border: #2d3148;
 
-  --accent:       #60a5fa;
-  --accent-hover: #93c5fd;
-  --accent-dim:   #1e3a5f;
+  --accent:       #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-dim:   #2e1065;
 
   --shadow:    0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30);
@@ -111,17 +111,112 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ─── App Layout ─── */
+/* ─── App Layout (sidebar + content column) ─── */
 .app-shell {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
+}
+
+.sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--topbar-bg);
+  border-right: 1px solid var(--topbar-border);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--topbar-border);
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-link:hover { background: var(--surface-2); color: var(--text); }
+
+.sidebar-link.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sidebar-link .icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+
+.sidebar-footer {
+  border-top: 1px solid var(--topbar-border);
+  padding: 14px 16px;
+  flex-shrink: 0;
+}
+
+.content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.page-topbar {
+  height: var(--topbar-h);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--topbar-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow);
 }
 
 .main-content {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .app-shell { flex-direction: column; }
+  .sidebar {
+    width: 100%; height: auto; flex-direction: row; align-items: center;
+    position: sticky; top: 0; z-index: 101;
+  }
+  .sidebar-brand { border-bottom: none; border-right: 1px solid var(--topbar-border); }
+  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 8px; }
+  .sidebar-footer { display: none; }
 }
 
 /* ─── Card ─── */
@@ -334,6 +429,60 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
 .fade-in-scale    { animation: fadeInScale 0.2s ease forwards; }
 .page-transition  { animation: fadeIn 0.18s ease forwards; }
 
+/* ─── Login (split screen) ─── */
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+.login-brand-panel {
+  flex: 1.1;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-brand-panel::before, .login-brand-panel::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.login-brand-panel::before { width: 320px; height: 320px; background: #7c3aed; top: -90px; right: -90px; }
+.login-brand-panel::after  { width: 260px; height: 260px; background: #4338ca; bottom: -70px; left: -50px; }
+
+.login-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-form-panel {
+  flex: 1;
+  min-width: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 40px 24px;
+}
+
+@media (max-width: 860px) {
+  .login-brand-panel { display: none; }
+}
+
 /* ─── TopBar (sticky, frosted) ─── */
 .topbar-blur {
   background: color-mix(in srgb, var(--topbar-bg) 88%, transparent);
@@ -401,9 +550,10 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
 }
 
 .page-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   color: var(--text);
+  letter-spacing: -0.3px;
 }
 
 .section-title {
@@ -470,12 +620,26 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
 
 /* ─── Stat Card ─── */
 .stat-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 16px 20px;
   box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
 .stat-label {
   font-size: 11px;
@@ -485,7 +649,7 @@ body.dark .badge-gray   { background: var(--surface-3); color: var(--text-muted)
   letter-spacing: 0.05em;
 }
 
-.stat-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.stat-value { font-size: 27px; font-weight: 800; margin-top: 4px; letter-spacing: -0.3px; }
 .stat-sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 /* ─── Tabs ─── */

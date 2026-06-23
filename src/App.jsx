@@ -1,10 +1,30 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import Login       from './components/Login';
-import TopBar      from './components/TopBar';
+import Sidebar     from './components/Sidebar';
 import Profile     from './components/shared/Profile';
 import { THEMES }  from './lib/constants';
 import { S, kv }   from './lib/supabase';
 import './index.css';
+
+// Owns its own 1s tick so the whole app doesn't re-render every second
+// along with it — only this small corner of the page-topbar does.
+function Clock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div style={{ textAlign: 'right', lineHeight: 1.3 }}>
+      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
+        {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+      </div>
+    </div>
+  );
+}
 
 // Lazy-loaded per role — a given user only ever needs one of these three bundles.
 const AdminApp      = lazy(() => import('./pages/admin/AdminApp'));
@@ -23,28 +43,28 @@ function applyTheme(themeId) {
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const ADMIN_TABS = [
-  { id: 'today',       label: 'Today'         },
-  { id: 'prodmonitor', label: 'Prod Monitor'  },
-  { id: 'hourlymon',   label: 'Hourly'        },
-  { id: 'weekly',      label: 'Weekly'        },
-  { id: 'monthly',     label: 'Monthly'       },
-  { id: 'feedback',    label: 'Announcements' },
-  { id: 'team',        label: 'Team'          },
-  { id: 'allocation',  label: 'Work Alloc'    },
-  { id: 'allocmon',    label: 'Alloc Monitor' },
-  { id: 'feedmonitor', label: 'Feed Monitor'  },
-  { id: 'settings',    label: 'Settings'      },
+  { id: 'today',       label: 'Today',         icon: '📅' },
+  { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊' },
+  { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️' },
+  { id: 'weekly',      label: 'Weekly',        icon: '🗓️' },
+  { id: 'monthly',     label: 'Monthly',       icon: '📆' },
+  { id: 'feedback',    label: 'Announcements', icon: '📢' },
+  { id: 'team',        label: 'Team',          icon: '👥' },
+  { id: 'allocation',  label: 'Work Alloc',    icon: '🗂️' },
+  { id: 'allocmon',    label: 'Alloc Monitor', icon: '📋' },
+  { id: 'feedmonitor', label: 'Feed Monitor',  icon: '🖼️' },
+  { id: 'settings',    label: 'Settings',      icon: '⚙️' },
 ];
 
 const SUPERVISOR_TABS = [
-  { id: 'today',       label: 'Today'         },
-  { id: 'prodmonitor', label: 'Prod Monitor'  },
-  { id: 'hourlymon',   label: 'Hourly'        },
-  { id: 'weekly',      label: 'Weekly'        },
-  { id: 'monthly',     label: 'Monthly'       },
-  { id: 'feedback',    label: 'Announcements' },
-  { id: 'myteam',      label: 'My Team'       },
-  { id: 'feed',        label: 'Team Feed'     },
+  { id: 'today',       label: 'Today',         icon: '📅' },
+  { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊' },
+  { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️' },
+  { id: 'weekly',      label: 'Weekly',        icon: '🗓️' },
+  { id: 'monthly',     label: 'Monthly',       icon: '📆' },
+  { id: 'feedback',    label: 'Announcements', icon: '📢' },
+  { id: 'myteam',      label: 'My Team',       icon: '🧑‍🤝‍🧑' },
+  { id: 'feed',        label: 'Team Feed',     icon: '💬' },
 ];
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -197,19 +217,20 @@ export default function App() {
   const isSupervisor = currentUser.role === 'supervisor';
 
   const empTabs = [
-    { id: 'prodreport',   label: 'Daily Report'   },
-    { id: 'myreports',    label: 'My Reports'     },
-    { id: 'progress',     label: 'Progress'       },
-    { id: 'myallocation', label: 'My Allocation'  },
-    { id: 'feedback',     label: unreadFeedback > 0 ? `Announcements (${unreadFeedback})` : 'Announcements' },
-    { id: 'feed',         label: 'Team Feed'      },
+    { id: 'prodreport',   label: 'Daily Report',  icon: '📝' },
+    { id: 'myreports',    label: 'My Reports',    icon: '📄' },
+    { id: 'progress',     label: 'Progress',      icon: '📈' },
+    { id: 'myallocation', label: 'My Allocation', icon: '🗂️' },
+    { id: 'feedback',     label: unreadFeedback > 0 ? `Announcements (${unreadFeedback})` : 'Announcements', icon: '📢' },
+    { id: 'feed',         label: 'Team Feed',     icon: '💬' },
   ];
 
   const tabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
+  const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
 
   return (
     <div className="app-shell">
-      <TopBar
+      <Sidebar
         user={currentUser}
         theme={theme}
         onTheme={handleThemeChange}
@@ -218,21 +239,37 @@ export default function App() {
         activeTab={activeTab}
         onTab={handleSetTab}
         tabs={tabs}
-        deficitCount={hasDeficit ? 1 : 0}
       />
 
-      <main className="main-content">
-        <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
-          <div key={activeTab} className="page-transition">
-            {isAdmin
-              ? <AdminApp      activeTab={activeTab} user={currentUser} />
-              : isSupervisor
-              ? <SupervisorApp activeTab={activeTab} user={currentUser} />
-              : <EmployeeApp   activeTab={activeTab} user={currentUser} />
-            }
+      <div className="content-col">
+        <header className="page-topbar topbar-blur">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{pageTitle}</span>
+            {hasDeficit && (
+              <span
+                style={{ background: '#ef4444', color: '#fff', borderRadius: 12, padding: '3px 9px', fontSize: 11, fontWeight: 700 }}
+                title="Some employees are below target today"
+              >
+                ⚠ Below target
+              </span>
+            )}
           </div>
-        </Suspense>
-      </main>
+          <Clock />
+        </header>
+
+        <main className="main-content">
+          <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
+            <div key={activeTab} className="page-transition">
+              {isAdmin
+                ? <AdminApp      activeTab={activeTab} user={currentUser} />
+                : isSupervisor
+                ? <SupervisorApp activeTab={activeTab} user={currentUser} />
+                : <EmployeeApp   activeTab={activeTab} user={currentUser} />
+              }
+            </div>
+          </Suspense>
+        </main>
+      </div>
 
       {/* Profile modal — managed at App level */}
       {showProfile && (
