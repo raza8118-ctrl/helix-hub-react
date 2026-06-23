@@ -126,10 +126,13 @@ export default function TeamMgmt({ user }) {
       permissions: (form.role === 'supervisor' || form.role === 'manager') ? form.permissions : null,
       active: true,
     };
-    if (editUser) {
-      await S.update('users', payload, { emp_id: editUser.emp_id });
-    } else {
-      await S.set('users', payload);
+    const result = editUser
+      ? await S.update('users', payload, { emp_id: editUser.emp_id })
+      : await S.set('users', payload);
+    setSaving(false);
+    if (!result) {
+      window.alert('Failed to save user. The ID may already exist, or the save was blocked by a database permission rule.');
+      return;
     }
     if (form.role === 'supervisor') {
       // Reconcile the other side of the relationship: each employee's own supervisor_ids
@@ -146,7 +149,6 @@ export default function TeamMgmt({ user }) {
       }));
       logAudit({ actor: user, action: 'assign_team', targetEmpId: empId, targetName: form.name.trim(), details: { team: [...newTeam] } });
     }
-    setSaving(false);
     setShowForm(false);
     await load();
   }
