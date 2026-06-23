@@ -10,10 +10,11 @@ const WorkAllocation = lazy(() => import('./WorkAllocation'));
 const AllocMonitor   = lazy(() => import('./AllocMonitor'));
 const Settings       = lazy(() => import('./Settings'));
 const FeedMonitor    = lazy(() => import('./FeedMonitor'));
+const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
 
 /**
  * Routes admin tabs to the correct page component.
- * Tab IDs: today | prodmonitor | hourlymon | weekly | monthly |
+ * Tab IDs: today | prodmonitor | hourlymon | weekly | monthly | feed |
  *          feedback | team | allocation | allocmon | feedmonitor | settings
  */
 export default function AdminApp({ activeTab, user }) {
@@ -23,6 +24,7 @@ export default function AdminApp({ activeTab, user }) {
     case 'hourlymon':   return <HourlyMonitor user={user} />;
     case 'weekly':      return <Summary key="weekly"  user={user} defaultMode="weekly"  />;
     case 'monthly':     return <Summary key="monthly" user={user} defaultMode="monthly" />;
+    case 'feed':        return <TeamFeed user={user} />;
     case 'feedback':    return <AdminFeedback user={user} />;
     case 'team':        return <TeamMgmt user={user} />;
     case 'allocation':  return <WorkAllocation user={user} />;

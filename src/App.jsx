@@ -52,6 +52,7 @@ const ADMIN_TABS = [
   { id: 'allocation',  label: 'Work Alloc',    icon: '🗂️', section: 'Team' },
   { id: 'allocmon',    label: 'Alloc Monitor', icon: '📋', section: 'Team' },
   { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
+  { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
   { id: 'feedmonitor', label: 'Feed Monitor',  icon: '🖼️', section: 'Engagement' },
   { id: 'settings',    label: 'Settings',      icon: '⚙️', section: 'System' },
 ];
