@@ -299,6 +299,22 @@ export function calcProd(tasks, counts, overallTarget, downtimeHours, opts = {})
   return { total, adjTarget, prodPct, deficit, deficitPct, isLeave: false, shiftHours, baseTarget };
 }
 
+/**
+ * Resolves a user's daily target for a given date, accounting for an
+ * admin-defined ramp-up schedule (ramp_schedule[0] = week 1, etc.).
+ * Falls back to the flat `target` field before the ramp starts, once it
+ * runs out, or when ramp-up isn't enabled.
+ */
+export function effectiveTarget(user, dateStr) {
+  const flat = parseInt(user?.target) || 50;
+  if (!user?.ramp_enabled || !Array.isArray(user?.ramp_schedule) || !user.ramp_schedule.length || !user?.ramp_start_date) {
+    return flat;
+  }
+  const weeksElapsed = Math.floor((new Date(dateStr) - new Date(user.ramp_start_date)) / (7 * 86400000));
+  if (weeksElapsed < 0 || weeksElapsed >= user.ramp_schedule.length) return flat;
+  return parseInt(user.ramp_schedule[weeksElapsed]) || flat;
+}
+
 /** True if user works on the AUTH process */
 export function userIsAuth(user) {
   return procIncludes(user, 'AUTH');

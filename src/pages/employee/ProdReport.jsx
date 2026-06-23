@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, yesterday, fmtD, dlCSV } from '../../lib/helpers';
+import { today, yesterday, fmtD, dlCSV, effectiveTarget } from '../../lib/helpers';
 import {
   DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H,
   LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, ATTENDANCE_STATUSES, LEAVE_TYPES,
@@ -70,7 +70,6 @@ export default function ProdReport({ user }) {
   })();
   const proc       = userProcs[0];
   const isOnlyAuth = userProcs.length === 1 && proc === 'AUTH';
-  const overallTarget = parseInt(user.target) || 50;
 
   // ── State ────────────────────────────────────────────────────────────────
   const [taskCfgRows, setTaskCfgRows]       = useState(null);
@@ -99,6 +98,7 @@ export default function ProdReport({ user }) {
   const [callNotes, setCallNotes]           = useState('');
 
   // ── Derived flags ────────────────────────────────────────────────────────
+  const overallTarget = effectiveTarget(user, date);
   const isLegacyAuth = isOnlyAuth && date < LEGACY_AUTH_CUTOFF;
   const isLeave      = LEAVE_STATUSES.includes(attendanceStatus);
   const isHalfDay    = HALF_DAY_STATUSES.includes(attendanceStatus);

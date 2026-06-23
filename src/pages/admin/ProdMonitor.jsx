@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget } from '../../lib/helpers';
 import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
@@ -90,7 +90,7 @@ export default function ProdMonitor({ user }) {
 
     const isAbsentStatus  = LEAVE_STATUSES.includes(bypassStatus);
     const isHalfDayStatus = HALF_DAY_STATUSES.includes(bypassStatus);
-    const baseTarget = bypassTarget.target ?? 50;
+    const baseTarget = effectiveTarget(bypassTarget, date);
     const statusFields = {
       attendance_status: bypassStatus,
       leave_type: isAbsentStatus ? bypassLeaveType : null,

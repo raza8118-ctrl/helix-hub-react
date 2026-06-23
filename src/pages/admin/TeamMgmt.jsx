@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { ACCESSES, DEFAULT_PROJECT } from '../../lib/constants';
-import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit } from '../../lib/helpers';
+import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -13,6 +13,7 @@ const BLANK     = {
   role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [], team_emp_ids: [],
   supervised_processes: [], supervised_projects: [], all_projects: false,
   permissions: DEFAULT_SUPERVISOR_PERMS,
+  ramp_enabled: false, ramp_schedule: [],
 };
 
 const PERM_LABELS = {
@@ -22,6 +23,13 @@ const PERM_LABELS = {
   editQuality:    'Edit quality score',
   pinEmployee:    'Pin employee for close monitoring',
 };
+
+function rampWeek(u) {
+  if (!u.ramp_enabled || !Array.isArray(u.ramp_schedule) || !u.ramp_schedule.length || !u.ramp_start_date) return null;
+  const weeksElapsed = Math.floor((new Date(today()) - new Date(u.ramp_start_date)) / (7 * 86400000));
+  if (weeksElapsed < 0 || weeksElapsed >= u.ramp_schedule.length) return null;
+  return { week: weeksElapsed + 1, total: u.ramp_schedule.length };
+}
 
 function SortableRow({ u, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: u.emp_id });
@@ -160,6 +168,8 @@ export default function TeamMgmt({ user }) {
       supervised_projects: (u.supervised_projects ?? []).filter(p => p !== 'ALL'),
       all_projects: (u.supervised_projects ?? []).includes('ALL'),
       permissions: { ...DEFAULT_SUPERVISOR_PERMS, ...(u.permissions ?? {}) },
+      ramp_enabled: u.ramp_enabled ?? false,
+      ramp_schedule: u.ramp_schedule ?? [],
     });
     setShowForm(true);
   }
@@ -181,6 +191,9 @@ export default function TeamMgmt({ user }) {
       supervised_projects: form.role === 'manager' ? (form.all_projects ? ['ALL'] : form.supervised_projects) : [],
       permissions: (form.role === 'supervisor' || form.role === 'manager') ? form.permissions : null,
       active: true,
+      ramp_enabled: form.ramp_enabled,
+      ramp_schedule: form.ramp_enabled ? form.ramp_schedule.map(Number) : null,
+      ramp_start_date: form.ramp_enabled && !editUser?.ramp_enabled ? today() : (editUser?.ramp_start_date ?? null),
     };
     const result = editUser
       ? await S.update('users', payload, { emp_id: editUser.emp_id })
@@ -376,9 +389,12 @@ export default function TeamMgmt({ user }) {
                           <td>{u.access || u.process || '—'}</td>
                           <td className="right">{u.target ?? '—'}</td>
                           <td className="center">
-                            <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
-                              {u.active !== false ? 'Active' : 'Disabled'}
-                            </span>
+                            <div className="row" style={{ gap: 4, justifyContent: 'center' }}>
+                              <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
+                                {u.active !== false ? 'Active' : 'Disabled'}
+                              </span>
+                              {rampWeek(u) && <span className="badge badge-yellow">Ramp Wk {rampWeek(u).week}/{rampWeek(u).total}</span>}
+                            </div>
                           </td>
                           <td>
                             <div className="row" style={{ gap: 4 }}>
@@ -435,6 +451,30 @@ export default function TeamMgmt({ user }) {
                 <label>Daily Target</label>
                 <input type="number" value={f.target} onChange={e => setF({ target: e.target.value })} placeholder="e.g. 100" />
               </div>
+            </div>
+            <div className="field">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={f.ramp_enabled}
+                  onChange={e => setF({ ramp_enabled: e.target.checked, ramp_schedule: e.target.checked && f.ramp_schedule.length === 0 ? [''] : f.ramp_schedule })} />
+                Ramp-Up Plan (new hire starts below the Daily Target and steps up week by week)
+              </label>
+              {f.ramp_enabled && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {f.ramp_schedule.map((wk, i) => (
+                    <div key={i} className="row" style={{ gap: 8, alignItems: 'center' }}>
+                      <span className="text-sm text-muted" style={{ width: 56 }}>Week {i + 1}</span>
+                      <input type="number" value={wk} style={{ maxWidth: 120 }}
+                        onChange={e => setF({ ramp_schedule: f.ramp_schedule.map((v, j) => j === i ? e.target.value : v) })}
+                        placeholder="Target" />
+                      <button className="btn-sm" style={{ color: 'var(--danger)' }}
+                        onClick={() => setF({ ramp_schedule: f.ramp_schedule.filter((_, j) => j !== i) })}>✕</button>
+                    </div>
+                  ))}
+                  <button className="btn-sm" style={{ alignSelf: 'flex-start' }}
+                    onClick={() => setF({ ramp_schedule: [...f.ramp_schedule, ''] })}>+ Add Week</button>
+                  <div className="text-sm text-muted">After the schedule ends, the Daily Target above applies automatically.</div>
+                </div>
+              )}
             </div>
             <MultiCheck label="Permissions" options={allProcs} selected={f.processes}
               onChange={v => setF({ processes: v })} />
