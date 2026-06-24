@@ -9,14 +9,23 @@ function HexLogo({ size = 30 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
       <defs>
-        <linearGradient id="sbHexG" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="sbMarkG" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#7c3aed" />
-          <stop offset="100%" stopColor="#4338ca" />
+          <stop offset="100%" stopColor="#1e1b4b" />
+        </linearGradient>
+        <linearGradient id="sbStrandG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6" />
         </linearGradient>
       </defs>
-      <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" fill="url(#sbHexG)" />
-      <text x="50" y="68" textAnchor="middle" fill="white" fontSize="44" fontWeight="800"
-        fontFamily="'Inter','Segoe UI',sans-serif">H</text>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#sbMarkG)" />
+      <path d="M36,21 C36,38 64,38 64,50 C64,62 36,62 36,79"
+        stroke="url(#sbStrandG)" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M64,21 C64,38 36,38 36,50 C36,62 64,62 64,79"
+        stroke="url(#sbStrandG)" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <line x1="42" y1="29" x2="58" y2="29" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+      <line x1="48" y1="50" x2="52" y2="50" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+      <line x1="42" y1="71" x2="58" y2="71" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -75,7 +84,7 @@ export default function Sidebar({
             style={{
               width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
               background: user?.avatar_url ? 'transparent' : 'linear-gradient(135deg, #7c3aed, #4338ca)',
-              border: '2px solid var(--border)', cursor: 'pointer',
+              border: '2px solid rgba(255,255,255,0.18)', cursor: 'pointer',
               fontSize: 11, fontWeight: 700, color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden', padding: 0,
@@ -88,12 +97,12 @@ export default function Sidebar({
           </button>
           <div style={{ lineHeight: 1.3, flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 12, fontWeight: 600, color: 'var(--topbar-text)',
+              fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.92)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {user?.name || user?.emp_id}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', textTransform: 'capitalize' }}>
               {user?.role}
             </div>
           </div>
@@ -101,9 +110,9 @@ export default function Sidebar({
             onClick={toggleTheme}
             title={isDark ? 'Switch to Light' : 'Switch to Dark'}
             style={{
-              background: 'transparent', border: '1px solid var(--border)',
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.18)',
               borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
-              fontSize: 13, color: 'var(--text-muted)', lineHeight: 1, flexShrink: 0,
+              fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1, flexShrink: 0,
             }}
           >
             {isDark ? '☀️' : '🌙'}
