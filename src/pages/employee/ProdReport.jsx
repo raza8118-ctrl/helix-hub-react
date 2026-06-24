@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, yesterday, fmtD, dlCSV, effectiveTarget } from '../../lib/helpers';
+import { today, yesterday, fmtD, dlCSV, effectiveTarget, getHourlySlots } from '../../lib/helpers';
 import {
   DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H,
   LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, ATTENDANCE_STATUSES, LEAVE_TYPES,
@@ -73,6 +73,7 @@ export default function ProdReport({ user }) {
 
   // ── State ────────────────────────────────────────────────────────────────
   const [taskCfgRows, setTaskCfgRows]       = useState(null);
+  const [hourlySlots, setHourlySlots]       = useState(HOURLY_SLOTS);
   const [attendanceStatus, setAttendanceStatus] = useState('present');
   const [leaveType, setLeaveType]           = useState('planned');
   const [date, setDate]                     = useState(today());
@@ -109,6 +110,11 @@ export default function ProdReport({ user }) {
     S.get('task_configs').then(rows => setTaskCfgRows(rows ?? [])).catch(() => setTaskCfgRows([]));
   }, []);
 
+  // ── Load hourly slot labels (admin-toggled for US Daylight Saving Time) ──
+  useEffect(() => {
+    getHourlySlots().then(setHourlySlots).catch(() => {});
+  }, []);
+
   // ── Load auto-save preference once, and clear any pending debounce on unmount ──
   useEffect(() => {
     kv.get(`prefs_${user.emp_id}`).then(p => setAutoSave(!!p?.autoSaveHourly)).catch(() => {});
@@ -140,7 +146,7 @@ export default function ProdReport({ user }) {
 
   // ── Slot + task-count state ──────────────────────────────────────────────
   const [slots, setSlots] = useState(
-    HOURLY_SLOTS.map(slot => ({ slot, task: slotTaskOptions[0] || '', count: '' }))
+    hourlySlots.map(slot => ({ slot, task: slotTaskOptions[0] || '', count: '' }))
   );
   const [taskCounts, setTaskCounts] = useState(
     Object.fromEntries(taskDefs.map(t => [t.name, '']))
@@ -151,7 +157,7 @@ export default function ProdReport({ user }) {
     !submittedAt ||
     (Date.now() - new Date(submittedAt).getTime()) < 24 * 60 * 60 * 1000;
 
-  useEffect(() => { load(); }, [date]);
+  useEffect(() => { load(); }, [date, hourlySlots]);
 
   async function load() {
     setLoading(true); setSaved(false); setSaveError('');
@@ -185,7 +191,7 @@ export default function ProdReport({ user }) {
       setTaskCounts(counts);
 
       const slotTasksMap = savedTasks._slot_tasks ?? {};
-      setSlots(HOURLY_SLOTS.map((slot, i) => ({
+      setSlots(hourlySlots.map((slot, i) => ({
         slot,
         task: slotTasksMap[i] || slotTaskOptions[0] || '',
         count: hr ? (hr[`h${i}`] != null ? String(hr[`h${i}`]) : '') : '',
@@ -193,7 +199,7 @@ export default function ProdReport({ user }) {
     } else {
       setAttendanceStatus('present');
       setLeaveType('planned');
-      const newSlots = HOURLY_SLOTS.map((slot, i) => ({
+      const newSlots = hourlySlots.map((slot, i) => ({
         slot,
         task: slotTaskOptions[0] || '',
         count: hr ? (hr[`h${i}`] != null ? String(hr[`h${i}`]) : '') : '',

@@ -11,6 +11,9 @@ export default function Settings({ user }) {
   const [aiSaving, setAiSaving] = useState(false);
   const [aiMsg, setAiMsg]   = useState('');
 
+  const [dstActive, setDstActive] = useState(true);
+  const [dstMsg, setDstMsg]       = useState('');
+
   const [taskCfg, setTaskCfg]     = useState(() => {
     const cfg = {};
     PROCESSES.forEach(p => {
@@ -24,8 +27,16 @@ export default function Settings({ user }) {
   useEffect(() => {
     // Load saved AI key from kv store
     kv.get('anthropic_key').then(k => { if (k) setAiKey(k); });
+    kv.get('shift_dst').then(v => setDstActive(v !== false));
     loadTaskCfg();
   }, []);
+
+  async function setShiftDst(active) {
+    setDstActive(active);
+    await kv.set('shift_dst', active);
+    setDstMsg(`✓ Shift now starts at ${active ? '6:30 PM' : '5:30 PM'} IST`);
+    setTimeout(() => setDstMsg(''), 3000);
+  }
 
   async function loadTaskCfg() {
     setCfgLoading(true);
@@ -162,6 +173,38 @@ export default function Settings({ user }) {
           <p className="text-sm" style={{ color: aiMsg.includes('✓') ? 'var(--success)' : 'var(--text-muted)', marginTop: 8 }}>
             {aiMsg}
           </p>
+        )}
+      </div>
+
+      {/* Shift timing — US Daylight Saving Time */}
+      <div className="card mb-16">
+        <div className="card-header">
+          <div className="card-title">Shift Timing</div>
+          <span className="badge badge-blue">US Daylight Saving</span>
+        </div>
+        <p className="text-muted text-sm" style={{ marginBottom: 14 }}>
+          The team works a US shift tracked in IST. When the US observes Daylight Saving Time
+          (mid-March to early November), the shift's IST-equivalent start time moves 1 hour later.
+          Flip this when DST starts/ends — it updates the Hourly Tracker's slot times for everyone.
+        </p>
+        <div className="row" style={{ gap: 8 }}>
+          <button
+            className="btn-sm"
+            onClick={() => setShiftDst(false)}
+            style={!dstActive ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+          >
+            Standard Time — starts 5:30 PM
+          </button>
+          <button
+            className="btn-sm"
+            onClick={() => setShiftDst(true)}
+            style={dstActive ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+          >
+            Daylight Saving — starts 6:30 PM
+          </button>
+        </div>
+        {dstMsg && (
+          <p className="text-sm" style={{ color: 'var(--success)', marginTop: 8 }}>{dstMsg}</p>
         )}
       </div>
 

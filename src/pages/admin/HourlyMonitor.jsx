@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave, permsFor, logAudit } from '../../lib/helpers';
+import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave, permsFor, logAudit, getHourlySlots } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
 import Modal from '../../components/shared/Modal';
@@ -25,11 +25,14 @@ export default function HourlyMonitor({ user }) {
   const [editVals, setEditVals]       = useState({});
   const [editLoading, setEditLoading] = useState(false);
 
+  const [hourlySlots, setHourlySlots] = useState(HOURLY_SLOTS);
+
   const isScopedRole  = user.role === 'supervisor' || user.role === 'manager';
   const perms          = isScopedRole ? permsFor(user) : null;
   const canEditCounts  = !isScopedRole || perms?.editCounts;
 
   useEffect(() => { load(); }, [date]);
+  useEffect(() => { getHourlySlots().then(setHourlySlots).catch(() => {}); }, []);
 
   // Auto-refresh every 60 seconds so admin sees live hourly updates
   useEffect(() => {
@@ -177,7 +180,7 @@ export default function HourlyMonitor({ user }) {
       {/* Table */}
       <div className="card">
         <div className="card-header">
-          <div className="card-title">Hourly Counts — {HOURLY_SLOTS[0]} to {HOURLY_SLOTS.at(-1)}</div>
+          <div className="card-title">Hourly Counts — {hourlySlots[0]} to {hourlySlots.at(-1)}</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
         </div>
         <div className="table-wrap">
@@ -186,7 +189,7 @@ export default function HourlyMonitor({ user }) {
               <tr>
                 <th style={{ position: 'sticky', left: 0, background: 'var(--surface-2)', zIndex: 2, minWidth: 140 }}>Employee</th>
                 <th style={{ minWidth: 70 }}>Process</th>
-                {HOURLY_SLOTS.map(s => (
+                {hourlySlots.map(s => (
                   <th key={s} className="center" style={{ minWidth: 64, fontSize: 10 }}>{s}</th>
                 ))}
                 <th className="right" style={{ minWidth: 60 }}>Total</th>
@@ -259,7 +262,7 @@ export default function HourlyMonitor({ user }) {
             Directly sets {fmtD(date)}'s hourly slot counts for this employee, bypassing their 24-hour edit window.
           </p>
           <div className="grid-2" style={{ gap: 10 }}>
-            {HOURLY_SLOTS.map((slot, i) => (
+            {hourlySlots.map((slot, i) => (
               <div className="field" key={slot}>
                 <label>{slot}</label>
                 <input

@@ -16,10 +16,20 @@ export const LEAVE_TYPES = [
 
 export const SHIFT_H = 8;
 
-export const HOURLY_SLOTS = [
+// Hourly tracker slot labels (IST clock times for a US-shift team).
+// US observes Daylight Saving Time (mid-March to early November) — since the
+// shift is pinned to US business hours, its IST-equivalent start time shifts
+// by 1 hour between the two. Toggled in Settings, read via getHourlySlots().
+export const HOURLY_SLOTS_STD = [
+  '5:30 PM','6:30 PM','7:30 PM','8:30 PM','9:30 PM',
+  '10:30 PM','11:30 PM','12:30 AM','1:30 AM',
+];
+export const HOURLY_SLOTS_DST = [
   '6:30 PM','7:30 PM','8:30 PM','9:30 PM','10:30 PM',
   '11:30 PM','12:30 AM','1:30 AM','2:30 AM',
 ];
+// Default/fallback — matches the previous hardcoded behavior (DST labels).
+export const HOURLY_SLOTS = HOURLY_SLOTS_DST;
 
 export const AUTH_HOURLY_TASKS = [
   'Initial Request',

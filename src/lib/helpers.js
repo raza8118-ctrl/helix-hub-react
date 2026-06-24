@@ -1,4 +1,4 @@
-import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT } from './constants.js';
+import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT, HOURLY_SLOTS_STD, HOURLY_SLOTS_DST } from './constants.js';
 import { kv, S } from './supabase.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -68,6 +68,16 @@ export function mDays(year, month) {
     const d = String(i + 1).padStart(2, '0');
     return `${year}-${String(month).padStart(2, '0')}-${d}`;
   }).filter(s => !isWknd(s));
+}
+
+/**
+ * Hourly tracker slot labels, admin-toggled in Settings (kv key 'shift_dst')
+ * for the US Daylight Saving Time switchover. Unset/true = DST (shift starts
+ * 6:30 PM IST); false = standard time (shift starts 5:30 PM IST).
+ */
+export async function getHourlySlots() {
+  const dst = await kv.get('shift_dst');
+  return dst === false ? HOURLY_SLOTS_STD : HOURLY_SLOTS_DST;
 }
 
 // ── Display helpers ───────────────────────────────────────────────────────────
