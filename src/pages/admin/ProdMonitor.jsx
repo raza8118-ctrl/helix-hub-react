@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave } from '../../lib/helpers';
-import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES } from '../../lib/constants';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave, calcProd } from '../../lib/helpers';
+import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 
@@ -40,16 +40,25 @@ export default function ProdMonitor({ user }) {
   const [qualityVal, setQualityVal]       = useState('');
   const [qualityLoading, setQualityLoading] = useState(false);
 
+  const [countsTarget, setCountsTarget]   = useState(null);
+  const [countsVals, setCountsVals]       = useState({});
+  const [countsDowntime, setCountsDowntime] = useState('');
+  const [countsAttendance, setCountsAttendance] = useState('present');
+  const [countsLoading, setCountsLoading] = useState(false);
+  const [taskCfgRows, setTaskCfgRows]     = useState([]);
+
   const isScopedRole = user.role === 'supervisor' || user.role === 'manager';
   const perms = isScopedRole ? permsFor(user) : null;
   const [customProcs, setCustomProcs] = useState([]);
 
   useEffect(() => { load(); }, [date]);
   useEffect(() => { getPinned().then(setPinned); }, []);
+  useEffect(() => { S.get('task_configs').then(rows => setTaskCfgRows(rows ?? [])).catch(() => setTaskCfgRows([])); }, []);
 
-  const canBypass  = !isScopedRole || perms?.bypassDeadline;
-  const canQuality = !isScopedRole || perms?.editQuality;
-  const canPin     = !isScopedRole || perms?.pinEmployee;
+  const canBypass    = !isScopedRole || perms?.bypassDeadline;
+  const canQuality   = !isScopedRole || perms?.editQuality;
+  const canPin       = !isScopedRole || perms?.pinEmployee;
+  const canEditCounts = !isScopedRole || perms?.editCounts;
 
   async function load() {
     setLoading(true);
@@ -64,6 +73,83 @@ export default function ProdMonitor({ user }) {
     setHoliday(h?.[0] ?? null);
     setCustomProcs(cp ?? []);
     setLoading(false);
+  }
+
+  // ── Edit Counts (admin override — writes directly to daily_logs, bypassing
+  // the employee-side 24h TAT lock since that check lives only in ProdReport) ──
+  function userProcsOf(row) {
+    const procs = Array.isArray(row.processes) && row.processes.length > 0
+      ? row.processes.filter(p => DEFAULT_TASKS[p])
+      : [(row.process || row.access || 'MCO')].filter(p => DEFAULT_TASKS[p]);
+    return procs.length > 0 ? procs : ['MCO'];
+  }
+
+  function taskDefsFor(procs) {
+    const seen = new Set();
+    return procs.flatMap(p =>
+      (DEFAULT_TASKS[p] ?? []).map(t => {
+        const custom = taskCfgRows?.find(r => r.process === p && r.name === t.name);
+        return { name: t.name, target: custom?.target || t.target };
+      })
+    ).filter(t => {
+      if (seen.has(t.name)) return false;
+      seen.add(t.name);
+      return true;
+    });
+  }
+
+  function openCounts(row) {
+    const procs = userProcsOf(row);
+    const taskDefs = taskDefsFor(procs);
+    const existingTasks = row.log?.tasks || {};
+    const vals = {};
+    taskDefs.forEach(t => { vals[t.name] = existingTasks[t.name] != null ? String(existingTasks[t.name]) : ''; });
+    setCountsVals(vals);
+    setCountsDowntime(row.log?.downtime != null ? String(row.log.downtime) : '');
+    setCountsAttendance(row.log?.attendance_status || 'present');
+    setCountsTarget({ ...row, userProcs: procs });
+  }
+
+  async function doSaveCounts() {
+    if (!countsTarget) return;
+    setCountsLoading(true);
+
+    const procs        = countsTarget.userProcs;
+    const taskDefs      = taskDefsFor(procs);
+    const counts        = Object.fromEntries(taskDefs.map(t => [t.name, parseFloat(countsVals[t.name]) || 0]));
+    const overallTarget = effectiveTarget(countsTarget, date);
+    const isOnlyAuth    = procs.length === 1 && procs[0] === 'AUTH';
+    const isLegacyAuth  = isOnlyAuth && date < LEGACY_AUTH_CUTOFF;
+    const downtimeHours = parseFloat(countsDowntime) || 0;
+
+    const { total, adjTarget, baseTarget, shiftHours } =
+      calcProd(taskDefs, counts, overallTarget, downtimeHours, { attendanceStatus: countsAttendance, isLegacyAuth });
+
+    const payload = {
+      emp_id:            countsTarget.emp_id,
+      emp_name:          countsTarget.name ?? countsTarget.emp_id,
+      date,
+      process:           procs.join(','),
+      total,
+      target:            overallTarget,
+      adj_target:        adjTarget,
+      base_target:       baseTarget,
+      shift_hours:       shiftHours,
+      downtime:          downtimeHours || null,
+      attendance_status: countsAttendance,
+      legacy_auth_calc:  isLegacyAuth,
+      tasks:             Object.fromEntries(taskDefs.map(t => [t.name, counts[t.name]])),
+      submitted:         true,
+      submitted_at:      countsTarget.log?.submitted_at ?? new Date().toISOString(),
+    };
+
+    if (countsTarget.log?.id) await S.update('daily_logs', payload, { id: countsTarget.log.id });
+    else                      await S.set('daily_logs', payload, 'emp_id,date');
+
+    logAudit({ actor: user, action: 'edit_counts', targetEmpId: countsTarget.emp_id, targetName: countsTarget.name, details: { date } });
+    setCountsTarget(null);
+    setCountsLoading(false);
+    await load();
   }
 
   async function togglePin(empId) {
@@ -333,6 +419,9 @@ export default function ProdMonitor({ user }) {
                       {canQuality && row.log && (
                         <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log.quality ?? ''); }}>Quality</button>
                       )}
+                      {canEditCounts && (
+                        <button className="btn-sm" onClick={() => openCounts(row)}>✏️ Counts</button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -406,6 +495,58 @@ export default function ProdMonitor({ user }) {
             <button className="btn-sm" onClick={() => setQualityTarget(null)}>Cancel</button>
             <button className="btn-primary" onClick={doQuality} disabled={qualityLoading || qualityVal === ''}>
               {qualityLoading ? 'Saving…' : 'Save Quality'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Counts modal — admin override, ignores the 24h employee edit window */}
+      {countsTarget && (
+        <Modal title={`Edit Counts — ${countsTarget.name ?? countsTarget.emp_id}`} onClose={() => setCountsTarget(null)} wide>
+          <p className="text-muted text-sm" style={{ marginBottom: 12 }}>
+            Directly sets {fmtD(date)}'s task counts for this employee, bypassing their 24-hour edit window. Use when a count was missed or entered wrong and the employee can no longer fix it themselves.
+          </p>
+          <div className="field">
+            <label>Attendance Status</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+              {ATTENDANCE_STATUSES.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setCountsAttendance(s)}
+                  className="btn-sm"
+                  style={countsAttendance === s ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+                >
+                  {STATUS_LABELS[s] ?? s}
+                </button>
+              ))}
+            </div>
+          </div>
+          {!LEAVE_STATUSES.includes(countsAttendance) && (
+            <>
+              <div className="grid-2" style={{ gap: 10 }}>
+                {taskDefsFor(countsTarget.userProcs).map(t => (
+                  <div className="field" key={t.name}>
+                    <label>{t.name} <span className="text-muted">(target {t.target})</span></label>
+                    <input
+                      type="number" min="0" step="1"
+                      value={countsVals[t.name] ?? ''}
+                      onChange={e => setCountsVals(prev => ({ ...prev, [t.name]: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="field">
+                <label>Downtime (hours)</label>
+                <input type="number" min="0" step="0.5" value={countsDowntime} onChange={e => setCountsDowntime(e.target.value)} placeholder="0" />
+              </div>
+            </>
+          )}
+          <div className="form-actions">
+            <button className="btn-sm" onClick={() => setCountsTarget(null)}>Cancel</button>
+            <button className="btn-primary" onClick={doSaveCounts} disabled={countsLoading}>
+              {countsLoading ? 'Saving…' : 'Save Counts'}
             </button>
           </div>
         </Modal>

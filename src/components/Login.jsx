@@ -5,23 +5,41 @@ function HexLogo({ size = 82 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="hexG" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="markG" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#7c3aed" />
-          <stop offset="100%" stopColor="#4338ca" />
+          <stop offset="100%" stopColor="#1e1b4b" />
         </linearGradient>
-        <linearGradient id="helixG" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#c4b5fd" stopOpacity="0.4" />
+        <linearGradient id="strandG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6" />
         </linearGradient>
       </defs>
-      <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" fill="url(#hexG)" />
-      <path d="M34,30 Q50,42 66,30" stroke="url(#helixG)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <path d="M34,38 Q50,50 66,38" stroke="url(#helixG)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <line x1="42" y1="33" x2="42" y2="41" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="50" y1="36" x2="50" y2="44" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="58" y1="33" x2="58" y2="41" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-      <text x="50" y="78" textAnchor="middle" fill="white" fontSize="26" fontWeight="800"
-        fontFamily="'Segoe UI',sans-serif" letterSpacing="-1">H</text>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#markG)" />
+      <path d="M36,21 C36,38 64,38 64,50 C64,62 36,62 36,79"
+        stroke="url(#strandG)" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M64,21 C64,38 36,38 36,50 C36,62 64,62 64,79"
+        stroke="url(#strandG)" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <line x1="42" y1="29" x2="58" y2="29" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+      <line x1="48" y1="50" x2="52" y2="50" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+      <line x1="42" y1="71" x2="58" y2="71" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function EyeIcon({ off }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <line x1="3" y1="21" x2="21" y2="3" />}
     </svg>
   );
 }
@@ -47,10 +65,10 @@ async function ensureAdmin() {
 
 const CARD = {
   background: '#fff',
-  borderRadius: 18,
-  boxShadow: '0 20px 50px rgba(15,12,41,0.12)',
+  borderRadius: 20,
+  boxShadow: '0 24px 60px -12px rgba(15,12,41,0.18), 0 2px 8px rgba(15,12,41,0.04)',
   border: '1px solid #eef1f6',
-  padding: '36px 32px',
+  padding: '40px 34px',
   width: '100%',
   maxWidth: 380,
   display: 'flex',
@@ -59,9 +77,9 @@ const CARD = {
 };
 
 const FEATURES = [
-  { icon: '📊', text: 'Live productivity, attendance, and quality tracking' },
-  { icon: '👥', text: 'Role-aware dashboards for employees, supervisors, and managers' },
-  { icon: '📢', text: 'Team announcements with read receipts, all in one place' },
+  { text: 'Live productivity, attendance, and quality tracking' },
+  { text: 'Role-aware dashboards for employees, supervisors, and managers' },
+  { text: 'Team announcements with read receipts, all in one place' },
 ];
 
 // Login's own light-card inputs/labels — same shape as the global `.form-group`/
@@ -146,7 +164,7 @@ export default function Login({ onLogin }) {
           </div>
           {FEATURES.map(f => (
             <div key={f.text} className="login-feature">
-              <span style={{ fontSize: 18 }}>{f.icon}</span>
+              <span className="login-feature-icon"><CheckIcon /></span>
               <span>{f.text}</span>
             </div>
           ))}
@@ -206,10 +224,11 @@ export default function Login({ onLogin }) {
                   title={showPw ? 'Hide password' : 'Show password'}
                   style={{
                     position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                    cursor: 'pointer', fontSize: 15, color: '#64748b', userSelect: 'none',
+                    cursor: 'pointer', color: '#94a3b8', userSelect: 'none',
+                    display: 'flex', alignItems: 'center',
                   }}
                 >
-                  {showPw ? '🙈' : '👁️'}
+                  <EyeIcon off={showPw} />
                 </span>
               </div>
             </div>
