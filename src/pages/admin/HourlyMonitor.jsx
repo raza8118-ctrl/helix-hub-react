@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave } from '../../lib/helpers';
+import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave, permsFor, logAudit } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
+import Modal from '../../components/shared/Modal';
 
 const SLOT_KEYS = HOURLY_SLOTS.map((_, i) => `h${i}`);
 
@@ -19,6 +20,14 @@ export default function HourlyMonitor({ user }) {
 
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [customProcs, setCustomProcs] = useState([]);
+
+  const [editTarget, setEditTarget]   = useState(null);
+  const [editVals, setEditVals]       = useState({});
+  const [editLoading, setEditLoading] = useState(false);
+
+  const isScopedRole  = user.role === 'supervisor' || user.role === 'manager';
+  const perms          = isScopedRole ? permsFor(user) : null;
+  const canEditCounts  = !isScopedRole || perms?.editCounts;
 
   useEffect(() => { load(); }, [date]);
 
@@ -56,6 +65,30 @@ export default function HourlyMonitor({ user }) {
     setHourlyData(h ?? []);
     setDailyLogs(dl ?? []);
     setLastRefresh(new Date());
+  }
+
+  // ── Edit hourly counts (admin override — writes directly to hourly_logs,
+  // bypassing the employee-side 24h TAT lock, which only lives in ProdReport) ──
+  function openEdit(row) {
+    const vals = {};
+    SLOT_KEYS.forEach((k, i) => { vals[k] = row.row?.[k] != null ? String(row.row[k]) : ''; });
+    setEditVals(vals);
+    setEditTarget(row);
+  }
+
+  async function doSaveEdit() {
+    if (!editTarget) return;
+    setEditLoading(true);
+    const payload = { emp_id: editTarget.emp_id, date };
+    SLOT_KEYS.forEach(k => { payload[k] = parseInt(editVals[k]) || 0; });
+
+    if (editTarget.row?.id) await S.update('hourly_logs', payload, { id: editTarget.row.id });
+    else                    await S.set('hourly_logs', payload, 'emp_id,date');
+
+    logAudit({ actor: user, action: 'edit_hourly_counts', targetEmpId: editTarget.emp_id, targetName: editTarget.name, details: { date } });
+    setEditTarget(null);
+    setEditLoading(false);
+    await load();
   }
 
   const { tableRows, slotTotals, grandTotal, filed, pending } = useMemo(() => {
@@ -158,12 +191,13 @@ export default function HourlyMonitor({ user }) {
                 ))}
                 <th className="right" style={{ minWidth: 60 }}>Total</th>
                 <th className="center" style={{ minWidth: 80 }}>Status</th>
+                {canEditCounts && <th className="center" style={{ minWidth: 70 }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {tableRows.length === 0 && (
                 <tr>
-                  <td colSpan={HOURLY_SLOTS.length + 4} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>
+                  <td colSpan={HOURLY_SLOTS.length + (canEditCounts ? 5 : 4)} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>
                     No employees found
                   </td>
                 </tr>
@@ -191,6 +225,11 @@ export default function HourlyMonitor({ user }) {
                         ? <span className="badge badge-green">Filed</span>
                         : <span className="badge badge-red">Pending</span>}
                   </td>
+                  {canEditCounts && (
+                    <td className="center">
+                      <button className="btn-sm" onClick={() => openEdit(row)}>✏️ Edit</button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -205,12 +244,41 @@ export default function HourlyMonitor({ user }) {
                   ))}
                   <td className="right bold" style={{ padding: '10px 14px' }}>{grandTotal}</td>
                   <td />
+                  {canEditCounts && <td />}
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
       </div>
+
+      {/* Edit Hourly Counts modal — admin override, ignores the 24h employee edit window */}
+      {editTarget && (
+        <Modal title={`Edit Hourly Counts — ${editTarget.name ?? editTarget.emp_id}`} onClose={() => setEditTarget(null)} wide>
+          <p className="text-muted text-sm" style={{ marginBottom: 12 }}>
+            Directly sets {fmtD(date)}'s hourly slot counts for this employee, bypassing their 24-hour edit window.
+          </p>
+          <div className="grid-2" style={{ gap: 10 }}>
+            {HOURLY_SLOTS.map((slot, i) => (
+              <div className="field" key={slot}>
+                <label>{slot}</label>
+                <input
+                  type="number" min="0" step="1"
+                  value={editVals[SLOT_KEYS[i]] ?? ''}
+                  onChange={e => setEditVals(prev => ({ ...prev, [SLOT_KEYS[i]]: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="form-actions">
+            <button className="btn-sm" onClick={() => setEditTarget(null)}>Cancel</button>
+            <button className="btn-primary" onClick={doSaveEdit} disabled={editLoading}>
+              {editLoading ? 'Saving…' : 'Save Counts'}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {empDetail && (
         <EmpDetail emp={empDetail} onClose={() => setEmpDetail(null)} currentUser={user} />
