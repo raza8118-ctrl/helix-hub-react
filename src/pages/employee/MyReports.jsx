@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { today, addDays, getMon, wDays, fmtD, fmtSh, avg, pCol } from '../../lib/helpers';
 import LineChart from '../../components/shared/LineChart';
+import Modal from '../../components/shared/Modal';
 
 const pp = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
@@ -11,6 +12,7 @@ export default function MyReports({ user }) {
   const [logs, setLogs]         = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading]   = useState(false);
+  const [dayDetail, setDayDetail] = useState(null);
 
   const weekDays = wDays(weekStart);
   const periodLabel = `${fmtD(weekStart)} – ${fmtD(addDays(weekStart, 4))}`;
@@ -39,7 +41,7 @@ export default function MyReports({ user }) {
     const v = view === 'prod'
       ? (isHol ? null : (l ? (pp(l.total, l.adj_target ?? l.target) ?? 0) : 0))
       : (isHol ? null : (l?.quality ?? null));
-    return { name: fmtSh(d), v: v ?? 0, isHol };
+    return { name: fmtSh(d), v: v ?? 0, isHol, date: d };
   }).filter(d => d.v !== null || !d.isHol);
 
   const validLogs = weekDays
@@ -106,7 +108,9 @@ export default function MyReports({ user }) {
         </div>
         {loading
           ? <div className="loading-row"><div className="spinner" /></div>
-          : <LineChart data={chartData} color={chartColor} label={view === 'prod' ? 'Prod%' : 'Quality%'} />}
+          : <LineChart data={chartData} color={chartColor} label={view === 'prod' ? 'Prod%' : 'Quality%'}
+              onPointClick={item => { const l = getLog(item.date); if (l) setDayDetail(l); }} />}
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Click a point to see that day's full report</p>
       </div>
 
       {/* Daily detail table */}
@@ -159,6 +163,50 @@ export default function MyReports({ user }) {
           </table>
         </div>
       </div>
+
+      {/* Day detail modal */}
+      {dayDetail && (() => {
+        const prod = pp(dayDetail.total, dayDetail.adj_target ?? dayDetail.target);
+        const tasks = dayDetail.tasks || {};
+        return (
+          <Modal title={`${fmtD(dayDetail.date)} — Day Detail`} onClose={() => setDayDetail(null)}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+              {[
+                { label: 'Total',   value: dayDetail.total ?? '—' },
+                { label: 'Target',  value: dayDetail.adj_target ?? dayDetail.target ?? '—' },
+                { label: 'Prod%',   value: prod != null ? prod + '%' : '—', cls: pCol(prod) },
+                { label: 'Quality', value: dayDetail.quality != null ? dayDetail.quality + '%' : '—', cls: pCol(dayDetail.quality) },
+              ].map(k => (
+                <div key={k.label} className="stat-card">
+                  <div className="stat-label">{k.label}</div>
+                  <div className={`stat-value ${k.cls ?? ''}`} style={{ fontSize: 20 }}>{k.value}</div>
+                </div>
+              ))}
+            </div>
+            {Object.keys(tasks).length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Task Breakdown</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Object.entries(tasks).map(([name, val]) => (
+                    <span key={name} className="badge" style={{ fontSize: 13 }}>{name}: <strong>{val}</strong></span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {dayDetail.remarks && (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.6 }}>
+                "{dayDetail.remarks}"
+              </p>
+            )}
+            {dayDetail.downtime != null && (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>Downtime: {dayDetail.downtime}h</p>
+            )}
+            <div className="form-actions">
+              <button className="btn-primary" onClick={() => setDayDetail(null)}>Close</button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

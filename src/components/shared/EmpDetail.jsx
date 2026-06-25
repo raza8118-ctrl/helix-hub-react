@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
-import { addDays, today, fmtSh, avg, pCol } from '../../lib/helpers';
+import { addDays, today, fmtSh, fmtD, avg, pCol } from '../../lib/helpers';
 import { DEFAULT_TASKS } from '../../lib/constants';
 import BarChart from './BarChart';
 import { KPI, H2, Btn, SectionLabel } from './UI';
@@ -16,6 +16,7 @@ export default function EmpDetail({ emp, onClose, currentUser }) {
   const [logs, setLogs]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg]       = useState('');
+  const [dayDetail, setDayDetail] = useState(null);
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
 
@@ -56,6 +57,7 @@ export default function EmpDetail({ emp, onClose, currentUser }) {
   const chartData = logs.slice(-14).map(l => ({
     name: fmtSh(l.date),
     prod: prodOf(l) ?? 0,
+    date: l.date,
   }));
 
   // Task breakdown: last 7 days
@@ -149,11 +151,56 @@ export default function EmpDetail({ emp, onClose, currentUser }) {
 
               {/* Bar chart */}
               <H2 icon="📊">Last 14 Days — Productivity</H2>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Click a bar to see that day's details</p>
               {chartData.length ? (
-                <BarChart data={chartData} height={160} />
+                <BarChart data={chartData} height={160} onBarClick={item => {
+                  const log = logs.find(l => l.date === item.date);
+                  if (log) setDayDetail(log);
+                }} />
               ) : (
                 <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px 0' }}>No chart data.</div>
               )}
+
+              {/* Day detail panel */}
+              {dayDetail && (() => {
+                const prod = prodOf(dayDetail);
+                const tasks = dayDetail.tasks || {};
+                return (
+                  <div style={{
+                    marginTop: 12, padding: '14px 18px',
+                    background: 'var(--surface-2)', borderRadius: 10,
+                    border: '1px solid var(--border)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{fmtSh(dayDetail.date)} — Day Detail</span>
+                      <button onClick={() => setDayDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
+                      {[
+                        { label: 'Total', value: dayDetail.total ?? '—' },
+                        { label: 'Target', value: dayDetail.adj_target ?? dayDetail.target ?? '—' },
+                        { label: 'Prod%', value: prod != null ? prod + '%' : '—', cls: pCol(prod) },
+                        { label: 'Quality', value: dayDetail.quality != null ? dayDetail.quality + '%' : '—', cls: pCol(dayDetail.quality) },
+                      ].map(k => (
+                        <div key={k.label} className="stat-card" style={{ padding: '10px 14px' }}>
+                          <div className="stat-label">{k.label}</div>
+                          <div className={`stat-value ${k.cls ?? ''}`} style={{ fontSize: 18 }}>{k.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {Object.keys(tasks).length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                        {Object.entries(tasks).map(([name, val]) => (
+                          <span key={name} className="badge" style={{ fontSize: 12 }}>{name}: <strong>{val}</strong></span>
+                        ))}
+                      </div>
+                    )}
+                    {dayDetail.remarks && (
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>"{dayDetail.remarks}"</div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Task breakdown */}
               <H2 icon="📋" style={{ marginTop: 22 }}>Last 7 Days — Task Breakdown</H2>

@@ -14,8 +14,8 @@ function smoothPath(pts) {
   return d;
 }
 
-/** SVG line chart. data = [{name, v}] or [{label, value}] */
-export default function LineChart({ data = [], height = 200, color = 'var(--accent)', label = '', title = '' }) {
+/** SVG line chart. data = [{name, v}] or [{label, value}]. onPointClick(item, index) fires on click. */
+export default function LineChart({ data = [], height = 200, color = 'var(--accent)', label = '', title = '', onPointClick }) {
   const [hov, setHov] = useState(-1);
 
   const items = data.map(d => ({
@@ -149,7 +149,9 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
           const isH = hov === i;
           const d   = items[i];
           return (
-            <g key={i} onMouseEnter={() => setHov(i)} style={{ cursor: 'default' }}>
+            <g key={i} onMouseEnter={() => setHov(i)}
+              onClick={() => onPointClick?.(d, i)}
+              style={{ cursor: onPointClick ? 'pointer' : 'default' }}>
               {/* Invisible wide hit target */}
               <rect x={x - 14} y={PAD_T} width={28} height={plotH} fill="transparent" />
 

@@ -21,8 +21,8 @@ function smoothLine(pts) {
   return d;
 }
 
-/** SVG bar chart. data = [{name, prod}] or [{label, value}] */
-export default function BarChart({ data = [], height = 220, showLine = false, title = '' }) {
+/** SVG bar chart. data = [{name, prod}] or [{label, value}]. onBarClick(item, index) fires on click. */
+export default function BarChart({ data = [], height = 220, showLine = false, title = '', onBarClick }) {
   const [hov, setHov] = useState(-1);
 
   const items = data.map(d => ({
@@ -129,7 +129,9 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
           const dim  = hov >= 0 && !isH;
 
           return (
-            <g key={i} onMouseEnter={() => setHov(i)} style={{ cursor: 'default' }}>
+            <g key={i} onMouseEnter={() => setHov(i)}
+              onClick={() => onBarClick?.(d, i)}
+              style={{ cursor: onBarClick ? 'pointer' : 'default' }}>
               {/* Column hover bg */}
               {isH && (
                 <rect x={x - 4} y={PAD_T} width={BAR_W + 8} height={plotH}

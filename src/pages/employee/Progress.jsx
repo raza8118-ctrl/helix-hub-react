@@ -3,6 +3,7 @@ import { S } from '../../lib/supabase';
 import { today, addDays, getMon, wDays, mDays, fmtSh, fmtD, avg, pCol } from '../../lib/helpers';
 import { MONTHS } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
+import Modal from '../../components/shared/Modal';
 
 const pp = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
@@ -13,6 +14,8 @@ export default function Progress({ user }) {
   const [logs, setLogs]           = useState([]);
   const [holidays, setHolidays]   = useState([]);
   const [loading, setLoading]     = useState(false);
+
+  const [dayDetail, setDayDetail] = useState(null);
 
   const weekDays  = wDays(weekStart);
   const monthDays = mDays(month.y, month.m);
@@ -41,6 +44,7 @@ export default function Progress({ user }) {
     prod: holidayDates.has(d)
       ? 0
       : (getLog(d) ? (pp(getLog(d).total, getLog(d).adj_target ?? getLog(d).target) ?? 0) : 0),
+    date: d,
   }));
 
   const weekLogs    = weekActive.map(d => getLog(d)).filter(Boolean);
@@ -58,6 +62,7 @@ export default function Progress({ user }) {
     prod: holidayDates.has(d)
       ? 0
       : (getLog(d) ? (pp(getLog(d).total, getLog(d).adj_target ?? getLog(d).target) ?? 0) : 0),
+    date: d,
   }));
 
   const periodLabel = `${fmtD(weekStart)} – ${fmtD(addDays(weekStart, 4))}`;
@@ -101,9 +106,9 @@ export default function Progress({ user }) {
         </div>
         {loading
           ? <div className="loading-row"><div className="spinner" /></div>
-          : <BarChart data={weekBarData} height={160} />}
+          : <BarChart data={weekBarData} height={160} onBarClick={item => { const l = getLog(item.date); if (l) setDayDetail(l); }} />}
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-          {weekActive.length} working days · {weekDays.length - weekActive.length} holiday(s) excluded
+          {weekActive.length} working days · {weekDays.length - weekActive.length} holiday(s) excluded · Click a bar for details
         </p>
       </div>
 
@@ -119,11 +124,57 @@ export default function Progress({ user }) {
         </div>
         {loading
           ? <div className="loading-row"><div className="spinner" /></div>
-          : <BarChart data={monthBarData} height={160} />}
+          : <BarChart data={monthBarData} height={160} onBarClick={item => { const l = getLog(item.date); if (l) setDayDetail(l); }} />}
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-          {monthActive.length} working days · grey bars are holidays (excluded from calculations)
+          {monthActive.length} working days · grey bars are holidays · Click a bar for details
         </p>
       </div>
+
+      {/* Day detail modal */}
+      {dayDetail && (() => {
+        const prod = pp(dayDetail.total, dayDetail.adj_target ?? dayDetail.target);
+        const tasks = dayDetail.tasks || {};
+        return (
+          <Modal title={`${fmtD(dayDetail.date)} — Day Detail`} onClose={() => setDayDetail(null)}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+              {[
+                { label: 'Total',   value: dayDetail.total ?? '—' },
+                { label: 'Target',  value: dayDetail.adj_target ?? dayDetail.target ?? '—' },
+                { label: 'Prod%',   value: prod != null ? prod + '%' : '—', cls: pCol(prod) },
+                { label: 'Quality', value: dayDetail.quality != null ? dayDetail.quality + '%' : '—', cls: pCol(dayDetail.quality) },
+              ].map(k => (
+                <div key={k.label} className="stat-card">
+                  <div className="stat-label">{k.label}</div>
+                  <div className={`stat-value ${k.cls ?? ''}`} style={{ fontSize: 20 }}>{k.value}</div>
+                </div>
+              ))}
+            </div>
+            {Object.keys(tasks).length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Task Breakdown</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Object.entries(tasks).map(([name, val]) => (
+                    <span key={name} className="badge" style={{ fontSize: 13 }}>{name}: <strong>{val}</strong></span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {dayDetail.remarks && (
+              <p style={{ marginTop: 14, fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.6 }}>
+                "{dayDetail.remarks}"
+              </p>
+            )}
+            {dayDetail.downtime != null && (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                Downtime: {dayDetail.downtime}h
+              </p>
+            )}
+            <div className="form-actions">
+              <button className="btn-primary" onClick={() => setDayDetail(null)}>Close</button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

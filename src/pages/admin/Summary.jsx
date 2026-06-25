@@ -26,6 +26,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const [emailBody, setEmailBody]     = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [empDetail, setEmpDetail] = useState(null);
+  const [dayDetail, setDayDetail] = useState(null);
   const [customProcs, setCustomProcs] = useState([]);
 
   const workDays = useMemo(() => (
@@ -57,19 +58,21 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
     const filteredUsers = scopeToSupervisor(allUsers, user, customProcs).filter(u => {
       if (u.role !== 'employee') return false;
+      // When a specific agent is selected, bypass proc/status filters so their data always shows
+      if (agentId !== 'ALL') return u.emp_id === agentId;
       const procOk   = filterProc === 'ALL' || procIncludes(u, filterProc);
-      const agentOk  = agentId === 'ALL' || u.emp_id === agentId;
       const statusOk = statusFilter === 'all' ||
         (statusFilter === 'active' ? u.active !== false : u.active === false);
-      return procOk && agentOk && statusOk;
+      return procOk && statusOk;
     });
 
     const teamEmpIds = new Set(filteredUsers.map(u => u.emp_id));
     const filteredLogs = logs.filter(l => {
-      const procOk  = logMatchesProc(l, filterProc);
       const agentOk = agentId === 'ALL' || l.emp_id === agentId;
+      // When a specific agent is chosen, skip proc filter (their process is already correct)
+      const procOk  = agentId !== 'ALL' ? true : logMatchesProc(l, filterProc);
       const teamOk  = teamEmpIds.has(l.emp_id);
-      return procOk && agentOk && teamOk && !holidayDates.has(l.date);
+      return agentOk && procOk && teamOk && !holidayDates.has(l.date);
     });
 
     const allProds   = filteredLogs.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
@@ -82,10 +85,10 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
     const barData = activeDays.map(d => {
       const dl = filteredLogs.filter(l => l.date === d);
       const dp = dl.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
-      return { name: fmtSh(d), prod: avg(dp) != null ? Math.round(avg(dp)) : 0 };
+      return { name: fmtSh(d), prod: avg(dp) != null ? Math.round(avg(dp)) : 0, date: d };
     });
 
-    const lineData = barData.map(d => ({ name: d.name, v: d.prod }));
+    const lineData = barData.map(d => ({ name: d.name, v: d.prod, date: d.date }));
 
     const rankings = filteredUsers.map(u => {
       const ul = filteredLogs.filter(l => l.emp_id === u.emp_id);
@@ -101,6 +104,33 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
     return { activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings };
   }, [holidays, workDays, allUsers, user, customProcs, filterProc, agentId, statusFilter, logs]);
+
+  function openDayDetail(item) {
+    if (!item?.date) return;
+    const hols = new Set(holidays.map(h => h.date));
+    const scopedIds = new Set(
+      scopeToSupervisor(allUsers, user, customProcs)
+        .filter(u => u.role === 'employee')
+        .map(u => u.emp_id)
+    );
+    const dayLogs = logs
+      .filter(l => l.date === item.date && scopedIds.has(l.emp_id) && !hols.has(l.date))
+      .filter(l => agentId !== 'ALL' ? l.emp_id === agentId : logMatchesProc(l, filterProc));
+    const rows = dayLogs.map(l => {
+      const u = allUsers.find(u => u.emp_id === l.emp_id);
+      return {
+        name: u?.name ?? l.emp_id,
+        emp_id: l.emp_id,
+        process: l.process ?? u?.access ?? '—',
+        total: l.total ?? 0,
+        target: l.adj_target ?? l.target ?? 0,
+        prod: pp(l.total, l.adj_target ?? l.target),
+        quality: l.quality,
+        remarks: l.remarks,
+      };
+    }).sort((a, b) => (b.prod ?? -1) - (a.prod ?? -1));
+    setDayDetail({ label: item.name, date: item.date, rows });
+  }
 
   function navPrev() {
     if (mode === 'weekly') setRefDate(d => addDays(d, -7));
@@ -228,16 +258,22 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       {/* Charts */}
       <div className="grid-2 mb-16">
         <div className="card">
-          <div className="card-header"><div className="card-title">Daily Avg Productivity</div></div>
+          <div className="card-header">
+            <div className="card-title">Daily Avg Productivity</div>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Click bar for details</span>
+          </div>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
-            : <BarChart data={barData} height={160} />}
+            : <BarChart data={barData} height={160} onBarClick={openDayDetail} />}
         </div>
         <div className="card">
-          <div className="card-header"><div className="card-title">Productivity Trend</div></div>
+          <div className="card-header">
+            <div className="card-title">Productivity Trend</div>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Click point for details</span>
+          </div>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
-            : <LineChart data={lineData} height={160} />}
+            : <LineChart data={lineData} height={160} onPointClick={openDayDetail} />}
         </div>
       </div>
 
@@ -313,6 +349,59 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
 
       {empDetail && (
         <EmpDetail emp={empDetail} onClose={() => setEmpDetail(null)} currentUser={user} />
+      )}
+
+      {dayDetail && (
+        <Modal title={`${dayDetail.label} — Daily Breakdown`} onClose={() => setDayDetail(null)} wide>
+          <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+            {dayDetail.rows.length} submission{dayDetail.rows.length !== 1 ? 's' : ''} · {dayDetail.date}
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Process</th>
+                  <th className="right">Total</th>
+                  <th className="right">Target</th>
+                  <th className="right">Prod%</th>
+                  <th className="right">Quality</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dayDetail.rows.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                      No data submitted for this day
+                    </td>
+                  </tr>
+                )}
+                {dayDetail.rows.map((r, i) => (
+                  <tr key={r.emp_id} style={i === 0 ? { background: 'rgba(16,185,129,0.04)' } : undefined}>
+                    <td>
+                      <span className="bold" style={{ cursor: 'pointer', color: 'var(--accent)' }}
+                        onClick={() => { setDayDetail(null); setEmpDetail(allUsers.find(u => u.emp_id === r.emp_id) ?? r); }}>
+                        {r.name}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.process}</td>
+                    <td className="right bold">{r.total || '—'}</td>
+                    <td className="right" style={{ color: 'var(--text-muted)' }}>{r.target || '—'}</td>
+                    <td className={`right bold ${pCol(r.prod)}`}>{r.prod != null ? r.prod + '%' : '—'}</td>
+                    <td className={`right ${pCol(r.quality)}`}>{r.quality != null ? r.quality + '%' : '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.remarks ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="form-actions">
+            <button className="btn-primary" onClick={() => setDayDetail(null)}>Close</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
