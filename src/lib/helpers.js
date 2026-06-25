@@ -142,12 +142,13 @@ export function getProcKey(process) {
 export function getProcs(user) {
   // user.processes array (TeamMgmt multi-select) takes priority
   if (Array.isArray(user?.processes) && user.processes.length > 0) {
-    const valid = user.processes.filter(p => DEFAULT_TASKS[p]);
+    // Accept any process name — including custom ones not in DEFAULT_TASKS
+    const valid = user.processes.filter(p => p && p !== 'ALL');
     if (valid.length > 0) return valid;
-    if (user.processes.includes('ALL')) return ['MCO', 'MCD', 'MCR', 'AUTH'];
+    if (user.processes.includes('ALL')) return DEF_PROCS;
   }
   const proc = user?.process || user?.access;
-  if (!proc || proc === 'ALL') return ['MCO', 'MCD', 'MCR', 'AUTH'];
+  if (!proc || proc === 'ALL') return DEF_PROCS;
   return [proc];
 }
 

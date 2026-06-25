@@ -64,8 +64,8 @@ export default function ProdReport({ user }) {
   // ── Resolve processes (multi-process support) ────────────────────────────
   const userProcs = (() => {
     const procs = Array.isArray(user.processes) && user.processes.length > 0
-      ? user.processes.filter(p => DEFAULT_TASKS[p])
-      : [(user.process || user.access || 'MCO')].filter(p => DEFAULT_TASKS[p]);
+      ? user.processes.filter(p => p && p !== 'ALL')
+      : [(user.process || user.access || 'MCO')].filter(p => p && p !== 'ALL');
     return procs.length > 0 ? procs : ['MCO'];
   })();
   const proc       = userProcs[0];
@@ -130,12 +130,19 @@ export default function ProdReport({ user }) {
   // ── Build deduped task list from all user processes ──────────────────────
   const taskDefs = (() => {
     const seen = new Set();
-    return userProcs.flatMap(p =>
-      (DEFAULT_TASKS[p] ?? []).map(t => {
-        const custom = taskCfgRows?.find(r => r.process === p && r.name === t.name);
-        return { name: t.name, target: custom?.target || t.target, process: p };
-      })
-    ).filter(t => {
+    return userProcs.flatMap(p => {
+      if (DEFAULT_TASKS[p]) {
+        // Built-in process — use DEFAULT_TASKS, allow task_configs to override target
+        return DEFAULT_TASKS[p].map(t => {
+          const saved = taskCfgRows?.find(r => r.process === p && r.name === t.name);
+          return { name: t.name, target: saved?.target || t.target, process: p };
+        });
+      }
+      // Custom process — load tasks entirely from task_configs DB rows
+      return (taskCfgRows ?? [])
+        .filter(r => r.process === p)
+        .map(t => ({ name: t.name, target: t.target, process: p }));
+    }).filter(t => {
       if (seen.has(t.name)) return false;
       seen.add(t.name);
       return true;
