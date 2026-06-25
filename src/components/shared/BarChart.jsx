@@ -1,110 +1,228 @@
+import { useState } from 'react';
+
+const BAR_W = 46, GAP = 12, PAD_L = 50, PAD_R = 24, PAD_B = 44, PAD_T = 28;
+const MAX_PCT = 130;
+
+function barColor(prod) {
+  if (prod >= 100) return { a: '#4ade80', b: '#16a34a', glow: '#22c55e' };
+  if (prod >= 85)  return { a: '#fcd34d', b: '#ca8a04', glow: '#eab308' };
+  if (prod >= 70)  return { a: '#fb923c', b: '#c2410c', glow: '#f97316' };
+  return               { a: '#f87171', b: '#b91c1c', glow: '#ef4444' };
+}
+
+function smoothLine(pts) {
+  if (!pts.length) return '';
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    const cx = ((x0 + x1) / 2).toFixed(1);
+    d += ` C${cx},${y0.toFixed(1)} ${cx},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+  }
+  return d;
+}
+
 /** SVG bar chart. data = [{name, prod}] or [{label, value}] */
-export default function BarChart({ data = [], height = 160, showLine = false }) {
-  // Support both {name, prod} and legacy {label, value}
+export default function BarChart({ data = [], height = 220, showLine = false, title = '' }) {
+  const [hov, setHov] = useState(-1);
+
   const items = data.map(d => ({
     name: d.name ?? d.label ?? '',
     prod: d.prod ?? d.value ?? 0,
   }));
 
   if (!items.length) return (
-    <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>
       No data available
     </div>
   );
 
-  const BAR_W = 36, GAP = 8, PAD_L = 38, PAD_R = 12, PAD_B = 32;
-  const totalW = Math.max(items.length * (BAR_W + GAP) + PAD_L + PAD_R, 300);
-  const plotH = height - PAD_B;
-  const MAX = 120; // allow bars to go above 100%
+  const totalW = Math.max(items.length * (BAR_W + GAP) + PAD_L + PAD_R + GAP, 340);
+  const plotH  = height - PAD_B - PAD_T;
+  const yOf    = v => PAD_T + plotH - Math.max(0, (Math.min(v, MAX_PCT) / MAX_PCT) * plotH);
 
-  // y position for a value (0-MAX)
-  const yOf = v => plotH - Math.max(0, (Math.min(v, MAX) / MAX) * (plotH - 12));
-
-  // Gradient color stops per prod value
-  const gradStops = prod => {
-    if (prod >= 100) return ['#34d399', '#10b981'];
-    if (prod >= 85)  return ['#fbbf24', '#f59e0b'];
-    if (prod >= 70)  return ['#fb923c', '#f97316'];
-    return ['#f87171', '#ef4444'];
-  };
-
-  const linePoints = items.map((d, i) => {
-    const cx = PAD_L + i * (BAR_W + GAP) + BAR_W / 2;
-    const cy = yOf(d.prod);
-    return `${cx.toFixed(1)},${cy.toFixed(1)}`;
-  });
+  const GRID = [0, 25, 50, 75, 100];
+  const avg  = items.reduce((s, d) => s + d.prod, 0) / items.length;
 
   return (
-    <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-      <svg width={totalW} height={height} viewBox={`0 0 ${totalW} ${height}`}>
+    <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
+      <svg
+        width={totalW} height={height}
+        viewBox={`0 0 ${totalW} ${height}`}
+        style={{ display: 'block', overflow: 'visible', fontFamily: 'inherit' }}
+        onMouseLeave={() => setHov(-1)}
+      >
         <defs>
           {items.map((d, i) => {
-            const [top, bot] = gradStops(d.prod);
+            const c = barColor(d.prod);
             return (
-              <linearGradient key={i} id={`bg${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={top} stopOpacity="0.95" />
-                <stop offset="100%" stopColor={bot} stopOpacity="0.75" />
+              <linearGradient key={i} id={`bc-bar-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={c.a} stopOpacity="1" />
+                <stop offset="100%" stopColor={c.b} stopOpacity="0.85" />
               </linearGradient>
             );
           })}
+          <linearGradient id="bc-plot" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--text)" stopOpacity="0.03" />
+            <stop offset="100%" stopColor="var(--text)" stopOpacity="0.005" />
+          </linearGradient>
+          <linearGradient id="bc-avg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="var(--accent)" stopOpacity="0" />
+            <stop offset="20%"  stopColor="var(--accent)" stopOpacity="0.6" />
+            <stop offset="80%"  stopColor="var(--accent)" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
         </defs>
 
+        {/* Plot area bg */}
+        <rect x={PAD_L} y={PAD_T} width={totalW - PAD_L - PAD_R} height={plotH}
+          fill="url(#bc-plot)" rx="6" />
+
         {/* Grid lines */}
-        {[0, 25, 50, 75, 100].map(pct => {
+        {GRID.map(pct => {
           const y = yOf(pct);
           const is100 = pct === 100;
           return (
             <g key={pct}>
-              <line
-                x1={PAD_L} y1={y} x2={totalW - PAD_R} y2={y}
+              <line x1={PAD_L} y1={y} x2={totalW - PAD_R} y2={y}
                 stroke={is100 ? '#ef4444' : 'var(--border)'}
-                strokeWidth={is100 ? 1.3 : 0.7}
-                strokeDasharray={is100 ? '5,3' : '3,3'}
-                strokeOpacity={is100 ? 0.75 : 0.55}
+                strokeWidth={is100 ? 1.5 : 0.8}
+                strokeDasharray={is100 ? '6,4' : '4,4'}
+                strokeOpacity={is100 ? 0.6 : 0.45}
               />
-              <text x={PAD_L - 4} y={y + 3.5} textAnchor="end" fontSize="9" fill="var(--text-muted)" opacity="0.8">
-                {pct}
+              <text x={PAD_L - 7} y={y + 4} textAnchor="end" fontSize="10"
+                fill="var(--text-muted)" fontWeight="500" opacity="0.85">
+                {pct}%
               </text>
             </g>
           );
         })}
 
+        {/* Target label */}
+        <text x={totalW - PAD_R + 4} y={yOf(100) + 4} fontSize="9"
+          fill="#ef4444" opacity="0.75" fontWeight="700">Target</text>
+
+        {/* Average line */}
+        {items.length > 1 && (
+          <g>
+            <line x1={PAD_L} y1={yOf(avg)} x2={totalW - PAD_R} y2={yOf(avg)}
+              stroke="url(#bc-avg)" strokeWidth="1.2" strokeDasharray="3,3" />
+            <text x={PAD_L + 4} y={yOf(avg) - 4} fontSize="9"
+              fill="var(--accent)" opacity="0.8" fontWeight="600">
+              Avg {Math.round(avg)}%
+            </text>
+          </g>
+        )}
+
+        {/* Axes */}
+        <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={PAD_T + plotH}
+          stroke="var(--border)" strokeWidth="1.2" opacity="0.5" />
+        <line x1={PAD_L} y1={PAD_T + plotH} x2={totalW - PAD_R} y2={PAD_T + plotH}
+          stroke="var(--border)" strokeWidth="1.2" opacity="0.5" />
+
         {/* Bars */}
         {items.map((d, i) => {
-          const x = PAD_L + i * (BAR_W + GAP);
-          const barH = Math.max((Math.min(d.prod, MAX) / MAX) * (plotH - 12), 2);
-          const y = plotH - barH;
+          const barH = Math.max((Math.min(d.prod, MAX_PCT) / MAX_PCT) * plotH, 2);
+          const x    = PAD_L + GAP + i * (BAR_W + GAP);
+          const y    = PAD_T + plotH - barH;
+          const c    = barColor(d.prod);
+          const isH  = hov === i;
+          const dim  = hov >= 0 && !isH;
+
           return (
-            <g key={i}>
-              <rect x={x} y={y} width={BAR_W} height={barH} fill={`url(#bg${i})`} rx="3" ry="3" />
+            <g key={i} onMouseEnter={() => setHov(i)} style={{ cursor: 'default' }}>
+              {/* Column hover bg */}
+              {isH && (
+                <rect x={x - 4} y={PAD_T} width={BAR_W + 8} height={plotH}
+                  fill={c.glow} fillOpacity="0.09" rx="5" />
+              )}
+              {/* Glow under bar */}
+              {isH && (
+                <ellipse cx={x + BAR_W / 2} cy={PAD_T + plotH - 3} rx={BAR_W / 2 + 2} ry={5}
+                  fill={c.glow} fillOpacity="0.35" />
+              )}
+              {/* Bar body */}
+              <rect x={x} y={y} width={BAR_W} height={barH}
+                fill={`url(#bc-bar-${i})`} rx="5" ry="5"
+                opacity={dim ? 0.45 : 1}
+                style={{ transition: 'opacity 0.15s' }}
+              />
+              {/* Flat bottom to cancel rounded corners at base */}
+              {barH > 10 && (
+                <rect x={x} y={y + barH - 6} width={BAR_W} height={6}
+                  fill={`url(#bc-bar-${i})`}
+                  opacity={dim ? 0.45 : 1}
+                  style={{ transition: 'opacity 0.15s' }}
+                />
+              )}
+              {/* Shine strip */}
+              {!dim && barH > 20 && (
+                <rect x={x + 5} y={y + 4} width={8} height={Math.min(barH - 10, 28)}
+                  fill="white" fillOpacity="0.12" rx="4" />
+              )}
+              {/* Value label */}
               {d.prod > 0 && (
-                <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontWeight="600">
+                <text x={x + BAR_W / 2} y={Math.max(y - 6, PAD_T + 10)} textAnchor="middle"
+                  fontSize={isH ? '12' : '10'} fontWeight="700"
+                  fill={isH ? c.a : 'var(--text-muted)'}
+                  style={{ transition: 'font-size 0.1s' }}>
                   {Math.round(d.prod)}%
                 </text>
               )}
-              <text x={x + BAR_W / 2} y={height - 8} textAnchor="middle" fontSize="8.5" fill="var(--text-muted)">
-                {d.name.length > 6 ? d.name.slice(0, 5) + '…' : d.name}
+              {/* X label */}
+              <text x={x + BAR_W / 2} y={PAD_T + plotH + 18} textAnchor="middle"
+                fontSize="9.5" fontWeight={isH ? '700' : '400'}
+                fill={isH ? 'var(--text)' : 'var(--text-muted)'}>
+                {d.name.length > 8 ? d.name.slice(0, 7) + '…' : d.name}
               </text>
+              {/* Tick mark */}
+              <line x1={x + BAR_W / 2} y1={PAD_T + plotH} x2={x + BAR_W / 2} y2={PAD_T + plotH + 5}
+                stroke="var(--border)" strokeWidth="1" opacity="0.5" />
+
+              {/* SVG tooltip */}
+              {isH && (() => {
+                const ttW = 90, ttH = 48;
+                const ttX = Math.min(Math.max(x + BAR_W / 2 - ttW / 2, PAD_L), totalW - PAD_R - ttW);
+                const ttY = Math.max(y - ttH - 10, 2);
+                return (
+                  <g style={{ pointerEvents: 'none' }}>
+                    <rect x={ttX} y={ttY} width={ttW} height={ttH} rx="8"
+                      fill="var(--surface)" stroke={c.a} strokeWidth="1.2"
+                      style={{ filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.22))' }} />
+                    <text x={ttX + ttW / 2} y={ttY + 17} textAnchor="middle"
+                      fontSize="10" fontWeight="600" fill="var(--text-muted)">{d.name}</text>
+                    <text x={ttX + ttW / 2} y={ttY + 36} textAnchor="middle"
+                      fontSize="15" fontWeight="800" fill={c.a}>{Math.round(d.prod)}%</text>
+                  </g>
+                );
+              })()}
             </g>
           );
         })}
 
         {/* Line overlay */}
-        {showLine && items.length > 1 && (
-          <>
-            <polyline
-              points={linePoints.join(' ')}
-              stroke="var(--accent)"
-              strokeWidth="2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {items.map((_, i) => {
-              const [x, y] = linePoints[i].split(',').map(Number);
-              return <circle key={i} cx={x} cy={y} r="3" fill="var(--accent)" />;
-            })}
-          </>
+        {showLine && items.length > 1 && (() => {
+          const pts = items.map((d, i) => [
+            PAD_L + GAP + i * (BAR_W + GAP) + BAR_W / 2,
+            yOf(d.prod),
+          ]);
+          const d = smoothLine(pts);
+          return (
+            <g>
+              <path d={d} stroke="var(--accent)" strokeWidth="2.8" fill="none"
+                strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+              {pts.map(([x, y], i) => (
+                <circle key={i} cx={x} cy={y} r={hov === i ? 5.5 : 4}
+                  fill="var(--accent)" stroke="var(--surface)" strokeWidth="2.5"
+                  style={{ transition: 'r 0.1s' }} />
+              ))}
+            </g>
+          );
+        })()}
+
+        {/* Chart title */}
+        {title && (
+          <text x={PAD_L} y={PAD_T - 12} fontSize="11" fontWeight="600"
+            fill="var(--text-muted)">{title}</text>
         )}
       </svg>
     </div>
