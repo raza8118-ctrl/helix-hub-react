@@ -23,6 +23,7 @@ export default function EmpFeedback({ user }) {
   const [loading, setLoading]     = useState(false);
   const [viewItem, setViewItem]   = useState(null);
   const [toast, setToast]         = useState('');
+  const [lightboxUrl, setLightboxUrl] = useState(null);
   const lastSeenIdRef = useRef(null);
 
   useEffect(() => { load(); }, []);
@@ -177,7 +178,16 @@ export default function EmpFeedback({ user }) {
               }}>
                 {f.message}
               </p>
-              {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 200, borderRadius: 8, marginTop: 8 }} />}
+              {f.image_url && (
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setLightboxUrl(f.image_url); }}
+                  style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'zoom-in', display: 'inline-block', marginTop: 8, position: 'relative', borderRadius: 8 }}
+                >
+                  <img src={f.image_url} alt="" style={{ maxWidth: 200, borderRadius: 8, display: 'block' }} />
+                  <span style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, borderRadius: 4, padding: '2px 6px', pointerEvents: 'none' }}>🔍 Zoom</span>
+                </button>
+              )}
             </div>
 
             {/* Status + Ack button */}
@@ -237,7 +247,16 @@ export default function EmpFeedback({ user }) {
             <p style={{ lineHeight: 1.75, color: 'var(--text)', whiteSpace: 'pre-wrap', fontSize: 13 }}>
               {viewItem.message}
             </p>
-            {viewItem.image_url && <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />}
+            {viewItem.image_url && (
+              <button
+                type="button"
+                onClick={() => setLightboxUrl(viewItem.image_url)}
+                style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'zoom-in', display: 'block', width: '100%', position: 'relative', borderRadius: 8 }}
+              >
+                <img src={viewItem.image_url} alt="" style={{ width: '100%', borderRadius: 8, display: 'block' }} />
+                <span style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, borderRadius: 4, padding: '3px 8px', pointerEvents: 'none' }}>🔍 Click to zoom</span>
+              </button>
+            )}
           </div>
           <div className="form-actions">
             {!isAcked(viewItem) && (
@@ -248,6 +267,23 @@ export default function EmpFeedback({ user }) {
             <button className="btn-primary" onClick={() => setViewItem(null)}>Close</button>
           </div>
         </Modal>
+      )}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={lightboxUrl}
+            alt=""
+            style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }}
+          />
+        </div>
       )}
       <Toast message={toast} onClose={() => setToast('')} />
     </div>

@@ -33,6 +33,7 @@ export default function AdminFeedback({ user }) {
   const [viewItem, setViewItem]   = useState(null);
   const [acks, setAcks]           = useState([]);
   const [toast, setToast]         = useState('');
+  const [lightboxUrl, setLightboxUrl] = useState(null);
   const [customProcs, setCustomProcs] = useState([]);
   const lastAckCountRef = useRef(null);
 
@@ -302,7 +303,14 @@ export default function AdminFeedback({ user }) {
                 </div>
 
                 <p style={{ fontSize: 13.5, lineHeight: 1.6, cursor: 'pointer', color: 'var(--text)' }} onClick={() => setViewItem(f)}>{f.message}</p>
-                {f.image_url && <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, marginTop: 8 }} />}
+                {f.image_url && (
+                  <div style={{ marginTop: 8 }}>
+                    <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, display: 'block' }} />
+                    <button type="button" className="btn-sm" onClick={() => setLightboxUrl(f.image_url)} style={{ marginTop: 6 }}>
+                      🔍 View Full Image
+                    </button>
+                  </div>
+                )}
 
                 {/* Acknowledgement status */}
                 <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
@@ -372,7 +380,14 @@ export default function AdminFeedback({ user }) {
             ))}
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '6px 0' }} />
             <p style={{ lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{viewItem.message}</p>
-            {viewItem.image_url && <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />}
+            {viewItem.image_url && (
+              <div>
+                <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, display: 'block' }} />
+                <button type="button" className="btn-sm" onClick={() => setLightboxUrl(viewItem.image_url)} style={{ marginTop: 8 }}>
+                  🔍 View Full Image
+                </button>
+              </div>
+            )}
           </div>
           <div className="form-actions">
             {!viewItem.acknowledged && (
@@ -383,6 +398,23 @@ export default function AdminFeedback({ user }) {
             <button className="btn-primary" onClick={() => setViewItem(null)}>Close</button>
           </div>
         </Modal>
+      )}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={lightboxUrl}
+            alt=""
+            style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }}
+          />
+        </div>
       )}
       <Toast message={toast} onClose={() => setToast('')} />
     </div>
