@@ -24,6 +24,19 @@ export default function EmpFeedback({ user }) {
   const [viewItem, setViewItem]   = useState(null);
   const [toast, setToast]         = useState('');
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [zoom, setZoom]               = useState(1);
+  const lightboxRef                   = useRef(null);
+
+  useEffect(() => {
+    const el = lightboxRef.current;
+    if (!el) return;
+    const onWheel = e => {
+      e.preventDefault();
+      setZoom(prev => Math.min(Math.max(prev + (e.deltaY > 0 ? -0.15 : 0.15), 0.5), 5));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [lightboxUrl]);
   const lastSeenIdRef = useRef(null);
 
   useEffect(() => { load(); }, []);
@@ -179,14 +192,11 @@ export default function EmpFeedback({ user }) {
                 {f.message}
               </p>
               {f.image_url && (
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); setLightboxUrl(f.image_url); }}
-                  style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'zoom-in', display: 'inline-block', marginTop: 8, position: 'relative', borderRadius: 8 }}
-                >
-                  <img src={f.image_url} alt="" style={{ maxWidth: 200, borderRadius: 8, display: 'block' }} />
-                  <span style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, borderRadius: 4, padding: '2px 6px', pointerEvents: 'none' }}>🔍 Zoom</span>
-                </button>
+                <img
+                  src={f.image_url} alt=""
+                  onClick={e => { e.stopPropagation(); setZoom(1); setLightboxUrl(f.image_url); }}
+                  style={{ maxWidth: 200, borderRadius: 8, display: 'block', marginTop: 8, cursor: 'zoom-in' }}
+                />
               )}
             </div>
 
@@ -248,14 +258,11 @@ export default function EmpFeedback({ user }) {
               {viewItem.message}
             </p>
             {viewItem.image_url && (
-              <button
-                type="button"
-                onClick={() => setLightboxUrl(viewItem.image_url)}
-                style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'zoom-in', display: 'block', width: '100%', position: 'relative', borderRadius: 8 }}
-              >
-                <img src={viewItem.image_url} alt="" style={{ width: '100%', borderRadius: 8, display: 'block' }} />
-                <span style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, borderRadius: 4, padding: '3px 8px', pointerEvents: 'none' }}>🔍 Click to zoom</span>
-              </button>
+              <img
+                src={viewItem.image_url} alt=""
+                onClick={() => { setZoom(1); setLightboxUrl(viewItem.image_url); }}
+                style={{ maxWidth: '100%', borderRadius: 8, display: 'block', cursor: 'zoom-in', marginTop: 4 }}
+              />
             )}
           </div>
           <div className="form-actions">
@@ -270,18 +277,19 @@ export default function EmpFeedback({ user }) {
       )}
       {lightboxUrl && (
         <div
-          onClick={() => setLightboxUrl(null)}
+          ref={lightboxRef}
+          onClick={() => { setLightboxUrl(null); setZoom(1); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 9999,
             background: 'rgba(0,0,0,0.88)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'zoom-out',
+            cursor: 'zoom-out', overflow: 'hidden',
           }}
         >
           <img
             src={lightboxUrl}
             alt=""
-            style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }}
+            style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)', transform: `scale(${zoom})`, transformOrigin: 'center', transition: 'transform 0.1s ease', userSelect: 'none' }}
           />
         </div>
       )}

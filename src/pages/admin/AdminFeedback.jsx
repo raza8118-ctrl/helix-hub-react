@@ -34,6 +34,19 @@ export default function AdminFeedback({ user }) {
   const [acks, setAcks]           = useState([]);
   const [toast, setToast]         = useState('');
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [zoom, setZoom]               = useState(1);
+  const lightboxRef                   = useRef(null);
+
+  useEffect(() => {
+    const el = lightboxRef.current;
+    if (!el) return;
+    const onWheel = e => {
+      e.preventDefault();
+      setZoom(prev => Math.min(Math.max(prev + (e.deltaY > 0 ? -0.15 : 0.15), 0.5), 5));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [lightboxUrl]);
   const [customProcs, setCustomProcs] = useState([]);
   const lastAckCountRef = useRef(null);
 
@@ -304,12 +317,11 @@ export default function AdminFeedback({ user }) {
 
                 <p style={{ fontSize: 13.5, lineHeight: 1.6, cursor: 'pointer', color: 'var(--text)' }} onClick={() => setViewItem(f)}>{f.message}</p>
                 {f.image_url && (
-                  <div style={{ marginTop: 8 }}>
-                    <img src={f.image_url} alt="" style={{ maxWidth: 240, borderRadius: 8, display: 'block' }} />
-                    <button type="button" className="btn-sm" onClick={() => setLightboxUrl(f.image_url)} style={{ marginTop: 6 }}>
-                      🔍 View Full Image
-                    </button>
-                  </div>
+                  <img
+                    src={f.image_url} alt=""
+                    onClick={() => { setZoom(1); setLightboxUrl(f.image_url); }}
+                    style={{ maxWidth: 240, borderRadius: 8, display: 'block', marginTop: 8, cursor: 'zoom-in' }}
+                  />
                 )}
 
                 {/* Acknowledgement status */}
@@ -381,12 +393,11 @@ export default function AdminFeedback({ user }) {
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '6px 0' }} />
             <p style={{ lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{viewItem.message}</p>
             {viewItem.image_url && (
-              <div>
-                <img src={viewItem.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, display: 'block' }} />
-                <button type="button" className="btn-sm" onClick={() => setLightboxUrl(viewItem.image_url)} style={{ marginTop: 8 }}>
-                  🔍 View Full Image
-                </button>
-              </div>
+              <img
+                src={viewItem.image_url} alt=""
+                onClick={() => { setZoom(1); setLightboxUrl(viewItem.image_url); }}
+                style={{ maxWidth: '100%', borderRadius: 8, display: 'block', cursor: 'zoom-in', marginTop: 4 }}
+              />
             )}
           </div>
           <div className="form-actions">
@@ -401,18 +412,19 @@ export default function AdminFeedback({ user }) {
       )}
       {lightboxUrl && (
         <div
-          onClick={() => setLightboxUrl(null)}
+          ref={lightboxRef}
+          onClick={() => { setLightboxUrl(null); setZoom(1); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 9999,
             background: 'rgba(0,0,0,0.88)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'zoom-out',
+            cursor: 'zoom-out', overflow: 'hidden',
           }}
         >
           <img
             src={lightboxUrl}
             alt=""
-            style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)' }}
+            style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)', transform: `scale(${zoom})`, transformOrigin: 'center', transition: 'transform 0.1s ease', userSelect: 'none' }}
           />
         </div>
       )}
