@@ -249,17 +249,18 @@ export default function ProdMonitor({ user }) {
     const filteredLogs = logs.filter(l => logMatchesProc(l, filterProc) && teamEmpIds.has(l.emp_id));
 
     return employees.map(u => {
-      const log  = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
-      const adjT = log?.adj_target ?? (log?.target != null && log?.downtime != null
-        ? Math.round(log.target * ((SHIFT_H - log.downtime) / SHIFT_H))
-        : log?.target ?? null);
+      const log        = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
+      const baseTarget = effectiveTarget(u, date);
+      const adjT       = log?.adj_target ?? (log?.downtime != null
+        ? Math.round(baseTarget * ((SHIFT_H - log.downtime) / SHIFT_H))
+        : baseTarget);
       const prod    = p(log?.total, adjT);
       const deficit = (!isOnLeave(log) && !log?.bypass_reason && adjT != null && log?.total != null)
         ? adjT - log.total
         : null;
       return { ...u, log, adjT, prod, deficit };
     }).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
-  }, [allUsers, logs, user, customProcs, filterProc, statusFilter, pinnedOnly, pinned]);
+  }, [allUsers, logs, user, customProcs, filterProc, statusFilter, pinnedOnly, pinned, date]);
 
   const avgProd    = avg(tableRows.map(r => r.prod).filter(v => v != null));
   const avgQuality = avg(tableRows.map(r => r.log?.quality).filter(v => v != null));
@@ -393,7 +394,7 @@ export default function ProdMonitor({ user }) {
                   </td>
                   <td className="right">{row.log?.total ?? '—'}</td>
                   <td className="right">{row.adjT ?? '—'}</td>
-                  <td className={`right bold ${pCol(row.prod)}`}>{row.prod != null ? row.prod + '%' : '—'}</td>
+                  <td className={`right bold ${row.log?.bypass_reason || isOnLeave(row.log) ? '' : pCol(row.prod)}`}>{row.prod != null ? row.prod + '%' : '—'}</td>
                   <td className={`right ${row.deficit != null && row.deficit > 0 ? 'col-red' : 'col-green'}`}>
                     {row.deficit != null ? (row.deficit > 0 ? `▼${row.deficit}` : `▲${Math.abs(row.deficit)}`) : '—'}
                   </td>
