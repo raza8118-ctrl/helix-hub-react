@@ -8,6 +8,7 @@ const AdminFeedback  = lazy(() => import('./AdminFeedback'));
 const TeamMgmt       = lazy(() => import('./TeamMgmt'));
 const WorkAllocation = lazy(() => import('./WorkAllocation'));
 const AllocMonitor   = lazy(() => import('./AllocMonitor'));
+const QualityMonitor = lazy(() => import('./QualityMonitor'));
 const Settings       = lazy(() => import('./Settings'));
 const FeedMonitor    = lazy(() => import('./FeedMonitor'));
 const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
@@ -29,6 +30,7 @@ export default function AdminApp({ activeTab, user }) {
     case 'team':        return <TeamMgmt user={user} />;
     case 'allocation':  return <WorkAllocation user={user} />;
     case 'allocmon':    return <AllocMonitor user={user} />;
+    case 'qualitymon':  return <QualityMonitor user={user} />;
     case 'feedmonitor': return <FeedMonitor user={user} />;
     case 'settings':    return <Settings user={user} />;
     default:            return <Today user={user} />;

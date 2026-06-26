@@ -45,6 +45,7 @@ function applyTheme(themeId) {
 const ADMIN_TABS = [
   { id: 'today',       label: 'Today',         icon: '📅', section: 'Monitoring' },
   { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊', section: 'Monitoring' },
+  { id: 'qualitymon',  label: 'Quality',       icon: '⭐', section: 'Monitoring' },
   { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️', section: 'Monitoring' },
   { id: 'weekly',      label: 'Weekly',        icon: '🗓️', section: 'Monitoring' },
   { id: 'monthly',     label: 'Monthly',       icon: '📆', section: 'Monitoring' },
