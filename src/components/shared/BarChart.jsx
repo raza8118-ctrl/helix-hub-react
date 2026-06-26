@@ -26,6 +26,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
   const [hov, setHov] = useState(-1);
 
   const items = data.map(d => ({
+    ...d,
     name: d.name ?? d.label ?? '',
     prod: d.prod ?? d.value ?? 0,
   }));

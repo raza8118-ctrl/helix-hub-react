@@ -19,6 +19,7 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
   const [hov, setHov] = useState(-1);
 
   const items = data.map(d => ({
+    ...d,
     name: d.name ?? d.label ?? '',
     v:    d.v    ?? d.value ?? 0,
   }));
