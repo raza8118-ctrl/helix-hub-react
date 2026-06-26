@@ -98,6 +98,55 @@ body.dark {
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.55), 0 4px 10px rgba(0,0,0,0.35);
 }
 
+/* ─── CSS Variables: Mist Mode (medium light — dimmer than Light, still uses dark text) ─── */
+body.mist {
+  /* Backgrounds — medium lavender-gray, ~20% darker than Light mode */
+  --bg:           #c8c5dc;
+  --surface:      #d4d1e8;
+  --surface-2:    #c2bfd8;
+  --surface-3:    #b5b2cc;
+
+  /* Borders — more visible on the mid-tone background */
+  --border:       #a8a5c0;
+  --border-focus: #7c3aed;
+
+  /* Text — same dark purple-tinted as Light; readable on all surface levels */
+  --text:         #1e1b2e;
+  --text-muted:   #565275;
+  --text-subtle:  #7e7a9a;
+
+  /* TopBar */
+  --topbar-bg:     #d4d1e8;
+  --topbar-text:   #1e1b2e;
+  --topbar-border: #a8a5c0;
+
+  /* Accent — same brand purple, works well on light surfaces */
+  --accent:        #7c3aed;
+  --accent-hover:  #6d28d9;
+  --accent-dim:    #ede9fe;
+
+  /* Dot texture — slightly stronger since bg is mid-tone */
+  --dot-color: rgba(124,58,237,0.09);
+
+  /* Status */
+  --success:  #10b981;
+  --warning:  #f59e0b;
+  --danger:   #ef4444;
+  --info:     #06b6d4;
+
+  /* Productivity colors — slightly deeper for contrast on the grayer surface */
+  --col-green:   #059669;
+  --col-yellow:  #d97706;
+  --col-orange:  #ea580c;
+  --col-red:     #dc2626;
+  --col-neutral: #565275;
+
+  /* Shadows — more pronounced on the mid-tone background */
+  --shadow:    0 1px 4px rgba(30,27,46,0.14), 0 1px 2px rgba(30,27,46,0.09);
+  --shadow-md: 0 4px 14px rgba(30,27,46,0.14), 0 2px 5px rgba(30,27,46,0.09);
+  --shadow-lg: 0 10px 32px rgba(30,27,46,0.18), 0 4px 10px rgba(30,27,46,0.10);
+}
+
 /* ─── CSS Variables: Dusk Mode (medium — between Light and Dark) ─── */
 body.dusk {
   /* Backgrounds — deep indigo-purple, rich but not black */

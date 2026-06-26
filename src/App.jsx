@@ -32,7 +32,7 @@ const SupervisorApp = lazy(() => import('./pages/supervisor/SupervisorApp'));
 const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
-const THEME_CLASSES = ['dark', 'dusk'];
+const THEME_CLASSES = ['dark', 'dusk', 'mist'];
 
 function applyTheme(themeId) {
   const found = THEMES.find(t => t.id === themeId);

@@ -74,6 +74,7 @@ export const GIPHY_API_KEY = 'O7xoQ2OykXwLJWW9WkTbfT6mOCmUC7NJ';
 
 export const THEMES = [
   { id: 'light',       label: 'Light',         bg: '#eceaf6',  topbar: '#f4f2fc',  dark: false },
+  { id: 'mist',        label: 'Mist',          bg: '#c8c5dc',  topbar: '#d4d1e8',  dark: false, cls: 'mist' },
   { id: 'dusk',        label: 'Dusk',          bg: '#211e38',  topbar: '#2b2848',  dark: false, cls: 'dusk' },
   { id: 'dark',        label: 'Dark',          bg: '#0f1117',  topbar: '#1a1d27',  dark: true  },
   { id: 'ocean',       label: 'Ocean Blue',    bg: '#0d1b2a',  topbar: '#1b2d45',  dark: true  },
