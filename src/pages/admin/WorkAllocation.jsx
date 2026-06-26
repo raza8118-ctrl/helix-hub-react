@@ -145,6 +145,7 @@ export default function WorkAllocation({ user }) {
   const [note, setNote]         = useState('');
   const [allUsers, setAllUsers] = useState([]);
   const [allocating, setAllocating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [parsing, setParsing]   = useState(false);
   const [error, setError]       = useState('');
@@ -372,11 +373,11 @@ export default function WorkAllocation({ user }) {
               </div>
               <button
                 className="btn-primary"
-                onClick={allocate}
-                disabled={allocating || !empId || filteredRows.length === 0}
+                onClick={() => setShowPreview(true)}
+                disabled={!empId || filteredRows.length === 0}
                 style={{ height: 36 }}
               >
-                {allocating ? 'Allocating…' : `Allocate ${filteredRows.length.toLocaleString()} Records`}
+                Preview &amp; Allocate →
               </button>
             </div>
           </div>
@@ -462,6 +463,130 @@ export default function WorkAllocation({ user }) {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Allocation Preview Modal ── */}
+      {showPreview && parsed && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+            zIndex: 1000, display: 'flex', alignItems: 'flex-start',
+            justifyContent: 'center', padding: '24px 16px', overflowY: 'auto',
+            backdropFilter: 'blur(2px)',
+          }}
+          onClick={() => !allocating && setShowPreview(false)}
+        >
+          <div
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)',
+              width: '100%', maxWidth: 900, animation: 'fadeInScale 0.18s ease',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '18px 24px', borderBottom: '1px solid var(--border)',
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                Allocation Preview
+              </div>
+              <button className="btn-icon" onClick={() => setShowPreview(false)} disabled={allocating}>✕</button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              {/* Summary cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+                {[
+                  { label: 'Employee', value: allUsers.find(u => u.emp_id === empId)?.name ?? empId },
+                  { label: 'File', value: file?.name },
+                  { label: 'Records to Allocate', value: filteredRows.length.toLocaleString(), highlight: true },
+                  { label: 'Total in File', value: parsed.rows.length.toLocaleString() },
+                  ...(note.trim() ? [{ label: 'Note', value: note.trim() }] : []),
+                ].map(({ label, value, highlight }) => (
+                  <div key={label} style={{
+                    background: highlight ? 'var(--accent-dim)' : 'var(--surface-2)',
+                    border: `1px solid ${highlight ? 'var(--accent)' : 'var(--border)'}`,
+                    borderRadius: 'var(--radius)', padding: '10px 14px',
+                  }}>
+                    <div style={{ fontSize: 11, color: highlight ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 600, marginBottom: 3 }}>{label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: highlight ? 'var(--accent)' : 'var(--text)', wordBreak: 'break-word' }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Active filters summary */}
+              {(activeFilters.length > 0 || sort) && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>FILTERS APPLIED</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {activeFilters.map(([col, set]) => (
+                      <span key={col} style={{
+                        background: 'var(--accent-dim)', color: 'var(--accent)',
+                        padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      }}>
+                        {col}: {set.size === 1 ? [...set][0] : `${[...set].join(', ')}`}
+                      </span>
+                    ))}
+                    {sort && (
+                      <span style={{
+                        background: 'var(--surface-3)', color: 'var(--text-muted)',
+                        padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      }}>
+                        Sorted by {sort.col} {sort.dir === 'asc' ? '↑ A→Z' : '↓ Z→A'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Data preview table */}
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                DATA PREVIEW — showing {Math.min(filteredRows.length, 50).toLocaleString()} of {filteredRows.length.toLocaleString()} records
+              </div>
+              <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 340, border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 20 }}>
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ minWidth: 40, color: 'var(--text-muted)', fontWeight: 600 }}>#</th>
+                      {parsed.headers.map(h => (
+                        <th key={h} style={{ minWidth: 120, whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.slice(0, 50).map((row, i) => (
+                      <tr key={i}>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
+                        {parsed.headers.map(h => (
+                          <td key={h} style={{ whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {String(row[h] ?? '')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Action buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button className="btn-sm" onClick={() => setShowPreview(false)} disabled={allocating}>
+                  ← Go Back
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={async () => { await allocate(); setShowPreview(false); }}
+                  disabled={allocating}
+                  style={{ minWidth: 180 }}
+                >
+                  {allocating ? 'Allocating…' : `✓ Confirm — Allocate ${filteredRows.length.toLocaleString()} Records`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
