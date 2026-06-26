@@ -254,7 +254,9 @@ export default function ProdMonitor({ user }) {
         ? Math.round(log.target * ((SHIFT_H - log.downtime) / SHIFT_H))
         : log?.target ?? null);
       const prod    = p(log?.total, adjT);
-      const deficit = adjT != null && log?.total != null ? adjT - log.total : null;
+      const deficit = (!isOnLeave(log) && !log?.bypass_reason && adjT != null && log?.total != null)
+        ? adjT - log.total
+        : null;
       return { ...u, log, adjT, prod, deficit };
     }).sort((a, b) => (pinned.includes(b.emp_id) ? 1 : 0) - (pinned.includes(a.emp_id) ? 1 : 0));
   }, [allUsers, logs, user, customProcs, filterProc, statusFilter, pinnedOnly, pinned]);
