@@ -38,6 +38,7 @@ export default function ProdMonitor({ user }) {
 
   const [qualityTarget, setQualityTarget] = useState(null);
   const [qualityVal, setQualityVal]       = useState('');
+  const [qualityDate, setQualityDate]     = useState('');
   const [qualityLoading, setQualityLoading] = useState(false);
 
   const [countsTarget, setCountsTarget]   = useState(null);
@@ -227,10 +228,22 @@ export default function ProdMonitor({ user }) {
     const q = parseFloat(qualityVal);
     if (!qualityTarget || isNaN(q) || q < 0 || q > 100) return;
     setQualityLoading(true);
-    await S.update('daily_logs', { quality: q }, { id: qualityTarget.log.id });
-    logAudit({ actor: user, action: 'edit_quality', targetEmpId: qualityTarget.emp_id, targetName: qualityTarget.name, details: { value: q } });
+    let logId = qualityTarget.log?.id;
+    if (qualityDate && qualityDate !== date) {
+      const pastLogs = await S.get('daily_logs', { emp_id: qualityTarget.emp_id, date: qualityDate });
+      if (!pastLogs?.length) {
+        window.alert(`No log found for ${qualityTarget.name ?? qualityTarget.emp_id} on ${qualityDate}.`);
+        setQualityLoading(false);
+        return;
+      }
+      logId = pastLogs[0].id;
+    }
+    if (!logId) { setQualityLoading(false); return; }
+    await S.update('daily_logs', { quality: q }, { id: logId });
+    logAudit({ actor: user, action: 'edit_quality', targetEmpId: qualityTarget.emp_id, targetName: qualityTarget.name, details: { value: q, date: qualityDate || date } });
     setQualityTarget(null);
     setQualityVal('');
+    setQualityDate('');
     setQualityLoading(false);
     await load();
   }
@@ -420,7 +433,7 @@ export default function ProdMonitor({ user }) {
                         <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeBypass(row)}>Remove</button>
                       )}
                       {canQuality && row.log && (
-                        <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log.quality ?? ''); }}>Quality</button>
+                        <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log?.quality ?? ''); setQualityDate(date); }}>Quality</button>
                       )}
                       {canEditCounts && (
                         <button className="btn-sm" onClick={() => openCounts(row)}>✏️ Counts</button>
@@ -490,6 +503,13 @@ export default function ProdMonitor({ user }) {
       {/* Quality modal */}
       {qualityTarget && (
         <Modal title={`Quality — ${qualityTarget.name ?? qualityTarget.emp_id}`} onClose={() => setQualityTarget(null)}>
+          <p className="text-muted text-sm" style={{ marginBottom: 12 }}>
+            Quality data often arrives late — change the date below to post it against the correct working day.
+          </p>
+          <div className="field">
+            <label>Working Day</label>
+            <input type="date" value={qualityDate} onChange={e => setQualityDate(e.target.value)} />
+          </div>
           <div className="field">
             <label>Quality % (0–100)</label>
             <input type="number" min="0" max="100" step="0.1" value={qualityVal}
