@@ -10,33 +10,33 @@
   /* Display font — headings/brand/big numbers, distinct from the Inter body font */
   --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  /* Backgrounds */
-  --bg:           #f5f6fa;
-  --surface:      #ffffff;
-  --surface-2:    #f0f4ff;
-  --surface-3:    #e8edf8;
+  /* Backgrounds — warm lavender-gray: avoids glaring pure white, matches brand purple */
+  --bg:           #eceaf6;
+  --surface:      #f4f2fc;
+  --surface-2:    #e8e6f5;
+  --surface-3:    #dbd9ed;
 
   /* Borders */
-  --border:       #e2e8f0;
-  --border-focus: #3b82f6;
+  --border:       #ccc9e4;
+  --border-focus: #7c3aed;
 
-  /* Text */
-  --text:         #1a202c;
-  --text-muted:   #64748b;
-  --text-subtle:  #94a3b8;
+  /* Text — deep purple-tinted dark, softer than stark #1a202c on white */
+  --text:         #1e1b2e;
+  --text-muted:   #6b6882;
+  --text-subtle:  #9896b0;
 
   /* TopBar */
-  --topbar-bg:     #ffffff;
-  --topbar-text:   #1a202c;
-  --topbar-border: #e2e8f0;
+  --topbar-bg:     #f4f2fc;
+  --topbar-text:   #1e1b2e;
+  --topbar-border: #ccc9e4;
 
   /* Accent — matches the brand purple/indigo used on the login screen & logo */
   --accent:        #7c3aed;
   --accent-hover:  #6d28d9;
   --accent-dim:    #ede9fe;
 
-  /* Dot texture — same motif as the sidebar/login panel, tuned light for light backgrounds */
-  --dot-color: rgba(124,58,237,0.12);
+  /* Dot texture — subtle brand tint over the muted background */
+  --dot-color: rgba(124,58,237,0.07);
 
   /* Status */
   --success:  #10b981;
@@ -45,21 +45,21 @@
   --info:     #06b6d4;
 
   /* Productivity colors */
-  --col-green:   #10b981;
-  --col-yellow:  #f59e0b;
-  --col-orange:  #f97316;
-  --col-red:     #ef4444;
-  --col-neutral: #94a3b8;
+  --col-green:   #059669;
+  --col-yellow:  #d97706;
+  --col-orange:  #ea580c;
+  --col-red:     #dc2626;
+  --col-neutral: #6b6882;
 
   /* Spacing & shape */
   --radius:    10px;
   --radius-sm: 6px;
   --radius-lg: 16px;
 
-  /* Shadows */
-  --shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.05);
+  /* Shadows — slightly more visible on the dimmer background */
+  --shadow:    0 1px 4px rgba(30,27,46,0.10), 0 1px 2px rgba(30,27,46,0.06);
+  --shadow-md: 0 4px 14px rgba(30,27,46,0.10), 0 2px 4px rgba(30,27,46,0.07);
+  --shadow-lg: 0 10px 32px rgba(30,27,46,0.13), 0 4px 10px rgba(30,27,46,0.08);
 
   /* Layout */
   --topbar-h: 56px;
@@ -457,11 +457,11 @@ body.dark .col-blue { color: #93c5fd; }
   letter-spacing: 0.02em;
 }
 
-.badge-green  { background: #dcfce7; color: #15803d; }
-.badge-red    { background: #fee2e2; color: #dc2626; }
-.badge-yellow { background: #fef9c3; color: #b45309; }
-.badge-orange { background: #ffedd5; color: #c2410c; }
-.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+.badge-green  { background: #d1fae5; color: #065f46; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-orange { background: #ffedd5; color: #9a3412; }
+.badge-blue   { background: #dbeafe; color: #1e40af; }
 .badge-gray   { background: var(--surface-2); color: var(--text-muted); }
 
 body.dark .badge-green  { background: #14532d; color: #4ade80; }

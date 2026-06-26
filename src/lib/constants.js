@@ -73,7 +73,7 @@ export const FEED_BUCKET = 'feed-media';
 export const GIPHY_API_KEY = 'O7xoQ2OykXwLJWW9WkTbfT6mOCmUC7NJ';
 
 export const THEMES = [
-  { id: 'light',       label: 'Light',         bg: '#f5f6fa',  topbar: '#ffffff',  dark: false },
+  { id: 'light',       label: 'Light',         bg: '#eceaf6',  topbar: '#f4f2fc',  dark: false },
   { id: 'dark',        label: 'Dark',          bg: '#0f1117',  topbar: '#1a1d27',  dark: true  },
   { id: 'ocean',       label: 'Ocean Blue',    bg: '#0d1b2a',  topbar: '#1b2d45',  dark: true  },
   { id: 'forest',      label: 'Forest Green',  bg: '#0d1f12',  topbar: '#1a3320',  dark: true  },
