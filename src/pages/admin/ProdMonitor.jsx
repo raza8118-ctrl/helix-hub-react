@@ -472,7 +472,8 @@ export default function ProdMonitor({ user }) {
           <div className="field">
             <label>Reason</label>
             <textarea rows={3} value={bypassReason} onChange={e => setBypassReason(e.target.value)}
-              placeholder="e.g. System downtime, Training, Employee on leave…" style={{ resize: 'vertical' }} />
+              placeholder="e.g. System downtime, Training, Employee on leave…"
+              style={{ resize: 'vertical', color: 'var(--text)', background: 'var(--surface)' }} />
           </div>
           <div className="form-actions">
             <button className="btn-sm" onClick={() => setBypassTarget(null)}>Cancel</button>
