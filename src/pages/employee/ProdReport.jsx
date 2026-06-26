@@ -727,7 +727,7 @@ export default function ProdReport({ user }) {
                 style={{
                   width: '100%', padding: '8px 12px', marginTop: 6,
                   border: `1px solid ${!isLegacyAuth && deficit > 0 ? 'rgba(245,158,11,0.4)' : 'var(--border)'}`,
-                  background: !isLegacyAuth && deficit > 0 ? '#fffbeb' : 'var(--surface)',
+                  background: 'var(--surface)',
                   borderRadius: 6, color: 'var(--text)', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit',
                 }} />
             </div>
