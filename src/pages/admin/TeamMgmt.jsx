@@ -13,7 +13,7 @@ const BLANK     = {
   role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [], team_emp_ids: [],
   supervised_processes: [], supervised_projects: [], all_projects: false,
   permissions: DEFAULT_SUPERVISOR_PERMS,
-  ramp_enabled: false, ramp_schedule: [],
+  ramp_enabled: false, ramp_schedule: [], ramp_start_date: '',
 };
 
 const PERM_LABELS = {
@@ -170,6 +170,7 @@ export default function TeamMgmt({ user }) {
       permissions: { ...DEFAULT_SUPERVISOR_PERMS, ...(u.permissions ?? {}) },
       ramp_enabled: u.ramp_enabled ?? false,
       ramp_schedule: u.ramp_schedule ?? [],
+      ramp_start_date: u.ramp_start_date ?? '',
     });
     setShowForm(true);
   }
@@ -193,7 +194,7 @@ export default function TeamMgmt({ user }) {
       active: true,
       ramp_enabled: form.ramp_enabled,
       ramp_schedule: form.ramp_enabled ? form.ramp_schedule.map(Number) : null,
-      ramp_start_date: form.ramp_enabled && !editUser?.ramp_enabled ? today() : (editUser?.ramp_start_date ?? null),
+      ramp_start_date: form.ramp_enabled ? (form.ramp_start_date || editUser?.ramp_start_date || today()) : null,
     };
     const result = editUser
       ? await S.update('users', payload, { emp_id: editUser.emp_id })
@@ -460,6 +461,11 @@ export default function TeamMgmt({ user }) {
               </label>
               {f.ramp_enabled && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                    <span className="text-sm text-muted" style={{ width: 80 }}>Start Date</span>
+                    <input type="date" value={f.ramp_start_date} style={{ maxWidth: 160 }}
+                      onChange={e => setF({ ramp_start_date: e.target.value })} />
+                  </div>
                   {f.ramp_schedule.map((wk, i) => (
                     <div key={i} className="row" style={{ gap: 8, alignItems: 'center' }}>
                       <span className="text-sm text-muted" style={{ width: 56 }}>Week {i + 1}</span>
