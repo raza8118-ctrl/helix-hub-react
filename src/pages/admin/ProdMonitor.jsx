@@ -412,7 +412,11 @@ export default function ProdMonitor({ user }) {
                     {row.deficit != null ? (row.deficit > 0 ? `▼${row.deficit}` : `▲${Math.abs(row.deficit)}`) : '—'}
                   </td>
                   <td className={`right ${pCol(row.log?.quality)}`}>
-                    {row.log?.quality != null ? row.log.quality + '%' : '—'}
+                    {row.log?.quality != null
+                      ? row.log.quality + '%'
+                      : (row.log && !isOnLeave(row.log) && !row.log?.bypass_reason)
+                        ? <span className="badge badge-gray" style={{ fontSize: 11 }}>Pending</span>
+                        : '—'}
                   </td>
                   <td className="right text-muted">
                     {row.log?.downtime != null ? row.log.downtime + 'h' : '—'}

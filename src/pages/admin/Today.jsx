@@ -274,7 +274,11 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
                     <td className="right">{row.log?.total ?? '—'}</td>
                     <td className={`right bold ${pCol(prod)}`}>{prod != null ? prod + '%' : '—'}</td>
                     <td className={`right ${pCol(row.log?.quality)}`}>
-                      {row.log?.quality != null ? row.log.quality + '%' : '—'}
+                      {row.log?.quality != null
+                        ? row.log.quality + '%'
+                        : (row.log && !isOnLeave(row.log) && !row.log?.bypass_reason)
+                          ? <span className="badge badge-gray" style={{ fontSize: 11 }}>Pending</span>
+                          : '—'}
                     </td>
                     <td className="right text-muted">{row.log?.downtime != null ? row.log.downtime + 'h' : '—'}</td>
                     <td className="text-sm text-muted" style={{ maxWidth: 140 }}>
