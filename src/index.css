@@ -98,6 +98,64 @@ body.dark {
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.55), 0 4px 10px rgba(0,0,0,0.35);
 }
 
+/* ─── CSS Variables: Dusk Mode (medium — between Light and Dark) ─── */
+body.dusk {
+  /* Backgrounds — deep indigo-purple, rich but not black */
+  --bg:           #211e38;
+  --surface:      #2b2848;
+  --surface-2:    #353158;
+  --surface-3:    #403c68;
+
+  /* Borders */
+  --border:       #4c4878;
+  --border-focus: #a78bfa;
+
+  /* Text — warm purple-white, soft on the eyes */
+  --text:         #ece8ff;
+  --text-muted:   #9a96c8;
+  --text-subtle:  #6a659a;
+
+  /* TopBar */
+  --topbar-bg:     #2b2848;
+  --topbar-text:   #ece8ff;
+  --topbar-border: #4c4878;
+
+  /* Accent — lighter purple that pops on the medium background */
+  --accent:        #a78bfa;
+  --accent-hover:  #c4b5fd;
+  --accent-dim:    #2e1a6e;
+
+  /* Dot texture */
+  --dot-color: rgba(167,139,250,0.10);
+
+  /* Status */
+  --success:  #10b981;
+  --warning:  #f59e0b;
+  --danger:   #ef4444;
+  --info:     #06b6d4;
+
+  /* Productivity colors — lighter variants for the dark surface */
+  --col-green:   #4ade80;
+  --col-yellow:  #fbbf24;
+  --col-orange:  #fb923c;
+  --col-red:     #f87171;
+  --col-neutral: #9a96c8;
+
+  /* Shadows — deeper than light, visible on the indigo surface */
+  --shadow:    0 1px 4px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.30);
+  --shadow-lg: 0 10px 36px rgba(0,0,0,0.60), 0 4px 12px rgba(0,0,0,0.35);
+}
+
+/* Dusk: badge colour overrides (same pattern as body.dark) */
+body.dusk .badge-green  { background: #14532d; color: #4ade80; }
+body.dusk .badge-red    { background: #450a0a; color: #f87171; }
+body.dusk .badge-yellow { background: #431407; color: #fbbf24; }
+body.dusk .badge-orange { background: #431407; color: #fb923c; }
+body.dusk .badge-blue   { background: #1e3a5f; color: #93c5fd; }
+body.dusk .badge-gray   { background: var(--surface-3); color: var(--text-muted); }
+body.dusk .col-blue     { color: #93c5fd; }
+
 /* ─── Reset & Base ─── */
 *, *::before, *::after {
   box-sizing: border-box;

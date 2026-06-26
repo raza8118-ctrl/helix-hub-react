@@ -32,13 +32,16 @@ const SupervisorApp = lazy(() => import('./pages/supervisor/SupervisorApp'));
 const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
+const THEME_CLASSES = ['dark', 'dusk'];
+
 function applyTheme(themeId) {
   const found = THEMES.find(t => t.id === themeId);
   if (!found) return;
   document.body.style.background = found.bg;
   document.body.style.setProperty('--topbar-bg', found.topbar);
+  THEME_CLASSES.forEach(c => document.body.classList.remove(c));
   if (found.dark) document.body.classList.add('dark');
-  else            document.body.classList.remove('dark');
+  if (found.cls)  document.body.classList.add(found.cls);
 }
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
