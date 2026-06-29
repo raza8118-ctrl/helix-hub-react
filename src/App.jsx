@@ -80,6 +80,8 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [hasDeficit, setHasDeficit]   = useState(false);
   const [unreadFeedback, setUnreadFeedback] = useState(0);
+  const [missedDay, setMissedDay]     = useState(null);
+  const [missedDismissed, setMissedDismissed] = useState(false);
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -153,6 +155,34 @@ export default function App() {
     }).catch(() => {});
   }, [currentUser]);
 
+  // ── Missed log check (employees only) ──────────────────────────────────────
+  useEffect(() => {
+    if (!currentUser) return;
+    const isAdm = currentUser.role === 'admin' || currentUser.role === 'manager';
+    const isSup = currentUser.role === 'supervisor';
+    if (isAdm || isSup) return;
+    if (sessionStorage.getItem('hh_missed_dismissed')) { setMissedDismissed(true); return; }
+    (async () => {
+      try {
+        for (let daysBack = 1; daysBack <= 7; daysBack++) {
+          const d = new Date();
+          d.setDate(d.getDate() - daysBack);
+          if (d.getDay() === 0 || d.getDay() === 6) continue;
+          const dateStr = [
+            d.getFullYear(),
+            String(d.getMonth() + 1).padStart(2, '0'),
+            String(d.getDate()).padStart(2, '0'),
+          ].join('-');
+          const holidays = await S.get('holidays', { date: dateStr }).catch(() => []);
+          if (holidays?.length) break;
+          const logs = await S.get('daily_logs', { emp_id: currentUser.emp_id, date: dateStr });
+          if (!logs?.length) setMissedDay(dateStr);
+          break;
+        }
+      } catch { /* non-critical */ }
+    })();
+  }, [currentUser]);
+
   // ── Tab switch (persisted so a browser refresh stays on the same tab) ───────
   function handleSetTab(tabId) {
     setActiveTab(tabId);
@@ -181,15 +211,24 @@ export default function App() {
     applyTheme(t);
   }
 
+  // ── Missed banner dismiss ────────────────────────────────────────────────────
+  function dismissMissedBanner() {
+    setMissedDismissed(true);
+    sessionStorage.setItem('hh_missed_dismissed', '1');
+  }
+
   // ── Logout ──────────────────────────────────────────────────────────────────
   function handleLogout() {
     sessionStorage.removeItem('hh_user');
     sessionStorage.removeItem('hh_tab');
+    sessionStorage.removeItem('hh_missed_dismissed');
     setCurrentUser(null);
     setActiveTab('today');
     setShowProfile(false);
     setHasDeficit(false);
     setUnreadFeedback(0);
+    setMissedDay(null);
+    setMissedDismissed(false);
     setTheme(THEMES[0].id);
     applyTheme(THEMES[0].id);
   }
@@ -261,6 +300,43 @@ export default function App() {
           </div>
           <Clock />
         </header>
+
+        {!isAdmin && !isSupervisor && missedDay && !missedDismissed && (
+          <div style={{
+            background: '#f59e0b', color: '#1c1917',
+            padding: '9px 18px', fontSize: 13, fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            borderBottom: '1px solid #d97706',
+          }}>
+            <span>
+              ⚠ You haven't submitted your daily report for{' '}
+              {new Date(missedDay + 'T12:00:00').toLocaleDateString('en-US', {
+                weekday: 'long', month: 'short', day: 'numeric',
+              })}.
+            </span>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => { handleSetTab('prodreport'); dismissMissedBanner(); }}
+                style={{
+                  background: '#1c1917', color: '#fff', border: 'none', borderRadius: 6,
+                  padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                Submit Now
+              </button>
+              <button
+                onClick={dismissMissedBanner}
+                style={{
+                  background: 'transparent', color: '#1c1917',
+                  border: '1px solid #92400e', borderRadius: 6,
+                  padding: '4px 10px', fontSize: 12, cursor: 'pointer', opacity: 0.75,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         <main className="main-content">
           <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>

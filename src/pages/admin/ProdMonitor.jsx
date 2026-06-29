@@ -41,6 +41,10 @@ export default function ProdMonitor({ user }) {
   const [qualityDate, setQualityDate]     = useState('');
   const [qualityLoading, setQualityLoading] = useState(false);
 
+  const [qualityBypassTarget, setQualityBypassTarget] = useState(null);
+  const [qualityBypassReason, setQualityBypassReason] = useState('');
+  const [qualityBypassLoading, setQualityBypassLoading] = useState(false);
+
   const [countsTarget, setCountsTarget]   = useState(null);
   const [countsVals, setCountsVals]       = useState({});
   const [countsDowntime, setCountsDowntime] = useState('');
@@ -221,6 +225,26 @@ export default function ProdMonitor({ user }) {
     if (!window.confirm('Remove bypass for this employee?')) return;
     await S.update('daily_logs', { bypass_reason: null }, { id: row.log.id });
     logAudit({ actor: user, action: 'remove_bypass', targetEmpId: row.emp_id, targetName: row.name });
+    await load();
+  }
+
+  async function doQualityBypass() {
+    if (!qualityBypassTarget || !qualityBypassReason.trim()) return;
+    setQualityBypassLoading(true);
+    const log = qualityBypassTarget.log;
+    if (!log?.id) { setQualityBypassLoading(false); return; }
+    await S.update('daily_logs', { quality_bypass_reason: qualityBypassReason.trim(), quality: null }, { id: log.id });
+    logAudit({ actor: user, action: 'quality_bypass', targetEmpId: qualityBypassTarget.emp_id, targetName: qualityBypassTarget.name, details: { reason: qualityBypassReason.trim(), date } });
+    setQualityBypassTarget(null);
+    setQualityBypassReason('');
+    setQualityBypassLoading(false);
+    await load();
+  }
+
+  async function removeQualityBypass(row) {
+    if (!window.confirm('Remove quality bypass for this employee?')) return;
+    await S.update('daily_logs', { quality_bypass_reason: null }, { id: row.log.id });
+    logAudit({ actor: user, action: 'remove_quality_bypass', targetEmpId: row.emp_id, targetName: row.name, details: { date } });
     await load();
   }
 
@@ -414,7 +438,7 @@ export default function ProdMonitor({ user }) {
                   <td className={`right ${pCol(row.log?.quality)}`}>
                     {row.log?.quality != null
                       ? row.log.quality + '%'
-                      : (row.log && !isOnLeave(row.log) && !row.log?.bypass_reason)
+                      : (row.log && !isOnLeave(row.log) && !row.log?.quality_bypass_reason)
                         ? <span className="badge badge-gray" style={{ fontSize: 11 }}>Pending</span>
                         : '—'}
                   </td>
@@ -436,8 +460,13 @@ export default function ProdMonitor({ user }) {
                       {canBypass && row.log?.bypass_reason && (
                         <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeBypass(row)}>Remove</button>
                       )}
-                      {canQuality && row.log && (
-                        <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log?.quality ?? ''); setQualityDate(date); }}>Quality</button>
+                      {canQuality && row.log && !isOnLeave(row.log) && (
+                        row.log?.quality_bypass_reason
+                          ? <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeQualityBypass(row)}>Remove Q Bypass</button>
+                          : <>
+                              <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log?.quality ?? ''); setQualityDate(date); }}>Quality</button>
+                              <button className="btn-sm" style={{ opacity: 0.75 }} onClick={() => { setQualityBypassTarget(row); setQualityBypassReason(''); }}>Q Bypass</button>
+                            </>
                       )}
                       {canEditCounts && (
                         <button className="btn-sm" onClick={() => openCounts(row)}>✏️ Counts</button>
@@ -523,6 +552,27 @@ export default function ProdMonitor({ user }) {
             <button className="btn-sm" onClick={() => setQualityTarget(null)}>Cancel</button>
             <button className="btn-primary" onClick={doQuality} disabled={qualityLoading || qualityVal === ''}>
               {qualityLoading ? 'Saving…' : 'Save Quality'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Quality Bypass modal */}
+      {qualityBypassTarget && (
+        <Modal title={`Quality Bypass — ${qualityBypassTarget.name ?? qualityBypassTarget.emp_id}`} onClose={() => setQualityBypassTarget(null)}>
+          <p className="text-muted text-sm" style={{ marginBottom: 12 }}>
+            Mark this employee's quality as not applicable for {fmtD(date)}. They will show "—" instead of "Pending" in quality reports.
+          </p>
+          <div className="field">
+            <label>Reason</label>
+            <textarea rows={3} value={qualityBypassReason} onChange={e => setQualityBypassReason(e.target.value)}
+              placeholder="e.g. New hire, training day, not subject to quality review…"
+              style={{ resize: 'vertical', color: 'var(--text)', background: 'var(--surface)' }} />
+          </div>
+          <div className="form-actions">
+            <button className="btn-sm" onClick={() => setQualityBypassTarget(null)}>Cancel</button>
+            <button className="btn-primary" onClick={doQualityBypass} disabled={qualityBypassLoading || !qualityBypassReason.trim()}>
+              {qualityBypassLoading ? 'Saving…' : 'Confirm Quality Bypass'}
             </button>
           </div>
         </Modal>

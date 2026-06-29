@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { S } from '../../lib/supabase';
+import { S, kv } from '../../lib/supabase';
 import { today, fmtSh, fmtD, avg, procIncludes, scopeToSupervisor, permsFor, logAudit, isOnLeave } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 
@@ -34,6 +34,7 @@ export default function QualityMonitor({ user }) {
   const [holidays, setHolidays]     = useState([]);
   const [loading, setLoading]       = useState(false);
   const [customProcs, setCustomProcs] = useState([]);
+  const [qualitySkipProcs, setQualitySkipProcs] = useState(new Set());
 
   const [editTarget, setEditTarget] = useState(null);
   const [editDate, setEditDate]     = useState('');
@@ -51,9 +52,10 @@ export default function QualityMonitor({ user }) {
   async function load() {
     setLoading(true);
     const startDate = dates[0];
-    const [u, cp] = await Promise.all([
+    const [u, cp, skipList] = await Promise.all([
       S.get('users'),
       S.get('processes'),
+      kv.get('quality_skip_procs'),
     ]);
     // Fetch logs for the full date range via gte/lte — S.get only does eq,
     // so fetch all logs for each employee within the range using a raw query.
@@ -68,6 +70,7 @@ export default function QualityMonitor({ user }) {
     setLogs(l ?? []);
     setHolidays(h ?? []);
     setCustomProcs(cp ?? []);
+    setQualitySkipProcs(new Set(skipList ?? []));
     setLoading(false);
   }
 
@@ -112,17 +115,18 @@ export default function QualityMonitor({ user }) {
     return vals.length ? Math.round(avg(vals) * 10) / 10 : null;
   }
 
-  // Pending count: worked days with no quality across all employees
+  // Pending count: worked days with no quality, excluding skip-quality processes
   const totalPending = useMemo(() => {
     let count = 0;
     for (const e of employees) {
+      if (qualitySkipProcs.has(e.access || e.process)) continue;
       for (const d of dates) {
         const log = logMap[`${e.emp_id}__${d}`];
-        if (log && !isOnLeave(log) && !log.bypass_reason && log.quality == null) count++;
+        if (log && !isOnLeave(log) && !log.quality_bypass_reason && log.quality == null) count++;
       }
     }
     return count;
-  }, [employees, dates, logMap]);
+  }, [employees, dates, logMap, qualitySkipProcs]);
 
   function openEdit(emp, date, existingVal) {
     setEditTarget(emp);
@@ -230,6 +234,7 @@ export default function QualityMonitor({ user }) {
               )}
               {employees.map(emp => {
                 const avg_ = empAvg(emp);
+                const skipQuality = qualitySkipProcs.has(emp.access || emp.process);
                 return (
                   <tr key={emp.emp_id}>
                     <td className="bold" style={{ position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1 }}>
@@ -267,7 +272,8 @@ export default function QualityMonitor({ user }) {
                           </td>
                         );
                       }
-                      if (!hasLog) {
+                      const qualityBypassed = !!log?.quality_bypass_reason;
+                      if (!hasLog || skipQuality || qualityBypassed) {
                         return <td key={d} className="center text-muted" style={{ fontSize: 12 }}>—</td>;
                       }
                       // Has log — show quality or pending

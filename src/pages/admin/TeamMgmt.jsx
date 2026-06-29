@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { S } from '../../lib/supabase';
+import { S, kv } from '../../lib/supabase';
 import { ACCESSES, DEFAULT_PROJECT } from '../../lib/constants';
 import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
@@ -84,6 +84,7 @@ export default function TeamMgmt({ user }) {
   const [newProc, setNewProc]         = useState('');
   const [newProcProject, setNewProcProject] = useState(DEFAULT_PROJECT);
   const [rowOrder, setRowOrder]       = useState({});
+  const [qualitySkipProcs, setQualitySkipProcs] = useState(new Set());
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
@@ -94,15 +95,24 @@ export default function TeamMgmt({ user }) {
 
   async function load() {
     setLoading(true);
-    const [u, rr, cp] = await Promise.all([
+    const [u, rr, cp, skipList] = await Promise.all([
       S.get('users'),
       S.get('reset_requests'),
       S.get('processes'),
+      kv.get('quality_skip_procs'),
     ]);
     setAllUsers(u ?? []);
     setResetReqs(rr ?? []);
     setCustomProcs(cp ?? []);
+    setQualitySkipProcs(new Set(skipList ?? []));
     setLoading(false);
+  }
+
+  async function toggleQualitySkip(procName) {
+    const next = new Set(qualitySkipProcs);
+    if (next.has(procName)) next.delete(procName); else next.add(procName);
+    setQualitySkipProcs(next);
+    await kv.set('quality_skip_procs', [...next]);
   }
 
   const allProjects  = [DEFAULT_PROJECT, ...new Set(customProcs.map(p => p.project).filter(p => p && p !== DEFAULT_PROJECT))];
@@ -333,6 +343,24 @@ export default function TeamMgmt({ user }) {
             onKeyDown={e => e.key === 'Enter' && addProcess()}
             style={{ maxWidth: 200 }} />
           <button className="btn-sm" onClick={addProcess}>Add Sub-Process</button>
+        </div>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <div className="text-sm bold" style={{ marginBottom: 6 }}>Quality Tracking</div>
+          <div className="text-sm text-muted" style={{ marginBottom: 8 }}>
+            Processes checked below will not show "Pending" in Quality Monitor — they are not subject to quality review.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {allProcs.map(proc => (
+              <label key={proc} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={qualitySkipProcs.has(proc)}
+                  onChange={() => toggleQualitySkip(proc)}
+                />
+                {proc}
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
