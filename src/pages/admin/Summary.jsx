@@ -10,6 +10,24 @@ import EmpDetail from '../../components/shared/EmpDetail';
 const MEDAL = { 1: '🏆', 2: '🥈', 3: '🥉' };
 const pp = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
+function ChartCard({ icon, title, subtitle, children }) {
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{
+        padding: '12px 16px', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
+      }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{icon} {title}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{subtitle}</div>
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginTop: 2 }}>Click to view day</div>
+      </div>
+      <div style={{ padding: '12px 8px 4px' }}>{children}</div>
+    </div>
+  );
+}
+
 export default function Summary({ user, defaultMode = 'weekly' }) {
   const todayStr = today();
   const [mode, setMode]         = useState(defaultMode);
@@ -51,9 +69,9 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   }
 
   const {
-    kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
+    kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, rankings,
     callsBarData, callHoursLineData, kpiTotalCalls, kpiTotalCallHours,
-    qualityBarData, qualityLineData,
+    qualityBarData,
   } = useMemo(() => {
     const holidayDates = new Set((holidays ?? []).map(h => h.date));
     const activeDays   = workDays.filter(d => !holidayDates.has(d));
@@ -90,14 +108,11 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
       return { name: fmtSh(d), prod: avg(dp) != null ? Math.round(avg(dp)) : 0, date: d };
     });
 
-    const lineData = barData.map(d => ({ name: d.name, v: d.prod, date: d.date }));
-
     const qualityBarData = activeDays.map(d => {
       const dl = filteredLogs.filter(l => l.date === d);
       const dq = dl.map(l => l.quality).filter(v => v != null);
       return { name: fmtSh(d), prod: avg(dq) != null ? Math.round(avg(dq)) : 0, date: d };
     });
-    const qualityLineData = qualityBarData.map(d => ({ name: d.name, v: d.prod, date: d.date }));
 
     const callsBarData = activeDays.map(d => {
       const dl = filteredLogs.filter(l => l.date === d);
@@ -119,14 +134,16 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
         avgProd: avg(up),
         avgQuality: avg(ul.map(l => l.quality).filter(v => v != null)),
         total: ul.reduce((s, l) => s + (l.total ?? 0), 0),
+        calls: ul.reduce((s, l) => s + (l.calls ?? 0), 0),
+        callHours: ul.reduce((s, l) => s + (l.call_hours ?? 0), 0),
         days: ul.length,
       };
     }).sort((a, b) => (b.avgProd ?? -1) - (a.avgProd ?? -1));
 
     return {
-      activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
+      activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, rankings,
       callsBarData, callHoursLineData, kpiTotalCalls, kpiTotalCallHours,
-      qualityBarData, qualityLineData,
+      qualityBarData,
     };
   }, [holidays, workDays, allUsers, user, customProcs, filterProc, agentId, statusFilter, logs]);
 
@@ -198,7 +215,7 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
   }
 
   function exportCSV() {
-    const headers = ['Rank', 'Employee', 'Emp ID', 'Process', 'Working Days', 'Total Volume', 'Avg Prod%', 'Avg Quality%'];
+    const headers = ['Rank', 'Employee', 'Emp ID', 'Process', 'Working Days', 'Total Volume', 'Avg Prod%', 'Avg Quality%', 'Total Calls', 'Call Hours'];
     const rows = rankings.map((r, i) => ({
       'Rank': i + 1,
       'Employee': r.name ?? r.emp_id,
@@ -208,6 +225,8 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       'Total Volume': r.total,
       'Avg Prod%': r.avgProd?.toFixed(1) ?? '',
       'Avg Quality%': r.avgQuality?.toFixed(1) ?? '',
+      'Total Calls': r.calls || '',
+      'Call Hours': r.callHours ? r.callHours.toFixed(1) : '',
     }));
     dlCSV(headers, rows, `summary-${periodLabel.replace(/[^a-z0-9]/gi, '-')}.csv`);
   }
@@ -307,141 +326,32 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       </div>
 
       {/* Charts */}
-      <div className="grid-2 mb-16">
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
-            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>📊 Daily Avg Productivity</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Per-day team average · {barData.length} days</div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-              background: 'var(--accent)', color: '#fff', opacity: 0.85,
-            }}>Click bar for details</span>
-          </div>
-          <div style={{ padding: '12px 8px 4px' }}>
-            {loading
-              ? <div className="loading-row"><div className="spinner" /></div>
-              : <BarChart data={barData} height={180} onBarClick={openDayDetail} />}
-          </div>
-        </div>
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
-            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>📈 Productivity Trend</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Rolling avg over {periodLabel}</div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-              background: 'var(--accent)', color: '#fff', opacity: 0.85,
-            }}>Click point for details</span>
-          </div>
-          <div style={{ padding: '12px 8px 4px' }}>
-            {loading
-              ? <div className="loading-row"><div className="spinner" /></div>
-              : <LineChart data={lineData} height={180} onPointClick={openDayDetail} />}
-          </div>
-        </div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '4px 0 10px' }}>
+        Team Trends · {periodLabel}
       </div>
-
-      {/* Quality charts */}
       <div className="grid-2 mb-16">
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
-            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>⭐ Daily Avg Quality</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Per-day team average · {qualityBarData.length} days</div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-              background: 'var(--accent)', color: '#fff', opacity: 0.85,
-            }}>Click bar for details</span>
-          </div>
-          <div style={{ padding: '12px 8px 4px' }}>
-            {loading
-              ? <div className="loading-row"><div className="spinner" /></div>
-              : <BarChart data={qualityBarData} height={180} onBarClick={openDayDetail} />}
-          </div>
-        </div>
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
-            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>📈 Quality Trend</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Rolling avg over {periodLabel}</div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-              background: 'var(--accent)', color: '#fff', opacity: 0.85,
-            }}>Click point for details</span>
-          </div>
-          <div style={{ padding: '12px 8px 4px' }}>
-            {loading
-              ? <div className="loading-row"><div className="spinner" /></div>
-              : <LineChart data={qualityLineData} height={180} onPointClick={openDayDetail} />}
-          </div>
-        </div>
+        <ChartCard icon="⚡" title="Productivity" subtitle={`Daily average, with trend line · ${barData.length} days`}>
+          {loading
+            ? <div className="loading-row"><div className="spinner" /></div>
+            : <BarChart data={barData} height={190} showLine onBarClick={openDayDetail} />}
+        </ChartCard>
+        <ChartCard icon="⭐" title="Quality" subtitle={`Daily average, with trend line · ${qualityBarData.length} days`}>
+          {loading
+            ? <div className="loading-row"><div className="spinner" /></div>
+            : <BarChart data={qualityBarData} height={190} showLine onBarClick={openDayDetail} />}
+        </ChartCard>
       </div>
-
-      {/* Call volume / hours charts */}
       <div className="grid-2 mb-16">
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
-            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>📞 Daily Call Volume</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{kpiTotalCalls.toLocaleString()} total calls · {callsBarData.length} days</div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-              background: 'var(--accent)', color: '#fff', opacity: 0.85,
-            }}>Click bar for details</span>
-          </div>
-          <div style={{ padding: '12px 8px 4px' }}>
-            {loading
-              ? <div className="loading-row"><div className="spinner" /></div>
-              : <BarChart data={callsBarData} height={180} mode="value" color="#0284c7" onBarClick={openDayDetail} />}
-          </div>
-        </div>
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
-            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>⏱️ Call Hours Trend</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{kpiTotalCallHours.toFixed(1)} total hrs over {periodLabel}</div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-              background: 'var(--accent)', color: '#fff', opacity: 0.85,
-            }}>Click point for details</span>
-          </div>
-          <div style={{ padding: '12px 8px 4px' }}>
-            {loading
-              ? <div className="loading-row"><div className="spinner" /></div>
-              : <LineChart data={callHoursLineData} height={180} mode="value" suffix="h" color="#7c3aed" onPointClick={openDayDetail} />}
-          </div>
-        </div>
+        <ChartCard icon="📞" title="Call Volume" subtitle={`${kpiTotalCalls.toLocaleString()} total calls · ${callsBarData.length} days`}>
+          {loading
+            ? <div className="loading-row"><div className="spinner" /></div>
+            : <BarChart data={callsBarData} height={190} mode="value" color="#0284c7" onBarClick={openDayDetail} />}
+        </ChartCard>
+        <ChartCard icon="⏱️" title="Call Hours" subtitle={`${kpiTotalCallHours.toFixed(1)} total hrs · ${callHoursLineData.length} days`}>
+          {loading
+            ? <div className="loading-row"><div className="spinner" /></div>
+            : <LineChart data={callHoursLineData} height={190} mode="value" suffix="h" color="#7c3aed" onPointClick={openDayDetail} />}
+        </ChartCard>
       </div>
 
       {/* Rankings */}
@@ -465,11 +375,13 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
                 <th className="right">Volume</th>
                 <th style={{ minWidth: 160 }}>Avg Prod%</th>
                 <th className="right">Quality</th>
+                <th className="right">Calls</th>
+                <th className="right">Call Hrs</th>
               </tr>
             </thead>
             <tbody>
               {rankings.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 36, color: 'var(--text-muted)' }}>No data for this period</td></tr>
+                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 36, color: 'var(--text-muted)' }}>No data for this period</td></tr>
               )}
               {rankings.map((r, i) => {
                 const prodColor = r.avgProd >= 100 ? '#10b981' : r.avgProd >= 85 ? '#f59e0b' : r.avgProd >= 70 ? '#f97316' : '#ef4444';
@@ -514,6 +426,12 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
                     </td>
                     <td className="right" style={{ fontWeight: 600, fontSize: 13, color: r.avgQuality != null ? qualColor : 'var(--text-muted)' }}>
                       {r.avgQuality != null ? r.avgQuality.toFixed(1) + '%' : '—'}
+                    </td>
+                    <td className="right" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                      {r.calls > 0 ? r.calls.toLocaleString() : '—'}
+                    </td>
+                    <td className="right" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                      {r.callHours > 0 ? r.callHours.toFixed(1) : '—'}
                     </td>
                   </tr>
                 );
