@@ -59,8 +59,9 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
   return (
     <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
       <svg
-        width={totalW} height={height}
+        width="100%" height={height}
         viewBox={`0 0 ${totalW} ${height}`}
+        preserveAspectRatio="none"
         style={{ display: 'block', overflow: 'visible', fontFamily: 'inherit' }}
         onMouseLeave={() => setHov(-1)}
       >

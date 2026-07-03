@@ -7,19 +7,47 @@ import LineChart from '../../components/shared/LineChart';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 
+const MEDAL = { 1: '🏆', 2: '🥈', 3: '🥉' };
 const pp = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
-function ChartCard({ title, subtitle, children }) {
+// Best/worst day for a chart's dataset — used to fill the space below the chart with real numbers
+function bestWorstDay(data, key, unit = '') {
+  const valid = data.filter(d => d[key] > 0);
+  if (valid.length < 2) return null;
+  const best = valid.reduce((a, b) => (b[key] > a[key] ? b : a));
+  const worst = valid.reduce((a, b) => (b[key] < a[key] ? b : a));
+  if (best === worst) return null;
+  return { best: `${best.name} · ${best[key]}${unit}`, worst: `${worst.name} · ${worst[key]}${unit}` };
+}
+
+function ChartCard({ icon, title, subtitle, highlight, children }) {
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div style={{
-        padding: '13px 16px', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
+        padding: '12px 16px', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
       }}>
-        <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--text)', letterSpacing: '0.02em' }}>{title}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{subtitle}</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{icon} {title}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{subtitle}</div>
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginTop: 2 }}>Click to view day</div>
       </div>
       <div style={{ padding: '12px 8px 4px' }}>{children}</div>
+      {highlight && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
+          padding: '10px 16px', margin: '4px 12px 12px', borderRadius: 8,
+          background: 'var(--surface-2)', fontSize: 12,
+        }}>
+          <span style={{ color: 'var(--text-muted)' }}>
+            Best day: <strong style={{ color: '#10b981' }}>{highlight.best}</strong>
+          </span>
+          <span style={{ color: 'var(--text-muted)' }}>
+            Lowest day: <strong style={{ color: '#ef4444' }}>{highlight.worst}</strong>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -274,45 +302,49 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       <div className="mb-16" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
         {[
           {
-            label: 'Working Days', value: kpiDays,
+            icon: '📅', label: 'Working Days', value: kpiDays,
             sub: `${holidays.filter(h => workDays.includes(h.date)).length} holiday(s)`,
+            accent: 'var(--info)',
           },
           {
-            label: 'Agents', value: kpiAgents,
+            icon: '👥', label: 'Agents', value: kpiAgents,
             sub: filterProc === 'ALL' ? 'All processes' : filterProc,
+            accent: 'var(--accent)',
           },
           {
-            label: 'Avg Productivity',
+            icon: '⚡', label: 'Avg Productivity',
             value: kpiAvgProd != null ? kpiAvgProd.toFixed(1) + '%' : '—',
             valueCol: kpiAvgProd >= 100 ? '#10b981' : kpiAvgProd >= 75 ? '#f59e0b' : kpiAvgProd != null ? '#ef4444' : 'var(--text)',
-            bar: kpiAvgProd, barCol: kpiAvgProd >= 100 ? '#10b981' : kpiAvgProd >= 75 ? '#f59e0b' : '#ef4444',
+            bar: kpiAvgProd, accent: kpiAvgProd >= 100 ? '#10b981' : kpiAvgProd >= 75 ? '#f59e0b' : '#ef4444',
           },
           {
-            label: 'Avg Quality',
+            icon: '⭐', label: 'Avg Quality',
             value: kpiAvgQ != null ? kpiAvgQ.toFixed(1) + '%' : '—',
             valueCol: kpiAvgQ >= 98 ? '#10b981' : kpiAvgQ >= 90 ? '#f59e0b' : kpiAvgQ != null ? '#ef4444' : 'var(--text)',
-            bar: kpiAvgQ, barCol: kpiAvgQ >= 98 ? '#10b981' : kpiAvgQ >= 90 ? '#f59e0b' : '#ef4444',
+            bar: kpiAvgQ, accent: kpiAvgQ >= 98 ? '#10b981' : kpiAvgQ >= 90 ? '#f59e0b' : '#ef4444',
           },
           {
-            label: 'Total Claims', value: kpiTotal.toLocaleString(),
-            sub: 'volume processed',
+            icon: '📦', label: 'Total Claims', value: kpiTotal.toLocaleString(),
+            sub: 'volume processed', accent: 'var(--warning)',
           },
           {
-            label: 'Total Calls', value: kpiTotalCalls.toLocaleString(),
-            sub: `${kpiTotalCallHours.toFixed(1)} hrs on calls`,
+            icon: '📞', label: 'Total Calls', value: kpiTotalCalls.toLocaleString(),
+            sub: `${kpiTotalCallHours.toFixed(1)} hrs on calls`, accent: '#0284c7',
           },
-        ].map(({ label, value, sub, valueCol, bar, barCol }) => (
-          <div key={label} className="stat-card">
-            <div className="stat-label" style={{
-              margin: 0, textTransform: 'uppercase', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.05em',
-            }}>{label}</div>
-            <div className="stat-value" style={{ color: valueCol ?? 'var(--text)', fontSize: 26, lineHeight: 1, marginTop: 7 }}>{value}</div>
+        ].map(({ icon, label, value, sub, valueCol, bar, accent }) => (
+          <div key={label} className="stat-card" style={{ borderTop: `3px solid ${accent}`, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <span style={{ fontSize: 18 }}>{icon}</span>
+              <div className="stat-label" style={{ margin: 0 }}>{label}</div>
+            </div>
+            <div className="stat-value" style={{ color: valueCol ?? 'var(--text)', fontSize: 28, lineHeight: 1 }}>{value}</div>
             {bar != null && (
-              <div style={{ marginTop: 9, height: 3, background: 'var(--surface-3)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(bar, 100)}%`, background: barCol, borderRadius: 3, transition: 'width 0.6s ease' }} />
+              <div style={{ marginTop: 8, height: 4, background: 'var(--surface-3)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(bar, 100)}%`, background: accent, borderRadius: 4, transition: 'width 0.6s ease' }} />
               </div>
             )}
             {sub && <div className="stat-sub" style={{ marginTop: 6 }}>{sub}</div>}
+            <div style={{ position: 'absolute', right: -10, top: -10, fontSize: 52, opacity: 0.05, pointerEvents: 'none' }}>{icon}</div>
           </div>
         ))}
       </div>
@@ -322,24 +354,28 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
         Team Trends · {periodLabel}
       </div>
       <div className="grid-2 mb-16">
-        <ChartCard title="Productivity" subtitle={`Daily average, with trend line · ${barData.length} days`}>
+        <ChartCard icon="⚡" title="Productivity" subtitle={`Daily average, with trend line · ${barData.length} days`}
+          highlight={bestWorstDay(barData, 'prod', '%')}>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
             : <BarChart data={barData} height={190} showLine onBarClick={openDayDetail} />}
         </ChartCard>
-        <ChartCard title="Quality" subtitle={`Daily average, with trend line · ${qualityBarData.length} days`}>
+        <ChartCard icon="⭐" title="Quality" subtitle={`Daily average, with trend line · ${qualityBarData.length} days`}
+          highlight={bestWorstDay(qualityBarData, 'prod', '%')}>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
             : <BarChart data={qualityBarData} height={190} showLine onBarClick={openDayDetail} />}
         </ChartCard>
       </div>
       <div className="grid-2 mb-16">
-        <ChartCard title="Call Volume" subtitle={`${kpiTotalCalls.toLocaleString()} total calls · ${callsBarData.length} days`}>
+        <ChartCard icon="📞" title="Call Volume" subtitle={`${kpiTotalCalls.toLocaleString()} total calls · ${callsBarData.length} days`}
+          highlight={bestWorstDay(callsBarData, 'prod')}>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
             : <BarChart data={callsBarData} height={190} mode="value" color="#0284c7" onBarClick={openDayDetail} />}
         </ChartCard>
-        <ChartCard title="Call Hours" subtitle={`${kpiTotalCallHours.toFixed(1)} total hrs · ${callHoursLineData.length} days`}>
+        <ChartCard icon="⏱️" title="Call Hours" subtitle={`${kpiTotalCallHours.toFixed(1)} total hrs · ${callHoursLineData.length} days`}
+          highlight={bestWorstDay(callHoursLineData, 'v', 'h')}>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
             : <LineChart data={callHoursLineData} height={190} mode="value" suffix="h" color="#7c3aed" onPointClick={openDayDetail} />}
@@ -350,9 +386,10 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
           padding: '14px 18px', borderBottom: '1px solid var(--border)',
+          background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Performance Rankings</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>🏆 Performance Rankings</div>
           <span className="badge badge-blue">{rankings.length} agent{rankings.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="table-wrap">
@@ -377,14 +414,18 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
               {rankings.map((r, i) => {
                 const prodColor = r.avgProd >= 100 ? '#10b981' : r.avgProd >= 85 ? '#f59e0b' : r.avgProd >= 70 ? '#f97316' : '#ef4444';
                 const qualColor = r.avgQuality >= 98 ? '#10b981' : r.avgQuality >= 90 ? '#f59e0b' : '#ef4444';
+                const rowBg = i === 0 ? 'rgba(16,185,129,0.05)' : i === 1 ? 'rgba(234,179,8,0.04)' : i === 2 ? 'rgba(249,115,22,0.04)' : undefined;
                 return (
-                  <tr key={r.emp_id}>
+                  <tr key={r.emp_id} style={{ background: rowBg }}>
                     <td className="center">
-                      <span style={{
-                        display: 'inline-block', width: 26, height: 26, lineHeight: '26px',
-                        borderRadius: '50%', background: i === 0 ? 'var(--accent-dim)' : 'var(--surface-2)',
-                        fontSize: 11, fontWeight: 700, color: i === 0 ? 'var(--accent)' : 'var(--text-muted)',
-                      }}>{i + 1}</span>
+                      {i < 3
+                        ? <span style={{ fontSize: 20 }}>{MEDAL[i + 1]}</span>
+                        : <span style={{
+                            display: 'inline-block', width: 26, height: 26, lineHeight: '26px',
+                            borderRadius: '50%', background: 'var(--surface-2)',
+                            fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+                          }}>#{i + 1}</span>
+                      }
                     </td>
                     <td>
                       <span className="bold" style={{ cursor: 'pointer', color: 'var(--accent)' }}

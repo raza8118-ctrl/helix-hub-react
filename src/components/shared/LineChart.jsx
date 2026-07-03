@@ -58,9 +58,9 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
   return (
     <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
       <svg
-        width="100%" viewBox={`0 0 ${VB_W} ${height}`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{ display: 'block', minHeight: height, overflow: 'visible', fontFamily: 'inherit' }}
+        width="100%" height={height} viewBox={`0 0 ${VB_W} ${height}`}
+        preserveAspectRatio="none"
+        style={{ display: 'block', overflow: 'visible', fontFamily: 'inherit' }}
         onMouseLeave={() => setHov(-1)}
       >
         <defs>
