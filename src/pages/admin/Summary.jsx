@@ -52,6 +52,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
   const {
     kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
+    callsBarData, callHoursLineData, kpiTotalCalls, kpiTotalCallHours,
   } = useMemo(() => {
     const holidayDates = new Set((holidays ?? []).map(h => h.date));
     const activeDays   = workDays.filter(d => !holidayDates.has(d));
@@ -90,6 +91,18 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
     const lineData = barData.map(d => ({ name: d.name, v: d.prod, date: d.date }));
 
+    const callsBarData = activeDays.map(d => {
+      const dl = filteredLogs.filter(l => l.date === d);
+      return { name: fmtSh(d), prod: dl.reduce((s, l) => s + (l.calls ?? 0), 0), date: d };
+    });
+    const callHoursLineData = activeDays.map(d => {
+      const dl = filteredLogs.filter(l => l.date === d);
+      const hrs = dl.reduce((s, l) => s + (l.call_hours ?? 0), 0);
+      return { name: fmtSh(d), v: Math.round(hrs * 10) / 10, date: d };
+    });
+    const kpiTotalCalls     = filteredLogs.reduce((s, l) => s + (l.calls ?? 0), 0);
+    const kpiTotalCallHours = filteredLogs.reduce((s, l) => s + (l.call_hours ?? 0), 0);
+
     const rankings = filteredUsers.map(u => {
       const ul = filteredLogs.filter(l => l.emp_id === u.emp_id);
       const up = ul.map(l => pp(l.total, l.adj_target ?? l.target)).filter(v => v != null);
@@ -102,7 +115,10 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
       };
     }).sort((a, b) => (b.avgProd ?? -1) - (a.avgProd ?? -1));
 
-    return { activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings };
+    return {
+      activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
+      callsBarData, callHoursLineData, kpiTotalCalls, kpiTotalCallHours,
+    };
   }, [holidays, workDays, allUsers, user, customProcs, filterProc, agentId, statusFilter, logs]);
 
   function openDayDetail(item) {
@@ -126,6 +142,8 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
         target: l.adj_target ?? l.target ?? 0,
         prod: pp(l.total, l.adj_target ?? l.target),
         quality: l.quality,
+        calls: l.calls,
+        callHours: l.call_hours,
         remarks: l.remarks,
       };
     }).sort((a, b) => (b.prod ?? -1) - (a.prod ?? -1));
@@ -321,6 +339,52 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
         </div>
       </div>
 
+      {/* Call volume / hours charts */}
+      <div className="grid-2 mb-16">
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
+            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>📞 Daily Call Volume</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{kpiTotalCalls.toLocaleString()} total calls · {callsBarData.length} days</div>
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+              background: 'var(--accent)', color: '#fff', opacity: 0.85,
+            }}>Click bar for details</span>
+          </div>
+          <div style={{ padding: '12px 8px 4px' }}>
+            {loading
+              ? <div className="loading-row"><div className="spinner" /></div>
+              : <BarChart data={callsBarData} height={180} mode="value" color="#0284c7" onBarClick={openDayDetail} />}
+          </div>
+        </div>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
+            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>⏱️ Call Hours Trend</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{kpiTotalCallHours.toFixed(1)} total hrs over {periodLabel}</div>
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+              background: 'var(--accent)', color: '#fff', opacity: 0.85,
+            }}>Click point for details</span>
+          </div>
+          <div style={{ padding: '12px 8px 4px' }}>
+            {loading
+              ? <div className="loading-row"><div className="spinner" /></div>
+              : <LineChart data={callHoursLineData} height={180} mode="value" suffix="h" color="#7c3aed" onPointClick={openDayDetail} />}
+          </div>
+        </div>
+      </div>
+
       {/* Rankings */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
@@ -441,13 +505,15 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
                   <th className="right">Target</th>
                   <th className="right">Prod%</th>
                   <th className="right">Quality</th>
+                  <th className="right">Calls</th>
+                  <th className="right">Call Hrs</th>
                   <th>Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {dayDetail.rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
                       No data submitted for this day
                     </td>
                   </tr>
@@ -465,6 +531,8 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
                     <td className="right" style={{ color: 'var(--text-muted)' }}>{r.target || '—'}</td>
                     <td className={`right bold ${pCol(r.prod)}`}>{r.prod != null ? r.prod + '%' : '—'}</td>
                     <td className={`right ${pCol(r.quality)}`}>{r.quality != null ? r.quality + '%' : '—'}</td>
+                    <td className="right" style={{ color: 'var(--text-muted)' }}>{r.calls ?? '—'}</td>
+                    <td className="right" style={{ color: 'var(--text-muted)' }}>{r.callHours ?? '—'}</td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.remarks ?? '—'}
                     </td>

@@ -14,9 +14,14 @@ function smoothPath(pts) {
   return d;
 }
 
-/** SVG line chart. data = [{name, v}] or [{label, value}]. onPointClick(item, index) fires on click. */
-export default function LineChart({ data = [], height = 200, color = 'var(--accent)', label = '', title = '', onPointClick }) {
+/**
+ * SVG line chart. data = [{name, v}] or [{label, value}]. onPointClick(item, index) fires on click.
+ * mode='percent' (default) keeps the 0-100%+ scale with a 100% target line.
+ * mode='value' switches to a dynamic scale for raw numbers (e.g. call hours), no target line.
+ */
+export default function LineChart({ data = [], height = 200, color = 'var(--accent)', label = '', title = '', onPointClick, mode = 'percent', suffix }) {
   const [hov, setHov] = useState(-1);
+  const sfx = suffix ?? (mode === 'percent' ? '%' : '');
 
   const items = data.map(d => ({
     ...d,
@@ -32,7 +37,9 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
 
   const plotH = height - PAD_B - PAD_T;
   const plotW = VB_W - PAD_L - PAD_R;
-  const maxV  = Math.max(...items.map(d => d.v), 100);
+  const maxV  = mode === 'value'
+    ? Math.max(...items.map(d => d.v), 1) * 1.15
+    : Math.max(...items.map(d => d.v), 100);
   const xOf   = i => PAD_L + (i / (items.length - 1)) * plotW;
   const yOf   = v => PAD_T + plotH - (Math.min(v, maxV) / maxV) * plotH;
   const pts   = items.map((d, i) => [xOf(i), yOf(d.v)]);
@@ -42,7 +49,9 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
     + ` L${pts.at(-1)[0].toFixed(1)},${(PAD_T + plotH).toFixed(1)}`
     + ` L${pts[0][0].toFixed(1)},${(PAD_T + plotH).toFixed(1)} Z`;
 
-  const GRID   = [0, 25, 50, 75, 100];
+  const GRID   = mode === 'value'
+    ? [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxV * f))
+    : [0, 25, 50, 75, 100];
   const safeId = (color + label).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 32);
   const avgV   = items.reduce((s, d) => s + d.v, 0) / items.length;
 
@@ -87,24 +96,25 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
         {GRID.map(pct => {
           const y = yOf(pct);
           if (y < PAD_T - 2 || y > PAD_T + plotH + 2) return null;
+          const is100 = mode === 'percent' && pct === 100;
           return (
             <g key={pct}>
               <line x1={PAD_L} y1={y} x2={VB_W - PAD_R} y2={y}
-                stroke={pct === 100 ? '#ef4444' : 'var(--border)'}
-                strokeWidth={pct === 100 ? 1.5 : 0.8}
-                strokeDasharray={pct === 100 ? '6,4' : '4,4'}
-                strokeOpacity={pct === 100 ? 0.6 : 0.42}
+                stroke={is100 ? '#ef4444' : 'var(--border)'}
+                strokeWidth={is100 ? 1.5 : 0.8}
+                strokeDasharray={is100 ? '6,4' : '4,4'}
+                strokeOpacity={is100 ? 0.6 : 0.42}
               />
               <text x={PAD_L - 7} y={y + 4} textAnchor="end" fontSize="10"
                 fill="var(--text-muted)" fontWeight="500" opacity="0.85">
-                {pct}%
+                {pct}{sfx}
               </text>
             </g>
           );
         })}
 
         {/* Target label */}
-        {yOf(100) >= PAD_T && yOf(100) <= PAD_T + plotH && (
+        {mode === 'percent' && yOf(100) >= PAD_T && yOf(100) <= PAD_T + plotH && (
           <text x={VB_W - PAD_R + 4} y={yOf(100) + 4} fontSize="9"
             fill="#ef4444" opacity="0.75" fontWeight="700">Target</text>
         )}
@@ -116,7 +126,7 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
               stroke={color} strokeWidth="1" strokeDasharray="3,4" strokeOpacity="0.4" />
             <text x={PAD_L + 4} y={yOf(avgV) - 4} fontSize="9"
               fill={color} opacity="0.75" fontWeight="600">
-              Avg {Math.round(avgV)}%
+              Avg {Math.round(avgV)}{sfx}
             </text>
           </g>
         )}
@@ -189,7 +199,7 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
                     <text x={ttX + ttW / 2} y={ttY + 17} textAnchor="middle"
                       fontSize="10" fontWeight="600" fill="var(--text-muted)">{d.name}</text>
                     <text x={ttX + ttW / 2} y={ttY + 36} textAnchor="middle"
-                      fontSize="15" fontWeight="800" fill={color}>{Math.round(d.v)}%</text>
+                      fontSize="15" fontWeight="800" fill={color}>{Math.round(d.v)}{sfx}</text>
                   </g>
                 );
               })()}

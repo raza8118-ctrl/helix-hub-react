@@ -3,7 +3,8 @@ import { useState } from 'react';
 const BAR_W = 46, GAP = 12, PAD_L = 50, PAD_R = 24, PAD_B = 44, PAD_T = 28;
 const MAX_PCT = 130;
 
-function barColor(prod) {
+function barColor(prod, mode, color) {
+  if (mode === 'value') return { a: color, b: color, glow: color };
   if (prod >= 100) return { a: '#4ade80', b: '#16a34a', glow: '#22c55e' };
   if (prod >= 85)  return { a: '#fcd34d', b: '#ca8a04', glow: '#eab308' };
   if (prod >= 70)  return { a: '#fb923c', b: '#c2410c', glow: '#f97316' };
@@ -21,9 +22,14 @@ function smoothLine(pts) {
   return d;
 }
 
-/** SVG bar chart. data = [{name, prod}] or [{label, value}]. onBarClick(item, index) fires on click. */
-export default function BarChart({ data = [], height = 220, showLine = false, title = '', onBarClick }) {
+/**
+ * SVG bar chart. data = [{name, prod}] or [{label, value}]. onBarClick(item, index) fires on click.
+ * mode='percent' (default) keeps the 0-130% productivity scale with a 100% target line.
+ * mode='value' switches to a dynamic scale for raw numbers (e.g. call counts), single-color bars, no target line.
+ */
+export default function BarChart({ data = [], height = 220, showLine = false, title = '', onBarClick, mode = 'percent', color = 'var(--accent)', suffix }) {
   const [hov, setHov] = useState(-1);
+  const sfx = suffix ?? (mode === 'percent' ? '%' : '');
 
   const items = data.map(d => ({
     ...d,
@@ -37,11 +43,17 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
     </div>
   );
 
+  const scaleMax = mode === 'value'
+    ? Math.max(...items.map(d => d.prod), 1) * 1.2
+    : MAX_PCT;
+
   const totalW = Math.max(items.length * (BAR_W + GAP) + PAD_L + PAD_R + GAP, 340);
   const plotH  = height - PAD_B - PAD_T;
-  const yOf    = v => PAD_T + plotH - Math.max(0, (Math.min(v, MAX_PCT) / MAX_PCT) * plotH);
+  const yOf    = v => PAD_T + plotH - Math.max(0, (Math.min(v, scaleMax) / scaleMax) * plotH);
 
-  const GRID = [0, 25, 50, 75, 100];
+  const GRID = mode === 'value'
+    ? [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(scaleMax * f))
+    : [0, 25, 50, 75, 100];
   const avg  = items.reduce((s, d) => s + d.prod, 0) / items.length;
 
   return (
@@ -54,7 +66,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
       >
         <defs>
           {items.map((d, i) => {
-            const c = barColor(d.prod);
+            const c = barColor(d.prod, mode, color);
             return (
               <linearGradient key={i} id={`bc-bar-${i}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   stopColor={c.a} stopOpacity="1" />
@@ -81,7 +93,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
         {/* Grid lines */}
         {GRID.map(pct => {
           const y = yOf(pct);
-          const is100 = pct === 100;
+          const is100 = mode === 'percent' && pct === 100;
           return (
             <g key={pct}>
               <line x1={PAD_L} y1={y} x2={totalW - PAD_R} y2={y}
@@ -92,15 +104,17 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
               />
               <text x={PAD_L - 7} y={y + 4} textAnchor="end" fontSize="10"
                 fill="var(--text-muted)" fontWeight="500" opacity="0.85">
-                {pct}%
+                {pct}{sfx}
               </text>
             </g>
           );
         })}
 
         {/* Target label */}
-        <text x={totalW - PAD_R + 4} y={yOf(100) + 4} fontSize="9"
-          fill="#ef4444" opacity="0.75" fontWeight="700">Target</text>
+        {mode === 'percent' && (
+          <text x={totalW - PAD_R + 4} y={yOf(100) + 4} fontSize="9"
+            fill="#ef4444" opacity="0.75" fontWeight="700">Target</text>
+        )}
 
         {/* Average line */}
         {items.length > 1 && (
@@ -109,7 +123,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
               stroke="url(#bc-avg)" strokeWidth="1.2" strokeDasharray="3,3" />
             <text x={PAD_L + 4} y={yOf(avg) - 4} fontSize="9"
               fill="var(--accent)" opacity="0.8" fontWeight="600">
-              Avg {Math.round(avg)}%
+              Avg {Math.round(avg)}{sfx}
             </text>
           </g>
         )}
@@ -122,10 +136,10 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
 
         {/* Bars */}
         {items.map((d, i) => {
-          const barH = Math.max((Math.min(d.prod, MAX_PCT) / MAX_PCT) * plotH, 2);
+          const barH = Math.max((Math.min(d.prod, scaleMax) / scaleMax) * plotH, 2);
           const x    = PAD_L + GAP + i * (BAR_W + GAP);
           const y    = PAD_T + plotH - barH;
-          const c    = barColor(d.prod);
+          const c    = barColor(d.prod, mode, color);
           const isH  = hov === i;
           const dim  = hov >= 0 && !isH;
 
@@ -168,7 +182,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
                   fontSize={isH ? '12' : '10'} fontWeight="700"
                   fill={isH ? c.a : 'var(--text-muted)'}
                   style={{ transition: 'font-size 0.1s' }}>
-                  {Math.round(d.prod)}%
+                  {Math.round(d.prod)}{sfx}
                 </text>
               )}
               {/* X label */}
@@ -194,7 +208,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
                     <text x={ttX + ttW / 2} y={ttY + 17} textAnchor="middle"
                       fontSize="10" fontWeight="600" fill="var(--text-muted)">{d.name}</text>
                     <text x={ttX + ttW / 2} y={ttY + 36} textAnchor="middle"
-                      fontSize="15" fontWeight="800" fill={c.a}>{Math.round(d.prod)}%</text>
+                      fontSize="15" fontWeight="800" fill={c.a}>{Math.round(d.prod)}{sfx}</text>
                   </g>
                 );
               })()}
