@@ -139,12 +139,12 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
             fill="#ef4444" opacity="0.75" fontWeight="700">Target</text>
         )}
 
-        {/* Average dashed line */}
+        {/* Average dashed line — label pinned top-left so it never collides with the X-axis labels when the average sits low */}
         {avgV > 0 && (
           <g>
             <line x1={PAD_L} y1={yOf(avgV)} x2={VB_W - PAD_R} y2={yOf(avgV)}
               stroke={color} strokeWidth="1" strokeDasharray="3,4" strokeOpacity="0.4" />
-            <text x={PAD_L + 4} y={yOf(avgV) - 4} fontSize="9"
+            <text x={PAD_L + 4} y={PAD_T + 10} fontSize="9"
               fill={color} opacity="0.75" fontWeight="600">
               Avg {Math.round(avgV)}{sfx}
             </text>

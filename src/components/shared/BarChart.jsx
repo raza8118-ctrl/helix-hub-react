@@ -144,12 +144,12 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
             fill="#ef4444" opacity="0.75" fontWeight="700">Target</text>
         )}
 
-        {/* Average line */}
+        {/* Average line — label pinned top-left so it never collides with the X-axis labels when the average sits low */}
         {items.length > 1 && (
           <g>
             <line x1={PAD_L} y1={yOf(avg)} x2={totalW - PAD_R} y2={yOf(avg)}
               stroke="url(#bc-avg)" strokeWidth="1.2" strokeDasharray="3,3" />
-            <text x={PAD_L + 4} y={yOf(avg) - 4} fontSize="9"
+            <text x={PAD_L + 4} y={PAD_T + 10} fontSize="9"
               fill="var(--accent)" opacity="0.8" fontWeight="600">
               Avg {Math.round(avg)}{sfx}
             </text>
