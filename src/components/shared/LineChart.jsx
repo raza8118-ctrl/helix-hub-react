@@ -1,7 +1,25 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 
 const PAD_L = 50, PAD_R = 28, PAD_B = 34, PAD_T = 28;
-const VB_W  = 520;
+const MIN_VB_W = 340;
+
+/** Tracks an element's rendered content width so charts can size to real pixels (no distorting SVG stretch). */
+function useContainerWidth() {
+  const ref = useRef(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect?.width;
+      if (w) setWidth(w);
+    });
+    ro.observe(el);
+    setWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width];
+}
 
 function smoothPath(pts) {
   if (!pts.length) return '';
@@ -21,6 +39,7 @@ function smoothPath(pts) {
  */
 export default function LineChart({ data = [], height = 200, color = 'var(--accent)', label = '', title = '', onPointClick, mode = 'percent', suffix }) {
   const [hov, setHov] = useState(-1);
+  const [wrapRef, measuredW] = useContainerWidth();
   const sfx = suffix ?? (mode === 'percent' ? '%' : '');
 
   const items = data.map(d => ({
@@ -35,6 +54,8 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
     </div>
   );
 
+  // Fill the real measured container width 1:1 (no viewBox stretching, which would distort text/strokes).
+  const VB_W  = Math.max(measuredW || 0, MIN_VB_W);
   const plotH = height - PAD_B - PAD_T;
   const plotW = VB_W - PAD_L - PAD_R;
   const maxV  = mode === 'value'
@@ -56,10 +77,9 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
   const avgV   = items.reduce((s, d) => s + d.v, 0) / items.length;
 
   return (
-    <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
+    <div ref={wrapRef} style={{ overflowX: 'auto', overflowY: 'visible' }}>
       <svg
-        width="100%" height={height} viewBox={`0 0 ${VB_W} ${height}`}
-        preserveAspectRatio="none"
+        width={VB_W} height={height} viewBox={`0 0 ${VB_W} ${height}`}
         style={{ display: 'block', overflow: 'visible', fontFamily: 'inherit' }}
         onMouseLeave={() => setHov(-1)}
       >

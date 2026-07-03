@@ -1,7 +1,25 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 
 const BAR_W = 46, GAP = 12, PAD_L = 50, PAD_R = 24, PAD_B = 44, PAD_T = 28;
 const MAX_PCT = 130;
+
+/** Tracks an element's rendered content width so charts can size to real pixels (no distorting SVG stretch). */
+function useContainerWidth() {
+  const ref = useRef(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect?.width;
+      if (w) setWidth(w);
+    });
+    ro.observe(el);
+    setWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width];
+}
 
 function barColor(prod, mode, color) {
   if (mode === 'value') return { a: color, b: color, glow: color };
@@ -29,6 +47,7 @@ function smoothLine(pts) {
  */
 export default function BarChart({ data = [], height = 220, showLine = false, title = '', onBarClick, mode = 'percent', color = 'var(--accent)', suffix }) {
   const [hov, setHov] = useState(-1);
+  const [wrapRef, measuredW] = useContainerWidth();
   const sfx = suffix ?? (mode === 'percent' ? '%' : '');
 
   const items = data.map(d => ({
@@ -47,9 +66,18 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
     ? Math.max(...items.map(d => d.prod), 1) * 1.2
     : MAX_PCT;
 
-  const totalW = Math.max(items.length * (BAR_W + GAP) + PAD_L + PAD_R + GAP, 340);
+  // Fill the real measured container width 1:1 (no viewBox stretching, which would distort text/strokes);
+  // fall back to a per-bar minimum so charts with many bars still scroll instead of over-compressing.
+  const minW   = items.length * (BAR_W + GAP) + PAD_L + PAD_R + GAP;
+  const totalW = Math.max(measuredW || 0, minW, 340);
   const plotH  = height - PAD_B - PAD_T;
   const yOf    = v => PAD_T + plotH - Math.max(0, (Math.min(v, scaleMax) / scaleMax) * plotH);
+
+  // Distribute any extra room (beyond the comfortable minimum) into wider bars/gaps —
+  // real layout math instead of SVG viewBox stretching, so text/strokes never distort.
+  const slot = (totalW - PAD_L - PAD_R) / items.length;
+  const gap  = Math.min(Math.max(slot * 0.25, GAP), 40);
+  const barW = Math.min(Math.max(slot - gap, 24), 70);
 
   const GRID = mode === 'value'
     ? [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(scaleMax * f))
@@ -57,11 +85,10 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
   const avg  = items.reduce((s, d) => s + d.prod, 0) / items.length;
 
   return (
-    <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
+    <div ref={wrapRef} style={{ overflowX: 'auto', overflowY: 'visible' }}>
       <svg
-        width="100%" height={height}
+        width={totalW} height={height}
         viewBox={`0 0 ${totalW} ${height}`}
-        preserveAspectRatio="none"
         style={{ display: 'block', overflow: 'visible', fontFamily: 'inherit' }}
         onMouseLeave={() => setHov(-1)}
       >
@@ -138,7 +165,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
         {/* Bars */}
         {items.map((d, i) => {
           const barH = Math.max((Math.min(d.prod, scaleMax) / scaleMax) * plotH, 2);
-          const x    = PAD_L + GAP + i * (BAR_W + GAP);
+          const x    = PAD_L + gap + i * (barW + gap);
           const y    = PAD_T + plotH - barH;
           const c    = barColor(d.prod, mode, color);
           const isH  = hov === i;
@@ -150,23 +177,23 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
               style={{ cursor: onBarClick ? 'pointer' : 'default' }}>
               {/* Column hover bg */}
               {isH && (
-                <rect x={x - 4} y={PAD_T} width={BAR_W + 8} height={plotH}
+                <rect x={x - 4} y={PAD_T} width={barW + 8} height={plotH}
                   fill={c.glow} fillOpacity="0.09" rx="5" />
               )}
               {/* Glow under bar */}
               {isH && (
-                <ellipse cx={x + BAR_W / 2} cy={PAD_T + plotH - 3} rx={BAR_W / 2 + 2} ry={5}
+                <ellipse cx={x + barW / 2} cy={PAD_T + plotH - 3} rx={barW / 2 + 2} ry={5}
                   fill={c.glow} fillOpacity="0.35" />
               )}
               {/* Bar body */}
-              <rect x={x} y={y} width={BAR_W} height={barH}
+              <rect x={x} y={y} width={barW} height={barH}
                 fill={`url(#bc-bar-${i})`} rx="5" ry="5"
                 opacity={dim ? 0.45 : 1}
                 style={{ transition: 'opacity 0.15s' }}
               />
               {/* Flat bottom to cancel rounded corners at base */}
               {barH > 10 && (
-                <rect x={x} y={y + barH - 6} width={BAR_W} height={6}
+                <rect x={x} y={y + barH - 6} width={barW} height={6}
                   fill={`url(#bc-bar-${i})`}
                   opacity={dim ? 0.45 : 1}
                   style={{ transition: 'opacity 0.15s' }}
@@ -179,7 +206,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
               )}
               {/* Value label */}
               {d.prod > 0 && (
-                <text x={x + BAR_W / 2} y={Math.max(y - 6, PAD_T + 10)} textAnchor="middle"
+                <text x={x + barW / 2} y={Math.max(y - 6, PAD_T + 10)} textAnchor="middle"
                   fontSize={isH ? '12' : '10'} fontWeight="700"
                   fill={isH ? c.a : 'var(--text-muted)'}
                   style={{ transition: 'font-size 0.1s' }}>
@@ -187,19 +214,19 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
                 </text>
               )}
               {/* X label */}
-              <text x={x + BAR_W / 2} y={PAD_T + plotH + 18} textAnchor="middle"
+              <text x={x + barW / 2} y={PAD_T + plotH + 18} textAnchor="middle"
                 fontSize="9.5" fontWeight={isH ? '700' : '400'}
                 fill={isH ? 'var(--text)' : 'var(--text-muted)'}>
                 {d.name.length > 8 ? d.name.slice(0, 7) + '…' : d.name}
               </text>
               {/* Tick mark */}
-              <line x1={x + BAR_W / 2} y1={PAD_T + plotH} x2={x + BAR_W / 2} y2={PAD_T + plotH + 5}
+              <line x1={x + barW / 2} y1={PAD_T + plotH} x2={x + barW / 2} y2={PAD_T + plotH + 5}
                 stroke="var(--border)" strokeWidth="1" opacity="0.5" />
 
               {/* SVG tooltip */}
               {isH && (() => {
                 const ttW = 90, ttH = 48;
-                const ttX = Math.min(Math.max(x + BAR_W / 2 - ttW / 2, PAD_L), totalW - PAD_R - ttW);
+                const ttX = Math.min(Math.max(x + barW / 2 - ttW / 2, PAD_L), totalW - PAD_R - ttW);
                 const ttY = Math.max(y - ttH - 10, 2);
                 return (
                   <g style={{ pointerEvents: 'none' }}>
@@ -220,7 +247,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
         {/* Line overlay */}
         {showLine && items.length > 1 && (() => {
           const pts = items.map((d, i) => [
-            PAD_L + GAP + i * (BAR_W + GAP) + BAR_W / 2,
+            PAD_L + gap + i * (barW + gap) + barW / 2,
             yOf(d.prod),
           ]);
           const d = smoothLine(pts);
