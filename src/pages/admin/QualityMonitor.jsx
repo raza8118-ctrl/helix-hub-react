@@ -119,7 +119,8 @@ export default function QualityMonitor({ user }) {
   const totalPending = useMemo(() => {
     let count = 0;
     for (const e of employees) {
-      if (qualitySkipProcs.has(e.access || e.process)) continue;
+      const eProcs = (e.processes?.length ? e.processes : [e.access || e.process]).filter(Boolean);
+      if (eProcs.length > 0 && eProcs.every(p => qualitySkipProcs.has(p))) continue;
       for (const d of dates) {
         const log = logMap[`${e.emp_id}__${d}`];
         if (log && !isOnLeave(log) && !log.quality_bypass_reason && log.quality == null) count++;
@@ -234,7 +235,8 @@ export default function QualityMonitor({ user }) {
               )}
               {employees.map(emp => {
                 const avg_ = empAvg(emp);
-                const skipQuality = qualitySkipProcs.has(emp.access || emp.process);
+                const empProcs = (emp.processes?.length ? emp.processes : [emp.access || emp.process]).filter(Boolean);
+                const skipQuality = empProcs.length > 0 && empProcs.every(p => qualitySkipProcs.has(p));
                 return (
                   <tr key={emp.emp_id}>
                     <td className="bold" style={{ position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1 }}>
@@ -272,8 +274,15 @@ export default function QualityMonitor({ user }) {
                           </td>
                         );
                       }
+                      if (skipQuality) {
+                        return (
+                          <td key={d} className="center" style={{ fontSize: 12 }}>
+                            {hasLog ? <span className="bold col-green" style={{ fontSize: 13 }}>100%</span> : <span className="text-muted">—</span>}
+                          </td>
+                        );
+                      }
                       const qualityBypassed = !!log?.quality_bypass_reason;
-                      if (!hasLog || skipQuality || qualityBypassed) {
+                      if (!hasLog || qualityBypassed) {
                         return <td key={d} className="center text-muted" style={{ fontSize: 12 }}>—</td>;
                       }
                       // Has log — show quality or pending

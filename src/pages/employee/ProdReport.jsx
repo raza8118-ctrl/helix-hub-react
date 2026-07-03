@@ -97,6 +97,16 @@ export default function ProdReport({ user }) {
   const [callHours, setCallHours]           = useState('');
   const [callType, setCallType]             = useState('Insurance Call');
   const [callNotes, setCallNotes]           = useState('');
+  const [qualitySkipProcs, setQualitySkipProcs] = useState([]);
+
+  // ── Load quality-skip process list (admin-toggled in Team Management) ────
+  useEffect(() => {
+    kv.get('quality_skip_procs').then(list => setQualitySkipProcs(list ?? [])).catch(() => {});
+  }, []);
+
+  // Every process this user works is skip-listed → no manual quality entry, always 100%
+  const isSkipQuality = userProcs.length > 0 && userProcs.every(p => qualitySkipProcs.includes(p));
+  const effectiveQuality = isSkipQuality ? 100 : (qualityNA ? null : (parseFloat(quality) || null));
 
   // ── Derived flags ────────────────────────────────────────────────────────
   const overallTarget = effectiveTarget(user, date);
@@ -355,7 +365,7 @@ export default function ProdReport({ user }) {
         attendance_status: attendanceStatus,
         leave_type:       null,
         legacy_auth_calc: isLegacyAuth,
-        quality:          qualityNA ? null : (parseFloat(quality) || null),
+        quality:          effectiveQuality,
         tasks:            taskPayload,
         remarks:          remarks.trim() || null,
         bypass_reason:    actionPlan.trim() || null,
@@ -384,7 +394,7 @@ export default function ProdReport({ user }) {
 
   function exportReport() {
     const headers = ['Date', 'Process', 'Attendance', 'Total', 'Adj Target', 'Prod%', 'Deficit', 'Downtime', 'Quality', 'Remarks'];
-    const rows = [{ Date: date, Process: userProcs.join(','), Attendance: attendanceStatus, Total: displayTotal, 'Adj Target': adjTarget, 'Prod%': prodPct != null ? prodPct + '%' : 'N/A', Deficit: deficit, Downtime: dt || 0, Quality: qualityNA ? 'N/A' : (quality || '—'), Remarks: remarks }];
+    const rows = [{ Date: date, Process: userProcs.join(','), Attendance: attendanceStatus, Total: displayTotal, 'Adj Target': adjTarget, 'Prod%': prodPct != null ? prodPct + '%' : 'N/A', Deficit: deficit, Downtime: dt || 0, Quality: effectiveQuality != null ? effectiveQuality : '—', Remarks: remarks }];
     dlCSV(headers, rows, `report-${user.emp_id}-${date}.csv`);
   }
 
@@ -734,25 +744,36 @@ export default function ProdReport({ user }) {
 
             <div className="card">
               <div className="card-title" style={{ marginBottom: 8 }}>⭐ Quality Entry</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Date (which day's quality)</label>
-                  <input type="date" value={qualityDate} onChange={e => setQualityDate(e.target.value)}
-                    style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12, width: '100%', outline: 'none' }} />
+              {isSkipQuality ? (
+                <div style={{
+                  padding: '10px 14px', marginBottom: 12, borderRadius: 8, fontSize: 13,
+                  background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981',
+                }}>
+                  ✓ Quality isn't tracked for {userProcs.join(' + ')} — automatically recorded as <strong>100%</strong>.
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    {isOnlyAuth ? 'Quality % (default 100)' : 'Quality %'}
-                  </label>
-                  <input type="number" min="0" max="100" step="0.1" value={quality} onChange={e => setQuality(e.target.value)}
-                    placeholder={isOnlyAuth ? '100' : 'e.g. 96.5'}
-                    style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 15, fontWeight: 700, width: '100%', outline: 'none' }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <input type="checkbox" id="qa-na" checked={qualityNA} onChange={e => setQualityNA(e.target.checked)} style={{ width: 'auto' }} />
-                <label htmlFor="qa-na" style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer', marginBottom: 0 }}>Mark as NA / Not completed today</label>
-              </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Date (which day's quality)</label>
+                      <input type="date" value={qualityDate} onChange={e => setQualityDate(e.target.value)}
+                        style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12, width: '100%', outline: 'none' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                        {isOnlyAuth ? 'Quality % (default 100)' : 'Quality %'}
+                      </label>
+                      <input type="number" min="0" max="100" step="0.1" value={quality} onChange={e => setQuality(e.target.value)}
+                        placeholder={isOnlyAuth ? '100' : 'e.g. 96.5'}
+                        style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 15, fontWeight: 700, width: '100%', outline: 'none' }} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <input type="checkbox" id="qa-na" checked={qualityNA} onChange={e => setQualityNA(e.target.checked)} style={{ width: 'auto' }} />
+                    <label htmlFor="qa-na" style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer', marginBottom: 0 }}>Mark as NA / Not completed today</label>
+                  </div>
+                </>
+              )}
               <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>💬 Action Plan</label>
               <textarea rows={3} value={actionPlan} onChange={e => setActionPlan(e.target.value)}
                 placeholder="e.g. Will cover deficit by EOW…"
