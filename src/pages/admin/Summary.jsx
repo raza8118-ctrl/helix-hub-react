@@ -53,6 +53,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
   const {
     kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
     callsBarData, callHoursLineData, kpiTotalCalls, kpiTotalCallHours,
+    qualityBarData, qualityLineData,
   } = useMemo(() => {
     const holidayDates = new Set((holidays ?? []).map(h => h.date));
     const activeDays   = workDays.filter(d => !holidayDates.has(d));
@@ -91,6 +92,13 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
 
     const lineData = barData.map(d => ({ name: d.name, v: d.prod, date: d.date }));
 
+    const qualityBarData = activeDays.map(d => {
+      const dl = filteredLogs.filter(l => l.date === d);
+      const dq = dl.map(l => l.quality).filter(v => v != null);
+      return { name: fmtSh(d), prod: avg(dq) != null ? Math.round(avg(dq)) : 0, date: d };
+    });
+    const qualityLineData = qualityBarData.map(d => ({ name: d.name, v: d.prod, date: d.date }));
+
     const callsBarData = activeDays.map(d => {
       const dl = filteredLogs.filter(l => l.date === d);
       return { name: fmtSh(d), prod: dl.reduce((s, l) => s + (l.calls ?? 0), 0), date: d };
@@ -118,6 +126,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
     return {
       activeDays, filteredUsers, kpiDays, kpiAgents, kpiAvgProd, kpiAvgQ, kpiTotal, barData, lineData, rankings,
       callsBarData, callHoursLineData, kpiTotalCalls, kpiTotalCallHours,
+      qualityBarData, qualityLineData,
     };
   }, [holidays, workDays, allUsers, user, customProcs, filterProc, agentId, statusFilter, logs]);
 
@@ -247,7 +256,7 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       </div>
 
       {/* KPI cards */}
-      <div className="mb-16" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 16 }}>
+      <div className="mb-16" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
         {[
           {
             icon: '📅', label: 'Working Days', value: kpiDays,
@@ -274,6 +283,10 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
           {
             icon: '📦', label: 'Total Claims', value: kpiTotal.toLocaleString(),
             sub: 'volume processed', accent: 'var(--warning)',
+          },
+          {
+            icon: '📞', label: 'Total Calls', value: kpiTotalCalls.toLocaleString(),
+            sub: `${kpiTotalCallHours.toFixed(1)} hrs on calls`, accent: '#0284c7',
           },
         ].map(({ icon, label, value, sub, valueCol, bar, accent }) => (
           <div key={label} className="stat-card" style={{ borderTop: `3px solid ${accent}`, position: 'relative', overflow: 'hidden' }}>
@@ -335,6 +348,52 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
             {loading
               ? <div className="loading-row"><div className="spinner" /></div>
               : <LineChart data={lineData} height={180} onPointClick={openDayDetail} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Quality charts */}
+      <div className="grid-2 mb-16">
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
+            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>⭐ Daily Avg Quality</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Per-day team average · {qualityBarData.length} days</div>
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+              background: 'var(--accent)', color: '#fff', opacity: 0.85,
+            }}>Click bar for details</span>
+          </div>
+          <div style={{ padding: '12px 8px 4px' }}>
+            {loading
+              ? <div className="loading-row"><div className="spinner" /></div>
+              : <BarChart data={qualityBarData} height={180} onBarClick={openDayDetail} />}
+          </div>
+        </div>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            padding: '14px 18px 10px', borderBottom: '1px solid var(--border)',
+            background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>📈 Quality Trend</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Rolling avg over {periodLabel}</div>
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+              background: 'var(--accent)', color: '#fff', opacity: 0.85,
+            }}>Click point for details</span>
+          </div>
+          <div style={{ padding: '12px 8px 4px' }}>
+            {loading
+              ? <div className="loading-row"><div className="spinner" /></div>
+              : <LineChart data={qualityLineData} height={180} onPointClick={openDayDetail} />}
           </div>
         </div>
       </div>
