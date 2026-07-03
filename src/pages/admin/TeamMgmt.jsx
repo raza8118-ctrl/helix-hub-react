@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { ACCESSES, DEFAULT_PROJECT } from '../../lib/constants';
+import { DEFAULT_PROJECT } from '../../lib/constants';
 import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -49,22 +49,34 @@ function SortableRow({ u, children }) {
   );
 }
 
-function MultiCheck({ label, options, selected, onChange }) {
+function MultiCheck({ label, options, groups, selected, onChange }) {
+  const renderOpt = opt => (
+    <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, cursor: 'pointer' }}>
+      <input
+        type="checkbox"
+        checked={selected.includes(opt)}
+        onChange={e => onChange(e.target.checked ? [...selected, opt] : selected.filter(s => s !== opt))}
+      />
+      {opt}
+    </label>
+  );
   return (
     <div className="field">
       <label>{label}</label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
-        {options.map(opt => (
-          <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={selected.includes(opt)}
-              onChange={e => onChange(e.target.checked ? [...selected, opt] : selected.filter(s => s !== opt))}
-            />
-            {opt}
-          </label>
-        ))}
-      </div>
+      {groups ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+          {groups.filter(([, opts]) => opts.length > 0).map(([proj, opts]) => (
+            <div key={proj}>
+              <div className="text-sm text-muted" style={{ marginBottom: 3 }}>{proj}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>{opts.map(renderOpt)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+          {options.map(renderOpt)}
+        </div>
+      )}
     </div>
   );
 }
@@ -74,6 +86,7 @@ export default function TeamMgmt({ user }) {
   const [resetReqs, setResetReqs]     = useState([]);
   const [customProcs, setCustomProcs] = useState([]);
   const [search, setSearch]           = useState('');
+  const [clientFilter, setClientFilter] = useState('ALL');
   const [procFilter, setProcFilter]   = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('active');
   const [loading, setLoading]         = useState(false);
@@ -118,17 +131,21 @@ export default function TeamMgmt({ user }) {
   const allProjects  = [DEFAULT_PROJECT, ...new Set(customProcs.map(p => p.project).filter(p => p && p !== DEFAULT_PROJECT))];
   const procsByProject = Object.fromEntries(allProjects.map(proj => [proj, subProcessesOf(proj, customProcs)]));
   const allProcs     = Object.values(procsByProject).flat();
+  const projectOfProc = Object.fromEntries(allProjects.flatMap(proj => procsByProject[proj].map(p => [p, proj])));
   const supervisors  = allUsers.filter(u => u.role === 'supervisor' || u.role === 'manager' || u.role === 'admin');
   const pendingResets = (resetReqs ?? []).filter(r => r.status === 'pending');
 
   const displayUsers = allUsers.filter(u => {
     const q      = search.toLowerCase();
     const nameOk = !q || (u.name ?? '').toLowerCase().includes(q) || (u.emp_id ?? '').toLowerCase().includes(q);
+    const userProcFields = [u.access, u.process, ...(u.processes ?? [])];
+    const clientOk = clientFilter === 'ALL' ||
+      userProcFields.some(p => p === 'ALL' || (p && projectOfProc[p] === clientFilter));
     const procOk = procFilter === 'ALL' || u.access === procFilter || u.access === 'ALL' ||
       u.process === procFilter || u.process === 'ALL' || (u.processes ?? []).includes(procFilter);
     const statusOk = statusFilter === 'all' ||
       (statusFilter === 'active' ? u.active !== false : u.active === false);
-    return nameOk && procOk && statusOk;
+    return nameOk && clientOk && procOk && statusOk;
   });
 
   const groupedUsers = (() => {
@@ -149,6 +166,12 @@ export default function TeamMgmt({ user }) {
       return [key, sorted];
     });
   })();
+
+  // Nest sub-process groups under their client/project so the list stays organized as clients grow
+  const groupedByProject = [
+    ...allProjects.map(proj => [proj, groupedUsers.filter(([key]) => projectOfProc[key] === proj)]),
+    ['Unassigned', groupedUsers.filter(([key]) => !projectOfProc[key])],
+  ].filter(([, subs]) => subs.length > 0);
 
   function handleDragEnd(groupKey, event) {
     const { active, over } = event;
@@ -349,16 +372,23 @@ export default function TeamMgmt({ user }) {
           <div className="text-sm text-muted" style={{ marginBottom: 8 }}>
             Processes checked below will not show "Pending" in Quality Monitor — they are not subject to quality review.
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {allProcs.map(proc => (
-              <label key={proc} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={qualitySkipProcs.has(proc)}
-                  onChange={() => toggleQualitySkip(proc)}
-                />
-                {proc}
-              </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {allProjects.map(proj => (
+              <div key={proj}>
+                <div className="text-sm text-muted" style={{ marginBottom: 3 }}>{proj}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {procsByProject[proj].map(proc => (
+                    <label key={proc} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={qualitySkipProcs.has(proc)}
+                        onChange={() => toggleQualitySkip(proc)}
+                      />
+                      {proc}
+                    </label>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -371,9 +401,13 @@ export default function TeamMgmt({ user }) {
           <div className="row" style={{ gap: 8 }}>
             <input type="text" placeholder="Search name / ID…" value={search}
               onChange={e => setSearch(e.target.value)} style={{ maxWidth: 180 }} />
-            <select value={procFilter} onChange={e => setProcFilter(e.target.value)} style={{ maxWidth: 140 }}>
-              <option value="ALL">All Processes</option>
-              {allProcs.map(p => <option key={p}>{p}</option>)}
+            <select value={clientFilter} onChange={e => { setClientFilter(e.target.value); setProcFilter('ALL'); }} style={{ maxWidth: 140 }}>
+              <option value="ALL">All Clients</option>
+              {allProjects.map(p => <option key={p}>{p}</option>)}
+            </select>
+            <select value={procFilter} onChange={e => setProcFilter(e.target.value)} style={{ maxWidth: 150 }}>
+              <option value="ALL">All Sub-Processes</option>
+              {(clientFilter === 'ALL' ? allProcs : procsByProject[clientFilter] ?? []).map(p => <option key={p}>{p}</option>)}
             </select>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
               <option value="active">Active</option>
@@ -383,65 +417,78 @@ export default function TeamMgmt({ user }) {
           </div>
         </div>
         {loading && <div style={{ textAlign: 'center', padding: 24 }}>Loading…</div>}
-        {!loading && groupedUsers.length === 0 && (
+        {!loading && groupedByProject.length === 0 && (
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No users found</div>
         )}
-        {!loading && groupedUsers.map(([groupKey, users]) => (
-          <div key={groupKey} style={{ marginBottom: 18 }}>
-            <div className="text-sm bold text-muted" style={{ margin: '10px 0 4px' }}>{groupKey}</div>
-            <div className="table-wrap">
-              <DndContext sensors={dndSensors} onDragEnd={e => handleDragEnd(groupKey, e)}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Emp ID</th>
-                      <th>Name</th>
-                      <th>Role</th>
-                      <th>Process</th>
-                      <th className="right">Target</th>
-                      <th className="center">Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <SortableContext items={users.map(u => u.emp_id)} strategy={verticalListSortingStrategy}>
-                      {users.map(u => (
-                        <SortableRow key={u.emp_id} u={u}>
-                          <td className="bold text-sm">{u.emp_id}</td>
-                          <td>{u.name ?? '—'}</td>
-                          <td>
-                            <span className={`badge ${u.role === 'admin' ? 'badge-blue' : u.role === 'manager' ? 'badge-purple' : u.role === 'supervisor' ? 'badge-yellow' : 'badge-gray'}`}>
-                              {u.role}
-                            </span>
-                          </td>
-                          <td>{u.access || u.process || '—'}</td>
-                          <td className="right">{u.target ?? '—'}</td>
-                          <td className="center">
-                            <div className="row" style={{ gap: 4, justifyContent: 'center' }}>
-                              <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
-                                {u.active !== false ? 'Active' : 'Disabled'}
-                              </span>
-                              {rampWeek(u) && <span className="badge badge-yellow">Ramp Wk {rampWeek(u).week}/{rampWeek(u).total}</span>}
-                            </div>
-                          </td>
-                          <td>
-                            <div className="row" style={{ gap: 4 }}>
-                              <button className="btn-sm" onClick={() => openEdit(u)}>Edit</button>
-                              <button className="btn-sm"
-                                style={{ color: u.active !== false ? 'var(--danger)' : 'var(--success)' }}
-                                onClick={() => toggleActive(u)}>
-                                {u.active !== false ? 'Disable' : 'Enable'}
-                              </button>
-                            </div>
-                          </td>
-                        </SortableRow>
-                      ))}
-                    </SortableContext>
-                  </tbody>
-                </table>
-              </DndContext>
+        {!loading && groupedByProject.map(([proj, subGroups]) => (
+          <div key={proj} style={{ marginBottom: 22 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0 6px',
+              borderBottom: '2px solid var(--border)', marginBottom: 4,
+            }}>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>{proj === 'Unassigned' ? '⚠️' : '🏢'} {proj}</span>
+              <span className="badge badge-blue">
+                {subGroups.reduce((s, [, us]) => s + us.length, 0)} user{subGroups.reduce((s, [, us]) => s + us.length, 0) !== 1 ? 's' : ''}
+              </span>
             </div>
+            {subGroups.map(([groupKey, users]) => (
+              <div key={groupKey} style={{ marginBottom: 18, marginLeft: 14 }}>
+                <div className="text-sm bold text-muted" style={{ margin: '10px 0 4px' }}>{groupKey}</div>
+                <div className="table-wrap">
+                  <DndContext sensors={dndSensors} onDragEnd={e => handleDragEnd(groupKey, e)}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Emp ID</th>
+                          <th>Name</th>
+                          <th>Role</th>
+                          <th>Process</th>
+                          <th className="right">Target</th>
+                          <th className="center">Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <SortableContext items={users.map(u => u.emp_id)} strategy={verticalListSortingStrategy}>
+                          {users.map(u => (
+                            <SortableRow key={u.emp_id} u={u}>
+                              <td className="bold text-sm">{u.emp_id}</td>
+                              <td>{u.name ?? '—'}</td>
+                              <td>
+                                <span className={`badge ${u.role === 'admin' ? 'badge-blue' : u.role === 'manager' ? 'badge-purple' : u.role === 'supervisor' ? 'badge-yellow' : 'badge-gray'}`}>
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td>{u.access || u.process || '—'}</td>
+                              <td className="right">{u.target ?? '—'}</td>
+                              <td className="center">
+                                <div className="row" style={{ gap: 4, justifyContent: 'center' }}>
+                                  <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
+                                    {u.active !== false ? 'Active' : 'Disabled'}
+                                  </span>
+                                  {rampWeek(u) && <span className="badge badge-yellow">Ramp Wk {rampWeek(u).week}/{rampWeek(u).total}</span>}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="row" style={{ gap: 4 }}>
+                                  <button className="btn-sm" onClick={() => openEdit(u)}>Edit</button>
+                                  <button className="btn-sm"
+                                    style={{ color: u.active !== false ? 'var(--danger)' : 'var(--success)' }}
+                                    onClick={() => toggleActive(u)}>
+                                    {u.active !== false ? 'Disable' : 'Enable'}
+                                  </button>
+                                </div>
+                              </td>
+                            </SortableRow>
+                          ))}
+                        </SortableContext>
+                      </tbody>
+                    </table>
+                  </DndContext>
+                </div>
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -473,7 +520,12 @@ export default function TeamMgmt({ user }) {
               <div className="field">
                 <label>Primary Access</label>
                 <select value={f.access} onChange={e => setF({ access: e.target.value })}>
-                  {ACCESSES.map(a => <option key={a}>{a}</option>)}
+                  {allProjects.map(proj => (
+                    <optgroup key={proj} label={proj}>
+                      {procsByProject[proj].map(p => <option key={p} value={p}>{p}</option>)}
+                    </optgroup>
+                  ))}
+                  <option value="ALL">ALL</option>
                 </select>
               </div>
               <div className="field">
@@ -510,7 +562,7 @@ export default function TeamMgmt({ user }) {
                 </div>
               )}
             </div>
-            <MultiCheck label="Permissions" options={allProcs} selected={f.processes}
+            <MultiCheck label="Permissions" groups={allProjects.map(p => [p, procsByProject[p]])} selected={f.processes}
               onChange={v => setF({ processes: v })} />
             {f.role === 'employee' && supervisors.length > 0 && (
               <MultiCheck
@@ -524,7 +576,7 @@ export default function TeamMgmt({ user }) {
               <>
                 <MultiCheck
                   label="Monitored Processes (auto-includes everyone on these processes)"
-                  options={allProcs}
+                  groups={allProjects.map(p => [p, procsByProject[p]])}
                   selected={f.supervised_processes}
                   onChange={v => setF({ supervised_processes: v })}
                 />
