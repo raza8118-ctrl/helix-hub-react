@@ -43,6 +43,26 @@ export const AUTH_HOURLY_TASKS = [
 
 export const ACCESSES = ['MCO', 'MCD', 'MCR', 'AUTH', 'ALL'];
 
+// ── Keka import ───────────────────────────────────────────────────────────────
+// Placeholders until real Keka export columns/rules are confirmed — Keka itself
+// may already flag these per-row, in which case these thresholds go unused.
+export const LATE_LOGIN_THRESHOLD = '09:15'; // shift start + grace period, 24h "HH:MM"
+export const BREAK_LIMIT_MINUTES = 30;
+
+// Column-mapping targets offered in the Keka import wizard (Dashboard.jsx).
+export const KEKA_TARGET_FIELDS = [
+  { id: 'emp_id',            label: 'Employee ID' },
+  { id: 'date',              label: 'Date' },
+  { id: 'attendance_status', label: 'Attendance Status' },
+  { id: 'leave_type',        label: 'Leave Type' },
+  { id: 'login_time',        label: 'Login Time' },
+  { id: 'logout_time',       label: 'Logout Time' },
+  { id: 'break_minutes',     label: 'Break Minutes' },
+  { id: 'late_login',        label: 'Late Login (Y/N)' },
+  { id: 'break_exceed',      label: 'Break Exceeded (Y/N)' },
+  { id: 'ignore',            label: 'Ignore' },
+];
+
 // The current (and so far only) project's sub-processes — implicitly under project 'PMB'.
 export const DEF_PROCS = ['MCO', 'MCD', 'MCR', 'AUTH'];
 export const DEFAULT_PROJECT = 'PMB';

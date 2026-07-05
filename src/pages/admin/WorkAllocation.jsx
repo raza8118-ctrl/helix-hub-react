@@ -1,38 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { S, kv } from '../../lib/supabase';
-
-async function parseExcel(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const wb = XLSX.read(e.target.result, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const all = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-        const scan = all.slice(0, 15);
-        let headerIdx = 0, maxCells = 0;
-        scan.forEach((row, i) => {
-          const cnt = row.filter(v => v !== '' && v !== null && v !== undefined).length;
-          if (cnt > maxCells) { maxCells = cnt; headerIdx = i; }
-        });
-        const headers = all[headerIdx].map(h => String(h ?? '').trim()).filter(Boolean);
-        const rows = all.slice(headerIdx + 1)
-          .filter(r => r.some(v => v !== '' && v !== null && v !== undefined))
-          .map(r => {
-            const obj = {};
-            headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
-            return obj;
-          });
-        resolve({ headers, rows });
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('File read error'));
-    reader.readAsArrayBuffer(file);
-  });
-}
+import { parseExcelFile } from '../../lib/helpers';
 
 // ── Column filter dropdown ────────────────────────────────────────────────────
 function ColFilter({ col, values, selected, onToggle, onSelectAll, onClear, sortDir, onSort, onClose }) {
@@ -161,7 +129,7 @@ export default function WorkAllocation({ user }) {
     setParsed(null); setFilters({}); setSort(null);
     setParsing(true);
     try {
-      const result = await parseExcel(f);
+      const result = await parseExcelFile(f);
       setParsed(result);
     } catch (err) {
       setError(`Parse error: ${err.message}`);

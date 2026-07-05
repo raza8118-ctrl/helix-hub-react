@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT, HOURLY_SLOTS_STD, HOURLY_SLOTS_DST } from './constants.js';
 import { kv, S } from './supabase.js';
 
@@ -386,6 +387,42 @@ export async function callAI(prompt, maxTokens = 1024, apiKey = null) {
   }
   const json = await res.json();
   return json.content?.[0]?.text ?? '';
+}
+
+// ── Excel/CSV import ──────────────────────────────────────────────────────────
+
+// Parses an uploaded .xlsx/.xls/.csv file, auto-detecting the header row by
+// scanning the first 15 rows for the one with the most non-empty cells.
+export function parseExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const all = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        const scan = all.slice(0, 15);
+        let headerIdx = 0, maxCells = 0;
+        scan.forEach((row, i) => {
+          const cnt = row.filter(v => v !== '' && v !== null && v !== undefined).length;
+          if (cnt > maxCells) { maxCells = cnt; headerIdx = i; }
+        });
+        const headers = all[headerIdx].map(h => String(h ?? '').trim()).filter(Boolean);
+        const rows = all.slice(headerIdx + 1)
+          .filter(r => r.some(v => v !== '' && v !== null && v !== undefined))
+          .map(r => {
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
+            return obj;
+          });
+        resolve({ headers, rows });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('File read error'));
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 // ── CSV export ────────────────────────────────────────────────────────────────

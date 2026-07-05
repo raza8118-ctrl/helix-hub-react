@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 
+const Dashboard      = lazy(() => import('./Dashboard'));
 const Today         = lazy(() => import('./Today'));
 const ProdMonitor    = lazy(() => import('./ProdMonitor'));
 const HourlyMonitor  = lazy(() => import('./HourlyMonitor'));
@@ -15,11 +16,12 @@ const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
 
 /**
  * Routes admin tabs to the correct page component.
- * Tab IDs: today | prodmonitor | hourlymon | weekly | monthly | feed |
+ * Tab IDs: dashboard | today | prodmonitor | hourlymon | weekly | monthly | feed |
  *          feedback | team | allocation | allocmon | feedmonitor | settings
  */
 export default function AdminApp({ activeTab, user }) {
   switch (activeTab) {
+    case 'dashboard':   return <Dashboard user={user} />;
     case 'today':       return <Today user={user} />;
     case 'prodmonitor': return <ProdMonitor user={user} />;
     case 'hourlymon':   return <HourlyMonitor user={user} />;
