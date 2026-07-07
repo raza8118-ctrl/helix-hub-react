@@ -288,9 +288,11 @@ export default function ProdMonitor({ user }) {
     return employees.map(u => {
       const log        = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
       const baseTarget = effectiveTarget(u, date);
-      const adjT       = log?.downtime != null
-        ? Math.round(baseTarget * ((SHIFT_H - log.downtime) / SHIFT_H))
-        : baseTarget;
+      const adjT       = log?.adj_target != null
+        ? log.adj_target
+        : (log?.downtime != null
+            ? Math.round(baseTarget * ((SHIFT_H - log.downtime) / SHIFT_H))
+            : baseTarget);
       const prod    = p(log?.total, adjT);
       const deficit = (!isOnLeave(log) && !log?.bypass_reason && adjT != null && log?.total != null)
         ? adjT - log.total
