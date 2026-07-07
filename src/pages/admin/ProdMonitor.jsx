@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
 import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave, calcProd } from '../../lib/helpers';
-import { ACCESSES, SHIFT_H, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
+import { ACCESSES, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 
@@ -288,11 +288,7 @@ export default function ProdMonitor({ user }) {
     return employees.map(u => {
       const log        = filteredLogs.find(l => l.emp_id === u.emp_id) ?? null;
       const baseTarget = effectiveTarget(u, date);
-      const adjT       = log?.adj_target != null
-        ? log.adj_target
-        : (log?.downtime != null
-            ? Math.round(baseTarget * ((SHIFT_H - log.downtime) / SHIFT_H))
-            : baseTarget);
+      const adjT       = log?.adj_target ?? log?.target ?? baseTarget;
       const prod    = p(log?.total, adjT);
       const deficit = (!isOnLeave(log) && !log?.bypass_reason && adjT != null && log?.total != null)
         ? adjT - log.total
