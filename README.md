@@ -1,9 +1,31 @@
 # Helix Hub
 
-RCM team performance portal. Each company gets **its own copy** of Helix Hub with its
-**own Supabase database**, so company data never mixes.
+RCM team performance portal. Users sign in in two steps: **company name** (or code), then
+**Employee ID + password**.
 
-## Setting up Helix Hub for a new company
+## Multiple companies in one installation
+
+The main admin (an `admin` user of the home company) can add companies from
+**Settings → Companies**. Each company gets its own copy of every table, named
+`co_<code>__<table>` (e.g. `co_acme__daily_logs`). Its users, task targets, processes,
+holidays, quality rules, reports, settings and AI key are completely separate, so
+productivity calculations never mix. The interface is identical for every company.
+
+**One-time setup:** open Supabase → SQL Editor, paste `supabase/multi_company_setup.sql`,
+and click Run. After that:
+
+1. **Settings → Companies → Add company**: enter a name, short code, and the first admin's
+   ID and password.
+2. That company's users sign in with the company name or code, then their own login.
+3. **After any Helix Hub update that adds tables or columns**, click **↻ Sync structure**
+   in the same card so every company gets them.
+
+> Separation is enforced by the app, not by database security rules. That's the same
+> trust level as before (the public API key can read any table, including plain-text
+> passwords). Before onboarding external paying clients, move to Supabase Auth with
+> row-level security.
+
+## Setting up a separate deployment for a company (alternative)
 
 1. Create a new Supabase project for the company (same `rcm` schema and tables as the
    existing one) and a new deployment of this repo.

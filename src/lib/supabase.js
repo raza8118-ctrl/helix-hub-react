@@ -6,10 +6,37 @@ export const supabase = createClient(
   { db: { schema: 'rcm' } }
 );
 
+// ── Active company ────────────────────────────────────────────────────────────
+// Every company has its own copy of each table. The home company uses the
+// original tables (prefix ''); others use prefixed copies, e.g. 'co_acme__users'.
+// Chosen at the login company step and kept per browser tab.
+const COMPANY_SESSION_KEY = 'hh_company';
+
+function readActiveCompany() {
+  try { return JSON.parse(sessionStorage.getItem(COMPANY_SESSION_KEY)); } catch { return null; }
+}
+
+let tablePrefix = readActiveCompany()?.prefix ?? '';
+
+export function getActiveCompany() { return readActiveCompany(); }
+export function getTablePrefix()   { return tablePrefix; }
+
+// Pass a company ({ name, code, prefix }) to switch, or null to return to the home company
+export function setActiveCompany(company) {
+  tablePrefix = company?.prefix ?? '';
+  try {
+    if (company) sessionStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify(company));
+    else sessionStorage.removeItem(COMPANY_SESSION_KEY);
+  } catch { /* storage unavailable */ }
+}
+
+// Query builder for the active company's copy of a table
+export const db = table => supabase.from(tablePrefix + table);
+
 // General-purpose table helper — used by all pages
 export const S = {
   async get(table, filters = {}) {
-    let q = supabase.from(table).select('*');
+    let q = db(table).select('*');
     for (const [col, val] of Object.entries(filters)) {
       if (Array.isArray(val)) q = q.in(col, val);
       else q = q.eq(col, val);
@@ -27,11 +54,11 @@ export const S = {
   async set(table, payload, matchCols = null) {
     let q;
     if (matchCols) {
-      q = supabase.from(table).upsert(payload, {
+      q = db(table).upsert(payload, {
         onConflict: Array.isArray(matchCols) ? matchCols.join(',') : matchCols,
       });
     } else {
-      q = supabase.from(table).insert(payload);
+      q = db(table).insert(payload);
     }
     const { data, error } = await q.select();
     if (error) { console.error('S.set error', error); return null; }
@@ -39,7 +66,7 @@ export const S = {
   },
 
   async del(table, filters = {}) {
-    let q = supabase.from(table).delete();
+    let q = db(table).delete();
     for (const [col, val] of Object.entries(filters)) {
       q = q.eq(col, val);
     }
@@ -49,7 +76,7 @@ export const S = {
   },
 
   async update(table, payload, filters = {}) {
-    let q = supabase.from(table).update(payload);
+    let q = db(table).update(payload);
     for (const [col, val] of Object.entries(filters)) {
       q = q.eq(col, val);
     }
@@ -59,12 +86,13 @@ export const S = {
   },
 };
 
-// File uploads — Supabase Storage
+// File uploads — Supabase Storage (non-home companies get their own folder)
 export const storage = {
   async uploadFile(bucket, path, file) {
-    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+    const fullPath = tablePrefix ? `${tablePrefix.replace(/_+$/, '')}/${path}` : path;
+    const { error } = await supabase.storage.from(bucket).upload(fullPath, file, { upsert: true });
     if (error) { console.error('storage.uploadFile error', error); return null; }
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    const { data } = supabase.storage.from(bucket).getPublicUrl(fullPath);
     return data?.publicUrl ?? null;
   },
 };
@@ -72,8 +100,7 @@ export const storage = {
 // Key-value store backed by rcm_store table { key TEXT PK, value JSONB }
 export const kv = {
   async get(key) {
-    const { data, error } = await supabase
-      .from('rcm_store')
+    const { data, error } = await db('rcm_store')
       .select('value')
       .eq('key', key)
       .single();
@@ -82,8 +109,7 @@ export const kv = {
   },
 
   async set(key, value) {
-    const { error } = await supabase
-      .from('rcm_store')
+    const { error } = await db('rcm_store')
       .upsert({ key, value }, { onConflict: 'key' });
     if (error) { console.error('kv.set error', error); return false; }
     return true;

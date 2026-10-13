@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { S } from '../lib/supabase';
-import { loadCompany, matchesCompany } from '../lib/company';
+import { S, getTablePrefix, setActiveCompany } from '../lib/supabase';
+import { findCompany } from '../lib/company';
 import Starfield from './shared/Starfield';
 
 const LAST_COMPANY_KEY = 'hh_last_company';
@@ -124,18 +124,20 @@ export default function Login({ onLogin }) {
   const [showPw, setShowPw]       = useState(false);
   const [focused, setFocused]     = useState('');
 
-  useEffect(() => { ensureAdmin(); }, []);
+  // Bootstrap the home company's first admin (other companies get theirs when created)
+  useEffect(() => { if (!getTablePrefix()) ensureAdmin(); }, []);
 
   async function doCompany(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const c = await loadCompany();
-      if (!matchesCompany(companyInput, c)) {
+      const c = await findCompany(companyInput);
+      if (!c) {
         setError(`We couldn't find a workspace called "${companyInput.trim()}". Check the spelling, or ask your administrator for your company name or code.`);
       } else {
         try { localStorage.setItem(LAST_COMPANY_KEY, companyInput.trim()); } catch { /* storage unavailable */ }
+        setActiveCompany(c);   // all queries from here on use this company's tables
         setCompany(c);
         setView('login');
       }
@@ -145,7 +147,7 @@ export default function Login({ onLogin }) {
     setLoading(false);
   }
 
-  function toCompany() { setView('company'); setCompany(null); setError(''); setPassword(''); }
+  function toCompany() { setView('company'); setCompany(null); setActiveCompany(null); setError(''); setPassword(''); }
 
   async function doLogin(e) {
     e.preventDefault();

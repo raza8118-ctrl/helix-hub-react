@@ -59,12 +59,13 @@ export default function QualityMonitor({ user }) {
     ]);
     // Fetch logs for the full date range via gte/lte — S.get only does eq,
     // so fetch all logs for each employee within the range using a raw query.
+    // (db() targets the active company's copy of the table)
     const { data: l } = await import('../../lib/supabase').then(m =>
-      m.supabase.from('daily_logs').select('*').gte('date', startDate).lte('date', endDate)
+      m.db('daily_logs').select('*').gte('date', startDate).lte('date', endDate)
     );
     // Fetch holidays in range
     const { data: h } = await import('../../lib/supabase').then(m =>
-      m.supabase.from('holidays').select('*').gte('date', startDate).lte('date', endDate)
+      m.db('holidays').select('*').gte('date', startDate).lte('date', endDate)
     );
     setAllUsers(u ?? []);
     setLogs(l ?? []);

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { kv, S } from '../../lib/supabase';
+import { kv, S, getTablePrefix } from '../../lib/supabase';
 import { DEFAULT_TASKS, DEF_PROCS } from '../../lib/constants';
-import { loadCompany, saveCompany } from '../../lib/company';
+import { loadCompany, saveCompany } from '../../lib/company';import Companies from './Companies';
 import Changelog from './Changelog';
 
 const PROCESSES = ['MCO', 'MCD', 'MCR', 'AUTH'];
 
 export default function Settings({ user }) {
+  const isHome = !getTablePrefix();   // signed in to the home (main) company
   const [aiKey, setAiKey]   = useState('');
   const [showKey, setShowKey] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
@@ -255,8 +256,11 @@ export default function Settings({ user }) {
         </div>
       </div>
 
-      {/* Company profile */}
-      <div className="card mb-16">
+      {/* Companies manager — main admin of the home company only */}
+      {isHome && user?.role === 'admin' && <Companies user={user} />}
+
+      {/* Company profile — home company only (added companies are named in the Companies card) */}
+      {isHome && <div className="card mb-16">
         <div className="card-header">
           <div className="card-title">Company</div>
           <span className="badge badge-blue">Login &amp; Branding</span>
@@ -288,7 +292,7 @@ export default function Settings({ user }) {
             Heads up: after saving, everyone will need to type the new name{coCode.trim() ? ' or code' : ''} at login.
           </p>
         )}
-      </div>
+      </div>}
 
       {/* Anthropic API Key */}
       <div className="card mb-16">

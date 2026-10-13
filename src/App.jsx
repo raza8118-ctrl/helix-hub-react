@@ -4,7 +4,7 @@ import Sidebar     from './components/Sidebar';
 import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import { THEMES }  from './lib/constants';
-import { S, kv }   from './lib/supabase';
+import { S, kv, setActiveCompany } from './lib/supabase';
 import './index.css';
 
 // Owns its own 1s tick so the whole app doesn't re-render every second
@@ -226,6 +226,7 @@ export default function App() {
   function handleLogout() {
     sessionStorage.removeItem('hh_user');
     sessionStorage.removeItem('hh_tab');
+    setActiveCompany(null);   // next login starts at the company step again
     sessionStorage.removeItem('hh_missed_dismissed');
     setCurrentUser(null);
     setActiveTab('today');
