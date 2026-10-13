@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
+import { loadCompany } from '../../lib/company';
 import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI, procIncludes, logMatchesProc, scopeToSupervisor } from '../../lib/helpers';
 import { MONTHS, ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
@@ -218,10 +219,10 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
     setEmailLoading(true);
     setEmailBody('');
     try {
-      const apiKey = await kv.get('anthropic_key');
+      const [apiKey, company] = await Promise.all([kv.get('anthropic_key'), loadCompany()]);
       const top = rankings[0];
       const text = await callAI(
-        `Write a professional ${mode} performance summary email for an RCM team at 3Gen Consulting.
+        `Write a professional ${mode} performance summary email for an RCM team at ${company.name}.
 Period: ${periodLabel} | Working days: ${kpiDays} | Agents: ${kpiAgents} | Process: ${filterProc}
 Avg Productivity: ${kpiAvgProd != null ? kpiAvgProd.toFixed(1) + '%' : 'N/A'}
 Avg Quality: ${kpiAvgQ != null ? kpiAvgQ.toFixed(1) + '%' : 'N/A'}

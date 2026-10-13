@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
+import { loadCompany } from '../../lib/company';
 import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, isOnLeave } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
@@ -106,9 +107,9 @@ export default function Today({ user }) {
     setEmailLoading(true);
     setEmailBody('');
     try {
-      const apiKey = await kv.get('anthropic_key');
+      const [apiKey, company] = await Promise.all([kv.get('anthropic_key'), loadCompany()]);
       const text = await callAI(
-        `Write a professional daily performance summary email for an RCM team at 3Gen Consulting.
+        `Write a professional daily performance summary email for an RCM team at ${company.name}.
 Date: ${fmtD(date)} | Process: ${filterProc}
 Team: ${filteredUsers.length} | Submitted: ${submitted} | Pending: ${pending}
 Avg Productivity: ${avgProd != null ? avgProd.toFixed(1) + '%' : 'N/A'}

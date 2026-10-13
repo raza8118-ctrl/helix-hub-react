@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
 import { S } from '../lib/supabase';
+import { loadCompany, matchesCompany } from '../lib/company';
 import Starfield from './shared/Starfield';
+
+const LAST_COMPANY_KEY = 'hh_last_company';
+
+function BuildingIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01" />
+    </svg>
+  );
+}
 
 function HexLogo({ size = 82 }) {
   return (
@@ -96,7 +108,12 @@ const INP = {
 const INP_FOCUS = { borderColor: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,0.15)' };
 
 export default function Login({ onLogin }) {
-  const [view, setView]         = useState('login');
+  // 'company' (step 1) → 'login' (step 2) ⇄ 'forgot'
+  const [view, setView]         = useState('company');
+  const [company, setCompany]   = useState(null);
+  const [companyInput, setCompanyInput] = useState(() => {
+    try { return localStorage.getItem(LAST_COMPANY_KEY) || ''; } catch { return ''; }
+  });
   const [empId, setEmpId]       = useState('');
   const [password, setPassword] = useState('');
   const [forgotId, setForgotId] = useState('');
@@ -108,6 +125,27 @@ export default function Login({ onLogin }) {
   const [focused, setFocused]     = useState('');
 
   useEffect(() => { ensureAdmin(); }, []);
+
+  async function doCompany(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const c = await loadCompany();
+      if (!matchesCompany(companyInput, c)) {
+        setError(`We couldn't find a workspace called "${companyInput.trim()}". Check the spelling, or ask your administrator for your company name or code.`);
+      } else {
+        try { localStorage.setItem(LAST_COMPANY_KEY, companyInput.trim()); } catch { /* storage unavailable */ }
+        setCompany(c);
+        setView('login');
+      }
+    } catch {
+      setError('Connection error. Please try again.');
+    }
+    setLoading(false);
+  }
+
+  function toCompany() { setView('company'); setCompany(null); setError(''); setPassword(''); }
 
   async function doLogin(e) {
     e.preventDefault();
@@ -162,7 +200,8 @@ export default function Login({ onLogin }) {
             Helix Hub
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 6, maxWidth: 360, lineHeight: 1.6 }}>
-            The RCM team portal for 3Gen Consulting — track performance, manage your team, and stay in sync.
+            {/* Company name stays hidden until step 1 is passed */}
+            The RCM team portal{company ? ` for ${company.name}` : ''} — track performance, manage your team, and stay in sync.
           </div>
           {FEATURES.map(f => (
             <div key={f.text} className="login-feature">
@@ -184,11 +223,69 @@ export default function Login({ onLogin }) {
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#1a202c', marginTop: 12, letterSpacing: '-0.5px' }}>
             Helix Hub
           </div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, marginBottom: 28 }}>
-            3Gen Consulting — RCM Team Portal
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, marginBottom: 24 }}>
+            RCM Team Portal
           </div>
 
-        {view === 'login' ? (
+          {/* Selected company banner (steps 2+) */}
+          {company && view !== 'company' && (
+            <div style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', marginBottom: 18, borderRadius: 10,
+              background: '#f5f3ff', border: '1px solid #e4dcfd',
+            }}>
+              <span style={{
+                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: '#ede9fe', color: '#7c3aed',
+              }}>
+                <BuildingIcon />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: '#7c6f9b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Company</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1e1b2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {company.name}
+                </div>
+              </div>
+              <button type="button" onClick={toCompany} className="btn-link" style={{ width: 'auto', fontWeight: 600 }}>
+                Change
+              </button>
+            </div>
+          )}
+
+        {view === 'company' ? (
+          <form onSubmit={doCompany} style={{ width: '100%' }}>
+            <p style={{ fontSize: 13, color: '#475569', marginBottom: 18, textAlign: 'center', lineHeight: 1.5 }}>
+              Enter your company name to continue to your workspace.
+            </p>
+            <div className="form-group">
+              <label style={LBL} htmlFor="company-name">Company name</label>
+              <input
+                id="company-name"
+                style={focused === 'company-name' ? { ...INP, ...INP_FOCUS } : INP}
+                type="text"
+                value={companyInput}
+                onChange={e => setCompanyInput(e.target.value)}
+                onFocus={() => setFocused('company-name')}
+                onBlur={() => setFocused('')}
+                placeholder="e.g. Acme Health"
+                required
+                autoFocus
+                autoComplete="organization"
+              />
+            </div>
+
+            {error && (
+              <div style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 6, padding: '8px 12px', fontSize: 12, marginBottom: 14, lineHeight: 1.45 }}>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" disabled={loading || !companyInput.trim()} className="btn btn-login btn-lg" style={{ marginBottom: 4 }}>
+              {loading ? 'Checking…' : 'Continue →'}
+            </button>
+          </form>
+        ) : view === 'login' ? (
           <form onSubmit={doLogin} style={{ width: '100%' }}>
             <div className="form-group">
               <label style={LBL} htmlFor="emp-id">Employee ID</label>

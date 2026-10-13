@@ -1,5 +1,6 @@
 import { THEMES } from '../lib/constants';
 import Starfield from './shared/Starfield';
+import { useCompany } from '../lib/company';
 
 function initials(name, empId) {
   return (name || empId || '?')
@@ -41,6 +42,7 @@ export default function Sidebar({
   onTab,
   tabs = [],
 }) {
+  const company = useCompany();
   const isDark = THEMES.find(t => t.id === theme)?.dark ?? false;
   const ini    = initials(user?.name, user?.emp_id);
 
@@ -55,7 +57,7 @@ export default function Sidebar({
         <HexLogo />
         <div>
           <div className="brand-name">Helix Hub</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1 }}>3Gen Consulting</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1 }}>{company.name}</div>
         </div>
       </div>
 

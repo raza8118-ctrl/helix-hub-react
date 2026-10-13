@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { kv, S } from '../../lib/supabase';
 import { DEFAULT_TASKS, DEF_PROCS } from '../../lib/constants';
+import { loadCompany, saveCompany } from '../../lib/company';
 import Changelog from './Changelog';
 
 const PROCESSES = ['MCO', 'MCD', 'MCR', 'AUTH'];
@@ -31,7 +32,15 @@ export default function Settings({ user }) {
   const [customMsg, setCustomMsg]         = useState('');
   const [customSaving, setCustomSaving]   = useState(false);
 
+  // Company profile (name shown on login/sidebar; name or code accepted at login step 1)
+  const [coName, setCoName]     = useState('');
+  const [coCode, setCoCode]     = useState('');
+  const [coSaved, setCoSaved]   = useState(null);
+  const [coSaving, setCoSaving] = useState(false);
+  const [coMsg, setCoMsg]       = useState('');
+
   useEffect(() => {
+    loadCompany().then(c => { setCoName(c.name); setCoCode(c.code); setCoSaved(c); });
     kv.get('anthropic_key').then(k => { if (k) setAiKey(k); });
     kv.get('shift_dst').then(v => setDstActive(v !== false));
     loadTaskCfg();
@@ -88,6 +97,24 @@ export default function Settings({ user }) {
     setCustomTaskCfg(cfg);
     setNewTaskNames(names);
   }
+
+  async function saveCompanyProfile() {
+    if (!coName.trim()) return;
+    setCoSaving(true);
+    const ok = await saveCompany({ name: coName, code: coCode });
+    if (ok) {
+      const c = { name: coName.trim(), code: coCode.trim().toUpperCase() };
+      setCoSaved(c);
+      setCoCode(c.code);
+      setCoMsg('✓ Company profile saved');
+    } else {
+      setCoMsg('Could not save — please try again.');
+    }
+    setCoSaving(false);
+    setTimeout(() => setCoMsg(''), 3000);
+  }
+
+  const coDirty = coSaved && (coName.trim() !== coSaved.name || coCode.trim().toUpperCase() !== coSaved.code);
 
   async function saveAiKey() {
     const k = aiKey.trim();
@@ -224,8 +251,43 @@ export default function Settings({ user }) {
       <div className="page-header">
         <div>
           <div className="page-title">Settings</div>
-          <div className="page-subtitle">Configure API keys, shift timing, and task productivity targets</div>
+          <div className="page-subtitle">Configure company profile, API keys, shift timing, and task productivity targets</div>
         </div>
+      </div>
+
+      {/* Company profile */}
+      <div className="card mb-16">
+        <div className="card-header">
+          <div className="card-title">Company</div>
+          <span className="badge badge-blue">Login &amp; Branding</span>
+        </div>
+        <p className="text-muted text-sm" style={{ marginBottom: 14 }}>
+          Users must enter this company name (or the short code) on the first login screen before signing in.
+          It also appears in the sidebar and in AI-generated emails. Capital letters and spaces don't matter.
+        </p>
+        <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 260px', maxWidth: 360 }}>
+            <label htmlFor="co-name">Company name</label>
+            <input id="co-name" value={coName} onChange={e => setCoName(e.target.value)} placeholder="e.g. Acme Health" />
+          </div>
+          <div style={{ flex: '0 1 160px' }}>
+            <label htmlFor="co-code">Short code (optional)</label>
+            <input id="co-code" value={coCode} onChange={e => setCoCode(e.target.value)} placeholder="e.g. ACME" maxLength={16} />
+          </div>
+          <button className="btn-primary" onClick={saveCompanyProfile} disabled={coSaving || !coName.trim() || !coDirty}>
+            {coSaving ? 'Saving…' : 'Save Company'}
+          </button>
+        </div>
+        {coMsg && (
+          <p className="text-sm" style={{ color: coMsg.includes('✓') ? 'var(--success)' : 'var(--danger)', marginTop: 8 }}>
+            {coMsg}
+          </p>
+        )}
+        {coDirty && (
+          <p className="text-sm" style={{ color: 'var(--warning)', marginTop: 8 }}>
+            Heads up: after saving, everyone will need to type the new name{coCode.trim() ? ' or code' : ''} at login.
+          </p>
+        )}
       </div>
 
       {/* Anthropic API Key */}
