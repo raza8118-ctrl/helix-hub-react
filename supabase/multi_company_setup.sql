@@ -101,6 +101,9 @@ declare
   v_code   text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
   v_prefix text;
   v_tables int := 0;
+  v_admin  jsonb;
+  v_cols   text;
+  v_vals   text;
   t        record;
 begin
   if not rcm._is_main_admin(p_by_emp_id, p_by_password) then
@@ -129,13 +132,28 @@ begin
 
   grant usage, select on all sequences in schema rcm to anon, authenticated, service_role;
 
-  -- The company's first admin login
-  execute format(
-    'insert into rcm.%I (emp_id, name, password, role, process, access, active) values (%L, %L, %L, %L, %L, %L, true)',
-    v_prefix || 'users',
-    upper(trim(p_admin_id)),
-    coalesce(nullif(trim(p_admin_name), ''), 'Administrator'),
-    p_admin_password, 'admin', 'ALL', 'ALL');
+  -- The company's first admin login — only columns that exist in this users table are written
+  v_admin := jsonb_build_object(
+    'emp_id',   upper(trim(p_admin_id)),
+    'name',     coalesce(nullif(trim(p_admin_name), ''), 'Administrator'),
+    'password', p_admin_password,
+    'role',     'admin',
+    'access',   'ALL',
+    'active',   'true');
+
+  select string_agg(quote_ident(e.key), ', ' order by e.key),
+         string_agg(quote_literal(e.value), ', ' order by e.key)
+    into v_cols, v_vals
+  from jsonb_each_text(v_admin) e
+  where exists (
+    select 1 from information_schema.columns c
+    where c.table_schema = 'rcm' and c.table_name = v_prefix || 'users' and c.column_name = e.key);
+
+  if v_cols is null or v_cols not like '%emp\_id%' or v_cols not like '%password%' then
+    raise exception 'The users table needs emp_id and password columns';
+  end if;
+
+  execute format('insert into rcm.%I (%s) values (%s)', v_prefix || 'users', v_cols, v_vals);
 
   insert into rcm.companies (name, code, prefix, created_by)
   values (v_name, v_code, v_prefix, upper(trim(p_by_emp_id)));

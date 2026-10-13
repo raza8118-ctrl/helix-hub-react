@@ -66,7 +66,6 @@ async function ensureAdmin() {
         name: 'Administrator',
         password: 'Admin@123',
         role: 'admin',
-        process: 'ALL',
         access: 'ALL',
         active: true,
       });
