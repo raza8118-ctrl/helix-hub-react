@@ -403,9 +403,9 @@ body.stars .starfield-local,
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(60% 45% at 85% 10%, rgba(124, 58, 237, 0.12), transparent 70%),
-    radial-gradient(50% 40% at 30% 95%, rgba(99, 102, 241, 0.08), transparent 70%),
-    radial-gradient(35% 30% at 55% 50%, rgba(59, 130, 246, 0.04), transparent 70%);
+    radial-gradient(60% 45% at 85% 10%, rgba(124, 58, 237, 0.22), transparent 70%),
+    radial-gradient(50% 40% at 25% 95%, rgba(99, 102, 241, 0.15), transparent 70%),
+    radial-gradient(40% 35% at 55% 50%, rgba(59, 130, 246, 0.08), transparent 70%);
 }
 
 .sf-far, .sf-mid, .sf-near {
@@ -414,62 +414,74 @@ body.stars .starfield-local,
   will-change: transform, opacity;
 }
 
-/* Far: tiny, dense, faint */
+/* Each star = solid bright core fading to transparent at its edge. */
+
+/* Far: small, dense */
 .sf-far {
-  inset: -240px 0 0 -240px;
-  background-size: 240px 240px;
+  inset: -200px 0 0 -200px;
+  background-size: 200px 200px;
   background-image:
-    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.75), transparent 100%),
-    radial-gradient(1px 1px at 37% 72%, rgba(255,255,255,.55), transparent 100%),
-    radial-gradient(1px 1px at 58% 33%, rgba(255,255,255,.65), transparent 100%),
-    radial-gradient(1px 1px at 81% 61%, rgba(255,255,255,.50), transparent 100%),
-    radial-gradient(1px 1px at 92% 9%,  rgba(255,255,255,.60), transparent 100%),
-    radial-gradient(1px 1px at 24% 90%, rgba(255,255,255,.45), transparent 100%),
-    radial-gradient(1px 1px at 69% 86%, rgba(255,255,255,.55), transparent 100%);
-  animation: starTwinkle 7s ease-in-out infinite;
+    radial-gradient(1.3px 1.3px at 12% 18%, rgba(255,255,255,.95) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 37% 72%, rgba(255,255,255,.80) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 58% 33%, rgba(255,255,255,.90) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 81% 61%, rgba(255,255,255,.80) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 92% 9%,  rgba(255,255,255,.85) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 24% 90%, rgba(255,255,255,.75) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 69% 86%, rgba(255,255,255,.85) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 6% 52%,  rgba(255,255,255,.80) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 47% 48%, rgba(255,255,255,.70) 0 45%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 75% 24%, rgba(255,255,255,.80) 0 45%, transparent 100%);
+  animation: starTwinkle 6s ease-in-out infinite;
 }
 
-/* Mid: slightly larger, violet/blue tinted */
+/* Mid: larger, violet/blue tinted */
 .sf-mid {
-  inset: -380px 0 0 -380px;
-  background-size: 380px 380px;
+  inset: -320px 0 0 -320px;
+  background-size: 320px 320px;
   background-image:
-    radial-gradient(1.4px 1.4px at 18% 42%, rgba(196,181,253,.9), transparent 100%),
-    radial-gradient(1.4px 1.4px at 46% 12%, rgba(255,255,255,.85), transparent 100%),
-    radial-gradient(1.4px 1.4px at 73% 78%, rgba(147,197,253,.9), transparent 100%),
-    radial-gradient(1.4px 1.4px at 88% 36%, rgba(255,255,255,.8), transparent 100%),
-    radial-gradient(1.4px 1.4px at 31% 83%, rgba(255,255,255,.7), transparent 100%);
-  animation: starTwinkle 9s ease-in-out -3s infinite;
+    radial-gradient(1.8px 1.8px at 18% 42%, rgba(216,204,255,1) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 46% 12%, rgba(255,255,255,1) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 73% 78%, rgba(186,218,255,1) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 88% 36%, rgba(255,255,255,.95) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 31% 83%, rgba(255,255,255,.9) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 60% 55%, rgba(216,204,255,.95) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 8% 8%,   rgba(255,255,255,.9) 0 45%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 95% 92%, rgba(186,218,255,.9) 0 45%, transparent 100%);
+  animation: starTwinkle 8s ease-in-out -3s infinite;
 }
 
-/* Near: few, brightest, with a soft glow; slowly drifts */
+/* Near: brightest, with glowing halos; slowly drifts */
 .sf-near {
-  inset: -560px 0 0 -560px;
-  background-size: 560px 560px;
+  inset: -480px 0 0 -480px;
+  background-size: 480px 480px;
   background-image:
-    radial-gradient(2px 2px at 22% 28%, #fff, transparent 100%),
-    radial-gradient(6px 6px at 22% 28%, rgba(196,181,253,.25), transparent 100%),
-    radial-gradient(2px 2px at 67% 64%, #fff, transparent 100%),
-    radial-gradient(6px 6px at 67% 64%, rgba(147,197,253,.25), transparent 100%),
-    radial-gradient(1.8px 1.8px at 84% 14%, rgba(255,255,255,.9), transparent 100%),
-    radial-gradient(1.8px 1.8px at 41% 91%, rgba(255,255,255,.85), transparent 100%);
+    radial-gradient(2.4px 2.4px at 22% 28%, #fff 0 50%, transparent 100%),
+    radial-gradient(9px 9px at 22% 28%, rgba(196,181,253,.45), transparent 100%),
+    radial-gradient(2.4px 2.4px at 67% 64%, #fff 0 50%, transparent 100%),
+    radial-gradient(9px 9px at 67% 64%, rgba(147,197,253,.45), transparent 100%),
+    radial-gradient(2.2px 2.2px at 84% 14%, #fff 0 50%, transparent 100%),
+    radial-gradient(7px 7px at 84% 14%, rgba(255,255,255,.25), transparent 100%),
+    radial-gradient(2.2px 2.2px at 41% 91%, #fff 0 50%, transparent 100%),
+    radial-gradient(7px 7px at 41% 91%, rgba(196,181,253,.35), transparent 100%),
+    radial-gradient(2px 2px at 8% 70%, rgba(255,255,255,.95) 0 50%, transparent 100%),
+    radial-gradient(2px 2px at 52% 6%, rgba(255,255,255,.95) 0 50%, transparent 100%);
   animation:
-    starTwinkle 5.5s ease-in-out -1.5s infinite,
-    starDrift 240s linear infinite;
+    starTwinkle 5s ease-in-out -1.5s infinite,
+    starDrift 220s linear infinite;
 }
 
 @keyframes starTwinkle {
-  0%, 100% { opacity: 0.3; }
-  50%      { opacity: 0.8; }
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
 }
 
 @keyframes starDrift {
   from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(560px, 560px, 0); }
+  to   { transform: translate3d(480px, 480px, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sf-far, .sf-mid, .sf-near { animation: none; opacity: 0.55; }
+  .sf-far, .sf-mid, .sf-near { animation: none; opacity: 0.85; }
 }
 
 /* Stars replace the dot texture in star themes */
