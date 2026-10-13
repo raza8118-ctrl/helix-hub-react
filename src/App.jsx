@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense, lazy } from 'react';
 import Login       from './components/Login';
 import Sidebar     from './components/Sidebar';
 import Profile     from './components/shared/Profile';
+import Starfield   from './components/shared/Starfield';
 import { THEMES }  from './lib/constants';
 import { S, kv }   from './lib/supabase';
 import './index.css';
@@ -32,7 +33,7 @@ const SupervisorApp = lazy(() => import('./pages/supervisor/SupervisorApp'));
 const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
-const THEME_CLASSES = ['dark', 'dusk', 'mist'];
+const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars'];
 
 function applyTheme(themeId) {
   const found = THEMES.find(t => t.id === themeId);
@@ -42,6 +43,8 @@ function applyTheme(themeId) {
   THEME_CLASSES.forEach(c => document.body.classList.remove(c));
   if (found.dark) document.body.classList.add('dark');
   if (found.cls)  document.body.classList.add(found.cls);
+  // Starfield backdrop for dark themes + Dusk; High Contrast stays plain for readability
+  if ((found.dark || found.cls === 'dusk') && found.id !== 'highcontrast') document.body.classList.add('stars');
 }
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
@@ -276,6 +279,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <Starfield />
       <Sidebar
         user={currentUser}
         theme={theme}

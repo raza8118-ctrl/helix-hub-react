@@ -383,6 +383,112 @@ a:hover { text-decoration: underline; }
     radial-gradient(circle at top right, var(--surface-2) 0%, var(--bg) 55%);
 }
 
+/* ─── Starfield ───
+   Shown in "star" themes (body.stars = dark themes + Dusk, never High Contrast)
+   and always on the login brand panel. Three tiled layers at different scales
+   twinkle on offset timings; the near layer drifts slowly. Layers are oversized
+   by one tile so the drift loops seamlessly via transform. */
+.starfield, .starfield-local { display: none; pointer-events: none; overflow: hidden; }
+
+body.stars .starfield,
+body.stars .starfield-local,
+.starfield-local.always { display: block; }
+
+/* Page-wide layer: z-index -1 paints above the body background but below all content */
+.starfield { position: fixed; inset: 0; z-index: -1; }
+.starfield-local { position: absolute; inset: 0; }
+
+.starfield::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 45% at 85% 10%, rgba(124, 58, 237, 0.12), transparent 70%),
+    radial-gradient(50% 40% at 30% 95%, rgba(99, 102, 241, 0.08), transparent 70%),
+    radial-gradient(35% 30% at 55% 50%, rgba(59, 130, 246, 0.04), transparent 70%);
+}
+
+.sf-far, .sf-mid, .sf-near {
+  position: absolute;
+  background-repeat: repeat;
+  will-change: transform, opacity;
+}
+
+/* Far: tiny, dense, faint */
+.sf-far {
+  inset: -240px 0 0 -240px;
+  background-size: 240px 240px;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.75), transparent 100%),
+    radial-gradient(1px 1px at 37% 72%, rgba(255,255,255,.55), transparent 100%),
+    radial-gradient(1px 1px at 58% 33%, rgba(255,255,255,.65), transparent 100%),
+    radial-gradient(1px 1px at 81% 61%, rgba(255,255,255,.50), transparent 100%),
+    radial-gradient(1px 1px at 92% 9%,  rgba(255,255,255,.60), transparent 100%),
+    radial-gradient(1px 1px at 24% 90%, rgba(255,255,255,.45), transparent 100%),
+    radial-gradient(1px 1px at 69% 86%, rgba(255,255,255,.55), transparent 100%);
+  animation: starTwinkle 7s ease-in-out infinite;
+}
+
+/* Mid: slightly larger, violet/blue tinted */
+.sf-mid {
+  inset: -380px 0 0 -380px;
+  background-size: 380px 380px;
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 42%, rgba(196,181,253,.9), transparent 100%),
+    radial-gradient(1.4px 1.4px at 46% 12%, rgba(255,255,255,.85), transparent 100%),
+    radial-gradient(1.4px 1.4px at 73% 78%, rgba(147,197,253,.9), transparent 100%),
+    radial-gradient(1.4px 1.4px at 88% 36%, rgba(255,255,255,.8), transparent 100%),
+    radial-gradient(1.4px 1.4px at 31% 83%, rgba(255,255,255,.7), transparent 100%);
+  animation: starTwinkle 9s ease-in-out -3s infinite;
+}
+
+/* Near: few, brightest, with a soft glow; slowly drifts */
+.sf-near {
+  inset: -560px 0 0 -560px;
+  background-size: 560px 560px;
+  background-image:
+    radial-gradient(2px 2px at 22% 28%, #fff, transparent 100%),
+    radial-gradient(6px 6px at 22% 28%, rgba(196,181,253,.25), transparent 100%),
+    radial-gradient(2px 2px at 67% 64%, #fff, transparent 100%),
+    radial-gradient(6px 6px at 67% 64%, rgba(147,197,253,.25), transparent 100%),
+    radial-gradient(1.8px 1.8px at 84% 14%, rgba(255,255,255,.9), transparent 100%),
+    radial-gradient(1.8px 1.8px at 41% 91%, rgba(255,255,255,.85), transparent 100%);
+  animation:
+    starTwinkle 5.5s ease-in-out -1.5s infinite,
+    starDrift 240s linear infinite;
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.8; }
+}
+
+@keyframes starDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(560px, 560px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-far, .sf-mid, .sf-near { animation: none; opacity: 0.55; }
+}
+
+/* Stars replace the dot texture in star themes */
+body.stars .main-content { background: transparent; }
+body.stars .sidebar::before,
+.login-brand-panel::before { display: none; }
+
+/* Frosted cards: only ~12% see-through and blurred, so stars become soft glows,
+   never sharp dots behind text. Tables keep a solid surface for crisp numbers. */
+body.stars .card,
+body.stars .stat-card {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+}
+
+body.stars .tbl-wrap,
+body.stars .table-wrap { background: var(--surface); }
+
 @media (max-width: 768px) {
   .app-shell { flex-direction: column; }
   .sidebar {

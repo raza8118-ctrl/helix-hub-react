@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S } from '../lib/supabase';
+import Starfield from './shared/Starfield';
 
 function HexLogo({ size = 82 }) {
   return (
@@ -154,6 +155,7 @@ export default function Login({ onLogin }) {
     <div className="login-shell">
       {/* Brand panel — hidden on narrow screens */}
       <div className="login-brand-panel">
+        <Starfield local always />
         <div style={{ position: 'relative', zIndex: 1 }}>
           <HexLogo size={56} />
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: '#fff', marginTop: 20, letterSpacing: '-0.5px' }}>

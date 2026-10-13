@@ -1,4 +1,5 @@
 import { THEMES } from '../lib/constants';
+import Starfield from './shared/Starfield';
 
 function initials(name, empId) {
   return (name || empId || '?')
@@ -49,6 +50,7 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
+      <Starfield local />
       <div className="sidebar-brand">
         <HexLogo />
         <div>
