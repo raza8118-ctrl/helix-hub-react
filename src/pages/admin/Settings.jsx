@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { kv, S } from '../../lib/supabase';
 import { DEFAULT_TASKS, DEF_PROCS } from '../../lib/constants';
-import Changelog from './Changelog';
 
-const PROCESSES = ['MCO', 'MCD', 'MCR', 'AUTH'];
-
-// Company name/code and adding companies are managed by the Helix Hub owner in the
-// Owner Console, never from a company's own admin login.
+// Company name/code, adding companies and the version history are managed by the
+// Helix Hub owner in the Owner Console, never from a company's own admin login.
+// DEF_PROCS (built-in processes) is empty for added companies — they configure all
+// their processes in the custom process card.
 export default function Settings({ user }) {
   const [aiKey, setAiKey]   = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -18,7 +17,7 @@ export default function Settings({ user }) {
 
   const [taskCfg, setTaskCfg]     = useState(() => {
     const cfg = {};
-    PROCESSES.forEach(p => {
+    DEF_PROCS.forEach(p => {
       cfg[p] = (DEFAULT_TASKS[p] ?? []).map(t => ({ name: t.name, target: '', weight: '' }));
     });
     return cfg;
@@ -52,7 +51,7 @@ export default function Settings({ user }) {
     const rows = await S.get('task_configs');
     if (rows?.length) {
       const cfg = {};
-      PROCESSES.forEach(p => {
+      DEF_PROCS.forEach(p => {
         cfg[p] = (DEFAULT_TASKS[p] ?? []).map(t => {
           const saved = rows.find(r => r.process === p && r.name === t.name);
           const tgt = saved?.target;
@@ -135,7 +134,7 @@ export default function Settings({ user }) {
   async function saveTaskCfg() {
     setCfgMsg('');
     const upserts = [];
-    PROCESSES.forEach(p => {
+    DEF_PROCS.forEach(p => {
       (taskCfg[p] ?? []).forEach(t => {
         if (t.target !== '') {
           upserts.push(
@@ -152,7 +151,7 @@ export default function Settings({ user }) {
   async function resetTaskCfg() {
     if (!window.confirm('Reset all task targets to defaults?')) return;
     await Promise.all(
-      PROCESSES.flatMap(p =>
+      DEF_PROCS.flatMap(p =>
         (DEFAULT_TASKS[p] ?? []).map(t => S.del('task_configs', { process: p, name: t.name }))
       )
     );
@@ -169,6 +168,18 @@ export default function Settings({ user }) {
         ...t,
         target: value,
         weight: value !== '' && tgt > 0 ? String(+(50 / tgt).toFixed(3)) : '',
+      } : t),
+    }));
+  }
+
+  function updateCustomWeight(proc, taskName, value) {
+    const wt = parseFloat(value);
+    setCustomTaskCfg(prev => ({
+      ...prev,
+      [proc]: (prev[proc] ?? []).map(t => t.name === taskName ? {
+        ...t,
+        weight: value,
+        target: value !== '' && wt > 0 ? String(Math.round(50 / wt)) : '',
       } : t),
     }));
   }
@@ -294,8 +305,8 @@ export default function Settings({ user }) {
         {dstMsg && <p className="text-sm" style={{ color: 'var(--success)', marginTop: 8 }}>{dstMsg}</p>}
       </div>
 
-      {/* Built-in process task config */}
-      <div className="card mb-16">
+      {/* Built-in process task config (home company only) */}
+      {DEF_PROCS.length > 0 && <div className="card mb-16">
         <div className="card-header">
           <div className="card-title">Task Target Configuration</div>
           <div className="row" style={{ gap: 8 }}>
@@ -311,7 +322,7 @@ export default function Settings({ user }) {
           <div className="loading-row"><div className="spinner" /> Loading…</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 24 }}>
-            {PROCESSES.map(proc => {
+            {DEF_PROCS.map(proc => {
               const configured = (taskCfg[proc] ?? []).filter(t => t.target !== '').length;
               return (
                 <div key={proc}>
@@ -351,12 +362,12 @@ export default function Settings({ user }) {
             })}
           </div>
         )}
-      </div>
+      </div>}
 
-      {/* Custom process task config */}
+      {/* Custom process task config — every process for added companies */}
       <div className="card mb-16">
         <div className="card-header">
-          <div className="card-title">Custom Process Task Configuration</div>
+          <div className="card-title">{DEF_PROCS.length ? 'Custom Process Task Configuration' : 'Productivity Tasks & Weightage'}</div>
           <div className="row" style={{ gap: 8 }}>
             {customMsg && <span className="text-sm" style={{ color: 'var(--success)' }}>{customMsg}</span>}
             {customProcs.length > 0 && (
@@ -369,12 +380,13 @@ export default function Settings({ user }) {
 
         {customProcs.length === 0 ? (
           <p className="text-muted text-sm">
-            No custom processes yet. Go to <strong>Team → Process / Project Management</strong> to create a new process group and sub-process, then come back here to define its tasks and targets.
+            No {DEF_PROCS.length ? 'custom ' : ''}processes yet. Go to <strong>Team → Process / Project Management</strong> to create a project and its sub-processes, then come back here to define each one's tasks, targets and weightage.
+            Employee IDs are created in <strong>Team → + Add User</strong>.
           </p>
         ) : (
           <>
             <p className="text-muted text-sm" style={{ marginBottom: 16 }}>
-              Define tasks and daily targets for each custom process. These feed into the productivity formula the same way as built-in process tasks. <strong>Weight = 50 ÷ Target.</strong>
+              Define the tasks for each process and set a daily target <strong>or</strong> a weight per task — they auto-sync. These feed the productivity formula. <strong>Weight = 50 ÷ Target.</strong>
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 24 }}>
               {customProcs.map(proc => {
@@ -416,8 +428,9 @@ export default function Settings({ user }) {
                             </td>
                             <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>
                               <input
-                                type="number" readOnly
+                                type="number" min="0.001" step="0.001"
                                 value={t.weight}
+                                onChange={e => updateCustomWeight(proc.name, t.name, e.target.value)}
                                 placeholder="—"
                                 style={accentInputStyle}
                               />
@@ -451,10 +464,6 @@ export default function Settings({ user }) {
             </div>
           </>
         )}
-      </div>
-
-      <div className="mt-4">
-        <Changelog />
       </div>
     </div>
   );

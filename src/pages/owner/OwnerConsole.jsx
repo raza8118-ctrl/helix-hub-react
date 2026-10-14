@@ -4,6 +4,7 @@ import {
   listCompanies, createCompany, updateCompany, deleteCompany, syncCompanies,
   loadCompany, saveCompany, ownerChangePassword,
 } from '../../lib/company';
+import Changelog from '../admin/Changelog';
 
 // Helix Hub owner only — reached from the "Helix Hub owner" link on the login
 // screen, never from a company login. Add, rename, activate/deactivate, delete
@@ -299,6 +300,9 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
             <p className="text-sm" style={{ color: pwMsg.ok ? 'var(--success)' : 'var(--danger)', marginTop: 8 }}>{pwMsg.text}</p>
           )}
         </form>
+
+        {/* Helix Hub version history — owner only */}
+        <Changelog />
       </div>
     </div>
   );

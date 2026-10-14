@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
 import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave, calcProd } from '../../lib/helpers';
-import { ACCESSES, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
+import { ACCESSES, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, DEF_PROCS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 
@@ -83,19 +83,24 @@ export default function ProdMonitor({ user }) {
   // ── Edit Counts (admin override — writes directly to daily_logs, bypassing
   // the employee-side 24h TAT lock since that check lives only in ProdReport) ──
   function userProcsOf(row) {
-    const procs = Array.isArray(row.processes) && row.processes.length > 0
-      ? row.processes.filter(p => DEFAULT_TASKS[p])
-      : [(row.process || row.access || 'MCO')].filter(p => DEFAULT_TASKS[p]);
-    return procs.length > 0 ? procs : ['MCO'];
+    const procs = (Array.isArray(row.processes) && row.processes.length > 0
+      ? row.processes
+      : [row.process || row.access]
+    ).filter(p => p && p !== 'ALL');
+    return procs.length > 0 ? procs : DEF_PROCS.slice(0, 1);
   }
 
+  // Built-in processes use DEFAULT_TASKS (task_configs may override targets);
+  // custom processes take their tasks entirely from task_configs — same as ProdReport
   function taskDefsFor(procs) {
     const seen = new Set();
     return procs.flatMap(p =>
-      (DEFAULT_TASKS[p] ?? []).map(t => {
-        const custom = taskCfgRows?.find(r => r.process === p && r.name === t.name);
-        return { name: t.name, target: custom?.target || t.target };
-      })
+      DEFAULT_TASKS[p]
+        ? DEFAULT_TASKS[p].map(t => {
+            const custom = taskCfgRows?.find(r => r.process === p && r.name === t.name);
+            return { name: t.name, target: custom?.target || t.target };
+          })
+        : (taskCfgRows ?? []).filter(r => r.process === p).map(t => ({ name: t.name, target: t.target }))
     ).filter(t => {
       if (seen.has(t.name)) return false;
       seen.add(t.name);

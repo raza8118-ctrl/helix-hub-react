@@ -153,3 +153,24 @@ export const DEFAULT_TASKS = {
     { name: 'Denied Account',     target: 50 },
   ],
 };
+
+// ── Company-specific built-ins ────────────────────────────────────────────────
+// MCO/MCD/MCR/AUTH and their task lists belong to the home company (3Gen) only.
+// Added companies start empty and define their own processes and tasks in
+// Team → Process / Project Management and Settings. DEF_PROCS, DEFAULT_TASKS and
+// ACCESSES are updated in place so every importer sees the active company's set.
+const HOME_DEF_PROCS = [...DEF_PROCS];
+const HOME_TASKS     = { ...DEFAULT_TASKS };
+const HOME_ACCESSES  = [...ACCESSES];
+
+export function applyCompanyBuiltins(isHome) {
+  DEF_PROCS.splice(0, DEF_PROCS.length, ...(isHome ? HOME_DEF_PROCS : []));
+  for (const k of Object.keys(DEFAULT_TASKS)) delete DEFAULT_TASKS[k];
+  if (isHome) Object.assign(DEFAULT_TASKS, HOME_TASKS);
+  ACCESSES.splice(0, ACCESSES.length, ...(isHome ? HOME_ACCESSES : ['ALL']));
+}
+
+// Added companies: their own process names fill the process filters (ALL stays last)
+export function setCompanyProcessNames(names) {
+  ACCESSES.splice(0, ACCESSES.length, ...new Set(names), 'ALL');
+}

@@ -63,7 +63,7 @@ export default function EmpDetail({ emp, onClose, currentUser }) {
   // Task breakdown: last 7 days
   const last7 = logs.slice(-7);
   const proc = emp.process || emp.access || 'MCO';
-  const taskDefs = DEFAULT_TASKS[proc] || DEFAULT_TASKS.MCO;
+  const taskDefs = DEFAULT_TASKS[proc] || DEFAULT_TASKS.MCO || [];   // added companies have no built-in tasks
 
   const initials = (emp.name || emp.emp_id || '?')
     .split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();

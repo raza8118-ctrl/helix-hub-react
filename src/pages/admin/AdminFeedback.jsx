@@ -188,7 +188,7 @@ export default function AdminFeedback({ user }) {
                   <label>Process</label>
                   <select value={filterProc} onChange={e => setProc(e.target.value)}>
                     <option value="ALL">All Processes</option>
-                    {ACCESSES.slice(0, 4).map(a => <option key={a}>{a}</option>)}
+                    {ACCESSES.filter(a => a !== 'ALL').map(a => <option key={a}>{a}</option>)}
                   </select>
                 </div>
               )}

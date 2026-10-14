@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { S, kv } from '../../lib/supabase';
-import { DEFAULT_PROJECT } from '../../lib/constants';
+import { S, kv, refreshCompanyProcesses } from '../../lib/supabase';
+import { DEFAULT_PROJECT, DEF_PROCS } from '../../lib/constants';
 import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -82,6 +82,8 @@ function MultiCheck({ label, options, groups, selected, onChange }) {
 }
 
 export default function TeamMgmt({ user }) {
+  // Added companies have no built-in PMB project — they name their own projects
+  const homeProject = DEF_PROCS.length ? DEFAULT_PROJECT : '';
   const [allUsers, setAllUsers]       = useState([]);
   const [resetReqs, setResetReqs]     = useState([]);
   const [customProcs, setCustomProcs] = useState([]);
@@ -95,7 +97,7 @@ export default function TeamMgmt({ user }) {
   const [form, setForm]               = useState(BLANK);
   const [saving, setSaving]           = useState(false);
   const [newProc, setNewProc]         = useState('');
-  const [newProcProject, setNewProcProject] = useState(DEFAULT_PROJECT);
+  const [newProcProject, setNewProcProject] = useState(homeProject);
   const [rowOrder, setRowOrder]       = useState({});
   const [qualitySkipProcs, setQualitySkipProcs] = useState(new Set());
 
@@ -117,6 +119,7 @@ export default function TeamMgmt({ user }) {
     setAllUsers(u ?? []);
     setResetReqs(rr ?? []);
     setCustomProcs(cp ?? []);
+    refreshCompanyProcesses().catch(() => {});   // keep other pages' process filters current
     setQualitySkipProcs(new Set(skipList ?? []));
     setLoading(false);
   }
@@ -128,7 +131,8 @@ export default function TeamMgmt({ user }) {
     await kv.set('quality_skip_procs', [...next]);
   }
 
-  const allProjects  = [DEFAULT_PROJECT, ...new Set(customProcs.map(p => p.project).filter(p => p && p !== DEFAULT_PROJECT))];
+  const allProjects  = [DEFAULT_PROJECT, ...new Set(customProcs.map(p => p.project).filter(p => p && p !== DEFAULT_PROJECT))]
+    .filter(proj => subProcessesOf(proj, customProcs).length > 0);   // added companies have no built-in PMB processes
   const procsByProject = Object.fromEntries(allProjects.map(proj => [proj, subProcessesOf(proj, customProcs)]));
   const allProcs     = Object.values(procsByProject).flat();
   const projectOfProc = Object.fromEntries(allProjects.flatMap(proj => procsByProject[proj].map(p => [p, proj])));
@@ -185,7 +189,11 @@ export default function TeamMgmt({ user }) {
 
   const setF = patch => setForm(prev => ({ ...prev, ...patch }));
 
-  function openCreate() { setEditUser(null); setForm(BLANK); setShowForm(true); }
+  function openCreate() {
+    setEditUser(null);
+    setForm({ ...BLANK, access: allProcs[0] ?? 'ALL', processes: allProcs.slice(0, 1) });
+    setShowForm(true);
+  }
   function openEdit(u) {
     setEditUser(u);
     setForm({
@@ -274,9 +282,10 @@ export default function TeamMgmt({ user }) {
     const name = newProc.trim().toUpperCase();
     if (!name) return;
     const project = (newProcProject.trim() || DEFAULT_PROJECT).toUpperCase();
+    if (!DEF_PROCS.length && !newProcProject.trim()) { window.alert('Enter a project name first (e.g. your client or department).'); return; }
     await S.set('processes', { name, project, active: true });
     setNewProc('');
-    setNewProcProject(DEFAULT_PROJECT);
+    setNewProcProject(homeProject);
     await load();
   }
 

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { applyCompanyBuiltins, setCompanyProcessNames } from './constants';
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -17,6 +18,7 @@ function readActiveCompany() {
 }
 
 let tablePrefix = readActiveCompany()?.prefix ?? '';
+applyCompanyBuiltins(!tablePrefix);
 
 export function getActiveCompany() { return readActiveCompany(); }
 export function getTablePrefix()   { return tablePrefix; }
@@ -24,6 +26,7 @@ export function getTablePrefix()   { return tablePrefix; }
 // Pass a company ({ name, code, prefix }) to switch, or null to return to the home company
 export function setActiveCompany(company) {
   tablePrefix = company?.prefix ?? '';
+  applyCompanyBuiltins(!tablePrefix);
   try {
     if (company) sessionStorage.setItem(COMPANY_SESSION_KEY, JSON.stringify(company));
     else sessionStorage.removeItem(COMPANY_SESSION_KEY);
@@ -85,6 +88,13 @@ export const S = {
     return data;
   },
 };
+
+// Added companies: load their own process names into the process filters
+export async function refreshCompanyProcesses() {
+  if (!tablePrefix) return;
+  const rows = await S.get('processes');
+  setCompanyProcessNames((rows ?? []).filter(p => p.active !== false).map(p => p.name));
+}
 
 // File uploads — Supabase Storage (non-home companies get their own folder)
 export const storage = {

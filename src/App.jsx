@@ -4,7 +4,7 @@ import Sidebar     from './components/Sidebar';
 import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import { THEMES }  from './lib/constants';
-import { S, kv, setActiveCompany } from './lib/supabase';
+import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
 import './index.css';
 
@@ -98,6 +98,7 @@ export default function App() {
         const raw = sessionStorage.getItem('hh_user');
         if (!raw) return;
         const u = JSON.parse(raw);
+        await refreshCompanyProcesses().catch(() => {});
         setCurrentUser(u);
         const isAdmin = u.role === 'admin' || u.role === 'manager';
         const isSupervisor = u.role === 'supervisor';
@@ -199,6 +200,7 @@ export default function App() {
 
   // ── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin(u) {
+    await refreshCompanyProcesses().catch(() => {});
     const isAdmin = u.role === 'admin' || u.role === 'manager';
     const isSupervisor = u.role === 'supervisor';
     setCurrentUser(u);
