@@ -5,6 +5,7 @@ import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany } from './lib/supabase';
+import { getOwnerSession, setOwnerSession } from './lib/company';
 import './index.css';
 
 // Owns its own 1s tick so the whole app doesn't re-render every second
@@ -31,6 +32,7 @@ function Clock() {
 const AdminApp      = lazy(() => import('./pages/admin/AdminApp'));
 const SupervisorApp = lazy(() => import('./pages/supervisor/SupervisorApp'));
 const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
+const OwnerConsole  = lazy(() => import('./pages/owner/OwnerConsole'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
 const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars'];
@@ -80,6 +82,7 @@ const SUPERVISOR_TABS = [
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [owner, setOwner]             = useState(getOwnerSession);   // Helix Hub owner, if signed in
   const [theme, setTheme]             = useState(THEMES[0].id);
   const [activeTab, setActiveTab]     = useState('today');
   const [showProfile, setShowProfile] = useState(false);
@@ -222,8 +225,25 @@ export default function App() {
     sessionStorage.setItem('hh_missed_dismissed', '1');
   }
 
+  // ── Helix Hub owner ─────────────────────────────────────────────────────────
+  // Opening a company from the Owner Console signs in to it as a full admin.
+  function openCompanyAsOwner(c) {
+    setActiveCompany(c.prefix ? { name: c.name, code: c.code, prefix: c.prefix } : null);
+    handleLogin({
+      emp_id: 'HELIX_OWNER', name: owner.name, role: 'admin', access: 'ALL', active: true,
+      isOwner: true, viewing: c.name,
+    });
+  }
+
+  function handleOwnerSignOut() {
+    setOwnerSession(null);
+    setOwner(null);
+  }
+
   // ── Logout ──────────────────────────────────────────────────────────────────
+  // An owner viewing a company returns to the Owner Console instead of signing out.
   function handleLogout() {
+    if (!currentUser?.isOwner) handleOwnerSignOut();
     sessionStorage.removeItem('hh_user');
     sessionStorage.removeItem('hh_tab');
     setActiveCompany(null);   // next login starts at the company step again
@@ -261,7 +281,14 @@ export default function App() {
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
-  if (!currentUser) return <Login onLogin={handleLogin} />;
+  if (!currentUser && owner) {
+    return (
+      <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
+        <OwnerConsole owner={owner} onOpenCompany={openCompanyAsOwner} onSignOut={handleOwnerSignOut} onOwnerUpdate={o => { setOwnerSession(o); setOwner(o); }} />
+      </Suspense>
+    );
+  }
+  if (!currentUser) return <Login onLogin={handleLogin} onOwnerLogin={setOwner} />;
 
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
   const isSupervisor = currentUser.role === 'supervisor';
@@ -307,6 +334,25 @@ export default function App() {
           </div>
           <Clock />
         </header>
+
+        {currentUser.isOwner && (
+          <div style={{
+            background: '#4c1d95', color: '#fff',
+            padding: '8px 18px', fontSize: 13, fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <span>👑 Helix Hub owner — viewing {currentUser.viewing} with full admin access</span>
+            <button
+              onClick={handleLogout}
+              style={{
+                background: '#fff', color: '#4c1d95', border: 'none', borderRadius: 6,
+                padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              ← Back to Owner Console
+            </button>
+          </div>
+        )}
 
         {!isAdmin && !isSupervisor && missedDay && !missedDismissed && (
           <div style={{

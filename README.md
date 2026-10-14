@@ -5,20 +5,31 @@ RCM team performance portal. Users sign in in two steps: **company name** (or co
 
 ## Multiple companies in one installation
 
-The main admin (an `admin` user of the home company) can add companies from
-**Settings → Companies**. Each company gets its own copy of every table, named
-`co_<code>__<table>` (e.g. `co_acme__daily_logs`). Its users, task targets, processes,
-holidays, quality rules, reports, settings and AI key are completely separate, so
-productivity calculations never mix. The interface is identical for every company.
+Companies are managed only by the **Helix Hub owner** from the **Owner Console**, a
+separate login that no company admin (including the home company's) has. Each company
+gets its own copy of every table, named `co_<code>__<table>` (e.g. `co_acme__daily_logs`).
+Its users, task targets, processes, holidays, quality rules, reports, settings and AI key
+are completely separate, so productivity calculations never mix. The interface is
+identical for every company.
 
 **One-time setup:** open Supabase → SQL Editor, paste `supabase/multi_company_setup.sql`,
-and click Run. After that:
+and click Run. Then create your owner login (choose your own password):
 
-1. **Settings → Companies → Add company**: enter a name, short code, and the first admin's
-   ID and password.
-2. That company's users sign in with the company name or code, then their own login.
-3. **After any Helix Hub update that adds tables or columns**, click **↻ Sync structure**
-   in the same card so every company gets them.
+```sql
+insert into rcm.helix_owners (username, name, password)
+values ('OWNER', 'Your Name', 'your-password-here');
+```
+
+After that:
+
+1. On the login screen click **Helix Hub owner sign in** and sign in with that login.
+2. **Owner Console → Add a company**: enter a name, short code, and the first admin's
+   ID and password. The console also renames, activates/deactivates and deletes companies,
+   renames the home company, and **Open →** signs you in to any company with full admin
+   access (a purple banner takes you back to the console).
+3. That company's users sign in with the company name or code, then their own login.
+4. **After any Helix Hub update that adds tables or columns**, click **↻ Sync structure**
+   in the Owner Console so every company gets them.
 
 > Separation is enforced by the app, not by database security rules. That's the same
 > trust level as before (the public API key can read any table, including plain-text
@@ -40,8 +51,8 @@ and click Run. After that:
 
 3. Sign in: type the company name (or code) → then `ADMIN` / `Admin@123`
    (created automatically on an empty database). **Change this password right away.**
-4. An admin can rename the company any time in **Settings → Company**; that saved
-   value overrides the environment variables.
+4. The Helix Hub owner can rename the company in the **Owner Console**; that saved value
+   overrides the environment variables.
 
 Without any company settings, the installation defaults to **3Gen Consulting** (code `3GEN`).
 

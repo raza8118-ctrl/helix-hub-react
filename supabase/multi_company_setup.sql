@@ -1,14 +1,21 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Helix Hub — multi-company setup
--- Run ONCE in Supabase → SQL Editor (as the default postgres user).
--- Safe to re-run: it only (re)creates the registry table and functions.
+-- Run in Supabase → SQL Editor (as the default postgres user).
+-- Safe to re-run: it only (re)creates the registry/owner tables and functions.
 --
 -- How it works
 --   • The home company keeps the original rcm tables.
 --   • Each added company gets its own copy of every rcm table, named
 --     co_<code>__<table>  (e.g. co_acme__daily_logs), so its users, targets,
 --     processes, reports and settings are completely separate.
---   • Only an active home-company user with role 'admin' can add/update companies.
+--   • Only a Helix Hub OWNER (rcm.helix_owners) can add, edit, deactivate, sync
+--     or delete companies. Owners are separate from every company's users —
+--     no company admin (3Gen's included) can manage companies. Owners sign in
+--     from the "Helix Hub owner" link on the login screen.
+--
+-- After running this file, add your owner login once (pick your own password):
+--   insert into rcm.helix_owners (username, name, password)
+--   values ('OWNER', 'Your Name', 'your-password-here');
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── Registry ────────────────────────────────────────────────────────────────
@@ -30,21 +37,77 @@ create policy companies_read on rcm.companies for select to anon, authenticated 
 revoke all on rcm.companies from anon, authenticated;
 grant select on rcm.companies to anon, authenticated;
 
--- ── Main-admin check (internal) ─────────────────────────────────────────────
-create or replace function rcm._is_main_admin(p_emp_id text, p_password text)
+-- ── Helix Hub owners (platform creators) ────────────────────────────────────
+-- Never copied into companies and not readable through the public API —
+-- only the functions below can see it.
+create table if not exists rcm.helix_owners (
+  username    text        primary key,
+  name        text        not null default 'Helix Hub Owner',
+  password    text        not null,
+  active      boolean     not null default true,
+  created_at  timestamptz not null default now()
+);
+alter table rcm.helix_owners enable row level security;
+revoke all on rcm.helix_owners from anon, authenticated;
+
+-- Earlier versions let any home-company admin manage companies — remove those.
+drop function if exists rcm.create_company(text, text, text, text, text, text, text);
+drop function if exists rcm.update_company(text, text, text, text, boolean);
+drop function if exists rcm.sync_company_tables(text, text);
+drop function if exists rcm._is_main_admin(text, text);
+
+-- ── Owner check (internal) ──────────────────────────────────────────────────
+create or replace function rcm._is_owner(p_username text, p_password text)
 returns boolean
 language sql security definer
 set search_path = rcm, pg_temp
 as $$
   select exists (
-    select 1 from rcm.users
-    where emp_id = upper(trim(p_emp_id))
+    select 1 from rcm.helix_owners
+    where username = upper(trim(p_username))
       and password = p_password
-      and role = 'admin'
-      and coalesce(active, true)
+      and active
   );
 $$;
-revoke all on function rcm._is_main_admin(text, text) from public, anon, authenticated;
+revoke all on function rcm._is_owner(text, text) from public, anon, authenticated;
+
+-- ── Owner sign-in / password change ─────────────────────────────────────────
+create or replace function rcm.owner_login(p_username text, p_password text)
+returns jsonb
+language plpgsql security definer
+set search_path = rcm, pg_temp
+as $$
+declare
+  o rcm.helix_owners;
+begin
+  select * into o from rcm.helix_owners
+   where username = upper(trim(p_username)) and password = p_password and active;
+  if not found then
+    raise exception 'Invalid owner username or password';
+  end if;
+  return jsonb_build_object('username', o.username, 'name', o.name);
+end;
+$$;
+revoke all on function rcm.owner_login(text, text) from public;
+grant execute on function rcm.owner_login(text, text) to anon, authenticated;
+
+create or replace function rcm.owner_change_password(p_username text, p_password text, p_new_password text)
+returns void
+language plpgsql security definer
+set search_path = rcm, pg_temp
+as $$
+begin
+  if not rcm._is_owner(p_username, p_password) then
+    raise exception 'Current password is incorrect';
+  end if;
+  if length(coalesce(p_new_password, '')) < 8 then
+    raise exception 'New password must be at least 8 characters';
+  end if;
+  update rcm.helix_owners set password = p_new_password where username = upper(trim(p_username));
+end;
+$$;
+revoke all on function rcm.owner_change_password(text, text, text) from public;
+grant execute on function rcm.owner_change_password(text, text, text) to anon, authenticated;
 
 -- ── Copy one home table's structure, grants and RLS policies (internal) ─────
 create or replace function rcm._clone_table(p_src text, p_dst text)
@@ -78,13 +141,13 @@ create or replace view rcm._home_tables as
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'rcm' and c.relkind = 'r'
-    and c.relname <> 'companies'
+    and c.relname not in ('companies', 'helix_owners')
     and c.relname not like 'co\_%';
 revoke all on rcm._home_tables from anon, authenticated;
 
 -- ── Create a company ────────────────────────────────────────────────────────
 create or replace function rcm.create_company(
-  p_by_emp_id      text,
+  p_by_user        text,
   p_by_password    text,
   p_name           text,
   p_code           text,
@@ -106,8 +169,8 @@ declare
   v_vals   text;
   t        record;
 begin
-  if not rcm._is_main_admin(p_by_emp_id, p_by_password) then
-    raise exception 'Not authorised: only the main admin can add companies';
+  if not rcm._is_owner(p_by_user, p_by_password) then
+    raise exception 'Not authorised: only the Helix Hub owner can add companies';
   end if;
   if v_name = '' then
     raise exception 'Company name is required';
@@ -156,7 +219,7 @@ begin
   execute format('insert into rcm.%I (%s) values (%s)', v_prefix || 'users', v_cols, v_vals);
 
   insert into rcm.companies (name, code, prefix, created_by)
-  values (v_name, v_code, v_prefix, upper(trim(p_by_emp_id)));
+  values (v_name, v_code, v_prefix, upper(trim(p_by_user)));
 
   notify pgrst, 'reload schema';   -- make the new tables available to the API
 
@@ -168,7 +231,7 @@ grant execute on function rcm.create_company(text, text, text, text, text, text,
 
 -- ── Rename / activate / deactivate a company ────────────────────────────────
 create or replace function rcm.update_company(
-  p_by_emp_id   text,
+  p_by_user     text,
   p_by_password text,
   p_code        text,
   p_name        text    default null,
@@ -179,8 +242,13 @@ language plpgsql security definer
 set search_path = rcm, pg_temp
 as $$
 begin
-  if not rcm._is_main_admin(p_by_emp_id, p_by_password) then
-    raise exception 'Not authorised: only the main admin can change companies';
+  if not rcm._is_owner(p_by_user, p_by_password) then
+    raise exception 'Not authorised: only the Helix Hub owner can change companies';
+  end if;
+  if nullif(trim(p_name), '') is not null and exists (
+    select 1 from rcm.companies where lower(name) = lower(trim(p_name)) and code <> upper(p_code)
+  ) then
+    raise exception 'Another company already uses that name';
   end if;
   update rcm.companies
      set name   = coalesce(nullif(trim(p_name), ''), name),
@@ -194,10 +262,46 @@ $$;
 revoke all on function rcm.update_company(text, text, text, text, boolean) from public;
 grant execute on function rcm.update_company(text, text, text, text, boolean) to anon, authenticated;
 
+-- ── Delete a company — drops ALL of its tables; cannot be undone ───────────
+create or replace function rcm.delete_company(p_by_user text, p_by_password text, p_code text)
+returns jsonb
+language plpgsql security definer
+set search_path = rcm, pg_temp
+as $$
+declare
+  v_prefix text;
+  v_tables int := 0;
+  t        record;
+begin
+  if not rcm._is_owner(p_by_user, p_by_password) then
+    raise exception 'Not authorised: only the Helix Hub owner can delete companies';
+  end if;
+  select prefix into v_prefix from rcm.companies where code = upper(p_code);
+  if v_prefix is null or v_prefix not like 'co\_%\_\_' then
+    raise exception 'Company not found';
+  end if;
+  for t in
+    select c.relname::text as name
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'rcm' and c.relkind = 'r'
+      and left(c.relname, length(v_prefix)) = v_prefix
+  loop
+    execute format('drop table rcm.%I cascade', t.name);
+    v_tables := v_tables + 1;
+  end loop;
+  delete from rcm.companies where code = upper(p_code);
+  notify pgrst, 'reload schema';
+  return jsonb_build_object('tables_dropped', v_tables);
+end;
+$$;
+revoke all on function rcm.delete_company(text, text, text) from public;
+grant execute on function rcm.delete_company(text, text, text) to anon, authenticated;
+
 -- ── Sync: bring every company up to date with the home table structure ──────
 -- Run after a Helix Hub update adds tables or columns to the home tables.
 -- Only ADDS missing tables/columns; never drops or changes anything.
-create or replace function rcm.sync_company_tables(p_by_emp_id text, p_by_password text)
+create or replace function rcm.sync_company_tables(p_by_user text, p_by_password text)
 returns jsonb
 language plpgsql security definer
 set search_path = rcm, pg_temp
@@ -210,8 +314,8 @@ declare
   v_tables  int := 0;
   v_columns int := 0;
 begin
-  if not rcm._is_main_admin(p_by_emp_id, p_by_password) then
-    raise exception 'Not authorised: only the main admin can sync companies';
+  if not rcm._is_owner(p_by_user, p_by_password) then
+    raise exception 'Not authorised: only the Helix Hub owner can sync companies';
   end if;
 
   for co in select prefix from rcm.companies loop

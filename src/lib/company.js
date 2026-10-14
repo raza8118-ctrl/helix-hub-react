@@ -75,29 +75,72 @@ export async function findCompany(input) {
   return hit ? { name: hit.name, code: hit.code, prefix: hit.prefix } : null;
 }
 
-// Main-admin actions (verified again server-side against the home users table)
-export async function createCompany(by, { name, code, adminId, adminName, adminPassword }) {
+// ── Helix Hub owner ──────────────────────────────────────────────────────────
+// Platform owners (rcm.helix_owners) are separate from every company's users and
+// are the only ones who can manage companies. Kept per browser tab.
+const OWNER_SESSION_KEY = 'hh_owner';
+
+export function getOwnerSession() {
+  try { return JSON.parse(sessionStorage.getItem(OWNER_SESSION_KEY)); } catch { return null; }
+}
+
+export function setOwnerSession(owner) {
+  try {
+    if (owner) sessionStorage.setItem(OWNER_SESSION_KEY, JSON.stringify(owner));
+    else sessionStorage.removeItem(OWNER_SESSION_KEY);
+  } catch { /* storage unavailable */ }
+}
+
+// → { data: { username, name, password }, error }
+export async function ownerLogin(username, password) {
+  const { data, error } = await supabase.rpc('owner_login', { p_username: username, p_password: password });
+  if (error) {
+    const notInstalled = /owner_login|schema cache/i.test(error.message);
+    return {
+      data: null,
+      error: notInstalled
+        ? "Owner sign-in isn't set up yet. Run supabase/multi_company_setup.sql in Supabase first."
+        : 'Invalid owner username or password.',
+    };
+  }
+  return { data: { ...data, password }, error: null };
+}
+
+export async function ownerChangePassword(owner, newPassword) {
+  const { error } = await supabase.rpc('owner_change_password', {
+    p_username: owner.username, p_password: owner.password, p_new_password: newPassword,
+  });
+  return { error: error?.message ?? null };
+}
+
+// Owner actions (verified again server-side against rcm.helix_owners)
+const byOwner = owner => ({ p_by_user: owner.username, p_by_password: owner.password });
+
+export async function createCompany(owner, { name, code, adminId, adminName, adminPassword }) {
   const { data, error } = await supabase.rpc('create_company', {
-    p_by_emp_id: by.emp_id, p_by_password: by.password,
+    ...byOwner(owner),
     p_name: name, p_code: code,
     p_admin_id: adminId, p_admin_password: adminPassword, p_admin_name: adminName,
   });
   return { data, error: error?.message ?? null };
 }
 
-export async function updateCompany(by, code, { name = null, active = null }) {
+export async function updateCompany(owner, code, { name = null, active = null }) {
   const { error } = await supabase.rpc('update_company', {
-    p_by_emp_id: by.emp_id, p_by_password: by.password,
-    p_code: code, p_name: name, p_active: active,
+    ...byOwner(owner), p_code: code, p_name: name, p_active: active,
   });
   return { error: error?.message ?? null };
 }
 
+// Drops every table of the company — cannot be undone
+export async function deleteCompany(owner, code) {
+  const { data, error } = await supabase.rpc('delete_company', { ...byOwner(owner), p_code: code });
+  return { data, error: error?.message ?? null };
+}
+
 // Add any tables/columns the home company has gained since companies were created
-export async function syncCompanies(by) {
-  const { data, error } = await supabase.rpc('sync_company_tables', {
-    p_by_emp_id: by.emp_id, p_by_password: by.password,
-  });
+export async function syncCompanies(owner) {
+  const { data, error } = await supabase.rpc('sync_company_tables', byOwner(owner));
   return { data, error: error?.message ?? null };
 }
 

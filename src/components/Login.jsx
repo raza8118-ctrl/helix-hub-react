@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, getTablePrefix, setActiveCompany } from '../lib/supabase';
-import { findCompany } from '../lib/company';
+import { findCompany, ownerLogin, setOwnerSession } from '../lib/company';
 import Starfield from './shared/Starfield';
 
 const LAST_COMPANY_KEY = 'hh_last_company';
@@ -106,8 +106,8 @@ const INP = {
 };
 const INP_FOCUS = { borderColor: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,0.15)' };
 
-export default function Login({ onLogin }) {
-  // 'company' (step 1) → 'login' (step 2) ⇄ 'forgot'
+export default function Login({ onLogin, onOwnerLogin }) {
+  // 'company' (step 1) → 'login' (step 2) ⇄ 'forgot'; 'company' ⇄ 'owner' (Helix Hub owner)
   const [view, setView]         = useState('company');
   const [company, setCompany]   = useState(null);
   const [companyInput, setCompanyInput] = useState(() => {
@@ -147,6 +147,18 @@ export default function Login({ onLogin }) {
   }
 
   function toCompany() { setView('company'); setCompany(null); setActiveCompany(null); setError(''); setPassword(''); }
+  function toOwner()   { setView('owner'); setError(''); setPassword(''); setEmpId(''); }
+
+  async function doOwnerLogin(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { data, error: err } = await ownerLogin(empId.trim(), password);
+    setLoading(false);
+    if (err) { setError(err); return; }
+    setOwnerSession(data);
+    onOwnerLogin(data);
+  }
 
   async function doLogin(e) {
     e.preventDefault();
@@ -284,6 +296,59 @@ export default function Login({ onLogin }) {
 
             <button type="submit" disabled={loading || !companyInput.trim()} className="btn btn-login btn-lg" style={{ marginBottom: 4 }}>
               {loading ? 'Checking…' : 'Continue →'}
+            </button>
+
+            <button type="button" onClick={toOwner} className="btn-link" style={{ marginTop: 10, fontSize: 11.5, color: '#94a3b8' }}>
+              Helix Hub owner sign in
+            </button>
+          </form>
+        ) : view === 'owner' ? (
+          <form onSubmit={doOwnerLogin} style={{ width: '100%' }}>
+            <p style={{ fontSize: 13, color: '#475569', marginBottom: 18, textAlign: 'center', lineHeight: 1.5 }}>
+              Owner Console — manage all companies on this Helix Hub.
+            </p>
+            <div className="form-group">
+              <label style={LBL} htmlFor="owner-id">Owner username</label>
+              <input
+                id="owner-id"
+                style={focused === 'owner-id' ? { ...INP, ...INP_FOCUS } : INP}
+                type="text"
+                value={empId}
+                onChange={e => setEmpId(e.target.value)}
+                onFocus={() => setFocused('owner-id')}
+                onBlur={() => setFocused('')}
+                required
+                autoFocus
+                autoComplete="username"
+              />
+            </div>
+            <div className="form-group">
+              <label style={LBL} htmlFor="owner-pw">Password</label>
+              <input
+                id="owner-pw"
+                style={focused === 'owner-pw' ? { ...INP, ...INP_FOCUS } : INP}
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onFocus={() => setFocused('owner-pw')}
+                onBlur={() => setFocused('')}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            {error && (
+              <div style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 6, padding: '8px 12px', fontSize: 12, marginBottom: 14, lineHeight: 1.45 }}>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" disabled={loading} className="btn btn-login btn-lg" style={{ marginBottom: 12 }}>
+              {loading ? 'Signing in…' : 'Sign In as Owner'}
+            </button>
+
+            <button type="button" onClick={toCompany} className="btn-link">
+              ← Back to company sign in
             </button>
           </form>
         ) : view === 'login' ? (
