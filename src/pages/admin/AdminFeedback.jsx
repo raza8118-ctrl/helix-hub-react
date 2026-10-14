@@ -5,6 +5,7 @@ import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import Discussion from '../../components/shared/Discussion';
 import Toast from '../../components/shared/Toast';
+import { confirmDialog } from '../../components/shared/Dialog';
 
 function initials(name, empId) {
   return (name || empId || '?').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
@@ -133,7 +134,7 @@ export default function AdminFeedback({ user }) {
   }
 
   async function deleteFeedback(id) {
-    if (!window.confirm('Delete this announcement?')) return;
+    if (!await confirmDialog({ title: 'Delete this announcement?', message: 'It will be removed for everyone. This cannot be undone.', tone: 'danger', confirmText: 'Delete' })) return;
     await S.del('feedback', { id });
     setFeedbacks(prev => prev.filter(f => f.id !== id));
   }

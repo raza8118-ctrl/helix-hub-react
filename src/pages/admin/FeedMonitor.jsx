@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { POST_VISIBILITY } from '../../lib/constants';
+import { confirmDialog } from '../../components/shared/Dialog';
 
 export default function FeedMonitor() {
   const [posts, setPosts]     = useState([]);
@@ -24,7 +25,7 @@ export default function FeedMonitor() {
   }
 
   async function deletePost(post) {
-    if (!window.confirm(`Permanently delete this post by ${post.emp_name ?? post.emp_id}?`)) return;
+    if (!await confirmDialog({ title: 'Delete this post?', message: `The post by ${post.emp_name ?? post.emp_id} and its comments will be permanently deleted.`, tone: 'danger', confirmText: 'Delete' })) return;
     await S.del('feed_comments', { post_id: post.id });
     await S.del('feed_posts', { id: post.id });
     await load();

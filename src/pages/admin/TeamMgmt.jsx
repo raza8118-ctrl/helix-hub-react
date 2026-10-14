@@ -3,6 +3,7 @@ import { S, kv, refreshCompanyProcesses } from '../../lib/supabase';
 import { DEFAULT_PROJECT, DEF_PROCS } from '../../lib/constants';
 import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
+import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -96,6 +97,9 @@ export default function TeamMgmt({ user }) {
   const [saving, setSaving]           = useState(false);
   const [projForm, setProjForm]       = useState(null);    // Add Project modal { project, locked, subs, error }
   const [projSaving, setProjSaving]   = useState(false);
+  const [procEdit, setProcEdit]       = useState(null);    // Edit Sub-Process modal
+  const [projEdit, setProjEdit]       = useState(null);    // Edit Project modal
+  const [editSaving, setEditSaving]   = useState(false);
   const [rowOrder, setRowOrder]       = useState({});
   const [qualitySkipProcs, setQualitySkipProcs] = useState(new Set());
 
@@ -123,6 +127,12 @@ export default function TeamMgmt({ user }) {
   }
 
   async function toggleQualitySkip(procName) {
+    const skipping = !qualitySkipProcs.has(procName);
+    if (!await confirmDialog({
+      title: skipping ? `Skip quality review for ${procName}?` : `Track quality for ${procName}?`,
+      message: skipping ? 'It will no longer show "Pending" in Quality Monitor.' : 'It will show "Pending" in Quality Monitor until a quality score is entered.',
+      confirmText: 'Confirm',
+    })) return;
     const next = new Set(qualitySkipProcs);
     if (next.has(procName)) next.delete(procName); else next.add(procName);
     setQualitySkipProcs(next);
@@ -216,6 +226,9 @@ export default function TeamMgmt({ user }) {
 
   async function saveUser() {
     if (!form.emp_id.trim() || !form.name.trim()) return;
+    if (!await confirmDialog(editUser
+      ? { title: 'Save changes?', message: `Update ${form.name.trim()} (${editUser.emp_id}).`, confirmText: 'Save Changes' }
+      : { title: 'Create this user?', message: `${form.name.trim()} (${form.emp_id.trim().toUpperCase()}) · ${form.role} · ${form.access}`, confirmText: 'Create User' })) return;
     setSaving(true);
     const empId = form.emp_id.trim().toUpperCase();
     const payload = {
@@ -240,7 +253,7 @@ export default function TeamMgmt({ user }) {
       : await S.set('users', payload);
     setSaving(false);
     if (!result) {
-      window.alert('Failed to save user. The ID may already exist, or the save was blocked by a database permission rule.');
+      await alertDialog({ title: 'Could not save user', message: 'The ID may already exist, or the save was blocked by a database permission rule.', tone: 'danger' });
       return;
     }
     if (form.role === 'supervisor') {
@@ -263,16 +276,20 @@ export default function TeamMgmt({ user }) {
   }
 
   async function toggleActive(u) {
+    if (!await confirmDialog(u.active
+      ? { title: 'Deactivate this user?', message: `${u.name ?? u.emp_id} won't be able to sign in until reactivated. No data is deleted.`, tone: 'danger', confirmText: 'Deactivate' }
+      : { title: 'Activate this user?', message: `${u.name ?? u.emp_id} will be able to sign in again.`, confirmText: 'Activate' })) return;
     await S.update('users', { active: !u.active }, { emp_id: u.emp_id });
     setAllUsers(prev => prev.map(x => x.emp_id === u.emp_id ? { ...x, active: !x.active } : x));
   }
 
   async function approveReset(rr) {
+    if (!await confirmDialog({ title: 'Reset password?', message: `A temporary password will be created for ${rr.emp_name ?? rr.emp_id}.`, tone: 'warning', confirmText: 'Reset Password' })) return;
     const temp = `Temp@${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     await S.update('users', { password: temp }, { emp_id: rr.emp_id });
     await S.update('reset_requests', { status: 'approved', temp_password: temp }, { id: rr.id });
     logAudit({ actor: user, action: 'reset_password', targetEmpId: rr.emp_id, targetName: rr.emp_name });
-    window.alert(`Password reset approved.\nEmployee: ${rr.emp_name ?? rr.emp_id}\nTemp password: ${temp}\n\nShare securely.`);
+    await alertDialog({ title: 'Password reset', message: `Employee: ${rr.emp_name ?? rr.emp_id}\nTemporary password: ${temp}\n\nShare it securely.`, tone: 'success' });
     await load();
   }
 
@@ -290,6 +307,11 @@ export default function TeamMgmt({ user }) {
     if (!subs.length) return fail('Add at least one sub-process.');
     const taken = subs.filter(s => allProcs.includes(s));
     if (taken.length) return fail(`Already exists: ${taken.join(', ')}. Sub-process names must be unique.`);
+    if (!await confirmDialog({
+      title: projForm.locked ? 'Add these sub-processes?' : 'Create this project?',
+      message: `Project: ${project}\nSub-processes: ${subs.join(', ')}`,
+      confirmText: projForm.locked ? 'Add' : 'Create Project',
+    })) return;
     setProjSaving(true);
     const results = await Promise.all(subs.map(name => S.set('processes', { name, project, active: true })));
     setProjSaving(false);
@@ -298,9 +320,95 @@ export default function TeamMgmt({ user }) {
     await load();
   }
 
-  async function deleteProcess(id) {
-    if (!window.confirm('Delete this custom process?')) return;
-    await S.del('processes', { id });
+  // ── Edit / delete a sub-process or a project (opened by clicking it) ──────
+  // Renames carry over to task configs, users' process assignments and the
+  // quality-skip list. Past daily reports keep the name they were filed under.
+  const swap = (arr, from, to) => (Array.isArray(arr) ? arr.map(x => (x === from ? to : x)) : arr);
+
+  async function renameProcessRefs(from, to) {
+    await S.update('task_configs', { process: to }, { process: from });
+    const touched = allUsers.filter(u =>
+      u.access === from || (u.processes ?? []).includes(from) || (u.supervised_processes ?? []).includes(from));
+    await Promise.all(touched.map(u => S.update('users', {
+      access: u.access === from ? to : u.access,
+      processes: swap(u.processes, from, to),
+      supervised_processes: swap(u.supervised_processes, from, to),
+    }, { emp_id: u.emp_id })));
+    if (qualitySkipProcs.has(from)) await kv.set('quality_skip_procs', swap([...qualitySkipProcs], from, to));
+  }
+
+  function openProcEdit(p) {
+    setProcEdit({ id: p.id, oldName: p.name, name: p.name, oldProject: p.project ?? DEFAULT_PROJECT, project: p.project ?? DEFAULT_PROJECT, error: '' });
+  }
+
+  async function saveProcEdit() {
+    const name = procEdit.name.trim().toUpperCase();
+    const project = procEdit.project.trim().toUpperCase();
+    const fail = error => setProcEdit(p => ({ ...p, error }));
+    if (!name) return fail('Enter a sub-process name.');
+    if (!project) return fail('Choose a project.');
+    if (name === procEdit.oldName && project === procEdit.oldProject) { setProcEdit(null); return; }
+    if (name !== procEdit.oldName && allProcs.includes(name)) return fail(`${name} already exists. Sub-process names must be unique.`);
+    const changes = [
+      name !== procEdit.oldName && `Rename ${procEdit.oldName} → ${name}`,
+      project !== procEdit.oldProject && `Move from ${procEdit.oldProject} to ${project}`,
+    ].filter(Boolean).join('\n');
+    if (!await confirmDialog({
+      title: 'Save sub-process changes?',
+      message: changes + (name !== procEdit.oldName ? '\n\nIts tasks and assigned users move to the new name. Past reports keep the old name.' : ''),
+      confirmText: 'Save Changes',
+    })) return;
+    setEditSaving(true);
+    const ok = await S.update('processes', { name, project }, { id: procEdit.id });
+    if (ok && name !== procEdit.oldName) await renameProcessRefs(procEdit.oldName, name);
+    setEditSaving(false);
+    if (!ok) return fail('Could not save. Please try again.');
+    setProcEdit(null);
+    await load();
+  }
+
+  async function deleteProcEdit() {
+    const users = allUsers.filter(u => u.access === procEdit.oldName || (u.processes ?? []).includes(procEdit.oldName)).length;
+    if (!await confirmDialog({
+      title: `Delete ${procEdit.oldName}?`,
+      message: `It will be removed from ${procEdit.oldProject}.` + (users ? `\n${users} user(s) are assigned to it and will need a new process.` : ''),
+      tone: 'danger', confirmText: 'Delete',
+    })) return;
+    setEditSaving(true);
+    await S.del('processes', { id: procEdit.id });
+    setEditSaving(false);
+    setProcEdit(null);
+    await load();
+  }
+
+  async function saveProjEdit() {
+    const name = projEdit.name.trim().toUpperCase();
+    const fail = error => setProjEdit(p => ({ ...p, error }));
+    if (!name) return fail('Enter a project name.');
+    if (name === projEdit.oldName) { setProjEdit(null); return; }
+    if (allProjects.includes(name)) return fail(`A project called ${name} already exists.`);
+    if (!await confirmDialog({ title: 'Rename project?', message: `${projEdit.oldName} → ${name}\nAll of its sub-processes move with it.`, confirmText: 'Rename' })) return;
+    setEditSaving(true);
+    const ok = await S.update('processes', { project: name }, { project: projEdit.oldName });
+    const managers = allUsers.filter(u => (u.supervised_projects ?? []).includes(projEdit.oldName));
+    await Promise.all(managers.map(u => S.update('users', { supervised_projects: swap(u.supervised_projects, projEdit.oldName, name) }, { emp_id: u.emp_id })));
+    setEditSaving(false);
+    if (!ok) return fail('Could not save. Please try again.');
+    setProjEdit(null);
+    await load();
+  }
+
+  async function deleteProjEdit() {
+    const subs = customProcs.filter(p => (p.project ?? DEFAULT_PROJECT) === projEdit.oldName);
+    if (!await confirmDialog({
+      title: `Delete project ${projEdit.oldName}?`,
+      message: `Its sub-processes will be deleted too: ${subs.map(p => p.name).join(', ')}.\nUsers assigned to them will need a new process.`,
+      tone: 'danger', confirmText: 'Delete Project',
+    })) return;
+    setEditSaving(true);
+    await Promise.all(subs.map(p => S.del('processes', { id: p.id })));
+    setEditSaving(false);
+    setProjEdit(null);
     await load();
   }
 
@@ -382,25 +490,29 @@ export default function TeamMgmt({ user }) {
                       <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                         {procsByProject[proj].map(name => {
                           const custom = customProcs.find(p => p.name === name && (p.project ?? DEFAULT_PROJECT) === proj);
-                          return (
-                            <span key={name} className={`badge ${custom ? 'badge-yellow' : 'badge-blue'}`} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          // Built-in processes (home company) can't be edited; custom ones open the edit pop-up
+                          return custom ? (
+                            <button key={name} type="button" className="badge badge-yellow" onClick={() => openProcEdit(custom)}
+                              title={`Edit or delete ${name}`} style={{ border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 11 }}>
                               {name}
-                              {custom && (
-                                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0, fontSize: 12, lineHeight: 1 }}
-                                  title={`Delete ${name}`} onClick={() => deleteProcess(custom.id)}>✕</button>
-                              )}
-                            </span>
+                            </button>
+                          ) : (
+                            <span key={name} className="badge badge-blue" title="Built-in process">{name}</span>
                           );
                         })}
                       </div>
                     </td>
                     <td className="right" style={{ whiteSpace: 'nowrap' }}>
-                      <button className="btn-sm" onClick={() => openProjectForm(proj)}>+ Sub-Process</button>
+                      <button className="btn-sm" onClick={() => openProjectForm(proj)}>+ Sub-Process</button>{' '}
+                      {!(DEF_PROCS.length && proj === DEFAULT_PROJECT) && (
+                        <button className="btn-sm" onClick={() => setProjEdit({ oldName: proj, name: proj, error: '' })}>Edit</button>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <p className="text-sm text-muted" style={{ marginTop: 8 }}>Click a sub-process to rename, move or delete it.</p>
           </div>
         )}
         {allProjects.length > 0 && <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
@@ -589,7 +701,7 @@ export default function TeamMgmt({ user }) {
                         onChange={e => setF({ ramp_schedule: f.ramp_schedule.map((v, j) => j === i ? e.target.value : v) })}
                         placeholder="Target" />
                       <button className="btn-sm" style={{ color: 'var(--danger)' }}
-                        onClick={() => setF({ ramp_schedule: f.ramp_schedule.filter((_, j) => j !== i) })}>✕</button>
+                        onClick={() => setF({ ramp_schedule: f.ramp_schedule.filter((_, j) => j !== i) })}>Remove</button>
                     </div>
                   ))}
                   <button className="btn-sm" style={{ alignSelf: 'flex-start' }}
@@ -685,8 +797,8 @@ export default function TeamMgmt({ user }) {
                       onChange={e => setProjForm(p => ({ ...p, error: '', subs: p.subs.map((x, j) => j === i ? e.target.value : x) }))}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); setProjForm(p => ({ ...p, subs: [...p.subs, ''] })); } }} />
                     {projForm.subs.length > 1 && (
-                      <button className="btn-sm" style={{ color: 'var(--danger)' }} title="Remove"
-                        onClick={() => setProjForm(p => ({ ...p, subs: p.subs.filter((_, j) => j !== i) }))}>✕</button>
+                      <button className="btn-sm" style={{ color: 'var(--danger)' }}
+                        onClick={() => setProjForm(p => ({ ...p, subs: p.subs.filter((_, j) => j !== i) }))}>Remove</button>
                     )}
                   </div>
                 ))}
@@ -703,6 +815,61 @@ export default function TeamMgmt({ user }) {
               <button className="btn-primary" onClick={saveProject} disabled={projSaving}>
                 {projSaving ? 'Saving…' : projForm.locked ? 'Add Sub-Process' : 'Create Project'}
               </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit sub-process modal */}
+      {procEdit && (
+        <Modal title={`Edit Sub-Process — ${procEdit.oldName}`} onClose={() => setProcEdit(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field">
+              <label>Sub-process name</label>
+              <input type="text" value={procEdit.name} autoFocus
+                onChange={e => setProcEdit(p => ({ ...p, name: e.target.value, error: '' }))} />
+            </div>
+            <div className="field">
+              <label>Project</label>
+              <select value={procEdit.project} onChange={e => setProcEdit(p => ({ ...p, project: e.target.value, error: '' }))}>
+                {allProjects.map(proj => <option key={proj} value={proj}>{proj}</option>)}
+              </select>
+            </div>
+            {procEdit.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{procEdit.error}</p>}
+            <div className="form-actions" style={{ justifyContent: 'space-between' }}>
+              <button className="btn-danger" onClick={deleteProcEdit} disabled={editSaving}>Delete Sub-Process</button>
+              <div className="row" style={{ gap: 8 }}>
+                <button className="btn-sm" onClick={() => setProcEdit(null)}>Cancel</button>
+                <button className="btn-primary" onClick={saveProcEdit} disabled={editSaving}>
+                  {editSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit project modal */}
+      {projEdit && (
+        <Modal title={`Edit Project — ${projEdit.oldName}`} onClose={() => setProjEdit(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field">
+              <label>Project name</label>
+              <input type="text" value={projEdit.name} autoFocus
+                onChange={e => setProjEdit(p => ({ ...p, name: e.target.value, error: '' }))} />
+            </div>
+            <p className="text-sm text-muted">
+              Sub-processes: {(procsByProject[projEdit.oldName] ?? []).join(', ') || '—'}
+            </p>
+            {projEdit.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{projEdit.error}</p>}
+            <div className="form-actions" style={{ justifyContent: 'space-between' }}>
+              <button className="btn-danger" onClick={deleteProjEdit} disabled={editSaving}>Delete Project</button>
+              <div className="row" style={{ gap: 8 }}>
+                <button className="btn-sm" onClick={() => setProjEdit(null)}>Cancel</button>
+                <button className="btn-primary" onClick={saveProjEdit} disabled={editSaving}>
+                  {editSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </div>
         </Modal>

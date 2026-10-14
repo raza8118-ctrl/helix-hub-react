@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import Modal from './Modal';
+import { confirmDialog } from './Dialog';
 
 const TABS = [
   { id: 'friends',  label: 'Friends' },
@@ -58,7 +59,7 @@ export default function FriendsPanel({ user, onClose }) {
   }
 
   async function unfriend(empId) {
-    if (!window.confirm('Remove this friend?')) return;
+    if (!await confirmDialog({ title: 'Remove this friend?', tone: 'danger', confirmText: 'Remove' })) return;
     const req = accepted.find(r => r.from_emp_id === empId || r.to_emp_id === empId);
     if (req) await S.del('friend_requests', { id: req.id });
     await S.del('close_friends', { owner_emp_id: myEmpId, friend_emp_id: empId });

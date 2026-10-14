@@ -4,6 +4,7 @@ import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, toggle
 import { ACCESSES, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, DEF_PROCS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
+import { alertDialog, confirmDialog, promptDialog } from '../../components/shared/Dialog';
 
 const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
@@ -174,7 +175,7 @@ export default function ProdMonitor({ user }) {
       await S.del('holidays', { date });
       setHoliday(null);
     } else {
-      const note = window.prompt('Holiday label:');
+      const note = await promptDialog({ title: 'Mark as holiday', message: 'Give this holiday a label.', placeholder: 'e.g. Eid Holiday', confirmText: 'Mark Holiday' });
       if (note === null) return;
       const r = await S.set('holidays', { date, note: note.trim() || 'Holiday' });
       setHoliday(r?.[0] ?? { date, note });
@@ -227,7 +228,7 @@ export default function ProdMonitor({ user }) {
   }
 
   async function removeBypass(row) {
-    if (!window.confirm('Remove bypass for this employee?')) return;
+    if (!await confirmDialog({ title: 'Remove bypass?', message: `The bypass for ${row.name ?? row.emp_id} will be removed.`, tone: 'danger', confirmText: 'Remove' })) return;
     await S.update('daily_logs', { bypass_reason: null }, { id: row.log.id });
     logAudit({ actor: user, action: 'remove_bypass', targetEmpId: row.emp_id, targetName: row.name });
     await load();
@@ -247,7 +248,7 @@ export default function ProdMonitor({ user }) {
   }
 
   async function removeQualityBypass(row) {
-    if (!window.confirm('Remove quality bypass for this employee?')) return;
+    if (!await confirmDialog({ title: 'Remove quality bypass?', message: `The quality bypass for ${row.name ?? row.emp_id} will be removed.`, tone: 'danger', confirmText: 'Remove' })) return;
     await S.update('daily_logs', { quality_bypass_reason: null }, { id: row.log.id });
     logAudit({ actor: user, action: 'remove_quality_bypass', targetEmpId: row.emp_id, targetName: row.name, details: { date } });
     await load();
@@ -261,7 +262,7 @@ export default function ProdMonitor({ user }) {
     if (qualityDate && qualityDate !== date) {
       const pastLogs = await S.get('daily_logs', { emp_id: qualityTarget.emp_id, date: qualityDate });
       if (!pastLogs?.length) {
-        window.alert(`No log found for ${qualityTarget.name ?? qualityTarget.emp_id} on ${qualityDate}.`);
+        await alertDialog({ title: 'No report found', message: `No log found for ${qualityTarget.name ?? qualityTarget.emp_id} on ${qualityDate}.`, tone: 'warning' });
         setQualityLoading(false);
         return;
       }

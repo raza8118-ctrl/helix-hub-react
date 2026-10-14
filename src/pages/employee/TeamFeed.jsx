@@ -7,6 +7,7 @@ import FriendsPanel from '../../components/shared/FriendsPanel';
 import ReactionBar from '../../components/shared/ReactionBar';
 import CommentThread from '../../components/shared/CommentThread';
 import Toast from '../../components/shared/Toast';
+import { confirmDialog } from '../../components/shared/Dialog';
 
 const POLL_MS = 25000;
 
@@ -176,7 +177,7 @@ export default function TeamFeed({ user }) {
 
   async function deletePost(post) {
     if (post.emp_id !== user.emp_id) return;
-    if (!window.confirm('Delete this post?')) return;
+    if (!await confirmDialog({ title: 'Delete this post?', message: 'This cannot be undone.', tone: 'danger', confirmText: 'Delete' })) return;
     await S.del('feed_posts', { id: post.id });
     await load();
   }

@@ -5,6 +5,7 @@ import {
   loadCompany, saveCompany, ownerChangePassword,
 } from '../../lib/company';
 import Changelog from '../admin/Changelog';
+import { confirmDialog } from '../../components/shared/Dialog';
 
 // Helix Hub owner only — reached from the "Helix Hub owner" link on the login
 // screen, never from a company login. Add, rename, activate/deactivate, delete
@@ -65,6 +66,11 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
   async function add(e) {
     e.preventDefault();
     const adminId = form.adminId.trim().toUpperCase();
+    if (!await confirmDialog({
+      title: 'Create this company?',
+      message: `${form.name.trim()} (${form.code.trim().toUpperCase()})\nFirst admin: ${adminId}\n\nA separate copy of every table will be created for it.`,
+      confirmText: 'Create Company',
+    })) return;
     const ok = await run(
       () => createCompany(owner, form),
       d => `✓ ${d.name} is ready (${d.tables} tables created). Its users sign in with company “${d.name}” or “${d.code}”; the first admin is ${adminId} with the password you set.`,
@@ -75,6 +81,11 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
   async function saveEdit() {
     const name = editing.name.trim();
     if (!name) return;
+    if (!await confirmDialog({
+      title: 'Save company name?',
+      message: `Users will type “${name}”${editing.isHome && editing.newCode?.trim() ? ` or “${editing.newCode.trim().toUpperCase()}”` : ''} on the login screen from now on.`,
+      confirmText: 'Save',
+    })) return;
     if (editing.isHome) {
       const ok = await saveCompany({ name, code: editing.newCode });
       setMsg(ok ? { ok: true, text: `✓ Home company saved as ${name}.` } : { ok: false, text: 'Could not save — please try again.' });
@@ -85,20 +96,23 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
   }
 
   async function toggle(c) {
-    if (c.active && !window.confirm(`Deactivate ${c.name}? Its users won't be able to sign in until it's activated again. No data is deleted.`)) return;
+    if (!await confirmDialog(c.active
+      ? { title: `Deactivate ${c.name}?`, message: "Its users won't be able to sign in until it's activated again. No data is deleted.", tone: 'danger', confirmText: 'Deactivate' }
+      : { title: `Activate ${c.name}?`, message: 'Its users will be able to sign in again.', confirmText: 'Activate' })) return;
     run(() => updateCompany(owner, c.code, { active: !c.active }), `✓ ${c.name} ${c.active ? 'deactivated' : 'activated'}.`);
   }
 
   async function remove(c) {
-    const typed = window.prompt(
-      `Permanently delete ${c.name} and ALL of its data (users, reports, targets, settings)? This cannot be undone.\n\nType the company code ${c.code} to confirm:`,
-    );
-    if (typed == null) return;
-    if (typed.trim().toUpperCase() !== c.code) { setMsg({ ok: false, text: 'Code did not match — nothing was deleted.' }); return; }
+    if (!await confirmDialog({
+      title: `Delete ${c.name} permanently?`,
+      message: 'ALL of its data (users, reports, targets, settings) will be deleted. This cannot be undone.',
+      tone: 'danger', requireText: c.code, confirmText: 'Delete Company',
+    })) return;
     run(() => deleteCompany(owner, c.code), d => `✓ ${c.name} deleted (${d.tables_dropped} tables removed).`);
   }
 
-  function sync() {
+  async function sync() {
+    if (!await confirmDialog({ title: 'Sync company structure?', message: 'Any tables or columns added in recent Helix Hub updates will be added to every company. Nothing is deleted.', confirmText: 'Sync' })) return;
     run(() => syncCompanies(owner), d => (d.tables_created + d.columns_added)
       ? `✓ Synced: ${d.tables_created} table(s) and ${d.columns_added} column(s) added across companies.`
       : '✓ All companies are already up to date.');
@@ -108,6 +122,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
     e.preventDefault();
     setPwMsg(null);
     if (pw.next !== pw.confirm) { setPwMsg({ ok: false, text: 'New passwords do not match.' }); return; }
+    if (!await confirmDialog({ title: 'Change your owner password?', message: 'Use the new password the next time you sign in.', tone: 'warning', confirmText: 'Change Password' })) return;
     const { error } = await ownerChangePassword(owner, pw.next);
     if (error) { setPwMsg({ ok: false, text: error }); return; }
     onOwnerUpdate({ ...owner, password: pw.next });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { S, kv } from '../../lib/supabase';
 import { fmtD } from '../../lib/helpers';
+import { alertDialog } from '../../components/shared/Dialog';
 
 async function downloadAllocXlsx(alloc) {
   // Fetch actual rows from kv store
@@ -84,7 +85,7 @@ export default function MyAllocation({ user }) {
         ));
       }
     } catch (err) {
-      window.alert(`Download failed: ${err.message}`);
+      await alertDialog({ title: 'Download failed', message: err.message, tone: 'danger' });
     }
     setDownloading(null);
   }

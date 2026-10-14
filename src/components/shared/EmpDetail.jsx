@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { addDays, today, fmtSh, fmtD, avg, pCol } from '../../lib/helpers';
 import { DEFAULT_TASKS } from '../../lib/constants';
+import { confirmDialog } from './Dialog';
 import BarChart from './BarChart';
 import { KPI, H2, Btn, SectionLabel } from './UI';
 
@@ -69,7 +70,7 @@ export default function EmpDetail({ emp, onClose, currentUser }) {
     .split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
 
   async function doAction(confirmMsg, fn) {
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmDialog({ title: 'Are you sure?', message: confirmMsg, tone: 'danger', confirmText: 'Yes, delete' })) return;
     setMsg('');
     try {
       await fn();

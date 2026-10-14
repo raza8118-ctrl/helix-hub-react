@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { dlCSV } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
+import { alertDialog, confirmDialog } from '../../components/shared/Dialog';
 
 function ttpLabel(allocAt, downloadAt) {
   if (!downloadAt || !allocAt) return null;
@@ -34,7 +35,7 @@ export default function AllocMonitor({ user }) {
   }
 
   async function deleteAlloc(id) {
-    if (!window.confirm('Delete this allocation?')) return;
+    if (!await confirmDialog({ title: 'Delete this allocation?', message: 'This cannot be undone.', tone: 'danger', confirmText: 'Delete' })) return;
     await S.del('allocations', { id });
     setAllocs(prev => prev.filter(a => a.id !== id));
   }
@@ -44,7 +45,7 @@ export default function AllocMonitor({ user }) {
     try {
       const rows = await kv.get(`alloc_${a.id}`);
       if (!rows?.length) {
-        window.alert('No data found for this allocation.');
+        await alertDialog({ title: 'No data found', message: 'This allocation has no rows to download.', tone: 'warning' });
         setDownloading(null);
         return;
       }
@@ -53,7 +54,7 @@ export default function AllocMonitor({ user }) {
       await S.update('allocations', { status: 'downloaded', downloaded_at: new Date().toISOString() }, { id: a.id });
       setAllocs(prev => prev.map(x => x.id === a.id ? { ...x, status: 'downloaded', downloaded_at: new Date().toISOString() } : x));
     } catch (err) {
-      window.alert(`Download failed: ${err.message}`);
+      await alertDialog({ title: 'Download failed', message: err.message, tone: 'danger' });
     }
     setDownloading(null);
   }

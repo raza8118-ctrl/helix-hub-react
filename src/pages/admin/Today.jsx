@@ -6,6 +6,7 @@ import { ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
+import { promptDialog } from '../../components/shared/Dialog';
 
 const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
@@ -95,7 +96,7 @@ export default function Today({ user }) {
       await S.del('holidays', { date });
       setHoliday(null);
     } else {
-      const note = window.prompt('Holiday label (e.g. "Eid Holiday"):');
+      const note = await promptDialog({ title: 'Mark as holiday', message: 'Give this holiday a label.', placeholder: 'e.g. Eid Holiday', confirmText: 'Mark Holiday' });
       if (note === null) return;
       const r = await S.set('holidays', { date, note: note.trim() || 'Holiday' });
       setHoliday(r?.[0] ?? { date, note: note || 'Holiday' });

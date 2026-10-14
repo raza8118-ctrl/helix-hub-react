@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { today, fmtSh, fmtD, avg, procIncludes, scopeToSupervisor, permsFor, logAudit, isOnLeave } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
+import { alertDialog } from '../../components/shared/Dialog';
 
 const RANGE_OPTIONS = [7, 14, 21];
 
@@ -142,7 +143,7 @@ export default function QualityMonitor({ user }) {
     setEditLoading(true);
     const log = logMap[`${editTarget.emp_id}__${editDate}`];
     if (!log) {
-      window.alert(`No log found for ${editTarget.name ?? editTarget.emp_id} on ${editDate}.`);
+      await alertDialog({ title: 'No report found', message: `No log found for ${editTarget.name ?? editTarget.emp_id} on ${editDate}.`, tone: 'warning' });
       setEditLoading(false);
       return;
     }
