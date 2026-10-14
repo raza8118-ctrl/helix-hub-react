@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { kv, S } from '../../lib/supabase';
 import { DEFAULT_TASKS, DEF_PROCS } from '../../lib/constants';
+import Modal from '../../components/shared/Modal';
 
 // Company name/code, adding companies and the version history are managed by the
 // Helix Hub owner in the Owner Console, never from a company's own admin login.
@@ -28,9 +29,10 @@ export default function Settings({ user }) {
   // Custom process task config
   const [customProcs, setCustomProcs]     = useState([]);
   const [customTaskCfg, setCustomTaskCfg] = useState({});
-  const [newTaskNames, setNewTaskNames]   = useState({});
   const [customMsg, setCustomMsg]         = useState('');
   const [customSaving, setCustomSaving]   = useState(false);
+  const [taskForm, setTaskForm]           = useState(null);   // Add Task modal { process, name, target, weight, error }
+  const [taskSaving, setTaskSaving]       = useState(false);
 
   useEffect(() => {
     kv.get('anthropic_key').then(k => { if (k) setAiKey(k); });
@@ -75,7 +77,6 @@ export default function Settings({ user }) {
     const customs = (procs ?? []).filter(p => !DEF_PROCS.includes(p.name) && p.active !== false);
     setCustomProcs(customs);
     const cfg = {};
-    const names = {};
     for (const p of customs) {
       cfg[p.name] = (rows ?? [])
         .filter(r => r.process === p.name)
@@ -84,10 +85,8 @@ export default function Settings({ user }) {
           target: String(t.target),
           weight: t.target ? String(+(50 / t.target).toFixed(3)) : '',
         }));
-      names[p.name] = '';
     }
     setCustomTaskCfg(cfg);
-    setNewTaskNames(names);
   }
 
   async function saveAiKey() {
@@ -184,18 +183,46 @@ export default function Settings({ user }) {
     }));
   }
 
-  function addCustomTask(proc) {
-    const name = (newTaskNames[proc] ?? '').trim();
-    if (!name) return;
-    if ((customTaskCfg[proc] ?? []).some(t => t.name === name)) return;
+  // Add Task modal — target and weight auto-sync (Weight = 50 ÷ Target); saved immediately
+  function openTaskForm(process) {
+    setTaskForm({ process: process ?? customProcs[0]?.name ?? '', name: '', target: '', weight: '', error: '' });
+  }
+
+  function setTaskField(key, value) {
+    setTaskForm(f => {
+      const n = parseFloat(value);
+      const next = { ...f, [key]: value, error: '' };
+      if (key === 'target') next.weight = value !== '' && n > 0 ? String(+(50 / n).toFixed(3)) : '';
+      if (key === 'weight') next.target = value !== '' && n > 0 ? String(Math.round(50 / n)) : '';
+      return next;
+    });
+  }
+
+  async function saveTaskForm() {
+    const { process, target } = taskForm;
+    const name = taskForm.name.trim();
+    const fail = error => setTaskForm(f => ({ ...f, error }));
+    if (!process) return fail('Choose a sub-process.');
+    if (!name) return fail('Enter a task name.');
+    if (!(parseInt(target) > 0)) return fail('Enter a daily target (or a weight) greater than 0.');
+    if ((customTaskCfg[process] ?? []).some(t => t.name.toLowerCase() === name.toLowerCase())) {
+      return fail(`${process} already has a task called “${name}”.`);
+    }
+    setTaskSaving(true);
+    const ok = await S.set('task_configs', { process, name, target: parseInt(target) }, ['process', 'name']);
+    setTaskSaving(false);
+    if (!ok) return fail('Could not save the task. Please try again.');
     setCustomTaskCfg(prev => ({
       ...prev,
-      [proc]: [...(prev[proc] ?? []), { name, target: '', weight: '' }],
+      [process]: [...(prev[process] ?? []), { name, target: String(parseInt(target)), weight: String(+(50 / parseInt(target)).toFixed(3)) }],
     }));
-    setNewTaskNames(prev => ({ ...prev, [proc]: '' }));
+    setTaskForm(null);
+    setCustomMsg(`✓ Task “${name}” added to ${process}`);
+    setTimeout(() => setCustomMsg(''), 3000);
   }
 
   async function removeCustomTask(proc, taskName) {
+    if (!window.confirm(`Delete the task “${taskName}” from ${proc}?`)) return;
     await S.del('task_configs', { process: proc, name: taskName });
     setCustomTaskCfg(prev => ({
       ...prev,
@@ -371,22 +398,25 @@ export default function Settings({ user }) {
           <div className="row" style={{ gap: 8 }}>
             {customMsg && <span className="text-sm" style={{ color: 'var(--success)' }}>{customMsg}</span>}
             {customProcs.length > 0 && (
-              <button className="btn-primary" onClick={saveCustomTaskCfg} disabled={customSaving}>
-                {customSaving ? 'Saving…' : 'Save Custom Config'}
-              </button>
+              <>
+                <button className="btn-sm" onClick={() => openTaskForm()}>+ Add Task</button>
+                <button className="btn-primary" onClick={saveCustomTaskCfg} disabled={customSaving}>
+                  {customSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </>
             )}
           </div>
         </div>
 
         {customProcs.length === 0 ? (
           <p className="text-muted text-sm">
-            No {DEF_PROCS.length ? 'custom ' : ''}processes yet. Go to <strong>Team → Process / Project Management</strong> to create a project and its sub-processes, then come back here to define each one's tasks, targets and weightage.
+            No {DEF_PROCS.length ? 'custom ' : ''}processes yet. Go to <strong>Team → + Add Project</strong> to create a project and its sub-processes, then come back here and click <strong>+ Add Task</strong> to define each one's tasks, targets and weightage.
             Employee IDs are created in <strong>Team → + Add User</strong>.
           </p>
         ) : (
           <>
             <p className="text-muted text-sm" style={{ marginBottom: 16 }}>
-              Define the tasks for each process and set a daily target <strong>or</strong> a weight per task — they auto-sync. These feed the productivity formula. <strong>Weight = 50 ÷ Target.</strong>
+              Click <strong>+ Add Task</strong> to add a task to a sub-process. To change existing tasks, edit the target <strong>or</strong> weight below (they auto-sync) and click <strong>Save Changes</strong>. <strong>Weight = 50 ÷ Target.</strong>
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 24 }}>
               {customProcs.map(proc => {
@@ -410,7 +440,7 @@ export default function Settings({ user }) {
                         {tasks.length === 0 && (
                           <tr>
                             <td colSpan={4} style={{ padding: '12px 8px', color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
-                              No tasks yet — add one below
+                              No tasks yet — click + Add Task
                             </td>
                           </tr>
                         )}
@@ -447,17 +477,7 @@ export default function Settings({ user }) {
                         ))}
                       </tbody>
                     </table>
-                    <div className="row" style={{ gap: 8 }}>
-                      <input
-                        type="text"
-                        placeholder="New task name…"
-                        value={newTaskNames[proc.name] ?? ''}
-                        onChange={e => setNewTaskNames(prev => ({ ...prev, [proc.name]: e.target.value }))}
-                        onKeyDown={e => e.key === 'Enter' && addCustomTask(proc.name)}
-                        style={{ flex: 1, fontSize: 12 }}
-                      />
-                      <button className="btn-sm" onClick={() => addCustomTask(proc.name)}>+ Add Task</button>
-                    </div>
+                    <button className="btn-sm" onClick={() => openTaskForm(proc.name)}>+ Add Task to {proc.name}</button>
                   </div>
                 );
               })}
@@ -465,6 +485,52 @@ export default function Settings({ user }) {
           </>
         )}
       </div>
+
+      {/* Add task modal */}
+      {taskForm && (
+        <Modal title="Add Productivity Task" onClose={() => setTaskForm(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field">
+              <label>Sub-process</label>
+              <select value={taskForm.process} onChange={e => setTaskField('process', e.target.value)}>
+                {[...new Set(customProcs.map(p => p.project))].map(proj => (
+                  <optgroup key={proj} label={proj}>
+                    {customProcs.filter(p => p.project === proj).map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Task name</label>
+              <input type="text" value={taskForm.name} autoFocus placeholder="e.g. Claim Review"
+                onChange={e => setTaskField('name', e.target.value)} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="field">
+                <label>Daily target</label>
+                <input type="number" min="1" value={taskForm.target} placeholder="e.g. 50"
+                  onChange={e => setTaskField('target', e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Weight ×</label>
+                <input type="number" min="0.001" step="0.001" value={taskForm.weight} placeholder="e.g. 1"
+                  onChange={e => setTaskField('weight', e.target.value)} />
+              </div>
+            </div>
+            <p className="text-sm text-muted">
+              Fill in either one — the other is calculated. Weight = 50 ÷ Target, so a task with target 50 counts 1× per item
+              and a task with target 25 counts 2×.
+            </p>
+            {taskForm.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{taskForm.error}</p>}
+            <div className="form-actions">
+              <button className="btn-sm" onClick={() => setTaskForm(null)}>Cancel</button>
+              <button className="btn-primary" onClick={saveTaskForm} disabled={taskSaving}>
+                {taskSaving ? 'Saving…' : 'Add Task'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

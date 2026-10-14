@@ -82,8 +82,6 @@ function MultiCheck({ label, options, groups, selected, onChange }) {
 }
 
 export default function TeamMgmt({ user }) {
-  // Added companies have no built-in PMB project — they name their own projects
-  const homeProject = DEF_PROCS.length ? DEFAULT_PROJECT : '';
   const [allUsers, setAllUsers]       = useState([]);
   const [resetReqs, setResetReqs]     = useState([]);
   const [customProcs, setCustomProcs] = useState([]);
@@ -96,8 +94,8 @@ export default function TeamMgmt({ user }) {
   const [editUser, setEditUser]       = useState(null);
   const [form, setForm]               = useState(BLANK);
   const [saving, setSaving]           = useState(false);
-  const [newProc, setNewProc]         = useState('');
-  const [newProcProject, setNewProcProject] = useState(homeProject);
+  const [projForm, setProjForm]       = useState(null);    // Add Project modal { project, locked, subs, error }
+  const [projSaving, setProjSaving]   = useState(false);
   const [rowOrder, setRowOrder]       = useState({});
   const [qualitySkipProcs, setQualitySkipProcs] = useState(new Set());
 
@@ -278,14 +276,25 @@ export default function TeamMgmt({ user }) {
     await load();
   }
 
-  async function addProcess() {
-    const name = newProc.trim().toUpperCase();
-    if (!name) return;
-    const project = (newProcProject.trim() || DEFAULT_PROJECT).toUpperCase();
-    if (!DEF_PROCS.length && !newProcProject.trim()) { window.alert('Enter a project name first (e.g. your client or department).'); return; }
-    await S.set('processes', { name, project, active: true });
-    setNewProc('');
-    setNewProcProject(homeProject);
+  // Add Project modal — a new project with its sub-processes, or more
+  // sub-processes for an existing project (project field locked)
+  function openProjectForm(project = null) {
+    setProjForm({ project: project ?? '', locked: !!project, subs: [''], error: '' });
+  }
+
+  async function saveProject() {
+    const project = projForm.project.trim().toUpperCase();
+    const subs = [...new Set(projForm.subs.map(s => s.trim().toUpperCase()).filter(Boolean))];
+    const fail = error => setProjForm(p => ({ ...p, error }));
+    if (!project) return fail('Enter a project name (e.g. your client or department).');
+    if (!subs.length) return fail('Add at least one sub-process.');
+    const taken = subs.filter(s => allProcs.includes(s));
+    if (taken.length) return fail(`Already exists: ${taken.join(', ')}. Sub-process names must be unique.`);
+    setProjSaving(true);
+    const results = await Promise.all(subs.map(name => S.set('processes', { name, project, active: true })));
+    setProjSaving(false);
+    if (results.some(r => !r)) return fail('Some sub-processes could not be saved. Please try again.');
+    setProjForm(null);
     await load();
   }
 
@@ -309,7 +318,10 @@ export default function TeamMgmt({ user }) {
             )}
           </div>
         </div>
-        <button className="btn-primary" onClick={openCreate}>+ Add User</button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn-sm" onClick={() => openProjectForm()}>+ Add Project</button>
+          <button className="btn-primary" onClick={openCreate}>+ Add User</button>
+        </div>
       </div>
 
       {/* Password reset approvals */}
@@ -347,36 +359,51 @@ export default function TeamMgmt({ user }) {
 
       {/* Process management */}
       <div className="card mb-16">
-        <div className="card-header"><div className="card-title">Process / Project Management</div></div>
-        {allProjects.map(proj => (
-          <div key={proj} style={{ marginBottom: 10 }}>
-            <div className="text-sm bold text-muted" style={{ marginBottom: 4 }}>{proj}</div>
-            <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-              {procsByProject[proj].map(name => {
-                const custom = customProcs.find(p => p.name === name && (p.project ?? DEFAULT_PROJECT) === proj);
-                return (
-                  <span key={name} className={`badge ${custom ? 'badge-yellow' : 'badge-blue'}`} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {name}
-                    {custom && (
-                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0, fontSize: 12, lineHeight: 1 }}
-                        onClick={() => deleteProcess(custom.id)}>✕</button>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        <div className="row" style={{ gap: 8, marginTop: 8 }}>
-          <input type="text" placeholder="Project (e.g. PMB)" value={newProcProject}
-            onChange={e => setNewProcProject(e.target.value)} style={{ maxWidth: 140 }} />
-          <input type="text" placeholder="New sub-process name…" value={newProc}
-            onChange={e => setNewProc(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addProcess()}
-            style={{ maxWidth: 200 }} />
-          <button className="btn-sm" onClick={addProcess}>Add Sub-Process</button>
+        <div className="card-header">
+          <div className="card-title">Projects &amp; Sub-Processes</div>
+          <button className="btn-sm" onClick={() => openProjectForm()}>+ Add Project</button>
         </div>
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+        {allProjects.length === 0 ? (
+          <p className="text-muted text-sm" style={{ padding: '6px 0' }}>
+            No projects yet. Click <strong>+ Add Project</strong> to create your first project and its sub-processes,
+            then set each sub-process's tasks and weightage in <strong>Settings</strong>.
+          </p>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th style={{ width: 160 }}>Project</th><th>Sub-Processes</th><th className="right"></th></tr>
+              </thead>
+              <tbody>
+                {allProjects.map(proj => (
+                  <tr key={proj}>
+                    <td className="bold">{proj}</td>
+                    <td>
+                      <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                        {procsByProject[proj].map(name => {
+                          const custom = customProcs.find(p => p.name === name && (p.project ?? DEFAULT_PROJECT) === proj);
+                          return (
+                            <span key={name} className={`badge ${custom ? 'badge-yellow' : 'badge-blue'}`} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              {name}
+                              {custom && (
+                                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0, fontSize: 12, lineHeight: 1 }}
+                                  title={`Delete ${name}`} onClick={() => deleteProcess(custom.id)}>✕</button>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </td>
+                    <td className="right" style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn-sm" onClick={() => openProjectForm(proj)}>+ Sub-Process</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {allProjects.length > 0 && <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
           <div className="text-sm bold" style={{ marginBottom: 6 }}>Quality Tracking</div>
           <div className="text-sm text-muted" style={{ marginBottom: 8 }}>
             Processes checked below will not show "Pending" in Quality Monitor — they are not subject to quality review.
@@ -400,7 +427,7 @@ export default function TeamMgmt({ user }) {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* User list */}
@@ -632,6 +659,49 @@ export default function TeamMgmt({ user }) {
               <button className="btn-primary" onClick={saveUser}
                 disabled={saving || !f.emp_id.trim() || !f.name.trim()}>
                 {saving ? 'Saving…' : editUser ? 'Save Changes' : 'Create User'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add project / sub-process modal */}
+      {projForm && (
+        <Modal title={projForm.locked ? `Add Sub-Process — ${projForm.project}` : 'Add Project'} onClose={() => setProjForm(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field">
+              <label>Project name</label>
+              <input type="text" value={projForm.project} disabled={projForm.locked} autoFocus={!projForm.locked}
+                onChange={e => setProjForm(p => ({ ...p, project: e.target.value, error: '' }))}
+                placeholder="e.g. your client or department" />
+            </div>
+            <div className="field">
+              <label>Sub-processes</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {projForm.subs.map((s, i) => (
+                  <div key={i} className="row" style={{ gap: 6 }}>
+                    <input type="text" value={s} autoFocus={projForm.locked && i === projForm.subs.length - 1}
+                      placeholder={`Sub-process ${i + 1} (e.g. AR Calling)`}
+                      onChange={e => setProjForm(p => ({ ...p, error: '', subs: p.subs.map((x, j) => j === i ? e.target.value : x) }))}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); setProjForm(p => ({ ...p, subs: [...p.subs, ''] })); } }} />
+                    {projForm.subs.length > 1 && (
+                      <button className="btn-sm" style={{ color: 'var(--danger)' }} title="Remove"
+                        onClick={() => setProjForm(p => ({ ...p, subs: p.subs.filter((_, j) => j !== i) }))}>✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button className="btn-link" style={{ width: 'auto', marginTop: 6 }}
+                onClick={() => setProjForm(p => ({ ...p, subs: [...p.subs, ''] }))}>+ Add another sub-process</button>
+            </div>
+            <p className="text-sm text-muted">
+              Next, set each sub-process's tasks and weightage in <strong>Settings → {DEF_PROCS.length ? 'Custom Process Task Configuration' : 'Productivity Tasks & Weightage'}</strong>.
+            </p>
+            {projForm.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{projForm.error}</p>}
+            <div className="form-actions">
+              <button className="btn-sm" onClick={() => setProjForm(null)}>Cancel</button>
+              <button className="btn-primary" onClick={saveProject} disabled={projSaving}>
+                {projSaving ? 'Saving…' : projForm.locked ? 'Add Sub-Process' : 'Create Project'}
               </button>
             </div>
           </div>
