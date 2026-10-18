@@ -9,7 +9,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 
 ## Phase 0 – Audit & foundation
 - [x] 0.1 Project audit: list existing modules, pages, Supabase tables, auth/roles. Write it to `docs/PROJECT_MAP.md`. No code changes.
-- [ ] 0.2 Shared navigation: add a "Workbench" section to the sidebar for the new modules (empty placeholder pages).
+- [x] 0.2 Shared navigation: add a "Workbench" section to the sidebar for the new modules (empty placeholder pages).
 - [ ] 0.3 Roles: confirm/extend roles (Admin, Team Lead, AR, Auth, Billing/Posting, Coding, Credentialing, QA).
 - [ ] 0.4 Audit log table + helper: who did what, when, on which record.
 - [ ] 0.5 Master tables: `clients` (agencies we bill for) and `payers` (base payer list with aliases).

@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { isWorkbenchTab } from '../workbench/modules';
 
 const Dashboard      = lazy(() => import('./Dashboard'));
 const Today         = lazy(() => import('./Today'));
@@ -13,6 +14,7 @@ const QualityMonitor = lazy(() => import('./QualityMonitor'));
 const Settings       = lazy(() => import('./Settings'));
 const FeedMonitor    = lazy(() => import('./FeedMonitor'));
 const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
+const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
 
 /**
  * Routes admin tabs to the correct page component.
@@ -20,6 +22,7 @@ const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
  *          feedback | team | allocation | allocmon | feedmonitor | settings
  */
 export default function AdminApp({ activeTab, user }) {
+  if (isWorkbenchTab(activeTab)) return <WorkbenchPlaceholder tabId={activeTab} />;
   switch (activeTab) {
     case 'dashboard':   return <Dashboard user={user} />;
     case 'today':       return <Today user={user} />;

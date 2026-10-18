@@ -6,6 +6,7 @@ import Starfield   from './components/shared/Starfield';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
+import { WORKBENCH_TABS } from './pages/workbench/modules';
 import './index.css';
 
 // Owns its own 1s tick so the whole app doesn't re-render every second
@@ -61,6 +62,7 @@ const ADMIN_TABS = [
   { id: 'team',        label: 'Team',          icon: '👥', section: 'Team' },
   { id: 'allocation',  label: 'Work Alloc',    icon: '🗂️', section: 'Team' },
   { id: 'allocmon',    label: 'Alloc Monitor', icon: '📋', section: 'Team' },
+  ...WORKBENCH_TABS,
   { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
   { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
   { id: 'feedmonitor', label: 'Feed Monitor',  icon: '🖼️', section: 'Engagement' },
@@ -75,6 +77,7 @@ const SUPERVISOR_TABS = [
   { id: 'weekly',      label: 'Weekly',        icon: '🗓️', section: 'Monitoring' },
   { id: 'monthly',     label: 'Monthly',       icon: '📆', section: 'Monitoring' },
   { id: 'myteam',      label: 'My Team',       icon: '🧑‍🤝‍🧑', section: 'Team' },
+  ...WORKBENCH_TABS,
   { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
   { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
 ];
@@ -300,6 +303,7 @@ export default function App() {
     { id: 'myreports',    label: 'My Reports',    icon: '📄', section: 'My Work' },
     { id: 'progress',     label: 'Progress',      icon: '📈', section: 'My Work' },
     { id: 'myallocation', label: 'My Allocation', icon: '🗂️', section: 'My Work' },
+    ...WORKBENCH_TABS,
     { id: 'feedback',     label: unreadFeedback > 0 ? `Announcements (${unreadFeedback})` : 'Announcements', icon: '📢', section: 'Engagement' },
     { id: 'feed',         label: 'Team Feed',     icon: '💬', section: 'Engagement' },
   ];

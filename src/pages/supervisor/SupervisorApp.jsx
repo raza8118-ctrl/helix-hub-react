@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { isWorkbenchTab } from '../workbench/modules';
 
 const Dashboard       = lazy(() => import('../admin/Dashboard'));
 const Today          = lazy(() => import('../admin/Today'));
@@ -8,6 +9,7 @@ const Summary         = lazy(() => import('../admin/Summary'));
 const AdminFeedback   = lazy(() => import('../admin/AdminFeedback'));
 const TeamFeed        = lazy(() => import('../employee/TeamFeed'));
 const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
+const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
 
 /**
  * Routes supervisor tabs to the correct page component — reuses the admin
@@ -15,6 +17,7 @@ const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
  * Tab IDs: dashboard | today | prodmonitor | hourlymon | weekly | monthly | feedback | myteam | feed
  */
 export default function SupervisorApp({ activeTab, user }) {
+  if (isWorkbenchTab(activeTab)) return <WorkbenchPlaceholder tabId={activeTab} />;
   switch (activeTab) {
     case 'dashboard':   return <Dashboard user={user} />;
     case 'today':       return <Today user={user} />;
