@@ -2,8 +2,9 @@
 .env
 .env.*
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (project rules in CLAUDE.md are shared)
+.claude/*
+!.claude/CLAUDE.md
 
 # Logs
 logs
