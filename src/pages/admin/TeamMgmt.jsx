@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, kv, refreshCompanyProcesses } from '../../lib/supabase';
-import { DEFAULT_PROJECT, DEF_PROCS } from '../../lib/constants';
+import { DEFAULT_PROJECT, DEF_PROCS, TEAMS } from '../../lib/constants';
 import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
@@ -15,6 +15,7 @@ const BLANK     = {
   supervised_processes: [], supervised_projects: [], all_projects: false,
   permissions: DEFAULT_SUPERVISOR_PERMS,
   ramp_enabled: false, ramp_schedule: [], ramp_start_date: '',
+  team: '', is_qa: false,
 };
 
 const PERM_LABELS = {
@@ -90,6 +91,7 @@ export default function TeamMgmt({ user }) {
   const [clientFilter, setClientFilter] = useState('ALL');
   const [procFilter, setProcFilter]   = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('active');
+  const [teamFilter, setTeamFilter]   = useState('ALL');
   const [loading, setLoading]         = useState(false);
   const [showForm, setShowForm]       = useState(false);
   const [editUser, setEditUser]       = useState(null);
@@ -146,6 +148,9 @@ export default function TeamMgmt({ user }) {
   const projectOfProc = Object.fromEntries(allProjects.flatMap(proj => procsByProject[proj].map(p => [p, proj])));
   const supervisors  = allUsers.filter(u => u.role === 'supervisor' || u.role === 'manager' || u.role === 'admin');
   const pendingResets = (resetReqs ?? []).filter(r => r.status === 'pending');
+  // Team/QA columns come from supabase/migrations/20261018_add_user_team.sql — until it
+  // has been run (and synced to this company), saving them would fail, so leave them out.
+  const hasTeamCols  = allUsers.some(u => 'team' in u);
 
   const displayUsers = allUsers.filter(u => {
     const q      = search.toLowerCase();
@@ -157,7 +162,9 @@ export default function TeamMgmt({ user }) {
       u.process === procFilter || u.process === 'ALL' || (u.processes ?? []).includes(procFilter);
     const statusOk = statusFilter === 'all' ||
       (statusFilter === 'active' ? u.active !== false : u.active === false);
-    return nameOk && clientOk && procOk && statusOk;
+    const teamOk = teamFilter === 'ALL' ||
+      (teamFilter === 'QA' ? !!u.is_qa : teamFilter === 'NONE' ? !u.team : u.team === teamFilter);
+    return nameOk && clientOk && procOk && statusOk && teamOk;
   });
 
   const groupedUsers = (() => {
@@ -220,6 +227,8 @@ export default function TeamMgmt({ user }) {
       ramp_enabled: u.ramp_enabled ?? false,
       ramp_schedule: u.ramp_schedule ?? [],
       ramp_start_date: u.ramp_start_date ?? '',
+      team: u.team ?? '',
+      is_qa: !!u.is_qa,
     });
     setShowForm(true);
   }
@@ -247,6 +256,7 @@ export default function TeamMgmt({ user }) {
       ramp_enabled: form.ramp_enabled,
       ramp_schedule: form.ramp_enabled ? form.ramp_schedule.map(Number) : null,
       ramp_start_date: form.ramp_enabled ? (form.ramp_start_date || editUser?.ramp_start_date || today()) : null,
+      ...(hasTeamCols ? { team: form.team || null, is_qa: !!form.is_qa } : {}),
     };
     const result = editUser
       ? await S.update('users', payload, { emp_id: editUser.emp_id })
@@ -255,6 +265,14 @@ export default function TeamMgmt({ user }) {
     if (!result) {
       await alertDialog({ title: 'Could not save user', message: 'The ID may already exist, or the save was blocked by a database permission rule.', tone: 'danger' });
       return;
+    }
+    const prevTeam = editUser?.team ?? null;
+    const prevQa   = !!editUser?.is_qa;
+    if (hasTeamCols && ((form.team || null) !== prevTeam || !!form.is_qa !== prevQa)) {
+      logAudit({
+        actor: user, action: 'set_team', targetEmpId: empId, targetName: form.name.trim(),
+        details: { team: form.team || null, is_qa: !!form.is_qa, previous_team: prevTeam, previous_is_qa: prevQa },
+      });
     }
     if (form.role === 'supervisor') {
       // Reconcile the other side of the relationship: each employee's own supervisor_ids
@@ -562,6 +580,14 @@ export default function TeamMgmt({ user }) {
               <option value="disabled">Disabled</option>
               <option value="all">All</option>
             </select>
+            {hasTeamCols && (
+              <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} style={{ maxWidth: 150 }}>
+                <option value="ALL">All Teams</option>
+                {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                <option value="QA">QA reviewers</option>
+                <option value="NONE">No team set</option>
+              </select>
+            )}
           </div>
         </div>
         {loading && <div style={{ textAlign: 'center', padding: 24 }}>Loading…</div>}
@@ -591,6 +617,7 @@ export default function TeamMgmt({ user }) {
                           <th>Emp ID</th>
                           <th>Name</th>
                           <th>Role</th>
+                          {hasTeamCols && <th>Team</th>}
                           <th>Process</th>
                           <th className="right">Target</th>
                           <th className="center">Status</th>
@@ -608,6 +635,14 @@ export default function TeamMgmt({ user }) {
                                   {u.role}
                                 </span>
                               </td>
+                              {hasTeamCols && (
+                                <td>
+                                  <div className="row" style={{ gap: 4 }}>
+                                    {u.team ? <span className="badge badge-blue">{u.team}</span> : <span className="text-muted">—</span>}
+                                    {u.is_qa && <span className="badge badge-purple">QA</span>}
+                                  </div>
+                                </td>
+                              )}
                               <td>{u.access || u.process || '—'}</td>
                               <td className="right">{u.target ?? '—'}</td>
                               <td className="center">
@@ -680,7 +715,27 @@ export default function TeamMgmt({ user }) {
                 <label>Daily Target</label>
                 <input type="number" value={f.target} onChange={e => setF({ target: e.target.value })} placeholder="e.g. 100" />
               </div>
+              <div className="field">
+                <label>Team</label>
+                <select value={f.team} onChange={e => setF({ team: e.target.value })} disabled={!hasTeamCols}>
+                  <option value="">— Not set —</option>
+                  {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="field" style={{ alignSelf: 'end', paddingBottom: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: hasTeamCols ? 'pointer' : 'default' }}>
+                  <input type="checkbox" checked={f.is_qa} disabled={!hasTeamCols}
+                    onChange={e => setF({ is_qa: e.target.checked })} />
+                  QA reviewer (audits other people’s work)
+                </label>
+              </div>
             </div>
+            {!hasTeamCols && (
+              <div className="text-sm text-muted">
+                Team and QA can be set once the database update for roadmap step 0.3 has been run
+                (supabase/migrations/20261018_add_user_team.sql, then “Sync structure” in the Owner Console).
+              </div>
+            )}
             <div className="field">
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
                 <input type="checkbox" checked={f.ramp_enabled}

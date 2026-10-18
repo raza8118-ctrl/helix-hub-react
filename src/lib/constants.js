@@ -43,6 +43,10 @@ export const AUTH_HOURLY_TASKS = [
 
 export const ACCESSES = ['MCO', 'MCD', 'MCR', 'AUTH', 'ALL'];
 
+// Functional teams (users.team). Separate from users.role, which is the permission
+// level (employee / supervisor / manager / admin). QA is a flag (users.is_qa).
+export const TEAMS = ['AR', 'Auth', 'Billing/Posting', 'Coding', 'Credentialing'];
+
 // ── Keka import ───────────────────────────────────────────────────────────────
 // Placeholders until real Keka export columns/rules are confirmed — Keka itself
 // may already flag these per-row, in which case these thresholds go unused.
