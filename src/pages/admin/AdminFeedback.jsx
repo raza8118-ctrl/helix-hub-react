@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { S, storage } from '../../lib/supabase';
-import { today, fmtD, resizeImage, scopeToSupervisor, logAudit } from '../../lib/helpers';
+import { today, fmtD, resizeImage, scopeToSupervisor, logAudit, isScopedUser } from '../../lib/helpers';
 import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import Discussion from '../../components/shared/Discussion';
@@ -88,7 +88,7 @@ export default function AdminFeedback({ user }) {
   function audienceFor(f) {
     if (f.to_emp_id) return allUsers.filter(u => u.emp_id === f.to_emp_id);
     const sender = allUsers.find(u => u.emp_id === f.from_emp_id);
-    if (sender?.role === 'supervisor' || sender?.role === 'manager') {
+    if (sender && isScopedUser(sender)) {
       return scopeToSupervisor(allUsers, sender, customProcs).filter(u => u.role === 'employee');
     }
     return allUsers.filter(u => u.role === 'employee' && (!f.process || u.access === f.process || u.access === 'ALL'));
@@ -156,7 +156,7 @@ export default function AdminFeedback({ user }) {
     setFeedbacks(prev => prev.map(f => f.id === item.id ? { ...f, acknowledged: next, acknowledged_at: ackedAt } : f));
   }
 
-  const isScopedRole = user.role === 'supervisor' || user.role === 'manager';
+  const isScopedRole = isScopedUser(user);
   const scopedUsers = scopeToSupervisor(allUsers, user, customProcs);
   const isRestricted = isScopedRole && scopedUsers.length !== allUsers.length;
 

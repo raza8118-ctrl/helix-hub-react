@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave, calcProd } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, permsFor, logAudit, effectiveTarget, isOnLeave, calcProd, isScopedUser } from '../../lib/helpers';
 import { ACCESSES, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE_TYPES, DEFAULT_TASKS, DEF_PROCS, LEGACY_AUTH_CUTOFF } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
@@ -53,8 +53,9 @@ export default function ProdMonitor({ user }) {
   const [countsLoading, setCountsLoading] = useState(false);
   const [taskCfgRows, setTaskCfgRows]     = useState([]);
 
-  const isScopedRole = user.role === 'supervisor' || user.role === 'manager';
+  const isScopedRole = isScopedUser(user);
   const perms = isScopedRole ? permsFor(user) : null;
+  const canMarkHoliday = user.role !== 'employee';   // granted employees are view-only here
   const [customProcs, setCustomProcs] = useState([]);
 
   useEffect(() => { load(); }, [date]);
@@ -348,13 +349,15 @@ export default function ProdMonitor({ user }) {
             📌 Pinned only
           </button>
           <button className="btn-sm" onClick={load}>↺ Refresh</button>
-          <button
-            className="btn-sm"
-            style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
-            onClick={toggleHoliday}
-          >
-            {holiday ? 'Unmark Holiday' : '🏖 Holiday'}
-          </button>
+          {canMarkHoliday && (
+            <button
+              className="btn-sm"
+              style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
+              onClick={toggleHoliday}
+            >
+              {holiday ? 'Unmark Holiday' : '🏖 Holiday'}
+            </button>
+          )}
         </div>
       </div>
 

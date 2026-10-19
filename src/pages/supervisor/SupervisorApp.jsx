@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 import { isWorkbenchTab } from '../workbench/modules';
+import { canOpenTab, TAB_FEATURES } from '../../lib/access';
 
 const Dashboard       = lazy(() => import('../admin/Dashboard'));
 const Today          = lazy(() => import('../admin/Today'));
@@ -10,16 +11,22 @@ const AdminFeedback   = lazy(() => import('../admin/AdminFeedback'));
 const TeamFeed        = lazy(() => import('../employee/TeamFeed'));
 const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
 const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
-const AuditLog        = lazy(() => import('../admin/AuditLog'));
-const MasterData      = lazy(() => import('../admin/MasterData'));
+const AdminApp        = lazy(() => import('../admin/AdminApp'));
+
+// Tabs every supervisor has; anything else in TAB_FEATURES must be granted by an admin
+const OWN_TABS = new Set(['dashboard', 'today', 'prodmonitor', 'hourlymon', 'weekly', 'monthly', 'feedback', 'myteam', 'feed']);
 
 /**
  * Routes supervisor tabs to the correct page component — reuses the admin
  * monitoring pages, which scope themselves to the supervisor's assigned team.
  * Tab IDs: dashboard | today | prodmonitor | hourlymon | weekly | monthly | feedback | myteam | feed
+ * plus any page an admin granted (lib/access.js), opened in its admin version.
  */
 export default function SupervisorApp({ activeTab, user }) {
   if (isWorkbenchTab(activeTab)) return <WorkbenchPlaceholder tabId={activeTab} />;
+  if (TAB_FEATURES[activeTab] && !OWN_TABS.has(activeTab)) {
+    return canOpenTab(user, activeTab) ? <AdminApp activeTab={activeTab} user={user} /> : <Today user={user} />;
+  }
   switch (activeTab) {
     case 'dashboard':   return <Dashboard user={user} />;
     case 'today':       return <Today user={user} />;
@@ -30,8 +37,6 @@ export default function SupervisorApp({ activeTab, user }) {
     case 'feedback':    return <AdminFeedback user={user} />;
     case 'myteam':      return <SupervisorTeam user={user} />;
     case 'feed':        return <TeamFeed user={user} />;
-    case 'auditlog':    return <AuditLog user={user} />;
-    case 'masters':     return <MasterData user={user} />;
     default:            return <Today user={user} />;
   }
 }

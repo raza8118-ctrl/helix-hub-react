@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { today, fmtSh, fmtD, avg, procIncludes, scopeToSupervisor, permsFor, logAudit, isOnLeave } from '../../lib/helpers';
+import { today, fmtSh, fmtD, avg, procIncludes, scopeToSupervisor, permsFor, logAudit, isOnLeave, isScopedUser } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { alertDialog } from '../../components/shared/Dialog';
 
@@ -42,7 +42,7 @@ export default function QualityMonitor({ user }) {
   const [editVal, setEditVal]       = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
-  const isScopedRole = user.role === 'supervisor' || user.role === 'manager';
+  const isScopedRole = isScopedUser(user);
   const perms        = permsFor(user);
   const canEdit      = !isScopedRole || perms?.editQuality;
 

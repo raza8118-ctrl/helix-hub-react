@@ -59,7 +59,8 @@ export default function EmpFeedback({ user }) {
       .filter(f => {
         if (f.to_emp_id) return f.to_emp_id === user.emp_id;
         const sender = users?.find(u => u.emp_id === f.from_emp_id);
-        if (sender?.role === 'supervisor' || sender?.role === 'manager') {
+        // Supervisors, managers and employees granted Post Announcements only reach their own team
+        if (sender?.role === 'supervisor' || sender?.role === 'manager' || sender?.role === 'employee') {
           return scopeToSupervisor(users ?? [], sender, customProcs ?? []).some(u => u.emp_id === user.emp_id);
         }
         return true;

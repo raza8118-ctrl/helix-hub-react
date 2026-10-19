@@ -8,7 +8,7 @@ import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase
 import { getOwnerSession, setOwnerSession } from './lib/company';
 import { WORKBENCH_TABS } from './pages/workbench/modules';
 import { logAudit } from './lib/audit';
-import { hasAccess } from './lib/access';
+import { canOpenTab, TAB_FEATURES } from './lib/access';
 import './index.css';
 
 // Owns its own 1s tick so the whole app doesn't re-render every second
@@ -84,17 +84,28 @@ const SUPERVISOR_TABS = [
   { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
 ];
 
-// Tabs shown to anyone with the feature — by role default or granted by an admin (lib/access.js)
-const FEATURE_TABS = [
-  { feature: 'masters_edit', tab: { id: 'masters',  label: 'Clients & Payers', icon: '🏢', section: 'System' } },
-  { feature: 'audit_view',   tab: { id: 'auditlog', label: 'Audit Log',        icon: '📜', section: 'System' } },
+// Tabs beyond a role's own list, shown to anyone with the feature — by role default or
+// granted by an admin on the Team page (lib/access.js decides who has which)
+const EXTRA_TABS = [
+  { id: 'masters',  label: 'Clients & Payers', icon: '🏢', section: 'System' },
+  { id: 'auditlog', label: 'Audit Log',        icon: '📜', section: 'System' },
 ];
+const POST_ANNOUNCEMENTS_TAB = { id: 'feedbackadmin', label: 'Post Announcements', icon: '📣', section: 'Engagement' };
+const SECTION_ORDER = ['My Work', 'Monitoring', 'Team', 'Workbench', 'Engagement', 'System'];
 
-function withFeatureTabs(tabs, user) {
-  const extra = FEATURE_TABS.filter(f => hasAccess(user, f.feature)).map(f => f.tab);
-  if (!extra.length) return tabs;
-  const i = tabs.findIndex(t => t.section === 'System');
-  return i < 0 ? [...tabs, ...extra] : [...tabs.slice(0, i), ...extra, ...tabs.slice(i)];
+function withGrantedTabs(roleTabs, user) {
+  const have = new Set(roleTabs.map(t => t.id));
+  const pool = user.role === 'employee'   // employees' own 'feedback' tab is the read-only list
+    ? [...ADMIN_TABS.filter(t => t.id !== 'feedback'), POST_ANNOUNCEMENTS_TAB, ...EXTRA_TABS]
+    : [...ADMIN_TABS, ...EXTRA_TABS];
+  const extra = pool.filter(t => TAB_FEATURES[t.id] && !have.has(t.id) && canOpenTab(user, t.id));
+  if (!extra.length) return roleTabs;
+  // Keep each granted tab inside its usual section
+  const rank = t => { const i = SECTION_ORDER.indexOf(t.section); return i < 0 ? SECTION_ORDER.length : i; };
+  return [...roleTabs, ...extra]
+    .map((t, i) => [t, i])
+    .sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1])
+    .map(([t]) => t);
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -147,14 +158,23 @@ export default function App() {
         S.get('users'),
       ]);
       const ackedBroadcastIds = new Set((acks ?? []).map(a => a.feedback_id));
-      const mySupervisorIds = users?.find(u => u.emp_id === currentUser.emp_id)?.supervisor_ids ?? [];
+      const me = users?.find(u => u.emp_id === currentUser.emp_id);
+      const mySupervisorIds = me?.supervisor_ids ?? [];
+      // An employee granted Post Announcements only reaches people sharing a sub-process
+      const procsOf = u => [u?.access, u?.process, ...(u?.processes ?? [])].filter(Boolean);
+      const sharesProcess = sender => {
+        const theirs = procsOf(sender);
+        return theirs.includes('ALL') || procsOf(me).some(p => p === 'ALL' || theirs.includes(p));
+      };
       const cnt = (all ?? []).filter(f => {
         let mine;
         if (f.to_emp_id) {
           mine = f.to_emp_id === currentUser.emp_id;
         } else {
           const sender = users?.find(u => u.emp_id === f.from_emp_id);
-          mine = sender?.role === 'supervisor' ? mySupervisorIds.includes(sender.emp_id) : true;
+          mine = sender?.role === 'supervisor' ? mySupervisorIds.includes(sender.emp_id)
+            : sender?.role === 'employee' ? sharesProcess(sender)
+            : true;
         }
         if (!mine) return false;
         return f.to_emp_id ? !f.acknowledged : !ackedBroadcastIds.has(f.id);
@@ -326,7 +346,7 @@ export default function App() {
   ];
 
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
-  const tabs = withFeatureTabs(roleTabs, currentUser);
+  const tabs = withGrantedTabs(roleTabs, currentUser);
   const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
 
   return (

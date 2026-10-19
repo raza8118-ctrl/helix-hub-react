@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S, kv, refreshCompanyProcesses } from '../../lib/supabase';
 import { DEFAULT_PROJECT, DEF_PROCS, TEAMS } from '../../lib/constants';
-import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
+import { DEFAULT_SUPERVISOR_PERMS, NO_PERMS, permsFor, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
 import { FEATURES, hasRoleDefault, grantsOf } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
@@ -14,7 +14,7 @@ const BLANK     = {
   emp_id: '', name: '', password: '', access: 'MCO',
   role: 'employee', target: '', processes: ['MCO'], supervisor_ids: [], team_emp_ids: [],
   supervised_processes: [], supervised_projects: [], all_projects: false,
-  permissions: DEFAULT_SUPERVISOR_PERMS,
+  permissions: NO_PERMS,   // employees: view-only in any monitoring page they're granted
   ramp_enabled: false, ramp_schedule: [], ramp_start_date: '',
   team: '', is_qa: false, access_grants: {},
 };
@@ -26,6 +26,10 @@ const PERM_LABELS = {
   editQuality:    'Edit quality score',
   pinEmployee:    'Pin employee for close monitoring',
 };
+
+// Pages with edit actions controlled by the Permissions checkboxes
+const MONITOR_FEATURES = ['page_today', 'page_prodmonitor', 'page_hourly', 'page_quality'];
+const hasMonitorGrant = form => form.role === 'employee' && MONITOR_FEATURES.some(k => form.access_grants?.[k]);
 
 function rampWeek(u) {
   if (!u.ramp_enabled || !Array.isArray(u.ramp_schedule) || !u.ramp_schedule.length || !u.ramp_start_date) return null;
@@ -230,7 +234,7 @@ export default function TeamMgmt({ user }) {
       supervised_processes: u.supervised_processes ?? [],
       supervised_projects: (u.supervised_projects ?? []).filter(p => p !== 'ALL'),
       all_projects: (u.supervised_projects ?? []).includes('ALL'),
-      permissions: { ...DEFAULT_SUPERVISOR_PERMS, ...(u.permissions ?? {}) },
+      permissions: permsFor(u),
       ramp_enabled: u.ramp_enabled ?? false,
       ramp_schedule: u.ramp_schedule ?? [],
       ramp_start_date: u.ramp_start_date ?? '',
@@ -259,7 +263,7 @@ export default function TeamMgmt({ user }) {
       supervisor_ids: form.supervisor_ids,
       supervised_processes: form.role === 'supervisor' ? form.supervised_processes : [],
       supervised_projects: form.role === 'manager' ? (form.all_projects ? ['ALL'] : form.supervised_projects) : [],
-      permissions: (form.role === 'supervisor' || form.role === 'manager') ? form.permissions : null,
+      permissions: (form.role === 'supervisor' || form.role === 'manager' || hasMonitorGrant(form)) ? form.permissions : null,
       active: true,
       ramp_enabled: form.ramp_enabled,
       ramp_schedule: form.ramp_enabled ? form.ramp_schedule.map(Number) : null,
@@ -732,7 +736,7 @@ export default function TeamMgmt({ user }) {
               </div>
               <div className="field">
                 <label>Role</label>
-                <select value={f.role} onChange={e => setF({ role: e.target.value })}>
+                <select value={f.role} onChange={e => setF({ role: e.target.value, permissions: permsFor({ role: e.target.value, permissions: editUser?.permissions }) })}>
                   {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                 </select>
               </div>
@@ -769,22 +773,40 @@ export default function TeamMgmt({ user }) {
             {grantable.length > 0 && (
               <div className="field">
                 <label>Extra access</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 4 }}>
-                  {grantable.map(ft => {
-                    const byRole = hasRoleDefault(f.role, ft.key);
-                    return (
-                      <label key={ft.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: byRole || !canGrant ? 'default' : 'pointer' }}>
-                        <input type="checkbox" disabled={byRole || !canGrant}
-                          checked={byRole || !!f.access_grants?.[ft.key]}
-                          onChange={e => setF({ access_grants: { ...f.access_grants, [ft.key]: e.target.checked } })} />
-                        {ft.label}{byRole ? ` (all ${f.role}s)` : ''}
-                      </label>
-                    );
-                  })}
-                </div>
+                {[...new Set(grantable.map(ft => ft.group))].map(group => (
+                  <div key={group} style={{ marginTop: 6 }}>
+                    <div className="text-sm text-muted" style={{ marginBottom: 3 }}>{group}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
+                      {grantable.filter(ft => ft.group === group).map(ft => {
+                        const byRole = hasRoleDefault(f.role, ft.key);
+                        return (
+                          <label key={ft.key} title={ft.warning ?? ''}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: byRole || !canGrant ? 'default' : 'pointer' }}>
+                            <input type="checkbox" disabled={byRole || !canGrant}
+                              checked={byRole || !!f.access_grants?.[ft.key]}
+                              onChange={e => setF({ access_grants: { ...f.access_grants, [ft.key]: e.target.checked } })} />
+                            {ft.label}
+                            {ft.warning && !byRole && <span style={{ color: 'var(--warning)' }} aria-label={ft.warning}>⚠</span>}
+                            {byRole ? <span className="text-muted">(all {f.role}s)</span> : ''}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {grantable.some(ft => ft.warning && !hasRoleDefault(f.role, ft.key) && f.access_grants?.[ft.key]) && (
+                  <div className="text-sm" style={{ marginTop: 6, color: 'var(--warning)' }}>
+                    ⚠ {grantable.filter(ft => ft.warning && !hasRoleDefault(f.role, ft.key) && f.access_grants?.[ft.key])
+                      .map(ft => `${ft.label}: ${ft.warning.toLowerCase()}`).join(' · ')}.
+                  </div>
+                )}
                 <div className="text-sm text-muted" style={{ marginTop: 4 }}>
-                  {canGrant ? 'Changes take effect the next time this person signs in.' : 'Only an admin can change extra access.'}
+                  For employees, granted monitoring pages show only the sub-processes ticked under Permissions,
+                  and are view-only unless you tick actions at the bottom of this form. Changes apply at their next sign-in.
                 </div>
+                {!canGrant && (
+                  <div className="text-sm text-muted" style={{ marginTop: 4 }}>Only an admin can change extra access.</div>
+                )}
               </div>
             )}
             {!hasTeamCols && (
@@ -864,9 +886,9 @@ export default function TeamMgmt({ user }) {
                 )}
               </>
             )}
-            {(f.role === 'supervisor' || f.role === 'manager') && (
+            {(f.role === 'supervisor' || f.role === 'manager' || hasMonitorGrant(f)) && (
               <div className="field">
-                <label>Permissions</label>
+                <label>{f.role === 'employee' ? 'Actions allowed in granted monitoring pages (unticked = view-only)' : 'Permissions'}</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 4 }}>
                   {Object.keys(DEFAULT_SUPERVISOR_PERMS).map(key => (
                     <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>

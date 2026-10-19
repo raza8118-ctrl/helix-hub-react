@@ -192,9 +192,18 @@ export const DEFAULT_SUPERVISOR_PERMS = {
   pinEmployee:    true,
 };
 
+// Employees granted a monitoring page are view-only until an admin ticks actions for them
+export const NO_PERMS = Object.fromEntries(Object.keys(DEFAULT_SUPERVISOR_PERMS).map(k => [k, false]));
+
 /** Synchronous — permissions ride along on the already-loaded user object, per person. */
 export function permsFor(user) {
-  return { ...DEFAULT_SUPERVISOR_PERMS, ...(user?.permissions || {}) };
+  const base = user?.role === 'employee' ? NO_PERMS : DEFAULT_SUPERVISOR_PERMS;
+  return { ...base, ...(user?.permissions || {}) };
+}
+
+/** Admins see and do everything; every other role is limited to its team and its permissions. */
+export function isScopedUser(user) {
+  return user?.role !== 'admin';
 }
 
 /** All sub-process names belonging to a project: built-ins for the default project, plus any custom rows tagged with it. */
@@ -209,9 +218,17 @@ export function subProcessesOf(project, customProcs = []) {
  *   sub-processes they've been assigned (supervised_processes).
  * - manager: whole projects they've been assigned (supervised_projects), each project
  *   resolving to every sub-process under it — empty or ['ALL'] means unrestricted.
- * - admin/employee: passthrough, sees everyone.
+ * - employee (only reaches these pages when an admin grants one): the sub-processes in
+ *   their own Permissions; ALL means everyone.
+ * - admin: passthrough, sees everyone.
  */
 export function scopeToSupervisor(users, currentUser, customProcs = []) {
+  if (currentUser?.role === 'employee') {
+    const own = [currentUser.access, currentUser.process, ...(currentUser.processes ?? [])];
+    if (own.includes('ALL')) return users;
+    const mine = new Set(getProcs(currentUser));
+    return (users || []).filter(u => getProcs(u).some(p => mine.has(p)));
+  }
   if (currentUser?.role === 'manager') {
     const projects = currentUser.supervised_projects ?? [];
     if (projects.length === 0 || projects.includes('ALL')) return users;

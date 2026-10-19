@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '../../lib/supabase';
-import { today, dlCSV, canViewAudit } from '../../lib/helpers';
+import { today, dlCSV } from '../../lib/helpers';
+import { canViewAudit } from '../../lib/audit';
 
 const ROW_LIMIT = 2000;
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { loadCompany } from '../../lib/company';
-import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, isOnLeave } from '../../lib/helpers';
+import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, isOnLeave, permsFor } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
 import BarChart from '../../components/shared/BarChart';
 import Modal from '../../components/shared/Modal';
@@ -55,7 +55,12 @@ export default function Today({ user }) {
     setLoading(false);
   }
 
+  // Employees granted this page are view-only unless an admin ticked "Pin employee" for them
+  const isGrantedEmployee = user.role === 'employee';
+  const canPin = !isGrantedEmployee || permsFor(user).pinEmployee;
+
   async function togglePin(empId) {
+    if (!canPin) return;
     const next = await togglePinned(empId, pinned);
     setPinned(next);
   }
@@ -182,13 +187,15 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
           >
             📌 Pinned only
           </button>
-          <button
-            className="btn-sm"
-            style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
-            onClick={toggleHoliday}
-          >
-            {holiday ? 'Unmark Holiday' : '🏖 Mark Holiday'}
-          </button>
+          {!isGrantedEmployee && (
+            <button
+              className="btn-sm"
+              style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
+              onClick={toggleHoliday}
+            >
+              {holiday ? 'Unmark Holiday' : '🏖 Mark Holiday'}
+            </button>
+          )}
           <button className="btn-sm" onClick={load}>↺ Refresh</button>
           <button className="btn-sm" onClick={exportCSV}>Export CSV</button>
           <button className="btn-primary" onClick={genEmail}>✦ AI Email</button>
@@ -256,8 +263,8 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
                     <td className="bold">
                       <span
                         onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
-                        style={{ cursor: 'pointer', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
-                        title={isPinned ? 'Unpin' : 'Pin for close monitoring'}
+                        style={{ cursor: canPin ? 'pointer' : 'default', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
+                        title={canPin ? (isPinned ? 'Unpin' : 'Pin for close monitoring') : (isPinned ? 'Pinned' : '')}
                       >
                         📌
                       </span>

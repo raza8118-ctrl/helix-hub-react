@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
-import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave, permsFor, logAudit, getHourlySlots } from '../../lib/helpers';
+import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave, permsFor, logAudit, getHourlySlots, isScopedUser } from '../../lib/helpers';
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
 import Modal from '../../components/shared/Modal';
@@ -27,7 +27,7 @@ export default function HourlyMonitor({ user }) {
 
   const [hourlySlots, setHourlySlots] = useState(HOURLY_SLOTS);
 
-  const isScopedRole  = user.role === 'supervisor' || user.role === 'manager';
+  const isScopedRole  = isScopedUser(user);
   const perms          = isScopedRole ? permsFor(user) : null;
   const canEditCounts  = !isScopedRole || perms?.editCounts;
 
