@@ -24,7 +24,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 1.7 Excel import template + importer for bulk loading payer data.
 
 ## Phase 2 – File Tools
-- [ ] 2.1 Merge PDFs (in browser), reorder pages, delete pages.
+- [x] 2.1 Merge PDFs (in browser), reorder pages, delete pages.
 - [ ] 2.2 Split PDF, compress PDF.
 - [ ] 2.3 Excel → PDF, image → PDF.
 - [ ] 2.4 PDF → Excel (table extraction on our own server).

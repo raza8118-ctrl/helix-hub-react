@@ -28,6 +28,7 @@ const ACTION_LABELS = {
   report_payer_info:     'Reported wrong payer info',
   resolve_payer_report:  'Resolved payer report',
   import_payer_data:     'Imported payers from Excel',
+  merge_pdf:             'Merged PDFs (File Tools)',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',

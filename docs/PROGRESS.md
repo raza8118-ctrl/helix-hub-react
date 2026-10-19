@@ -10,7 +10,11 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.1 Merge PDFs in the browser** — plan written, waiting for the product owner's “go”.
+**None in progress.** 2.1 is done. Next on the roadmap: **2.2 Split PDF, compress PDF** — needs a plan and the product owner's “go”.
+
+Notes for 2.2: File Tools lives in `src/pages/workbench/FileTools.jsx` (tool buttons at the top; “Split / Compress” is a disabled placeholder) and `src/lib/pdfTools.js` (pdf-lib helpers). pdf-lib can split easily; real compression (re-encoding images) is limited in pdf-lib — raise that with the product owner when planning.
+
+### Reference: how 2.1 was set up (done)
 
 Approved approach (product owner chose “option 1”: a real project dependency):
 
@@ -52,6 +56,8 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 1.5 | Client contract limits on the payer card | 33afba8 |
 | 1.6 | Verified dates, “Report wrong info”, change history | baf408f |
 | 1.7 | Excel import with skip / review-each-match | 3f2c275 |
+| — | Progress handoff file + save-progress rule (CLAUDE.md rule 10) | c472fbf |
+| 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | see `git log` (“step 2.1”) |
 
 ---
 
