@@ -26,7 +26,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 ## Phase 2 – File Tools
 - [x] 2.1 Merge PDFs (in browser), reorder pages, delete pages.
 - [x] 2.2 Split PDF, compress PDF.
-- [ ] 2.3 Excel → PDF, image → PDF.
+- [x] 2.3 Excel → PDF, image → PDF.
 - [ ] 2.4 PDF → Excel (table extraction on our own server).
 - [ ] 2.5 Appeal Packet builder: cover letter + form + EOB + auth approval + MR in order, page numbers, file naming convention.
 

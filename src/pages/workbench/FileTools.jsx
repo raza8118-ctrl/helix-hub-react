@@ -4,6 +4,7 @@ import { SortableContext, arrayMove, useSortable, rectSortingStrategy } from '@d
 import { CSS } from '@dnd-kit/utilities';
 import { readPdf, buildPdf, parsePageList, parseRangeGroups } from '../../lib/pdfTools';
 import PdfSaveOptions from './PdfSaveOptions';
+import { ImagesToPdf, ExcelToPdf } from './ConvertTools';
 
 // Colour + letter per file so its pages are easy to spot
 const FILE_COLORS = ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0d9488'];
@@ -373,6 +374,8 @@ function SplitPdf({ user }) {
 const TOOLS = [
   { id: 'merge', label: 'Merge PDFs' },
   { id: 'split', label: 'Split PDF' },
+  { id: 'images', label: 'Images → PDF' },
+  { id: 'excel', label: 'Excel / CSV → PDF' },
 ];
 
 /** File Tools (Workbench). 2.1 Merge, 2.2 Split + Original/Compress save step. Conversions come later. */
@@ -395,12 +398,13 @@ export default function FileTools({ user }) {
         {TOOLS.map(t => (
           <button key={t.id} className={tool === t.id ? 'btn-primary' : 'btn-sm'} onClick={() => setTool(t.id)}>{t.label}</button>
         ))}
-        <button className="btn-sm" disabled title="Coming later">Convert to PDF (soon)</button>
       </div>
 
-      {/* Both stay mounted so switching tools doesn't lose work in progress */}
+      {/* All tools stay mounted so switching between them doesn't lose work in progress */}
       <div style={{ display: tool === 'merge' ? 'block' : 'none' }}><MergePdfs user={user} /></div>
       <div style={{ display: tool === 'split' ? 'block' : 'none' }}><SplitPdf user={user} /></div>
+      <div style={{ display: tool === 'images' ? 'block' : 'none' }}><ImagesToPdf user={user} /></div>
+      <div style={{ display: tool === 'excel' ? 'block' : 'none' }}><ExcelToPdf user={user} /></div>
     </div>
   );
 }

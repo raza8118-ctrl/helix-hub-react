@@ -10,11 +10,19 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.3 Excel → PDF, image → PDF** — **APPROVED (“go” 2026-10-19), building.** PO confirmed: no HEIC; Excel = values + layout (no colours/fonts).
-Build checkpoints go to the `wip` branch; if a session ends mid-build, continue from `origin/wip`.
+**None in progress.** 2.3 is done. Next on the roadmap: **2.4 PDF → Excel (table extraction on our own server)** —
+needs a plan and the product owner's “go”. Note: the app has **no server yet** (Vite SPA on Vercel), so 2.4 first needs a
+decision on where server code runs (e.g. Vercel serverless function or Supabase Edge Function) — PHI rule: never a third-party converter.
 Any new File Tools output must use the shared save step `src/pages/workbench/PdfSaveOptions.jsx` (product owner requirement).
 
-Draft plan:
+### Reference: how 2.3 was built (done) — PO confirmed: no HEIC; Excel = values + layout (no colours/fonts)
+
+Code: `src/lib/imageToPdf.js`, `src/lib/excelToPdf.js`, UI in `src/pages/workbench/ConvertTools.jsx` (tools added to `FileTools.jsx`).
+JPG with EXIF rotation and fax TIFFs with uneven X/Y dpi are drawn upright / unsquashed. Excel wide sheets: “Fit all columns”
+shrinks font (min 5 pt); otherwise columns continue on extra pages. Cells too long are cut with “…” and counted in a warning.
+Dependency `utif` 3.1.0 (MIT; uses the existing pako 1.0.11).
+
+Plan as approved:
 - **Images → PDF** (new File Tools tool): JPG, PNG, WEBP, BMP, GIF (first frame) and **TIFF incl. multi-page fax TIFFs**
   (via the small `utif` library, MIT; needs pako, already installed). One image per page; drag to reorder; rotate 90°;
   page size Fit-to-image / Letter / A4 (auto portrait/landscape), margin None/Small. HEIC (iPhone) not supported —
@@ -86,7 +94,8 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 1.7 | Excel import with skip / review-each-match | 3f2c275 |
 | — | Progress handoff file + save-progress rule (CLAUDE.md rule 10) | c472fbf |
 | 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | f7ef920 |
-| 2.2 | Split PDF + Original/Compress (High/Medium/Low) save step for all File Tools | see `git log` (step 2.2) |
+| 2.2 | Split PDF + Original/Compress (High/Medium/Low) save step for all File Tools | 624b562 |
+| 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | see `git log` (step 2.3) |
 
 ---
 

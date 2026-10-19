@@ -30,6 +30,8 @@ const ACTION_LABELS = {
   import_payer_data:     'Imported payers from Excel',
   merge_pdf:             'Merged PDFs (File Tools)',
   split_pdf:             'Split a PDF (File Tools)',
+  images_to_pdf:         'Converted images to PDF (File Tools)',
+  excel_to_pdf:          'Converted Excel/CSV to PDF (File Tools)',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',
