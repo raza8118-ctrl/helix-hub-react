@@ -10,7 +10,18 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.4 PDF → Excel** — **plan with hosting options shown 2026-10-19; waiting for the PO's choice + “go”.**
+**2.4 PDF → Excel** — **APPROVED 2026-10-19: “Go with A, with an option to select B, C, D and more; whatever is selected, proceed with that.”** Building.
+Build checkpoints go to the `wip` branch; if a session ends mid-build, continue from `origin/wip`.
+
+What is being built:
+- Tool **PDF → Excel** in File Tools with a **method selector**. Same preview + .xlsx download whatever the method.
+- **A – In this browser (digital PDFs)**: ready. `src/lib/pdfExtract.js` (pdf.js text positions → lines → column gutters → grid).
+- **B Vercel function / C Supabase Edge Function / D Own server**: shown as “Needs setup” until an **admin** enters the
+  URL (B, D) or function name (C) + optional access key, and ticks “BAA signed”. Stored in kv `pdf_extract_engines`
+  (per company). Then the PDF is POSTed there; expected JSON contract in `docs/PDF_EXTRACTION_SERVER.md`.
+- **More:** “In this browser with OCR (scanned PDFs)” listed as coming in 2.4b (disabled).
+- Options: pages (all / ranges), one sheet per page or all in one, skip repeated header rows, numbers as numbers.
+- Audit: `pdf_to_excel` (pages, rows, method) and `configure_extract_engine` (method, enabled, BAA ticked). No DB changes, no new library.
 
 Options shown (HIPAA: any server that touches patient files needs a signed BAA with that host):
 - **A. In the browser (recommended first):** pdf.js reads text positions → rows/columns → preview → .xlsx via existing `xlsx`.
