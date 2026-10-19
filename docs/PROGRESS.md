@@ -171,7 +171,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | f72b66e |
 | 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
-| 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | see `git log` (step 2.5) |
+| 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
 
 ---
 
@@ -214,4 +214,6 @@ The app hides/disables the related features until each one has been run, so code
 - Save points: approved plan is written here and pushed **before** building; long builds push checkpoints to the `wip` branch (never live); finished step goes to `main` and this file is updated.
 - The dev machine has **no Node/npm**, so `npm run lint` / `npm run build` can't run locally — Vercel's deploy is the first build. Read changes carefully.
 - Always `git fetch` first — GitHub is sometimes ahead.
+- **Commit messages:** Windows PowerShell 5 breaks double quotes passed to git, so write the message to a file and use
+  `git commit -F <file>`; and only reset/push `wip` after confirming the `main` commit succeeded.
 - New tables/columns: new file in `supabase/migrations/`, additive only, then the product owner runs it and clicks **Sync structure**.
