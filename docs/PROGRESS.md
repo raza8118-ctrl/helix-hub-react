@@ -10,7 +10,7 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.4b OCR for scanned PDFs** — **plan shown 2026-10-19, waiting for “go”.** Any new File Tools PDF output must use `PdfSaveOptions.jsx`.
+**2.4b OCR for scanned PDFs** — **APPROVED (“go” 2026-10-19), building.** Checkpoints on `wip`; if a session ends mid-build, continue from `origin/wip`. Any new File Tools PDF output must use `PdfSaveOptions.jsx`.
 
 Draft plan:
 - Turn on the “In this browser with OCR (scanned PDFs)” method in PDF → Excel. Pages with real text still use the text
