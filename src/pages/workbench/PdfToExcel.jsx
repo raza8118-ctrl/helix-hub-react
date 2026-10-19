@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { readPdf, parsePageList } from '../../lib/pdfTools';
 import {
   EXTRACT_METHODS, loadMethodConfig, saveMethodConfig, methodReady, extractTables, arrangeSheets, downloadXlsx,
@@ -121,6 +121,7 @@ export default function PdfToExcel({ user }) {
   const [outName, setOutName] = useState('');
   const [tab, setTab]         = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const control = useRef(null);   // { cancelled, onCancel } while an extraction runs
 
   useEffect(() => { loadMethodConfig().then(setConfig).catch(() => {}); }, []);
 
@@ -155,10 +156,13 @@ export default function PdfToExcel({ user }) {
       pageNumbers = res.pages;
     }
     setBusy(true); setProblem(''); setTab(0);
+    control.current = { cancelled: false, onCancel: null };
     try {
       const out = await extractTables({
-        methodId: method, config, file: file.file, bytes: file.bytes, pageNumbers,
-        onProgress: (p, total) => setProgress(`Reading page ${p} of ${total}…`),
+        methodId: method, config, file: file.file, bytes: file.bytes, pageNumbers, control: control.current,
+        onProgress: (p, total, isOcr) => setProgress(isOcr
+          ? `Reading page ${p} of ${total} with OCR — a few seconds per page…`
+          : `Reading page ${p} of ${total}…`),
       });
       setResult({ key: runKey, pages: out.pages, method });
       logAudit({
@@ -166,14 +170,28 @@ export default function PdfToExcel({ user }) {
         details: {
           method: chosen.label, pages: out.pages.length,
           rows: out.pages.reduce((s, p) => s + p.rows.length, 0),
+          ocr_pages: out.pages.filter(p => p.ocr).length,
           scanned_pages: out.pages.filter(p => p.scanned).length,
         },
       });
     } catch (err) {
-      setProblem(err.message || 'Extraction failed. Please try again.');
+      setProblem(
+        err.message === 'cancelled' ? 'Stopped. Nothing was saved.'
+        : err.message === 'ocr-setup' ? 'OCR couldn’t start because its files weren’t found. Please tell your admin (File Tools OCR setup, step 2.4b).'
+        : err.message || 'Extraction failed. Please try again.',
+      );
     }
+    control.current = null;
     setProgress('');
     setBusy(false);
+  }
+
+  function cancel() {
+    const c = control.current;
+    if (!c) return;
+    c.cancelled = true;
+    c.onCancel?.();
+    setProgress('Stopping…');
   }
 
   const sheets = useMemo(
@@ -181,9 +199,12 @@ export default function PdfToExcel({ user }) {
     [current, combine, skipHeaders],
   );
   const scannedPages = current?.pages.filter(p => p.scanned).map(p => p.page) ?? [];
+  const usedOcr = current?.method === 'ocr';
+  const ocrPages = current?.pages.filter(p => p.ocr).length ?? 0;
   const sheet = sheets[Math.min(tab, Math.max(sheets.length - 1, 0))];
   const width = sheet ? sheet.rows.reduce((m, r) => Math.max(m, r.length), 0) : 0;
   const totalRows = sheets.reduce((s, x) => s + x.rows.length, 0);
+  const doubtful = sheets.reduce((s, x) => s + (x.lows ?? []).reduce((n, set) => n + (set?.size ?? 0), 0), 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -257,8 +278,14 @@ export default function PdfToExcel({ user }) {
             <button className="btn-primary" onClick={extract} disabled={busy || !chosenReady}>
               {busy ? 'Working…' : 'Extract tables'}
             </button>
+            {busy && <button className="btn-sm" onClick={cancel}>Cancel</button>}
             {busy && progress && <span className="text-sm text-muted">{progress}</span>}
           </div>
+          {chosen?.ocr && !busy && (
+            <div className="text-sm text-muted" style={{ marginTop: 8 }}>
+              The first time OCR is used on this computer it downloads its reading files (about 7 MB) from Helix Hub itself — after that it starts quickly.
+            </div>
+          )}
         </div>
       )}
 
@@ -272,8 +299,18 @@ export default function PdfToExcel({ user }) {
 
           {scannedPages.length > 0 && (
             <div className="text-sm" style={{ color: 'var(--warning)', marginBottom: 8 }}>
-              ⚠ Page{scannedPages.length === 1 ? '' : 's'} {scannedPages.join(', ')} look{scannedPages.length === 1 ? 's' : ''} scanned (a picture of paper), so no text could be read.
-              Scanned PDFs need OCR — coming in step 2.4b.
+              ⚠ Page{scannedPages.length === 1 ? '' : 's'} {scannedPages.join(', ')} look{scannedPages.length === 1 ? 's' : ''} scanned (a picture of paper)
+              {usedOcr
+                ? ' and couldn’t be read even with OCR — the scan may be too faint, blurry or handwritten.'
+                : <>, so no text could be read. Choose <strong>“In this browser with OCR (scanned PDFs)”</strong> above and extract again.</>}
+            </div>
+          )}
+          {ocrPages > 0 && (
+            <div className="text-sm" style={{ color: doubtful ? 'var(--warning)' : 'var(--text-muted)', marginBottom: 8 }}>
+              {ocrPages} scanned page{ocrPages === 1 ? ' was' : 's were'} read with OCR.
+              {doubtful > 0
+                ? <> <strong>{doubtful} cell{doubtful === 1 ? '' : 's'}</strong> contain words OCR was unsure of — highlighted in yellow. Please check them (especially amounts) before using the file.</>
+                : ' OCR was confident about every word, but please still spot-check amounts.'}
             </div>
           )}
 
@@ -308,7 +345,15 @@ export default function PdfToExcel({ user }) {
                   <tbody>
                     {sheet.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
                       <tr key={i}>
-                        {Array.from({ length: width }, (_, c) => <td key={c} style={{ whiteSpace: 'nowrap' }}>{r[c] ?? ''}</td>)}
+                        {Array.from({ length: width }, (_, c) => {
+                          const doubt = sheet.lows?.[i]?.has(c);
+                          return (
+                            <td key={c} title={doubt ? 'OCR was unsure of this — please check' : undefined}
+                              style={{ whiteSpace: 'nowrap', ...(doubt ? { background: 'rgba(245,158,11,0.25)' } : {}) }}>
+                              {r[c] ?? ''}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>

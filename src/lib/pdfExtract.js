@@ -1,6 +1,7 @@
-// PDF → Excel (roadmap 2.4). Every method returns the same shape:
-//   { pages: [{ page: <1-based number>, rows: string[][], scanned?: boolean }] }
-// Method A runs in the browser (pdf.js). B / C / D send the PDF to a service an admin has set up
+// PDF → Excel (roadmap 2.4 / 2.4b). Every method returns the same shape:
+//   { pages: [{ page: <1-based number>, rows: string[][], low?: [row, col][], scanned?: boolean, ocr?: boolean }] }
+// `low` marks cells containing words OCR was unsure of; `scanned` = image page nothing could be read from.
+// Methods A (text) and OCR run in the browser. B / C / D send the PDF to a service an admin has set up
 // and confirmed is covered by a signed BAA — contract in docs/PDF_EXTRACTION_SERVER.md.
 
 import { loadPdfjs } from './pdfjs';
@@ -10,8 +11,8 @@ import { supabase, kv } from './supabase';
 export const EXTRACT_METHODS = [
   { id: 'browser',  label: 'In this browser (digital PDFs)', kind: 'browser',
     hint: 'Nothing leaves this computer. Best for EOBs, remits and reports saved from software.' },
-  { id: 'ocr',      label: 'In this browser with OCR (scanned PDFs)', kind: 'soon',
-    hint: 'Coming in step 2.4b.' },
+  { id: 'ocr',      label: 'In this browser with OCR (scanned PDFs)', kind: 'browser', ocr: true,
+    hint: 'Reads scanned pages too (about 3–10 seconds per scanned page). Nothing leaves this computer. Printed English text only.' },
   { id: 'vercel',   label: 'Vercel serverless function', kind: 'url',
     hint: 'Needs a deployed function and a BAA with Vercel (Enterprise plan).' },
   { id: 'supabase', label: 'Supabase Edge Function', kind: 'supabase',
@@ -39,17 +40,35 @@ export function methodReady(method, config) {
   return method.kind === 'supabase' ? !!c.functionName?.trim() : /^https:\/\//i.test(c.url ?? '') || (c.url ?? '').startsWith('/');
 }
 
-// ── A: in the browser ─────────────────────────────────────────────────────────
+// ── In the browser: text layer (A) and OCR ────────────────────────────────────
 
-// Text pieces → lines (by height on the page) → cells (by gaps) → columns (by gutters shared across lines)
-function pageToRows(items) {
-  const pieces = items
+// pdf.js text items → positioned pieces { x, y (baseline, up), w, h, str } in PDF points
+function textItemsToPieces(items) {
+  return items
     .filter(it => it.str && it.str.trim())
     .map(it => {
       const h = Math.abs(it.transform[3]) || Math.abs(it.height) || 8;
       return { x: it.transform[4], y: it.transform[5], w: it.width || it.str.length * h * 0.5, h, str: it.str };
     });
-  if (!pieces.length) return [];
+}
+
+// OCR words (image pixels, y down) → the same pieces, converted back to PDF points
+function ocrWordsToPieces(words, scale, canvasHeight) {
+  return words.map(w => ({
+    x: w.x0 / scale,
+    y: (canvasHeight - w.y1) / scale,
+    w: (w.x1 - w.x0) / scale,
+    h: Math.max((w.y1 - w.y0) / scale, 4),
+    str: w.text,
+    low: w.conf < OCR_LOW_CONFIDENCE,
+  }));
+}
+const OCR_LOW_CONFIDENCE = 60;   // words OCR is less than 60% sure of are flagged for checking
+
+// Pieces → lines (by height on the page) → cells (by gaps) → columns (by gutters shared across lines).
+// → { rows: string[][], low: [row, col][] }
+function pageToRows(pieces) {
+  if (!pieces.length) return { rows: [], low: [] };
 
   // Lines: top to bottom, grouping pieces whose baselines are close
   pieces.sort((a, b) => b.y - a.y || a.x - b.x);
@@ -70,8 +89,9 @@ function pageToRows(items) {
       if (last && gap < Math.max(3, p.h * 0.6)) {
         last.text += (gap > p.h * 0.15 ? ' ' : '') + p.str;
         last.x1 = Math.max(last.x1, p.x + p.w);
+        last.low = last.low || !!p.low;
       } else {
-        cells.push({ x0: p.x, x1: p.x + p.w, text: p.str });
+        cells.push({ x0: p.x, x1: p.x + p.w, text: p.str, low: !!p.low });
       }
     }
     return cells;
@@ -79,7 +99,12 @@ function pageToRows(items) {
 
   // Columns: vertical gaps that no table line (2+ cells) crosses
   const tableLines = lineCells.filter(c => c.length >= 2);
-  if (!tableLines.length) return lineCells.map(c => [c.map(x => x.text.trim()).join(' ')]);
+  if (!tableLines.length) {
+    return {
+      rows: lineCells.map(c => [c.map(x => x.text.trim()).join(' ')]),
+      low: lineCells.flatMap((c, r) => (c.some(x => x.low) ? [[r, 0]] : [])),
+    };
+  }
   const minX = Math.floor(Math.min(...tableLines.flat().map(c => c.x0)));
   const maxX = Math.ceil(Math.max(...tableLines.flat().map(c => c.x1)));
   const cover = new Array(maxX - minX + 1).fill(0);
@@ -99,36 +124,86 @@ function pageToRows(items) {
 
   const colOf = x => { let i = 0; while (i < bounds.length && x > bounds[i]) i++; return i; };
   const width = bounds.length + 1;
-  return lineCells.map(cells => {
+  const low = [];
+  const rows = lineCells.map((cells, r) => {
     const row = new Array(width).fill('');
+    const lowCols = new Set();
     for (const c of cells) {
       const col = colOf((c.x0 + c.x1) / 2);
       row[col] = row[col] ? `${row[col]} ${c.text.trim()}` : c.text.trim();
+      if (c.low) lowCols.add(col);
     }
+    lowCols.forEach(col => low.push([r, col]));
     return row;
   });
+  return { rows, low };
 }
 
-async function extractInBrowser(bytes, pageNumbers, onProgress) {
+const OCR_DPI = 300;
+const OCR_MAX_SIDE_PX = 5000;
+
+function canvasToPngBlob(canvas) {
+  return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('png'))), 'image/png'));
+}
+
+/**
+ * control (optional, for OCR): { cancelled: bool, onCancel: fn } — set cancelled = true and call onCancel() to stop.
+ */
+async function extractInBrowser(bytes, pageNumbers, onProgress, { ocr = false, control = null } = {}) {
   const pdfjs = await loadPdfjs();
   const doc = await pdfjs.getDocument({ data: bytes.slice() }).promise;
   const pages = [];
+  let reader = null;      // OCR worker, started only if a scanned page turns up
+  let canvas = null;
   try {
     const wanted = pageNumbers?.length ? pageNumbers : Array.from({ length: doc.numPages }, (_, i) => i + 1);
     for (const n of wanted) {
-      onProgress?.(n, doc.numPages);
+      if (control?.cancelled) throw new Error('cancelled');
+      onProgress?.(n, doc.numPages, false);
       const page = await doc.getPage(n);
       const text = await page.getTextContent();
-      const rows = pageToRows(text.items);
+      let result = pageToRows(textItemsToPieces(text.items));
       let scanned = false;
-      if (!rows.length) {
+      let usedOcr = false;
+      if (!result.rows.length) {
         const ops = await page.getOperatorList();
         scanned = ops.fnArray.some(fn => fn === pdfjs.OPS.paintImageXObject || fn === pdfjs.OPS.paintInlineImageXObject);
+        if (scanned && ocr) {
+          onProgress?.(n, doc.numPages, true);
+          if (!reader) {
+            const { startOcr } = await import('./ocr');
+            reader = await startOcr();
+            if (control) control.onCancel = () => reader.stop();
+          }
+          const base = page.getViewport({ scale: 1 });
+          const scale = Math.min(OCR_DPI / 72, OCR_MAX_SIDE_PX / Math.max(base.width, base.height));
+          const vp = page.getViewport({ scale });
+          canvas ??= document.createElement('canvas');
+          canvas.width = Math.ceil(vp.width);
+          canvas.height = Math.ceil(vp.height);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+          let words;
+          try {
+            words = await reader.words(await canvasToPngBlob(canvas));
+          } catch (err) {
+            if (control?.cancelled) throw new Error('cancelled');
+            throw err;
+          }
+          result = pageToRows(ocrWordsToPieces(words, scale, canvas.height));
+          usedOcr = true;
+          scanned = !result.rows.length;   // still nothing readable
+        }
       }
-      pages.push({ page: n, rows, scanned });
+      pages.push({ page: n, rows: result.rows, low: result.low, scanned, ocr: usedOcr });
       page.cleanup();
     }
   } finally {
+    if (canvas) canvas.width = canvas.height = 0;
+    if (reader) await Promise.resolve().then(() => reader.stop()).catch(() => {});   // may already be stopped by Cancel
+    if (control) control.onCancel = null;
     await doc.destroy();
   }
   return { pages };
@@ -177,11 +252,14 @@ async function extractViaService(method, cfg, file, pageNumbers) {
   }
 }
 
-/** Runs the chosen method. bytes = Uint8Array of the PDF, file = the original File (for services). */
-export async function extractTables({ methodId, config, file, bytes, pageNumbers, onProgress }) {
+/**
+ * Runs the chosen method. bytes = Uint8Array of the PDF, file = the original File (for services).
+ * onProgress(page, total, isOcr). control = { cancelled, onCancel } lets the OCR method be stopped.
+ */
+export async function extractTables({ methodId, config, file, bytes, pageNumbers, onProgress, control }) {
   const method = EXTRACT_METHODS.find(m => m.id === methodId);
   if (!method || !methodReady(method, config)) throw new Error('That method isn’t set up yet.');
-  if (method.kind === 'browser') return extractInBrowser(bytes, pageNumbers, onProgress);
+  if (method.kind === 'browser') return extractInBrowser(bytes, pageNumbers, onProgress, { ocr: !!method.ocr, control });
   return extractViaService(method, config[method.id], file, pageNumbers);
 }
 
@@ -213,19 +291,28 @@ export function arrangeSheets(pages, { combine = true, skipRepeatedHeaders = tru
   const headerKey = firstTableRow ? norm(firstTableRow) : null;
 
   const cleaned = usable.map((p, i) => {
+    // OCR doubt marks per row index → set of columns
+    const lowByRow = new Map();
+    for (const [r, c] of p.low ?? []) {
+      if (!lowByRow.has(r)) lowByRow.set(r, new Set());
+      lowByRow.get(r).add(c);
+    }
     let seenHeader = false;
-    const rows = p.rows.filter(r => {
+    const keep = r => {
       if (!r.some(c => c.trim())) return false;
       if (!skipRepeatedHeaders || !headerKey || norm(r) !== headerKey) return true;
       // keep the header once: on the first page when combining, on every page when separate
       if (combine ? i === 0 && !seenHeader : !seenHeader) { seenHeader = true; return true; }
       return false;
-    });
-    return { page: p.page, rows };
+    };
+    const rows = [];
+    const lows = [];   // per kept row: Set of doubtful columns, or null
+    p.rows.forEach((r, ri) => { if (keep(r)) { rows.push(r); lows.push(lowByRow.get(ri) ?? null); } });
+    return { page: p.page, rows, lows };
   });
 
-  if (combine) return [{ name: 'Extracted', rows: cleaned.flatMap(p => p.rows) }];
-  return cleaned.map(p => ({ name: `Page ${p.page}`, rows: p.rows }));
+  if (combine) return [{ name: 'Extracted', rows: cleaned.flatMap(p => p.rows), lows: cleaned.flatMap(p => p.lows) }];
+  return cleaned.map(p => ({ name: `Page ${p.page}`, rows: p.rows, lows: p.lows }));
 }
 
 /** Builds and downloads the .xlsx. numbersAsNumbers turns amounts into real numbers Excel can add up. */

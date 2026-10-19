@@ -133,7 +133,8 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | f7ef920 |
 | 2.2 | Split PDF + Original/Compress (High/Medium/Low) save step for all File Tools | 624b562 |
 | 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | f72b66e |
-| 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | see `git log` (step 2.4) |
+| 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
+| 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | see `git log` (step 2.4b) |
 
 ---
 
