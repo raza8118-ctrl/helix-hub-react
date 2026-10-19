@@ -10,7 +10,7 @@ const Summary         = lazy(() => import('../admin/Summary'));
 const AdminFeedback   = lazy(() => import('../admin/AdminFeedback'));
 const TeamFeed        = lazy(() => import('../employee/TeamFeed'));
 const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
-const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
+const WorkbenchApp    = lazy(() => import('../workbench/WorkbenchApp'));
 const AdminApp        = lazy(() => import('../admin/AdminApp'));
 
 // Tabs every supervisor has; anything else in TAB_FEATURES must be granted by an admin
@@ -23,7 +23,7 @@ const OWN_TABS = new Set(['dashboard', 'today', 'prodmonitor', 'hourlymon', 'wee
  * plus any page an admin granted (lib/access.js), opened in its admin version.
  */
 export default function SupervisorApp({ activeTab, user }) {
-  if (isWorkbenchTab(activeTab)) return <WorkbenchPlaceholder tabId={activeTab} />;
+  if (isWorkbenchTab(activeTab)) return <WorkbenchApp activeTab={activeTab} user={user} />;
   if (TAB_FEATURES[activeTab] && !OWN_TABS.has(activeTab)) {
     return canOpenTab(user, activeTab) ? <AdminApp activeTab={activeTab} user={user} /> : <Today user={user} />;
   }

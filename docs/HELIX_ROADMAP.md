@@ -16,7 +16,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 
 ## Phase 1 – Payer Directory
 - [x] 1.1 Tables: payers, payer_plans (line of business, IPA/delegated groups, BlueCard home/host), payer_ids (by clearinghouse, direct), payer_contacts (claims, auth, appeals, provider relations: phone, fax, email, mailing address, attention line), payer_limits (TFL, CCTFL, AFL, recon levels), payer_forms, payer_notes.
-- [ ] 1.2 Search dropdown: type-ahead with aliases (e.g. "BCBSTX", "Blue Cross Texas").
+- [x] 1.2 Search dropdown: type-ahead with aliases (e.g. "BCBSTX", "Blue Cross Texas").
 - [ ] 1.3 Payer card: all info on one page, copy button on every field, portal links.
 - [ ] 1.4 Forms: upload/download appeal, recon, auth and corrected-claim forms (Supabase storage) with version date.
 - [ ] 1.5 Client overrides: TFL/AFL etc. per client contract; card shows the selected client's values.

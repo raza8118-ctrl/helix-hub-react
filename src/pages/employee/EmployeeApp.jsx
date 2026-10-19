@@ -8,7 +8,7 @@ const Progress     = lazy(() => import('./Progress'));
 const MyAllocation = lazy(() => import('./MyAllocation'));
 const EmpFeedback  = lazy(() => import('./EmpFeedback'));
 const TeamFeed     = lazy(() => import('./TeamFeed'));
-const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
+const WorkbenchApp = lazy(() => import('../workbench/WorkbenchApp'));
 const AdminApp     = lazy(() => import('../admin/AdminApp'));
 
 /**
@@ -18,7 +18,7 @@ const AdminApp     = lazy(() => import('../admin/AdminApp'));
  * which limits data to the employee's own sub-processes and is view-only by default.
  */
 export default function EmployeeApp({ activeTab, user }) {
-  if (isWorkbenchTab(activeTab)) return <WorkbenchPlaceholder tabId={activeTab} />;
+  if (isWorkbenchTab(activeTab)) return <WorkbenchApp activeTab={activeTab} user={user} />;
   if (TAB_FEATURES[activeTab]) {
     if (!canOpenTab(user, activeTab)) return <ProdReport user={user} />;
     return <AdminApp activeTab={activeTab === 'feedbackadmin' ? 'feedback' : activeTab} user={user} />;

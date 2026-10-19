@@ -14,7 +14,7 @@ const QualityMonitor = lazy(() => import('./QualityMonitor'));
 const Settings       = lazy(() => import('./Settings'));
 const FeedMonitor    = lazy(() => import('./FeedMonitor'));
 const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
-const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
+const WorkbenchApp   = lazy(() => import('../workbench/WorkbenchApp'));
 const AuditLog       = lazy(() => import('./AuditLog'));
 const MasterData     = lazy(() => import('./MasterData'));
 
@@ -24,7 +24,7 @@ const MasterData     = lazy(() => import('./MasterData'));
  *          feedback | team | allocation | allocmon | feedmonitor | settings
  */
 export default function AdminApp({ activeTab, user }) {
-  if (isWorkbenchTab(activeTab)) return <WorkbenchPlaceholder tabId={activeTab} />;
+  if (isWorkbenchTab(activeTab)) return <WorkbenchApp activeTab={activeTab} user={user} />;
   switch (activeTab) {
     case 'dashboard':   return <Dashboard user={user} />;
     case 'today':       return <Today user={user} />;
