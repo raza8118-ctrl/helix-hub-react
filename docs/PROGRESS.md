@@ -10,8 +10,21 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**None in progress.** 2.2 is done. Next on the roadmap: **2.3 Excel → PDF, image → PDF** — needs a plan and the product owner's “go”.
+**2.3 Excel → PDF, image → PDF** — **plan shown 2026-10-19, waiting for “go”.**
 Any new File Tools output must use the shared save step `src/pages/workbench/PdfSaveOptions.jsx` (product owner requirement).
+
+Draft plan:
+- **Images → PDF** (new File Tools tool): JPG, PNG, WEBP, BMP, GIF (first frame) and **TIFF incl. multi-page fax TIFFs**
+  (via the small `utif` library, MIT; needs pako, already installed). One image per page; drag to reorder; rotate 90°;
+  page size Fit-to-image / Letter / A4 (auto portrait/landscape), margin None/Small. HEIC (iPhone) not supported —
+  message asks to export as JPG (decoder is ~2.7 MB + LGPL). Then the shared save step.
+- **Excel / CSV → PDF** (new tool): uses the existing `xlsx` library to read .xlsx/.xls/.csv; pick sheet(s); draws a
+  table with pdf-lib — gridlines, header row repeated on each page, column widths from the sheet, auto font size,
+  portrait/landscape, “fit all columns on one page width”. Shows cell values as displayed (dates/numbers formatted);
+  colours/fonts/charts/images are NOT copied (SheetJS free edition can't read styles). Characters outside the standard
+  PDF font (e.g. non-Latin scripts) shown as “?” with a warning. Then the shared save step.
+- Files: `src/lib/imageToPdf.js`, `src/lib/excelToPdf.js`; `FileTools.jsx` gets two tools (replaces “Convert to PDF (soon)”);
+  `package.json`/lock: `utif`. Audit `images_to_pdf` / `excel_to_pdf` with counts only. Open to all roles. No DB changes.
 
 ### Reference: how 2.2 was built (done)
 
