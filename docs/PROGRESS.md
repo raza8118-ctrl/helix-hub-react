@@ -10,7 +10,8 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.3 Excel → PDF, image → PDF** — **plan shown 2026-10-19, waiting for “go”.**
+**2.3 Excel → PDF, image → PDF** — **APPROVED (“go” 2026-10-19), building.** PO confirmed: no HEIC; Excel = values + layout (no colours/fonts).
+Build checkpoints go to the `wip` branch; if a session ends mid-build, continue from `origin/wip`.
 Any new File Tools output must use the shared save step `src/pages/workbench/PdfSaveOptions.jsx` (product owner requirement).
 
 Draft plan:
