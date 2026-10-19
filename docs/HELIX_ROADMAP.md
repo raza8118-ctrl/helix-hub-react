@@ -32,7 +32,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 2.5 Appeal Packet builder: cover letter + form + EOB + auth approval + MR in order, page numbers, file naming convention.
 
 ## Phase 3 – SOP & Training Library
-- [ ] 3.1 Structure: Software → Task → SOP; categories (EMR, Clearinghouse, Payments/ERA, Payer portals, Medicare DDE).
+- [x] 3.1 Structure: Software → Task → SOP; categories (EMR, Clearinghouse, Payments/ERA, Payer portals, Medicare DDE).
 - [ ] 3.2 SOP page template: Purpose, Who uses it, Before you start, numbered Steps with screenshots, What you should see, If it goes wrong, Last verified + owner.
 - [ ] 3.3 SOP editor + upload (text, screenshots, short videos). Reminder banner: no PHI in screenshots.
 - [ ] 3.4 Versioning: client-specific vs common SOPs, effective dates, archive old versions, "Acknowledge" button + read tracking.

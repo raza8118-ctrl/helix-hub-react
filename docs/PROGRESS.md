@@ -4,25 +4,34 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-19 — paused by the product owner after Phase 2; Phase 3 starts in a later session._
+_Last updated: 2026-10-19 — step 3.1 (SOP Library structure) done; next is 3.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.1.”**
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.2.”**
 3. Claude reads this file, fetches the latest code from GitHub, shows the 3.1 plan, and waits for your “go”.
 
-Still waiting on you in Supabase (if not done yet): run the 6 migration files listed under “Waiting on the product owner”
+Still waiting on you in Supabase (if not done yet): run the 7 migration files listed under “Waiting on the product owner”
 below, in order, then click **↻ Sync structure** in the Owner Console.
 
 ---
 
 ## ▶ Current step
 
-**3.1 – SOP Library structure (Software → Task → SOP; categories)** — plan approved 2026-10-19 (“go”, defaults taken). Building.
+**None in progress. Step 3.1 is done.** Next: **3.2 – SOP page template** (Purpose, Who uses it, Before you start,
+numbered Steps with screenshots, What you should see, If it goes wrong, Last verified + owner) — needs a plan and a “go”.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.1 was built (done)
+
+Code: `src/lib/sops.js` (levels config, `loadSopLibrary`, `buildSopTree` search/filter, counts),
+`src/pages/workbench/SopLibrary.jsx` (page), `SopEditors.jsx` (one add/edit pop-up for all four levels, incl. moving
+an item to another parent), `sopActions.js` (make inactive/reactivate, ▲▼ reorder, “Add standard categories”).
+Added companies' tables start empty after Sync structure → editors get an **Add standard categories** button.
+Software portal URLs get `https://` added if missing. Duplicate active names under the same parent are refused.
 
 Plan as approved (defaults: regular users see Published only; categories editable by editors):
 - New Workbench page **📚 SOP Library** (`wb_sops`, replaces the placeholder): Category → Software → Task → SOPs; search
@@ -196,6 +205,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
 | 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
+| 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | (see git log) |
 
 ---
 
@@ -209,6 +219,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 4. `supabase/migrations/20261019_payer_directory.sql`
 5. `supabase/migrations/20261019b_payer_forms_storage.sql`
 6. `supabase/migrations/20261019c_payer_reports.sql`
+7. `supabase/migrations/20261019d_sop_library.sql` (SOP Library, step 3.1)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -228,6 +239,7 @@ The app hides/disables the related features until each one has been run, so code
 - **File Tools save step:** every output offers Original or Compress; levels are QUALITY (High = original quality, Medium = portal-friendly, Low = smallest readable) with an optional size limit.
 - **PDF → Excel methods:** in-browser always available; Vercel / Supabase / own-server methods appear in a selector and only an admin can switch one on, with a “BAA signed” confirmation (audited). Config in kv `pdf_extract_engines` per company.
 - **Appeal Packet:** cover sheet on by default; page numbers “Page X of Y” bottom right (optional prefix); company file-name convention set by `packet_settings` holders; `{PatientLast}` allowed but not default.
+- **SOP Library:** viewing open to all (Published only); `sops_edit` (admins + managers, grantable) edits and sees Drafts. Categories are editable.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 
 ---

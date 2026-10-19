@@ -1,0 +1,109 @@
+// SOP Library (roadmap Phase 3) — Category → Software → Task → SOP.
+// Shared by the library page and its editor pop-ups. No patient data (PHI) is stored here.
+import { db } from './supabase';
+
+export const SOP_STATUSES = [
+  { value: 'draft',     label: 'Draft',     badge: 'badge-yellow' },
+  { value: 'published', label: 'Published', badge: 'badge-green' },
+];
+export const statusOf = value => SOP_STATUSES.find(s => s.value === value) ?? SOP_STATUSES[0];
+
+// Starting categories — the migration seeds them for 3Gen; added companies get an "Add" button
+export const STARTER_CATEGORIES = ['EMR', 'Clearinghouse', 'Payments/ERA', 'Payer portals', 'Medicare DDE', 'Other'];
+
+// One entry per level: its table, parent link and the fields its editor pop-up shows
+export const SOP_LEVELS = {
+  category: {
+    table: 'sop_categories', one: 'Category', entity: 'sop_category', parentKey: null, nameKey: 'name',
+    fields: [{ key: 'name', label: 'Category name', required: true, hint: 'e.g. Clearinghouse' }],
+  },
+  software: {
+    table: 'sop_software', one: 'Software', entity: 'sop_software', parentKey: 'category_id', nameKey: 'name',
+    fields: [
+      { key: 'category_id', label: 'Category', type: 'parent', required: true },
+      { key: 'name',        label: 'Software name', required: true, hint: 'e.g. Waystar' },
+      { key: 'vendor',      label: 'Vendor / also known as', hint: 'e.g. WellSky (Kinnser)' },
+      { key: 'portal_url',  label: 'Login page link', hint: 'https://… (never put passwords here)' },
+      { key: 'notes',       label: 'Notes', type: 'textarea', hint: 'Who has access, which clients use it…' },
+    ],
+  },
+  task: {
+    table: 'sop_tasks', one: 'Task', entity: 'sop_task', parentKey: 'software_id', nameKey: 'name',
+    fields: [
+      { key: 'software_id', label: 'Software', type: 'parent', required: true },
+      { key: 'name',        label: 'Task name', required: true, hint: 'e.g. Check claim status' },
+    ],
+  },
+  sop: {
+    table: 'sops', one: 'SOP', entity: 'sop', parentKey: 'task_id', nameKey: 'title',
+    fields: [
+      { key: 'task_id', label: 'Task', type: 'parent', required: true },
+      { key: 'title',   label: 'SOP title', required: true, hint: 'e.g. Claim status check in Waystar' },
+      { key: 'summary', label: 'Short summary', type: 'textarea', hint: 'One or two lines: what this SOP covers' },
+      { key: 'owner',   label: 'Owner (keeps it up to date)', type: 'user' },
+      { key: 'status',  label: 'Status', type: 'select', options: SOP_STATUSES },
+    ],
+  },
+};
+
+/** All four tables, or null when the 3.1 database update hasn't been run yet. */
+export async function loadSopLibrary() {
+  const tables = ['sop_categories', 'sop_software', 'sop_tasks', 'sops'];
+  const results = await Promise.all(tables.map(t => db(t).select('*')));
+  if (results.some(r => r.error)) return null;
+  const [categories, software, tasks, sops] = results.map(r => r.data ?? []);
+  return { categories, software, tasks, sops };
+}
+
+const bySort = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  || (a.name ?? a.title ?? '').localeCompare(b.name ?? b.title ?? '');
+
+const has = (text, q) => (text ?? '').toLowerCase().includes(q);
+
+/**
+ * Nested Category → Software → Task → SOP tree for display.
+ * opts: query (search text), categoryId ('ALL' or id), showInactive, canSeeDrafts, status ('ALL' | 'draft' | 'published').
+ * While searching, only matching branches are kept: a software/task whose own name matches keeps everything under it.
+ */
+export function buildSopTree(lib, { query = '', categoryId = 'ALL', showInactive = false, canSeeDrafts = false, status = 'ALL' } = {}) {
+  const q = query.trim().toLowerCase();
+  const visible = r => showInactive || r.active !== false;
+  const sopVisible = s => visible(s)
+    && (canSeeDrafts || s.status === 'published')
+    && (status === 'ALL' || s.status === status);
+
+  return lib.categories
+    .filter(visible)
+    .filter(c => categoryId === 'ALL' || String(c.id) === String(categoryId))
+    .sort(bySort)
+    .map(cat => {
+      const catHit = q && has(cat.name, q);
+      const software = lib.software
+        .filter(sw => sw.category_id === cat.id && visible(sw))
+        .sort(bySort)
+        .map(sw => {
+          const swHit = catHit || (q && (has(sw.name, q) || has(sw.vendor, q)));
+          const tasks = lib.tasks
+            .filter(t => t.software_id === sw.id && visible(t))
+            .sort(bySort)
+            .map(t => {
+              const taskHit = swHit || (q && has(t.name, q));
+              const sops = lib.sops
+                .filter(s => s.task_id === t.id && sopVisible(s))
+                .sort(bySort)
+                .filter(s => !q || taskHit || has(s.title, q) || has(s.summary, q));
+              return { ...t, sops, keep: !q || taskHit || sops.length > 0 };
+            })
+            .filter(t => t.keep);
+          return { ...sw, tasks, keep: !q || swHit || tasks.length > 0 };
+        })
+        .filter(sw => sw.keep);
+      return { ...cat, software, keep: !q || catHit || software.length > 0 };
+    })
+    .filter(c => c.keep);
+}
+
+/** Total SOPs in a (sub)tree — for the counts next to each heading. */
+export const countSops = node =>
+  node.sops ? node.sops.length
+  : (node.tasks ?? node.software ?? []).reduce((n, child) => n + countSops(child), 0);

@@ -26,6 +26,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'payers_edit',  label: 'Edit Payer Directory',  defaultRoles: MANAGERS },
   // File Tools are open to everyone; this only controls the company's Appeal Packet file naming convention
   { group: 'Tools', key: 'packet_settings', label: 'Appeal Packet settings', defaultRoles: MANAGERS },
+  // Published SOPs are open to everyone; editing (and seeing drafts) is gated
+  { group: 'Tools', key: 'sops_edit',    label: 'Edit SOP Library',      defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,
