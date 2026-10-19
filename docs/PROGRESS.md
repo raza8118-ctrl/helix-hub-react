@@ -10,7 +10,9 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.5 Appeal Packet builder** — **plan shown 2026-10-19, waiting for “go” + 3 decisions** (cover sheet, naming tokens, page-number style).
+**2.5 Appeal Packet builder** — **APPROVED (“go” 2026-10-19), building** with the suggested defaults: cover sheet ON by default;
+`{PatientLast}` token available but not in the default convention; “Page X of Y” bottom right with optional prefix.
+Checkpoints on `wip`; if a session ends mid-build, continue from `origin/wip`.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
 
 Draft plan:
