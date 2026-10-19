@@ -205,7 +205,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
 | 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
-| 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | (see git log) |
+| 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
 
 ---
 
