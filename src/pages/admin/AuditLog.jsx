@@ -2,60 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { db } from '../../lib/supabase';
 import { today, dlCSV } from '../../lib/helpers';
 import { canViewAudit } from '../../lib/audit';
+import { actionLabel } from '../../lib/auditLabels';
 
 const ROW_LIMIT = 2000;
 
-// Plain-English names for logged actions; unknown actions show as-is
-const ACTION_LABELS = {
-  sign_in:               'Signed in',
-  owner_open_company:    'Owner opened company',
-  create_user:           'Created user',
-  edit_user:             'Edited user',
-  activate_user:         'Activated user',
-  deactivate_user:       'Deactivated user',
-  set_team:              'Changed team / QA',
-  grant_audit_access:    'Gave Audit Log access',
-  revoke_audit_access:   'Removed Audit Log access',
-  grant_access:          'Gave access',
-  revoke_access:         'Removed access',
-  create_client:         'Added client',
-  edit_client:           'Edited client',
-  activate_client:       'Reactivated client',
-  deactivate_client:     'Made client inactive',
-  create_payer:          'Added payer',
-  edit_payer:            'Edited payer',
-  activate_payer:        'Reactivated payer',
-  deactivate_payer:      'Made payer inactive',
-  add_payer_info:        'Added payer details',
-  edit_payer_info:       'Edited payer details',
-  activate_payer_info:   'Reactivated payer details',
-  deactivate_payer_info: 'Made payer details inactive',
-  upload_payer_form:         'Uploaded payer form',
-  upload_payer_form_version: 'Uploaded new form version',
-  assign_team:           'Assigned supervisor team',
-  reset_password:        'Reset password',
-  edit_counts:           'Edited counts',
-  edit_hourly_counts:    'Edited hourly counts',
-  edit_quality:          'Edited quality',
-  bypass:                'Deadline bypass',
-  remove_bypass:         'Removed deadline bypass',
-  quality_bypass:        'Quality bypass',
-  remove_quality_bypass: 'Removed quality bypass',
-  pin:                   'Pinned employee',
-  unpin:                 'Unpinned employee',
-  change_shift_timing:   'Changed shift timing',
-  save_ai_key:           'Saved AI key',
-  clear_ai_key:          'Cleared AI key',
-  save_task_targets:     'Saved task targets',
-  reset_task_targets:    'Reset task targets',
-  add_task:              'Added task',
-  edit_task:             'Edited task',
-  delete_task:           'Deleted task',
-  create_allocation:     'Allocated work',
-  post_announcement:     'Posted announcement',
-  delete_announcement:   'Deleted announcement',
-};
-const actionLabel = a => ACTION_LABELS[a] ?? a;
 
 function daysAgo(n) {
   const d = new Date();

@@ -1,7 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
-import { S } from '../../lib/supabase';
+import { S, db } from '../../lib/supabase';
+import { needsRecheck, PAYER_DETAIL_TABLES } from '../../lib/payers';
 import PayerSearch from '../../components/shared/PayerSearch';
 import PayerCard from './PayerCard';
+
+// Payer ids with an entry needing re-check (1.6), and open report counts per payer
+async function loadAccuracySummary() {
+  const stale = new Set();
+  const results = await Promise.all(PAYER_DETAIL_TABLES.map(t =>
+    db(t).select(t === 'payer_forms' ? 'payer_id,verified_at,active,superseded_at' : 'payer_id,verified_at,active')));
+  for (const { data } of results) {
+    for (const r of data ?? []) {
+      if (r.active !== false && !r.superseded_at && needsRecheck(r.verified_at)) stale.add(r.payer_id);
+    }
+  }
+  const { data: open } = await db('payer_reports').select('payer_id').eq('status', 'open');
+  const reports = {};
+  for (const r of open ?? []) reports[r.payer_id] = (reports[r.payer_id] ?? 0) + 1;
+  return { stale, reports };
+}
 
 /**
  * Payer Directory: find a payer by name or alias (1.2) or browse A–Z, then open its
@@ -12,19 +29,31 @@ export default function PayerDirectory({ user }) {
   const [error, setError]       = useState(false);
   const [selected, setSelected] = useState(null);
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [reviewFilter, setReviewFilter] = useState('ALL');   // ALL | STALE | REPORTED
+  const [summary, setSummary]   = useState({ stale: new Set(), reports: {} });
 
   useEffect(() => {
     S.get('payers').then(rows => {
       if (rows == null) setError(true);
       setPayers(rows ?? []);
     });
+    loadAccuracySummary().then(setSummary).catch(() => {});
   }, []);
+
+  // Refresh the warning marks after the card is closed (it may have verified or resolved things)
+  function closeCard() {
+    setSelected(null);
+    loadAccuracySummary().then(setSummary).catch(() => {});
+  }
 
   const active = useMemo(() => (payers ?? []).filter(p => p.active !== false), [payers]);
   const types  = useMemo(() => [...new Set(active.map(p => p.payer_type).filter(Boolean))].sort(), [active]);
   const browse = useMemo(() => active
     .filter(p => typeFilter === 'ALL' || p.payer_type === typeFilter)
-    .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')), [active, typeFilter]);
+    .filter(p => reviewFilter === 'ALL'
+      || (reviewFilter === 'STALE' && summary.stale.has(p.id))
+      || (reviewFilter === 'REPORTED' && summary.reports[p.id] > 0))
+    .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')), [active, typeFilter, reviewFilter, summary]);
 
   const byLetter = useMemo(() => {
     const groups = {};
@@ -57,7 +86,7 @@ export default function PayerDirectory({ user }) {
       </div>
 
       {selected && (
-        <PayerCard key={selected.id} payer={selected} user={user} onClose={() => setSelected(null)} />
+        <PayerCard key={selected.id} payer={selected} user={user} onClose={closeCard} />
       )}
 
       {payers != null && !error && (
@@ -70,10 +99,15 @@ export default function PayerDirectory({ user }) {
                 {types.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             )}
+            <select value={reviewFilter} onChange={e => setReviewFilter(e.target.value)} style={{ maxWidth: 220 }}>
+              <option value="ALL">All payers</option>
+              <option value="STALE">⚠ Needs re-check ({active.filter(p => summary.stale.has(p.id)).length})</option>
+              <option value="REPORTED">🚩 Has open reports ({active.filter(p => summary.reports[p.id] > 0).length})</option>
+            </select>
           </div>
           {browse.length === 0 && (
             <div className="text-muted" style={{ padding: 16, textAlign: 'center' }}>
-              No payers yet. Admins and managers can add them in Clients &amp; Payers.
+              {active.length ? 'No payers match these filters.' : 'No payers yet. Admins and managers can add them in Clients & Payers.'}
             </div>
           )}
           {byLetter.map(([letter, list]) => (
@@ -83,8 +117,12 @@ export default function PayerDirectory({ user }) {
                 {list.map(p => (
                   <button key={p.id} className="btn-sm" onClick={() => setSelected(p)}
                     style={selected?.id === p.id ? { background: 'var(--accent)', color: '#fff', border: 'none' } : undefined}
-                    title={(p.aliases ?? []).join(', ')}>
+                    title={[(p.aliases ?? []).join(', '),
+                      summary.stale.has(p.id) && 'Some details need re-checking',
+                      summary.reports[p.id] > 0 && `${summary.reports[p.id]} open report(s)`].filter(Boolean).join(' · ')}>
                     {p.name}
+                    {summary.stale.has(p.id) && <span style={{ marginLeft: 4 }} aria-label="needs re-check">⚠</span>}
+                    {summary.reports[p.id] > 0 && <span style={{ marginLeft: 4 }} aria-label="open reports">🚩</span>}
                   </button>
                 ))}
               </div>

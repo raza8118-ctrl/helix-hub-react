@@ -1,5 +1,17 @@
 // Payer name/alias matching — shared by the Payer Directory and any payer picker.
 
+// ── Accuracy (roadmap 1.6) ─────────────────────────────────────────────────────
+export const VERIFY_DAYS = 90;
+
+/** True when an entry was never verified, or not within the last 90 days. */
+export function needsRecheck(verifiedAt, now = Date.now()) {
+  if (!verifiedAt) return true;
+  return now - new Date(verifiedAt).getTime() > VERIFY_DAYS * 86400000;
+}
+
+// Tables whose entries carry verified_at / verified_by
+export const PAYER_DETAIL_TABLES = ['payer_plans', 'payer_ids', 'payer_contacts', 'payer_limits', 'payer_forms', 'payer_notes'];
+
 // Case/space/punctuation-insensitive: "BCBS-TX", "bcbs tx" and "BCBSTX" all match
 const norm = s => (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const wordsOf = s => (s ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);

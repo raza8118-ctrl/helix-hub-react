@@ -4,6 +4,7 @@ import { logAudit } from '../../lib/audit';
 import { checkFormFile, uploadPayerForm, payerFormLink, FORM_EXTENSIONS } from '../../lib/payerForms';
 import Modal from '../../components/shared/Modal';
 import { alertDialog, confirmDialog } from '../../components/shared/Dialog';
+import { VerifiedBadge, ReportWrongInfo } from './PayerAccuracy';
 
 const FORM_TYPES = [
   { value: 'appeal',          label: 'Appeal' },
@@ -28,7 +29,7 @@ const newest = (a, b) => String(b.version_date ?? '').localeCompare(String(a.ver
  * "Edit Payer Directory" can upload, add new versions, edit details and make inactive.
  * Old versions are always kept.
  */
-export default function PayerForms({ payer, user, canEdit, showInactive, plans }) {
+export default function PayerForms({ payer, user, canEdit, showInactive, plans, names = {}, reports, onReported }) {
   const [rows, setRows]       = useState(undefined);   // undefined = loading, null = table missing
   const [open, setOpen]       = useState({});          // family id → older versions expanded
   const [form, setForm]       = useState(null);        // upload / edit pop-up
@@ -139,6 +140,7 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans }
     const result = await S.set('payer_forms', {
       ...details, payer_id: payer.id, file_path: path, file_name: form.file.name,
       family_id: familyId, active: true, created_by: user.emp_id,
+      verified_at: now, verified_by: user.emp_id,   // a freshly uploaded form counts as checked today
     });
     if (result?.length && isVersion) {
       await S.update('payer_forms', { superseded_at: now, updated_by: user.emp_id, updated_at: now }, { id: form.family.latest.id });
@@ -153,6 +155,23 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans }
     setForm(null);
     await load();
   }
+
+  async function markVerified(r) {
+    if (!await confirmDialog({
+      title: 'Mark as verified?',
+      message: `${payer.name} → ${r.title}\n\nConfirm this is still the payer’s current version of the form.`,
+      confirmText: 'Mark Verified',
+    })) return;
+    const ok = await S.update('payer_forms', { verified_at: new Date().toISOString(), verified_by: user.emp_id }, { id: r.id });
+    if (!ok) return;
+    logAudit({
+      actor: user, action: 'verify_payer_info', entityType: 'payer_form', entityId: r.id,
+      details: { payer: payer.name, payer_id: payer.id, section: 'Forms', title: r.title },
+    });
+    await load();
+  }
+
+  const openReportsFor = id => (reports ?? []).filter(x => x.status === 'open' && x.entity_table === 'payer_forms' && x.entity_id === id).length;
 
   async function toggleActive(r) {
     const deactivating = r.active !== false;
@@ -220,8 +239,24 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans }
               </div>
             )}
 
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <VerifiedBadge row={latest} names={names} />
+              {openReportsFor(latest.id) > 0 && (
+                <span className="badge badge-yellow" style={{ alignSelf: 'flex-start' }}>
+                  🚩 {openReportsFor(latest.id)} open report{openReportsFor(latest.id) > 1 ? 's' : ''}
+                </span>
+              )}
+              {reports != null && (
+                <div>
+                  <ReportWrongInfo payer={payer} section="Forms" table="payer_forms" entityId={latest.id}
+                    entityTitle={latest.title} user={user} onReported={onReported} />
+                </div>
+              )}
+            </div>
+
             {canEdit && (
-              <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginTop: 'auto' }}>
+              <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                <button className="btn-sm" onClick={() => markVerified(latest)}>✓ Mark verified</button>
                 <button className="btn-sm" onClick={() => openUpload({ latest })}>⬆ New Version</button>
                 <button className="btn-sm" onClick={() => openEditDetails(latest)}>Edit</button>
                 <button className="btn-sm" style={{ color: latest.active !== false ? 'var(--danger)' : 'var(--success)' }}

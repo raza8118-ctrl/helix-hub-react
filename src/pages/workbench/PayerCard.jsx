@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { S } from '../../lib/supabase';
+import { S, db } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { hasAccess } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { actionLabel } from '../../lib/auditLabels';
 import PayerForms from './PayerForms';
+import { VerifiedBadge, ReportWrongInfo, OpenReports } from './PayerAccuracy';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 const opts = list => list.map(v => (typeof v === 'string' ? { value: v, label: v } : v));
@@ -200,8 +202,11 @@ function Value({ item }) {
 }
 
 /**
- * Full payer card (roadmap 1.3): plans, payer IDs, contacts, limits and notes.
- * Everyone can read it; "Edit Payer Directory" (lib/access.js) can add / edit / make inactive.
+ * Full payer card (roadmap 1.3): plans, payer IDs, contacts, limits, notes and forms,
+ * with client contract limits (1.5) and accuracy tracking (1.6: verified dates,
+ * "Report wrong info", change history).
+ * Everyone can read it and report problems; "Edit Payer Directory" (lib/access.js)
+ * can add / edit / verify / make inactive and resolve reports.
  */
 export default function PayerCard({ payer, user, onClose }) {
   const canEdit = hasAccess(user, 'payers_edit');
@@ -212,6 +217,9 @@ export default function PayerCard({ payer, user, onClose }) {
   const [saving, setSaving]     = useState(false);
   const [clients, setClients]   = useState([]);
   const [clientId, setClientId] = useState(readClientChoice);   // '' = standard limits
+  const [names, setNames]       = useState({});                  // emp_id → name, for "verified by"
+  const [reports, setReports]   = useState(undefined);           // null = reports table missing
+  const [history, setHistory]   = useState(null);                // null = closed
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -220,7 +228,16 @@ export default function PayerCard({ payer, user, onClose }) {
     setLoading(false);
   }, [payer.id]);
 
+  const loadReports = useCallback(async () => {
+    setReports(await S.get('payer_reports', { payer_id: payer.id }));
+  }, [payer.id]);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadReports(); }, [loadReports]);
+  useEffect(() => {
+    db('users').select('emp_id,name').then(({ data: rows }) =>
+      setNames(Object.fromEntries((rows ?? []).map(u => [u.emp_id, u.name ?? u.emp_id]))));
+  }, []);
   useEffect(() => {
     S.get('clients').then(rows => setClients((rows ?? []).filter(c => c.active !== false)
       .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))));
@@ -247,12 +264,45 @@ export default function PayerCard({ payer, user, onClose }) {
   function openAdd(section) {
     const values = blankFor(section);
     if (section.key === 'limits' && activeClientId) values.client_id = activeClientId;   // adding for the client being viewed
-    setForm({ section, values, error: '' });
+    setForm({ section, values, verify: true, error: '' });
   }
   function openEdit(section, row) {
     const values = blankFor(section);
     for (const f of section.fields) values[f.key] = row[f.key] ?? values[f.key];
-    setForm({ section, id: row.id, values, error: '' });
+    setForm({ section, id: row.id, values, verify: true, error: '' });
+  }
+
+  const openReportsFor = (table, id) =>
+    (reports ?? []).filter(r => r.status === 'open' && r.entity_table === table && r.entity_id === id).length;
+
+  async function markVerified(section, row, title) {
+    if (!await confirmDialog({
+      title: 'Mark as verified?',
+      message: `${payer.name} → ${section.title}${title ? ` → ${title}` : ''}\n\nConfirm you checked this against the payer (call, portal or current document) today.`,
+      confirmText: 'Mark Verified',
+    })) return;
+    const now = new Date().toISOString();
+    const ok = await S.update(section.table, { verified_at: now, verified_by: user.emp_id }, { id: row.id });
+    if (!ok) return;
+    logAudit({
+      actor: user, action: 'verify_payer_info', entityType: section.entity, entityId: row.id,
+      details: { payer: payer.name, payer_id: payer.id, section: section.title },
+    });
+    await load();
+  }
+
+  // Change log for this payer, from the audit log (editors only)
+  async function toggleHistory() {
+    if (history) return setHistory(null);
+    setHistory({ loading: true, rows: [] });
+    let res = await db('audit_log').select('*')
+      .or(`details->>payer_id.eq.${payer.id},and(entity_type.eq.payer,entity_id.eq.${payer.id})`)
+      .order('created_at', { ascending: false }).limit(200);
+    if (res.error) {   // entity columns not added yet — payer detail entries only
+      res = await db('audit_log').select('*').eq('details->>payer_id', String(payer.id))
+        .order('created_at', { ascending: false }).limit(200);
+    }
+    setHistory({ loading: false, rows: res.data ?? [], error: !!res.error });
   }
   const setV = patch => setForm(f => ({ ...f, values: { ...f.values, ...patch }, error: '' }));
 
@@ -262,7 +312,8 @@ export default function PayerCard({ payer, user, onClose }) {
     if (missing.length) return setForm(f => ({ ...f, error: `Please fill in: ${missing.map(m => m.label).join(', ')}.` }));
     const editing = id != null;
     if (!await confirmDialog({ title: editing ? 'Save changes?' : `Add this ${section.one.toLowerCase()}?`, message: `${payer.name} → ${section.title}`, confirmText: editing ? 'Save Changes' : 'Add' })) return;
-    const stamp = { updated_by: user.emp_id, updated_at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const stamp = { updated_by: user.emp_id, updated_at: now, ...(form.verify ? { verified_at: now, verified_by: user.emp_id } : {}) };
     const row = { ...toDb(section, values), ...stamp };
     setSaving(true);
     const result = editing
@@ -349,9 +400,32 @@ export default function PayerCard({ payer, user, onClose }) {
               <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} /> Show inactive
             </label>
           )}
+          {canEdit && <button className="btn-sm" onClick={toggleHistory}>{history ? 'Hide history' : '🕘 History'}</button>}
+          {reports != null && (
+            <ReportWrongInfo payer={payer} section="Payer (general)" table="payers" entityId={payer.id}
+              user={user} onReported={loadReports} />
+          )}
           <button className="btn-sm" onClick={onClose}>✕ Close</button>
         </div>
       </div>
+
+      {canEdit && <OpenReports payer={payer} reports={reports} user={user} onChanged={loadReports} />}
+
+      {history && (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 10, marginBottom: 12, maxHeight: 280, overflowY: 'auto' }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>🕘 Change history</div>
+          {history.loading && <div className="text-sm text-muted">Loading…</div>}
+          {!history.loading && history.error && <div className="text-sm text-muted">History isn’t available yet (audit log update not run).</div>}
+          {!history.loading && !history.error && history.rows.length === 0 && <div className="text-sm text-muted">No changes recorded yet.</div>}
+          {history.rows.map(h => (
+            <div key={h.id} className="text-sm" style={{ padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+              <span className="text-muted">{new Date(h.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              {' · '}<strong>{h.actor_name ?? h.actor_emp_id}</strong>{' · '}{actionLabel(h.action)}
+              {h.details?.section ? ` — ${h.details.section}` : ''}{h.details?.title ? `: ${h.details.title}` : ''}
+            </div>
+          ))}
+        </div>
+      )}
 
       {(payer.aliases ?? []).length > 0 && (
         <div style={{ marginBottom: 12 }}>
@@ -419,8 +493,23 @@ export default function PayerCard({ payer, user, onClose }) {
                       {view.sub && <div className="text-sm text-muted">{view.sub}</div>}
                     </div>
                     {view.items.filter(Boolean).map((item, i) => <Value key={i} item={item} />)}
+                    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <VerifiedBadge row={r} names={names} />
+                      {openReportsFor(section.table, r.id) > 0 && (
+                        <span className="badge badge-yellow" style={{ alignSelf: 'flex-start' }}>
+                          🚩 {openReportsFor(section.table, r.id)} open report{openReportsFor(section.table, r.id) > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {reports != null && (
+                        <div>
+                          <ReportWrongInfo payer={payer} section={section.title} table={section.table} entityId={r.id}
+                            entityTitle={view.title} user={user} onReported={loadReports} />
+                        </div>
+                      )}
+                    </div>
                     {canEdit && (
-                      <div className="row" style={{ gap: 4, marginTop: 'auto' }}>
+                      <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                        <button className="btn-sm" onClick={() => markVerified(section, r, view.title)}>✓ Mark verified</button>
                         <button className="btn-sm" onClick={() => openEdit(section, r)}>Edit</button>
                         <button className="btn-sm" style={{ color: r.active !== false ? 'var(--danger)' : 'var(--success)' }}
                           onClick={() => toggleActive(section, r)}>
@@ -437,7 +526,8 @@ export default function PayerCard({ payer, user, onClose }) {
       })}
 
       {!loading && !tablesMissing && (
-        <PayerForms payer={payer} user={user} canEdit={canEdit} showInactive={showInactive} plans={plans} />
+        <PayerForms payer={payer} user={user} canEdit={canEdit} showInactive={showInactive} plans={plans}
+          names={names} reports={reports} onReported={loadReports} />
       )}
 
       {form && (
@@ -446,6 +536,10 @@ export default function PayerCard({ payer, user, onClose }) {
             {form.section.fields
               .filter(f => !(f.key === 'delegated_group' && !form.values.is_delegated))
               .map(renderField)}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', marginBottom: 12 }}>
+              <input type="checkbox" checked={!!form.verify} onChange={e => setForm(f => ({ ...f, verify: e.target.checked }))} />
+              I confirmed this with the payer or a current document — mark it verified today
+            </label>
             {form.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{form.error}</p>}
             <div className="form-actions">
               <button className="btn-sm" onClick={() => setForm(null)}>Cancel</button>
