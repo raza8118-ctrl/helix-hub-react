@@ -10,9 +10,23 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.4b OCR for scanned PDFs** — **APPROVED (“go” 2026-10-19), building.** Checkpoints on `wip`; if a session ends mid-build, continue from `origin/wip`. Any new File Tools PDF output must use `PdfSaveOptions.jsx`.
+**None in progress.** 2.4b is done (5b5c901). Next on the roadmap: **2.5 Appeal Packet builder** — needs a plan and the product owner's “go”.
+Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
 
-Draft plan:
+### Reference: how 2.4b was built (done)
+
+- `src/lib/ocr.js` starts one Tesseract worker using **bundled** files (Vite `?url`): `tesseract.js/dist/worker.min.js`,
+  `tesseract.js-core/tesseract-core-simd-lstm.wasm.js`, `@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz`;
+  `workerBlobURL: false`, absolute URLs. **`vite.config.js`** keeps `*.traineddata.gz` un-hashed under `tessdata/`
+  (Tesseract fetches `<langPath>/eng.traineddata.gz`); if that ever breaks the app shows “OCR couldn’t start…” (`ocr-setup`).
+- `src/lib/pdfExtract.js`: `pageToRows` takes positioned pieces from the text layer or OCR words; OCR runs only on pages
+  with an image and no text (300 dpi, max 5000 px); words under 60% confidence mark cells (`low`) → yellow in the preview.
+  Cancel via `control { cancelled, onCancel }` terminates the worker.
+- Lock file: 14 packages added by script from registry data (tesseract.js 7.0.0 [postinstall], tesseract.js-core 7.0.0,
+  @tesseract.js-data/eng 1.0.0, bmp-js, idb-keyval, is-url, node-fetch 2.7.0 + whatwg-url/tr46/webidl-conversions,
+  opencollective-postinstall, regenerator-runtime, wasm-feature-detect, zlibjs). Checked: every dependency present.
+
+Plan as approved:
 - Turn on the “In this browser with OCR (scanned PDFs)” method in PDF → Excel. Pages with real text still use the text
   layer (fast, exact); only scanned pages are OCR'd: pdf.js renders at ~300 dpi → Tesseract words + boxes → the same
   row/column logic as method A (`pageToRows` refactored to take positioned words).
@@ -134,7 +148,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.2 | Split PDF + Original/Compress (High/Medium/Low) save step for all File Tools | 624b562 |
 | 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | f72b66e |
 | 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
-| 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | see `git log` (step 2.4b) |
+| 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
 
 ---
 
