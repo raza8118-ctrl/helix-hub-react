@@ -30,6 +30,8 @@ const ACTION_LABELS = {
   edit_payer_info:       'Edited payer details',
   activate_payer_info:   'Reactivated payer details',
   deactivate_payer_info: 'Made payer details inactive',
+  upload_payer_form:         'Uploaded payer form',
+  upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',
   reset_password:        'Reset password',
   edit_counts:           'Edited counts',

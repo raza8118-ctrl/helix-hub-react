@@ -5,6 +5,7 @@ import { hasAccess } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
+import PayerForms from './PayerForms';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 const opts = list => list.map(v => (typeof v === 'string' ? { value: v, label: v } : v));
@@ -378,10 +379,7 @@ export default function PayerCard({ payer, user, onClose }) {
       })}
 
       {!loading && !tablesMissing && (
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>📄 Forms</div>
-          <div className="text-sm text-muted">Appeal, recon, auth and corrected-claim forms will be downloadable here (roadmap step 1.4).</div>
-        </div>
+        <PayerForms payer={payer} user={user} canEdit={canEdit} showInactive={showInactive} plans={plans} />
       )}
 
       {form && (
