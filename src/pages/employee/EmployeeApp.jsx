@@ -9,6 +9,7 @@ const EmpFeedback  = lazy(() => import('./EmpFeedback'));
 const TeamFeed     = lazy(() => import('./TeamFeed'));
 const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
 const AuditLog     = lazy(() => import('../admin/AuditLog'));
+const MasterData   = lazy(() => import('../admin/MasterData'));
 
 /**
  * Routes employee tabs to the correct page component.
@@ -24,6 +25,7 @@ export default function EmployeeApp({ activeTab, user }) {
     case 'feedback':     return <EmpFeedback user={user} />;
     case 'feed':         return <TeamFeed user={user} />;
     case 'auditlog':     return <AuditLog user={user} />;
+    case 'masters':      return <MasterData user={user} />;
     default:             return <ProdReport user={user} />;
   }
 }

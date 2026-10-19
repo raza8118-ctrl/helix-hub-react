@@ -11,6 +11,7 @@ const TeamFeed        = lazy(() => import('../employee/TeamFeed'));
 const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
 const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
 const AuditLog        = lazy(() => import('../admin/AuditLog'));
+const MasterData      = lazy(() => import('../admin/MasterData'));
 
 /**
  * Routes supervisor tabs to the correct page component — reuses the admin
@@ -30,6 +31,7 @@ export default function SupervisorApp({ activeTab, user }) {
     case 'myteam':      return <SupervisorTeam user={user} />;
     case 'feed':        return <TeamFeed user={user} />;
     case 'auditlog':    return <AuditLog user={user} />;
+    case 'masters':     return <MasterData user={user} />;
     default:            return <Today user={user} />;
   }
 }

@@ -12,7 +12,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 0.2 Shared navigation: add a "Workbench" section to the sidebar for the new modules (empty placeholder pages).
 - [x] 0.3 Roles: confirm/extend roles (Admin, Team Lead, AR, Auth, Billing/Posting, Coding, Credentialing, QA).
 - [x] 0.4 Audit log table + helper: who did what, when, on which record.
-- [ ] 0.5 Master tables: `clients` (agencies we bill for) and `payers` (base payer list with aliases).
+- [x] 0.5 Master tables: `clients` (agencies we bill for) and `payers` (base payer list with aliases).
 
 ## Phase 1 – Payer Directory
 - [ ] 1.1 Tables: payers, payer_plans (line of business, IPA/delegated groups, BlueCard home/host), payer_ids (by clearinghouse, direct), payer_contacts (claims, auth, appeals, provider relations: phone, fax, email, mailing address, attention line), payer_limits (TFL, CCTFL, AFL, recon levels), payer_forms, payer_notes.

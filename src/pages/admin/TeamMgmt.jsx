@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { S, kv, refreshCompanyProcesses } from '../../lib/supabase';
 import { DEFAULT_PROJECT, DEF_PROCS, TEAMS } from '../../lib/constants';
-import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget, canViewAudit } from '../../lib/helpers';
+import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
+import { FEATURES, hasRoleDefault, grantsOf } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -15,7 +16,7 @@ const BLANK     = {
   supervised_processes: [], supervised_projects: [], all_projects: false,
   permissions: DEFAULT_SUPERVISOR_PERMS,
   ramp_enabled: false, ramp_schedule: [], ramp_start_date: '',
-  team: '', is_qa: false, can_view_audit: false,
+  team: '', is_qa: false, access_grants: {},
 };
 
 const PERM_LABELS = {
@@ -151,8 +152,12 @@ export default function TeamMgmt({ user }) {
   // Team/QA columns come from supabase/migrations/20261018_add_user_team.sql — until it
   // has been run (and synced to this company), saving them would fail, so leave them out.
   const hasTeamCols  = allUsers.some(u => 'team' in u);
-  // Same for users.can_view_audit (supabase/migrations/20261018b_audit_log.sql)
+  // Same for users.can_view_audit (20261018b_audit_log.sql) and users.access_grants (20261018c_clients_payers.sql)
   const hasAuditCol  = allUsers.some(u => 'can_view_audit' in u);
+  const hasGrantsCol = allUsers.some(u => 'access_grants' in u);
+  // Extra access an admin can grant; only "View Audit Log" until access_grants exists
+  const grantable    = hasGrantsCol ? FEATURES : hasAuditCol ? FEATURES.filter(ft => ft.key === 'audit_view') : [];
+  const canGrant     = user.role === 'admin';
 
   const displayUsers = allUsers.filter(u => {
     const q      = search.toLowerCase();
@@ -231,7 +236,7 @@ export default function TeamMgmt({ user }) {
       ramp_start_date: u.ramp_start_date ?? '',
       team: u.team ?? '',
       is_qa: !!u.is_qa,
-      can_view_audit: !!u.can_view_audit,
+      access_grants: grantsOf(u),
     });
     setShowForm(true);
   }
@@ -260,8 +265,13 @@ export default function TeamMgmt({ user }) {
       ramp_schedule: form.ramp_enabled ? form.ramp_schedule.map(Number) : null,
       ramp_start_date: form.ramp_enabled ? (form.ramp_start_date || editUser?.ramp_start_date || today()) : null,
       ...(hasTeamCols ? { team: form.team || null, is_qa: !!form.is_qa } : {}),
-      ...(hasAuditCol ? { can_view_audit: form.role !== 'admin' && !!form.can_view_audit } : {}),
     };
+    // Individually granted access — role defaults aren't stored, so a role change keeps them
+    const newGrants = Object.fromEntries(grantable
+      .filter(ft => !hasRoleDefault(form.role, ft.key) && form.access_grants?.[ft.key])
+      .map(ft => [ft.key, true]));
+    if (hasGrantsCol) payload.access_grants = newGrants;
+    if (hasAuditCol)  payload.can_view_audit = !!newGrants.audit_view;
     const result = editUser
       ? await S.update('users', payload, { emp_id: editUser.emp_id })
       : await S.set('users', payload);
@@ -279,10 +289,13 @@ export default function TeamMgmt({ user }) {
       entityType: 'user', entityId: empId,
       details: editUser ? { changed } : { role: form.role, access: form.access },
     });
-    if (hasAuditCol && !!payload.can_view_audit !== !!editUser?.can_view_audit) {
+    const prevGrants = editUser ? grantsOf(editUser) : {};
+    for (const ft of grantable) {
+      if (!!newGrants[ft.key] === !!prevGrants[ft.key]) continue;
       logAudit({
-        actor: user, action: payload.can_view_audit ? 'grant_audit_access' : 'revoke_audit_access',
+        actor: user, action: newGrants[ft.key] ? 'grant_access' : 'revoke_access',
         targetEmpId: empId, targetName: form.name.trim(), entityType: 'user', entityId: empId,
+        details: { access: ft.label },
       });
     }
     const prevTeam = editUser?.team ?? null;
@@ -753,13 +766,26 @@ export default function TeamMgmt({ user }) {
                 </label>
               </div>
             </div>
-            {hasAuditCol && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: f.role === 'admin' ? 'default' : 'pointer' }}>
-                <input type="checkbox" disabled={f.role === 'admin'}
-                  checked={canViewAudit({ role: f.role, can_view_audit: f.can_view_audit })}
-                  onChange={e => setF({ can_view_audit: e.target.checked })} />
-                Can view Audit Log {f.role === 'admin' ? '(admins always can)' : '(takes effect at their next sign-in)'}
-              </label>
+            {grantable.length > 0 && (
+              <div className="field">
+                <label>Extra access</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 4 }}>
+                  {grantable.map(ft => {
+                    const byRole = hasRoleDefault(f.role, ft.key);
+                    return (
+                      <label key={ft.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: byRole || !canGrant ? 'default' : 'pointer' }}>
+                        <input type="checkbox" disabled={byRole || !canGrant}
+                          checked={byRole || !!f.access_grants?.[ft.key]}
+                          onChange={e => setF({ access_grants: { ...f.access_grants, [ft.key]: e.target.checked } })} />
+                        {ft.label}{byRole ? ` (all ${f.role}s)` : ''}
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="text-sm text-muted" style={{ marginTop: 4 }}>
+                  {canGrant ? 'Changes take effect the next time this person signs in.' : 'Only an admin can change extra access.'}
+                </div>
+              </div>
             )}
             {!hasTeamCols && (
               <div className="text-sm text-muted">

@@ -1,4 +1,5 @@
 import { S } from './supabase.js';
+import { hasAccess } from './access.js';
 
 /**
  * Fire-and-forget — records who did what, when, on which record (Audit Log page).
@@ -24,7 +25,7 @@ export function logAudit({ actor, action, targetEmpId = null, targetName = null,
   }).catch(() => {});
 }
 
-/** Admins always; anyone else only if an admin ticked "Can view Audit Log" for them. */
+/** Admins always; anyone else only if an admin granted "View Audit Log". */
 export function canViewAudit(user) {
-  return user?.role === 'admin' || !!user?.can_view_audit;
+  return hasAccess(user, 'audit_view');
 }

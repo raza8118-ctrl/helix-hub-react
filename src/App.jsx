@@ -7,7 +7,8 @@ import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
 import { WORKBENCH_TABS } from './pages/workbench/modules';
-import { logAudit, canViewAudit } from './lib/audit';
+import { logAudit } from './lib/audit';
+import { hasAccess } from './lib/access';
 import './index.css';
 
 // Owns its own 1s tick so the whole app doesn't re-render every second
@@ -83,12 +84,17 @@ const SUPERVISOR_TABS = [
   { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
 ];
 
-// Admins always get it; admins can grant it to anyone else (users.can_view_audit)
-const AUDIT_TAB = { id: 'auditlog', label: 'Audit Log', icon: '📜', section: 'System' };
+// Tabs shown to anyone with the feature — by role default or granted by an admin (lib/access.js)
+const FEATURE_TABS = [
+  { feature: 'masters_edit', tab: { id: 'masters',  label: 'Clients & Payers', icon: '🏢', section: 'System' } },
+  { feature: 'audit_view',   tab: { id: 'auditlog', label: 'Audit Log',        icon: '📜', section: 'System' } },
+];
 
-function withAuditTab(tabs) {
+function withFeatureTabs(tabs, user) {
+  const extra = FEATURE_TABS.filter(f => hasAccess(user, f.feature)).map(f => f.tab);
+  if (!extra.length) return tabs;
   const i = tabs.findIndex(t => t.section === 'System');
-  return i < 0 ? [...tabs, AUDIT_TAB] : [...tabs.slice(0, i), AUDIT_TAB, ...tabs.slice(i)];
+  return i < 0 ? [...tabs, ...extra] : [...tabs.slice(0, i), ...extra, ...tabs.slice(i)];
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -320,7 +326,7 @@ export default function App() {
   ];
 
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
-  const tabs = canViewAudit(currentUser) ? withAuditTab(roleTabs) : roleTabs;
+  const tabs = withFeatureTabs(roleTabs, currentUser);
   const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
 
   return (
