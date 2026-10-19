@@ -10,26 +10,23 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.2 Split PDF + compress** — **APPROVED (“go” 2026-10-19), building.** Engine: pdf.js (pdfjs-dist) as a real dependency.
-Build checkpoints go to the `wip` branch; if a session ends mid-build, continue from `origin/wip`.
+**None in progress.** 2.2 is done. Next on the roadmap: **2.3 Excel → PDF, image → PDF** — needs a plan and the product owner's “go”.
+Any new File Tools output must use the shared save step `src/pages/workbench/PdfSaveOptions.jsx` (product owner requirement).
 
-**Product owner requirement (2026-10-19):** whenever File Tools produces a file (merge, split, anything later), the
-save step offers **“Keep original size & quality”** or **“Compress”**; choosing Compress offers **Low / Medium / High**
-and the file is processed accordingly. This also applies retroactively to Merge (2.1).
+### Reference: how 2.2 was built (done)
 
-**Clarified (2026-10-19): the levels are QUALITY levels.**
-- **High** = original quality — lossless; pages untouched, only a lossless repack; never larger than the original.
-  (True “enhancement” beyond the source isn't possible and filters would alter medical documents — explained to the PO.)
-- **Medium** = smaller for portals, very readable (image pages ≈150 dpi, JPEG ~0.75).
-- **Low** = smallest, still readable (image pages ≈110 dpi, JPEG ~0.6). Never below ~100 dpi (readability floor).
-- Optional **“Must be under __ MB”** (portal limit): steps down Medium → Low automatically, never below the floor; says so if it can't fit.
-- Shows “Original X MB → New Y MB”; if a level doesn't shrink the file, the original is kept and the user is told.
-
-Recommended engine (pending confirmation): pdf.js (Apache-2.0) renders only pages that contain scanned images
-and re-saves them as JPEG at the chosen level; text-only pages are copied untouched so their text stays selectable.
-Ghostscript-in-browser rejected for now: AGPL licence + ~15 MB download.
-
-Notes for 2.2: File Tools lives in `src/pages/workbench/FileTools.jsx` (tool buttons at the top; “Split / Compress” is a disabled placeholder) and `src/lib/pdfTools.js` (pdf-lib helpers). pdf-lib can split easily; real compression (re-encoding images) is limited in pdf-lib — raise that with the product owner when planning.
+- **Product owner requirement (2026-10-19):** every File Tools result offers **“Keep original size & quality”** or
+  **“Compress”** with **quality** levels: **High** = original quality (lossless repack, never larger; true “enhancement”
+  isn't possible and filters would alter medical documents — explained), **Medium** ≈150 dpi JPEG 0.75 (portals),
+  **Low** ≈110 dpi JPEG 0.6 (smallest readable; floor ~100 dpi). Optional **“Must be under __ MB”** steps down
+  High → Medium → Low and says so if it can't fit. Size shown before download; if not smaller, the original is kept with a note.
+- Code: `PdfSaveOptions.jsx` (UI, used by Merge and Split) + `src/lib/pdfCompress.js` (engine). Only scanned pages
+  (draws an image + under 200 characters of real text) are re-rendered with pdf.js; text pages are copied untouched.
+- **Split PDF** (`FileTools.jsx`): by ranges (each comma = a file), every N pages, one file per page; max 200 parts; “Download all”.
+- **Dependency:** `pdfjs-dist` 4.10.38 (Apache-2.0, engines node ≥20) + its optional `@napi-rs/canvas` 0.1.65 and 10
+  platform packages (server-only, never used in the browser) — lock entries written from registry.npmjs.org on 2026-10-19.
+  Ghostscript rejected (AGPL + ~15 MB).
+- Audit: `merge_pdf` / `split_pdf` with counts + quality choice only, never file names.
 
 ### Reference: how 2.1 was set up (done)
 
@@ -75,6 +72,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 1.7 | Excel import with skip / review-each-match | 3f2c275 |
 | — | Progress handoff file + save-progress rule (CLAUDE.md rule 10) | c472fbf |
 | 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | f7ef920 |
+| 2.2 | Split PDF + Original/Compress (High/Medium/Low) save step for all File Tools | see `git log` (step 2.2) |
 
 ---
 
@@ -103,7 +101,8 @@ The app hides/disables the related features until each one has been run, so code
 - **Payer Directory:** viewing open to everyone; editing = `payers_edit` (admins + managers, grantable).
 - **Payer accuracy:** verified per entry (not per field); 90-day re-check; reports resolved, never deleted.
 - **Excel import duplicates:** user chooses per import — skip, or review each match side by side (keep / replace). Blank cells never erase.
-- **PDF library:** pdf-lib as a real dependency (option 1), not a CDN.
+- **PDF library:** pdf-lib as a real dependency (option 1), not a CDN. pdf.js (pdfjs-dist) added the same way for compression.
+- **File Tools save step:** every output offers Original or Compress; levels are QUALITY (High = original quality, Medium = portal-friendly, Low = smallest readable) with an optional size limit.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 
 ---

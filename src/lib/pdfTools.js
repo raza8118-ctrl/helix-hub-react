@@ -49,6 +49,26 @@ export function parsePageList(text, max) {
   return { pages: [...nums].sort((x, y) => x - y) };
 }
 
+/**
+ * Split ranges: "1-3, 4-10, 11" → [[0,1,2], [3..9], [10]] (0-based page indexes per part), or { error }.
+ * Unlike parsePageList, each comma-separated item becomes its own file.
+ */
+export function parseRangeGroups(text, max) {
+  const groups = [];
+  for (const raw of text.split(',')) {
+    const part = raw.trim().replace(/[–—]/g, '-');
+    if (!part) continue;
+    const m = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (!m) return { error: `“${raw.trim()}” isn’t a page number or range` };
+    const a = parseInt(m[1], 10);
+    const b = m[2] ? parseInt(m[2], 10) : a;
+    if (a < 1 || b < a || b > max) return { error: `Pages must be between 1 and ${max}` };
+    groups.push(Array.from({ length: b - a + 1 }, (_, i) => a - 1 + i));
+  }
+  if (!groups.length) return { error: 'Enter page ranges, e.g. 1-3, 4-10, 11' };
+  return { groups };
+}
+
 /** Saves bytes as a file on this computer. */
 export function downloadPdf(bytes, fileName) {
   const name = /\.pdf$/i.test(fileName) ? fileName : `${fileName || 'merged'}.pdf`;

@@ -2,8 +2,8 @@ import { useState, useRef } from 'react';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { readPdf, buildPdf, parsePageList, downloadPdf } from '../../lib/pdfTools';
-import { logAudit } from '../../lib/audit';
+import { readPdf, buildPdf, parsePageList, parseRangeGroups } from '../../lib/pdfTools';
+import PdfSaveOptions from './PdfSaveOptions';
 
 // Colour + letter per file so its pages are easy to spot
 const FILE_COLORS = ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0d9488'];
@@ -124,19 +124,10 @@ function MergePdfs({ user }) {
     setFiles([]); setPages([]); setProblems([]); setRemoveText(''); setRemoveError(''); setOutName('merged.pdf');
   }
 
-  async function download() {
-    if (!pages.length) return;
-    setBusy(true);
-    try {
-      const bytes = await buildPdf(pages, new Map(files.map(f => [f.id, f.bytes])));
-      downloadPdf(bytes, outName.trim() || 'merged.pdf');
-      // Counts only — file names can contain patient names
-      logAudit({ actor: user, action: 'merge_pdf', entityType: 'file_tool', details: { files: new Set(pages.map(p => p.fileId)).size, pages: pages.length } });
-    } catch {
-      setProblems(['Something went wrong while building the PDF. Try removing the last file you added.']);
-    }
-    setBusy(false);
-  }
+  const pdfName = (() => { const n = outName.trim() || 'merged.pdf'; return /\.pdf$/i.test(n) ? n : `${n}.pdf`; })();
+  const outputs = pages.length
+    ? [{ name: pdfName, build: () => buildPdf(pages, new Map(files.map(f => [f.id, f.bytes]))) }]
+    : [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -226,29 +217,173 @@ function MergePdfs({ user }) {
           </div>
 
           {/* Save */}
-          <div className="card">
+          <div className="card" style={{ paddingBottom: 12 }}>
             <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <label className="text-sm text-muted" htmlFor="merge-name">File name</label>
               <input id="merge-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 260 }} />
-              <button className="btn-primary" onClick={download} disabled={busy || pages.length === 0}>
-                {busy ? 'Building…' : `⬇ Download merged PDF (${pages.length} page${pages.length === 1 ? '' : 's'})`}
-              </button>
             </div>
           </div>
+          <PdfSaveOptions
+            outputs={outputs}
+            resetKey={`${pdfName}|${pages.map(p => p.key).join(',')}`}
+            user={user}
+            auditAction="merge_pdf"
+            auditDetails={{ files: new Set(pages.map(p => p.fileId)).size, pages: pages.length }}
+          />
         </>
       )}
     </div>
   );
 }
 
-/** File Tools (Workbench). 2.1: Merge PDFs. Split / compress and conversions arrive in later steps. */
+const SPLIT_MODES = [
+  { id: 'ranges', label: 'By page ranges' },
+  { id: 'every',  label: 'Every N pages' },
+  { id: 'each',   label: 'One file per page' },
+];
+const MAX_PARTS = 200;
+
+/** Split a PDF (roadmap 2.2): by ranges, every N pages, or one file per page — in the browser. */
+function SplitPdf({ user }) {
+  const [file, setFile]     = useState(null);   // { name, pageCount, bytes, size }
+  const [busy, setBusy]     = useState(false);
+  const [problem, setProblem] = useState('');
+  const [mode, setMode]     = useState('ranges');
+  const [ranges, setRanges] = useState('');
+  const [every, setEvery]   = useState('10');
+  const [dragOver, setDragOver] = useState(false);
+
+  async function pick(list) {
+    const f = list?.[0];
+    if (!f) return;
+    if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') return setProblem(`${f.name}: not a PDF`);
+    setBusy(true); setProblem('');
+    try {
+      const { bytes, pageCount } = await readPdf(f);
+      setFile({ name: f.name, pageCount, bytes, size: f.size });
+      setRanges(pageCount > 1 ? `1-${Math.ceil(pageCount / 2)}, ${Math.ceil(pageCount / 2) + 1}-${pageCount}` : '1');
+    } catch (err) {
+      setProblem(err.message === 'password'
+        ? `${f.name} is password-protected — remove the password in your PDF reader and try again.`
+        : `${f.name} is damaged or not a real PDF.`);
+    }
+    setBusy(false);
+  }
+
+  // Work out the parts (0-based page indexes per part)
+  let groups = [];
+  let splitError = '';
+  if (file) {
+    if (mode === 'each') groups = Array.from({ length: file.pageCount }, (_, i) => [i]);
+    else if (mode === 'every') {
+      const n = parseInt(every, 10);
+      if (!(n > 0)) splitError = 'Enter how many pages each file should have.';
+      else for (let s = 0; s < file.pageCount; s += n) groups.push(Array.from({ length: Math.min(n, file.pageCount - s) }, (_, i) => s + i));
+    } else {
+      const res = parseRangeGroups(ranges, file.pageCount);
+      if (res.error) splitError = res.error; else groups = res.groups;
+    }
+    if (groups.length > MAX_PARTS) { splitError = `That would make ${groups.length} files — the limit is ${MAX_PARTS}.`; groups = []; }
+  }
+
+  const base = (file?.name ?? 'document.pdf').replace(/\.pdf$/i, '');
+  const rangeText = g => (g.length === 1 ? `page ${g[0] + 1}` : `pages ${g[0] + 1}–${g[g.length - 1] + 1}`);
+  const outputs = groups.map((g, i) => ({
+    name: `${base}-part${i + 1}.pdf`,
+    build: () => buildPdf(g.map(index => ({ fileId: 1, index })), new Map([[1, file.bytes]])),
+  }));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div
+        className="card"
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files); }}
+        style={{ border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`, textAlign: 'center', padding: 24 }}
+      >
+        {file ? (
+          <div className="row" style={{ gap: 8, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, wordBreak: 'break-all' }}>📄 {file.name}</span>
+            <span className="text-sm text-muted">{file.pageCount} page{file.pageCount === 1 ? '' : 's'}</span>
+            <button className="btn-sm" onClick={() => { setFile(null); setProblem(''); }}>Choose another</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 28 }}>✂️</div>
+            <div style={{ margin: '6px 0 10px' }}>Drag one PDF here, or</div>
+            <label className="btn-primary" style={{ cursor: busy ? 'wait' : 'pointer', display: 'inline-block' }}>
+              {busy ? 'Reading…' : '+ Choose a PDF'}
+              <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} disabled={busy}
+                onChange={e => { const l = e.target.files; pick(l); e.target.value = ''; }} />
+            </label>
+          </>
+        )}
+        {problem && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 10 }}>⚠ {problem}</div>}
+      </div>
+
+      {file && (
+        <>
+          <div className="card">
+            <div className="card-title" style={{ marginBottom: 10 }}>How to split</div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              {SPLIT_MODES.map(m => (
+                <button key={m.id} className={mode === m.id ? 'btn-primary' : 'btn-sm'} onClick={() => setMode(m.id)}>{m.label}</button>
+              ))}
+            </div>
+            {mode === 'ranges' && (
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label>Page ranges — each comma makes a new file</label>
+                <input type="text" value={ranges} onChange={e => setRanges(e.target.value)} placeholder="e.g. 1-3, 4-10, 11" />
+              </div>
+            )}
+            {mode === 'every' && (
+              <label className="row text-sm" style={{ gap: 6, alignItems: 'center', marginBottom: 8 }}>
+                A new file every
+                <input type="number" min="1" value={every} onChange={e => setEvery(e.target.value)} style={{ width: 70 }} />
+                pages
+              </label>
+            )}
+            {splitError
+              ? <div className="text-sm" style={{ color: 'var(--danger)' }}>{splitError}</div>
+              : (
+                <div className="text-sm text-muted">
+                  {groups.length} file{groups.length === 1 ? '' : 's'}:{' '}
+                  {groups.slice(0, 12).map((g, i) => `Part ${i + 1} (${rangeText(g)})`).join(' · ')}
+                  {groups.length > 12 ? ` · …and ${groups.length - 12} more` : ''}
+                </div>
+              )}
+          </div>
+
+          {groups.length > 0 && (
+            <PdfSaveOptions
+              outputs={outputs}
+              resetKey={`${file.name}|${file.size}|${groups.map(g => g.join('.')).join(',')}`}
+              user={user}
+              auditAction="split_pdf"
+              auditDetails={{ pages: file.pageCount, parts: groups.length, split: mode }}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+const TOOLS = [
+  { id: 'merge', label: 'Merge PDFs' },
+  { id: 'split', label: 'Split PDF' },
+];
+
+/** File Tools (Workbench). 2.1 Merge, 2.2 Split + Original/Compress save step. Conversions come later. */
 export default function FileTools({ user }) {
+  const [tool, setTool] = useState('merge');
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
       <div className="page-header">
         <div>
           <div className="page-title">📎 File Tools</div>
-          <div className="page-subtitle">Merge, reorder and remove PDF pages.</div>
+          <div className="page-subtitle">Merge, split, reorder and compress PDFs.</div>
         </div>
       </div>
 
@@ -257,12 +392,15 @@ export default function FileTools({ user }) {
       </div>
 
       <div className="row mb-16" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <button className="btn-primary">Merge PDFs</button>
-        <button className="btn-sm" disabled title="Coming in the next update">Split / Compress (soon)</button>
+        {TOOLS.map(t => (
+          <button key={t.id} className={tool === t.id ? 'btn-primary' : 'btn-sm'} onClick={() => setTool(t.id)}>{t.label}</button>
+        ))}
         <button className="btn-sm" disabled title="Coming later">Convert to PDF (soon)</button>
       </div>
 
-      <MergePdfs user={user} />
+      {/* Both stay mounted so switching tools doesn't lose work in progress */}
+      <div style={{ display: tool === 'merge' ? 'block' : 'none' }}><MergePdfs user={user} /></div>
+      <div style={{ display: tool === 'split' ? 'block' : 'none' }}><SplitPdf user={user} /></div>
     </div>
   );
 }
