@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT, HOURLY_SLOTS_STD, HOURLY_SLOTS_DST } from './constants.js';
-import { kv, S } from './supabase.js';
+import { kv } from './supabase.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -226,19 +226,9 @@ export function scopeToSupervisor(users, currentUser, customProcs = []) {
   );
 }
 
-/** Fire-and-forget — records who did what to whom, for the admin audit log. */
-export function logAudit({ actor, action, targetEmpId = null, targetName = null, details = null }) {
-  S.set('audit_log', {
-    actor_emp_id: actor?.emp_id,
-    actor_name:   actor?.name ?? actor?.emp_id,
-    actor_role:   actor?.role,
-    action,
-    target_emp_id: targetEmpId,
-    target_name:   targetName,
-    details,
-    created_at: new Date().toISOString(),
-  }).catch(() => {});
-}
+// Audit helpers live in their own small module so the app shell and login can use
+// them without loading this file (and the Excel library) up front.
+export { logAudit, canViewAudit } from './audit.js';
 
 /** Merges taskConfig with user's processes, returns deduped flat array (first-seen name wins) */
 export function getTasksForUser(user, taskConfig = DEFAULT_TASKS) {

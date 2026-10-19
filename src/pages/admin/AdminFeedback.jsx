@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { S, storage } from '../../lib/supabase';
-import { today, fmtD, resizeImage, scopeToSupervisor } from '../../lib/helpers';
+import { today, fmtD, resizeImage, scopeToSupervisor, logAudit } from '../../lib/helpers';
 import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import Discussion from '../../components/shared/Discussion';
@@ -115,7 +115,7 @@ export default function AdminFeedback({ user }) {
     e.preventDefault();
     if (!message.trim()) return;
     setSending(true);
-    await S.set('feedback', {
+    const saved = await S.set('feedback', {
       from_emp_id: user.emp_id,
       from_name: user.name ?? user.emp_id,
       to_emp_id: toEmpId === 'ALL' ? null : toEmpId,
@@ -128,6 +128,15 @@ export default function AdminFeedback({ user }) {
       acknowledged: false,
       created_at: new Date().toISOString(),
     });
+    if (saved) {
+      logAudit({
+        actor: user, action: 'post_announcement',
+        targetEmpId: toEmpId === 'ALL' ? null : toEmpId,
+        targetName: toEmpId === 'ALL' ? null : (allUsers.find(u => u.emp_id === toEmpId)?.name ?? toEmpId),
+        entityType: 'announcement', entityId: saved[0]?.id,
+        details: { to: toEmpId === 'ALL' ? 'Team' : 'One person', process: filterProc === 'ALL' ? null : filterProc, priority },
+      });
+    }
     setMessage(''); setPriority('normal'); setImageUrl('');
     setSending(false);
     await loadAll();
@@ -136,6 +145,7 @@ export default function AdminFeedback({ user }) {
   async function deleteFeedback(id) {
     if (!await confirmDialog({ title: 'Delete this announcement?', message: 'It will be removed for everyone. This cannot be undone.', tone: 'danger', confirmText: 'Delete' })) return;
     await S.del('feedback', { id });
+    logAudit({ actor: user, action: 'delete_announcement', entityType: 'announcement', entityId: id });
     setFeedbacks(prev => prev.filter(f => f.id !== id));
   }
 

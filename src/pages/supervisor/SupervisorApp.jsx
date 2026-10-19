@@ -10,6 +10,7 @@ const AdminFeedback   = lazy(() => import('../admin/AdminFeedback'));
 const TeamFeed        = lazy(() => import('../employee/TeamFeed'));
 const SupervisorTeam  = lazy(() => import('./SupervisorTeam'));
 const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
+const AuditLog        = lazy(() => import('../admin/AuditLog'));
 
 /**
  * Routes supervisor tabs to the correct page component — reuses the admin
@@ -28,6 +29,7 @@ export default function SupervisorApp({ activeTab, user }) {
     case 'feedback':    return <AdminFeedback user={user} />;
     case 'myteam':      return <SupervisorTeam user={user} />;
     case 'feed':        return <TeamFeed user={user} />;
+    case 'auditlog':    return <AuditLog user={user} />;
     default:            return <Today user={user} />;
   }
 }

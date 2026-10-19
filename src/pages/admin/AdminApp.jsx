@@ -15,6 +15,7 @@ const Settings       = lazy(() => import('./Settings'));
 const FeedMonitor    = lazy(() => import('./FeedMonitor'));
 const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
 const WorkbenchPlaceholder = lazy(() => import('../workbench/WorkbenchPlaceholder'));
+const AuditLog       = lazy(() => import('./AuditLog'));
 
 /**
  * Routes admin tabs to the correct page component.
@@ -38,6 +39,7 @@ export default function AdminApp({ activeTab, user }) {
     case 'qualitymon':  return <QualityMonitor user={user} />;
     case 'feedmonitor': return <FeedMonitor user={user} />;
     case 'settings':    return <Settings user={user} />;
+    case 'auditlog':    return <AuditLog user={user} />;
     default:            return <Today user={user} />;
   }
 }

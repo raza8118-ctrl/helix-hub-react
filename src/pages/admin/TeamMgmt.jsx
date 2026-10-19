@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S, kv, refreshCompanyProcesses } from '../../lib/supabase';
 import { DEFAULT_PROJECT, DEF_PROCS, TEAMS } from '../../lib/constants';
-import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget } from '../../lib/helpers';
+import { DEFAULT_SUPERVISOR_PERMS, subProcessesOf, logAudit, today, effectiveTarget, canViewAudit } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -15,7 +15,7 @@ const BLANK     = {
   supervised_processes: [], supervised_projects: [], all_projects: false,
   permissions: DEFAULT_SUPERVISOR_PERMS,
   ramp_enabled: false, ramp_schedule: [], ramp_start_date: '',
-  team: '', is_qa: false,
+  team: '', is_qa: false, can_view_audit: false,
 };
 
 const PERM_LABELS = {
@@ -151,6 +151,8 @@ export default function TeamMgmt({ user }) {
   // Team/QA columns come from supabase/migrations/20261018_add_user_team.sql — until it
   // has been run (and synced to this company), saving them would fail, so leave them out.
   const hasTeamCols  = allUsers.some(u => 'team' in u);
+  // Same for users.can_view_audit (supabase/migrations/20261018b_audit_log.sql)
+  const hasAuditCol  = allUsers.some(u => 'can_view_audit' in u);
 
   const displayUsers = allUsers.filter(u => {
     const q      = search.toLowerCase();
@@ -229,6 +231,7 @@ export default function TeamMgmt({ user }) {
       ramp_start_date: u.ramp_start_date ?? '',
       team: u.team ?? '',
       is_qa: !!u.is_qa,
+      can_view_audit: !!u.can_view_audit,
     });
     setShowForm(true);
   }
@@ -257,6 +260,7 @@ export default function TeamMgmt({ user }) {
       ramp_schedule: form.ramp_enabled ? form.ramp_schedule.map(Number) : null,
       ramp_start_date: form.ramp_enabled ? (form.ramp_start_date || editUser?.ramp_start_date || today()) : null,
       ...(hasTeamCols ? { team: form.team || null, is_qa: !!form.is_qa } : {}),
+      ...(hasAuditCol ? { can_view_audit: form.role !== 'admin' && !!form.can_view_audit } : {}),
     };
     const result = editUser
       ? await S.update('users', payload, { emp_id: editUser.emp_id })
@@ -265,6 +269,21 @@ export default function TeamMgmt({ user }) {
     if (!result) {
       await alertDialog({ title: 'Could not save user', message: 'The ID may already exist, or the save was blocked by a database permission rule.', tone: 'danger' });
       return;
+    }
+    // Record which fields changed — never their values for the password
+    const changed = editUser
+      ? Object.keys(payload).filter(k => k !== 'active' && JSON.stringify(payload[k] ?? null) !== JSON.stringify(editUser[k] ?? null))
+      : null;
+    logAudit({
+      actor: user, action: editUser ? 'edit_user' : 'create_user', targetEmpId: empId, targetName: form.name.trim(),
+      entityType: 'user', entityId: empId,
+      details: editUser ? { changed } : { role: form.role, access: form.access },
+    });
+    if (hasAuditCol && !!payload.can_view_audit !== !!editUser?.can_view_audit) {
+      logAudit({
+        actor: user, action: payload.can_view_audit ? 'grant_audit_access' : 'revoke_audit_access',
+        targetEmpId: empId, targetName: form.name.trim(), entityType: 'user', entityId: empId,
+      });
     }
     const prevTeam = editUser?.team ?? null;
     const prevQa   = !!editUser?.is_qa;
@@ -298,6 +317,10 @@ export default function TeamMgmt({ user }) {
       ? { title: 'Deactivate this user?', message: `${u.name ?? u.emp_id} won't be able to sign in until reactivated. No data is deleted.`, tone: 'danger', confirmText: 'Deactivate' }
       : { title: 'Activate this user?', message: `${u.name ?? u.emp_id} will be able to sign in again.`, confirmText: 'Activate' })) return;
     await S.update('users', { active: !u.active }, { emp_id: u.emp_id });
+    logAudit({
+      actor: user, action: u.active ? 'deactivate_user' : 'activate_user',
+      targetEmpId: u.emp_id, targetName: u.name, entityType: 'user', entityId: u.emp_id,
+    });
     setAllUsers(prev => prev.map(x => x.emp_id === u.emp_id ? { ...x, active: !x.active } : x));
   }
 
@@ -730,6 +753,14 @@ export default function TeamMgmt({ user }) {
                 </label>
               </div>
             </div>
+            {hasAuditCol && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: f.role === 'admin' ? 'default' : 'pointer' }}>
+                <input type="checkbox" disabled={f.role === 'admin'}
+                  checked={canViewAudit({ role: f.role, can_view_audit: f.can_view_audit })}
+                  onChange={e => setF({ can_view_audit: e.target.checked })} />
+                Can view Audit Log {f.role === 'admin' ? '(admins always can)' : '(takes effect at their next sign-in)'}
+              </label>
+            )}
             {!hasTeamCols && (
               <div className="text-sm text-muted">
                 Team and QA can be set once the database update for roadmap step 0.3 has been run

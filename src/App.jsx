@@ -7,6 +7,7 @@ import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
 import { WORKBENCH_TABS } from './pages/workbench/modules';
+import { logAudit, canViewAudit } from './lib/audit';
 import './index.css';
 
 // Owns its own 1s tick so the whole app doesn't re-render every second
@@ -81,6 +82,14 @@ const SUPERVISOR_TABS = [
   { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
   { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
 ];
+
+// Admins always get it; admins can grant it to anyone else (users.can_view_audit)
+const AUDIT_TAB = { id: 'auditlog', label: 'Audit Log', icon: '📜', section: 'System' };
+
+function withAuditTab(tabs) {
+  const i = tabs.findIndex(t => t.section === 'System');
+  return i < 0 ? [...tabs, AUDIT_TAB] : [...tabs.slice(0, i), AUDIT_TAB, ...tabs.slice(i)];
+}
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -234,10 +243,12 @@ export default function App() {
   // Opening a company from the Owner Console signs in to it as a full admin.
   function openCompanyAsOwner(c) {
     setActiveCompany(c.prefix ? { name: c.name, code: c.code, prefix: c.prefix } : null);
-    handleLogin({
+    const ownerUser = {
       emp_id: 'HELIX_OWNER', name: owner.name, role: 'admin', access: 'ALL', active: true,
       isOwner: true, viewing: c.name,
-    });
+    };
+    logAudit({ actor: ownerUser, action: 'owner_open_company', details: { owner: owner.username } });
+    handleLogin(ownerUser);
   }
 
   function handleOwnerSignOut() {
@@ -308,7 +319,8 @@ export default function App() {
     { id: 'feed',         label: 'Team Feed',     icon: '💬', section: 'Engagement' },
   ];
 
-  const tabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
+  const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
+  const tabs = canViewAudit(currentUser) ? withAuditTab(roleTabs) : roleTabs;
   const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { S, getTablePrefix, setActiveCompany } from '../lib/supabase';
 import { findCompany, ownerLogin, setOwnerSession } from '../lib/company';
+import { logAudit } from '../lib/audit';
 import Starfield from './shared/Starfield';
 
 const LAST_COMPANY_KEY = 'hh_last_company';
@@ -173,6 +174,7 @@ export default function Login({ onLogin, onOwnerLogin }) {
         return;
       }
       sessionStorage.setItem('hh_user', JSON.stringify(u));
+      logAudit({ actor: u, action: 'sign_in' });
       onLogin(u);
     } catch {
       setError('Connection error. Please try again.');

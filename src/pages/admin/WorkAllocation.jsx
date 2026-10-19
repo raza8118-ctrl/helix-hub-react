@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
-import { parseExcelFile } from '../../lib/helpers';
+import { parseExcelFile, logAudit } from '../../lib/helpers';
 
 // ── Column filter dropdown ────────────────────────────────────────────────────
 function ColFilter({ col, values, selected, onToggle, onSelectAll, onClear, sortDir, onSort, onClose }) {
@@ -227,6 +227,11 @@ export default function WorkAllocation({ user }) {
       const result = await S.set('allocations', payload);
       if (result?.[0]?.id) {
         await kv.set(`alloc_${result[0].id}`, filteredRows);
+        // Count only — the rows and file name may contain patient data
+        logAudit({
+          actor: user, action: 'create_allocation', targetEmpId: empId, targetName: emp?.name ?? empId,
+          entityType: 'allocation', entityId: result[0].id, details: { records: filteredRows.length },
+        });
       }
       setSuccess(`✓ Allocated ${filteredRows.length.toLocaleString()} records to ${emp?.name ?? empId}`);
       setFile(null); setParsed(null); setFilters({}); setSort(null); setEmpId(''); setNote('');

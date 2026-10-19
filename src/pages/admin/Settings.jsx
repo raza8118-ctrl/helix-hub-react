@@ -3,6 +3,7 @@ import { kv, S } from '../../lib/supabase';
 import { DEFAULT_TASKS, DEF_PROCS } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { logAudit } from '../../lib/helpers';
 
 // Company name/code, adding companies and the version history are managed by the
 // Helix Hub owner in the Owner Console, never from a company's own admin login.
@@ -50,6 +51,7 @@ export default function Settings({ user }) {
     })) return;
     setDstActive(active);
     await kv.set('shift_dst', active);
+    logAudit({ actor: user, action: 'change_shift_timing', entityType: 'setting', entityId: 'shift_dst', details: { shift_start_ist: active ? '6:30 PM' : '5:30 PM' } });
     setDstMsg(`✓ Shift now starts at ${active ? '6:30 PM' : '5:30 PM'} IST`);
     setTimeout(() => setDstMsg(''), 3000);
   }
@@ -101,6 +103,7 @@ export default function Settings({ user }) {
     if (!await confirmDialog({ title: 'Save API key?', message: 'AI email generation will use this key.', confirmText: 'Save Key' })) return;
     setAiSaving(true);
     await kv.set('anthropic_key', k);
+    logAudit({ actor: user, action: 'save_ai_key', entityType: 'setting', entityId: 'anthropic_key' });   // never the key itself
     setAiMsg('✓ API key saved to Supabase');
     setAiSaving(false);
     setTimeout(() => setAiMsg(''), 3000);
@@ -109,6 +112,7 @@ export default function Settings({ user }) {
   async function clearAiKey() {
     if (!await confirmDialog({ title: 'Clear the API key?', message: 'AI email generation will stop working until a key is saved again.', tone: 'danger', confirmText: 'Clear Key' })) return;
     await kv.set('anthropic_key', null);
+    logAudit({ actor: user, action: 'clear_ai_key', entityType: 'setting', entityId: 'anthropic_key' });
     setAiKey('');
     setAiMsg('Key cleared.');
     setTimeout(() => setAiMsg(''), 2000);
@@ -152,6 +156,7 @@ export default function Settings({ user }) {
       });
     });
     await Promise.all(upserts);
+    logAudit({ actor: user, action: 'save_task_targets', entityType: 'task_config', details: { processes: [...DEF_PROCS] } });
     setCfgMsg('✓ Task targets saved');
     setTimeout(() => setCfgMsg(''), 3000);
   }
@@ -163,6 +168,7 @@ export default function Settings({ user }) {
         (DEFAULT_TASKS[p] ?? []).map(t => S.del('task_configs', { process: p, name: t.name }))
       )
     );
+    logAudit({ actor: user, action: 'reset_task_targets', entityType: 'task_config', details: { processes: [...DEF_PROCS] } });
     await loadTaskCfg();
   }
 
@@ -212,6 +218,10 @@ export default function Settings({ user }) {
     if (ok && renamed) await S.del('task_configs', { process, name: oldName });
     setTaskSaving(false);
     if (!ok) return fail('Could not save the task. Please try again.');
+    logAudit({
+      actor: user, action: editing ? 'edit_task' : 'add_task', entityType: 'task_config', entityId: `${process} / ${name}`,
+      details: { process, task: name, target, ...(renamed ? { previous_name: oldName } : {}) },
+    });
     const row = { name, target: String(target), weight: weightOf(target) };
     setCustomTaskCfg(prev => ({
       ...prev,
@@ -229,6 +239,7 @@ export default function Settings({ user }) {
     if (!await confirmDialog({ title: 'Delete this task?', message: `“${oldName}” will be removed from ${process}.`, tone: 'danger', confirmText: 'Delete' })) return;
     setTaskSaving(true);
     await S.del('task_configs', { process, name: oldName });
+    logAudit({ actor: user, action: 'delete_task', entityType: 'task_config', entityId: `${process} / ${oldName}`, details: { process, task: oldName } });
     setTaskSaving(false);
     setCustomTaskCfg(prev => ({ ...prev, [process]: (prev[process] ?? []).filter(t => t.name !== oldName) }));
     setTaskForm(null);
