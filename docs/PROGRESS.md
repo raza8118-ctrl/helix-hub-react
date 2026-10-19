@@ -10,9 +10,17 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**None in progress.** 2.3 is done. Next on the roadmap: **2.4 PDF → Excel (table extraction on our own server)** —
-needs a plan and the product owner's “go”. Note: the app has **no server yet** (Vite SPA on Vercel), so 2.4 first needs a
-decision on where server code runs (e.g. Vercel serverless function or Supabase Edge Function) — PHI rule: never a third-party converter.
+**2.4 PDF → Excel** — **plan with hosting options shown 2026-10-19; waiting for the PO's choice + “go”.**
+
+Options shown (HIPAA: any server that touches patient files needs a signed BAA with that host):
+- **A. In the browser (recommended first):** pdf.js reads text positions → rows/columns → preview → .xlsx via existing `xlsx`.
+  No server, no BAA, nothing leaves the PC. Works for *digital* PDFs (EOBs/remits/aging/payer reports saved as PDF);
+  not for scanned images. Deviates from the roadmap wording “on our own server” — needs PO approval.
+- **B. Vercel serverless function** (same repo, `/api`; could use Python pdfplumber/camelot). BAA only on Vercel Enterprise.
+- **C. Supabase Edge Function** (Deno/JS only, no Python). BAA needs Supabase Team plan + HIPAA add-on; confirm coverage.
+- **D. Own server/container under a BAA** (AWS/Azure/GCP; Python + OCR e.g. ocrmypdf/tesseract). Strongest, but cost + upkeep.
+- Scanned PDFs later: in-browser OCR (tesseract.js, Apache-2.0, ~10 MB language data, slow) as 2.4b, or OCR on D.
+- Output is .xlsx, so the PDF Original/Compress save step doesn't apply here.
 Any new File Tools output must use the shared save step `src/pages/workbench/PdfSaveOptions.jsx` (product owner requirement).
 
 ### Reference: how 2.3 was built (done) — PO confirmed: no HEIC; Excel = values + layout (no colours/fonts)
