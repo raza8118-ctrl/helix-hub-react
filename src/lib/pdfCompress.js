@@ -2,6 +2,8 @@
 // pdf.js draws scanned pages so they can be re-saved smaller; pdf-lib rebuilds the PDF.
 // Pages with real text are copied untouched so their text stays sharp and selectable.
 
+import { loadPdfjs } from './pdfjs';
+
 export const MB = 1024 * 1024;
 
 // Quality levels (product owner, 2026-10-19): High = original quality (lossless),
@@ -20,18 +22,6 @@ const SCANNED_TEXT_CHARS = 200;    // an image page with less real text than thi
 
 export const levelLabel = id => (id === 'original' ? 'Original' : QUALITY_LEVELS.find(l => l.id === id)?.label ?? id);
 export const fmtMb = bytes => `${(bytes / MB).toFixed(bytes < MB ? 2 : 1)} MB`;
-
-let pdfjsPromise = null;
-function loadPdfjs() {
-  pdfjsPromise ??= Promise.all([
-    import('pdfjs-dist'),
-    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
-  ]).then(([pdfjs, worker]) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-    return pdfjs;
-  });
-  return pdfjsPromise;
-}
 
 // A page is treated as a scan when it draws an image and has little real text
 async function isScannedPage(page, OPS) {

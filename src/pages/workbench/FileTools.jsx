@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { readPdf, buildPdf, parsePageList, parseRangeGroups } from '../../lib/pdfTools';
 import PdfSaveOptions from './PdfSaveOptions';
 import { ImagesToPdf, ExcelToPdf } from './ConvertTools';
+import PdfToExcel from './PdfToExcel';
 
 // Colour + letter per file so its pages are easy to spot
 const FILE_COLORS = ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0d9488'];
@@ -376,6 +377,7 @@ const TOOLS = [
   { id: 'split', label: 'Split PDF' },
   { id: 'images', label: 'Images → PDF' },
   { id: 'excel', label: 'Excel / CSV → PDF' },
+  { id: 'pdfexcel', label: 'PDF → Excel' },
 ];
 
 /** File Tools (Workbench). 2.1 Merge, 2.2 Split + Original/Compress save step. Conversions come later. */
@@ -391,7 +393,10 @@ export default function FileTools({ user }) {
       </div>
 
       <div className="card mb-16" style={{ borderLeft: '4px solid var(--success)', padding: '10px 14px' }}>
-        <span className="text-sm">🔒 <strong>Files stay on this computer — nothing is uploaded.</strong> Safe for documents with patient information.</span>
+        <span className="text-sm">
+          🔒 <strong>Files stay on this computer — nothing is uploaded.</strong> Safe for documents with patient information.
+          {' '}<span className="text-muted">(Only exception: PDF → Excel, if you pick a server method your admin has set up under a BAA — it says so on screen.)</span>
+        </span>
       </div>
 
       <div className="row mb-16" style={{ gap: 8, flexWrap: 'wrap' }}>
@@ -405,6 +410,7 @@ export default function FileTools({ user }) {
       <div style={{ display: tool === 'split' ? 'block' : 'none' }}><SplitPdf user={user} /></div>
       <div style={{ display: tool === 'images' ? 'block' : 'none' }}><ImagesToPdf user={user} /></div>
       <div style={{ display: tool === 'excel' ? 'block' : 'none' }}><ExcelToPdf user={user} /></div>
+      <div style={{ display: tool === 'pdfexcel' ? 'block' : 'none' }}><PdfToExcel user={user} /></div>
     </div>
   );
 }

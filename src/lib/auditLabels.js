@@ -32,6 +32,8 @@ const ACTION_LABELS = {
   split_pdf:             'Split a PDF (File Tools)',
   images_to_pdf:         'Converted images to PDF (File Tools)',
   excel_to_pdf:          'Converted Excel/CSV to PDF (File Tools)',
+  pdf_to_excel:          'Extracted PDF tables to Excel (File Tools)',
+  configure_extract_engine: 'Changed a PDF → Excel method',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',

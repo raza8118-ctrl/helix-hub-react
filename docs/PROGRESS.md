@@ -10,10 +10,17 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.4 PDF → Excel** — **APPROVED 2026-10-19: “Go with A, with an option to select B, C, D and more; whatever is selected, proceed with that.”** Building.
-Build checkpoints go to the `wip` branch; if a session ends mid-build, continue from `origin/wip`.
+**None in progress.** 2.4 is done. Next: **2.4b OCR for scanned PDFs** (added to the roadmap) or **2.5 Appeal Packet builder** —
+ask the product owner which. Any new File Tools PDF output must use `PdfSaveOptions.jsx`.
 
-What is being built:
+### Reference: how 2.4 was built (done) — PO: “Go with A, with an option to select B, C, D and more; whatever is selected, proceed with that.”
+
+Code: `src/lib/pdfExtract.js` (methods, browser extraction, service connector, tidy + .xlsx), `src/lib/pdfjs.js` (shared loader,
+also used by `pdfCompress.js`), UI `src/pages/workbench/PdfToExcel.jsx`. Service contract + HIPAA notes: `docs/PDF_EXTRACTION_SERVER.md`.
+Amounts become numbers only when safe (no leading zeros, ≤12 digits without decimals — claim numbers stay text).
+The File Tools privacy banner now mentions the one exception (server methods).
+
+What was built:
 - Tool **PDF → Excel** in File Tools with a **method selector**. Same preview + .xlsx download whatever the method.
 - **A – In this browser (digital PDFs)**: ready. `src/lib/pdfExtract.js` (pdf.js text positions → lines → column gutters → grid).
 - **B Vercel function / C Supabase Edge Function / D Own server**: shown as “Needs setup” until an **admin** enters the
@@ -114,7 +121,8 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | — | Progress handoff file + save-progress rule (CLAUDE.md rule 10) | c472fbf |
 | 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | f7ef920 |
 | 2.2 | Split PDF + Original/Compress (High/Medium/Low) save step for all File Tools | 624b562 |
-| 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | see `git log` (step 2.3) |
+| 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | f72b66e |
+| 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | see `git log` (step 2.4) |
 
 ---
 
@@ -145,6 +153,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Excel import duplicates:** user chooses per import — skip, or review each match side by side (keep / replace). Blank cells never erase.
 - **PDF library:** pdf-lib as a real dependency (option 1), not a CDN. pdf.js (pdfjs-dist) added the same way for compression.
 - **File Tools save step:** every output offers Original or Compress; levels are QUALITY (High = original quality, Medium = portal-friendly, Low = smallest readable) with an optional size limit.
+- **PDF → Excel methods:** in-browser always available; Vercel / Supabase / own-server methods appear in a selector and only an admin can switch one on, with a “BAA signed” confirmation (audited). Config in kv `pdf_extract_engines` per company.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 
 ---
