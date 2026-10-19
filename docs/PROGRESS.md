@@ -16,6 +16,14 @@ _Last updated: 2026-10-19_
 save step offers **“Keep original size & quality”** or **“Compress”**; choosing Compress offers **Low / Medium / High**
 and the file is processed accordingly. This also applies retroactively to Merge (2.1).
 
+**Clarified (2026-10-19): the levels are QUALITY levels.**
+- **High** = original quality — lossless; pages untouched, only a lossless repack; never larger than the original.
+  (True “enhancement” beyond the source isn't possible and filters would alter medical documents — explained to the PO.)
+- **Medium** = smaller for portals, very readable (image pages ≈150 dpi, JPEG ~0.75).
+- **Low** = smallest, still readable (image pages ≈110 dpi, JPEG ~0.6). Never below ~100 dpi (readability floor).
+- Optional **“Must be under __ MB”** (portal limit): steps down Medium → Low automatically, never below the floor; says so if it can't fit.
+- Shows “Original X MB → New Y MB”; if a level doesn't shrink the file, the original is kept and the user is told.
+
 Recommended engine (pending confirmation): pdf.js (Apache-2.0) renders only pages that contain scanned images
 and re-saves them as JPEG at the chosen level; text-only pages are copied untouched so their text stays selectable.
 Ghostscript-in-browser rejected for now: AGPL licence + ~15 MB download.
