@@ -5,6 +5,8 @@
 export const FEATURES = [
   { key: 'masters_edit', label: 'Edit Clients & Payers', defaultRoles: ['admin', 'manager'] },
   { key: 'audit_view',   label: 'View Audit Log',        defaultRoles: ['admin'] },
+  // Viewing the Payer Directory is open to every signed-in user; editing is gated
+  { key: 'payers_edit',  label: 'Edit Payer Directory',  defaultRoles: ['admin', 'manager'] },
 ];
 
 export function hasRoleDefault(role, key) {
