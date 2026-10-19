@@ -57,7 +57,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 1.6 | Verified dates, “Report wrong info”, change history | baf408f |
 | 1.7 | Excel import with skip / review-each-match | 3f2c275 |
 | — | Progress handoff file + save-progress rule (CLAUDE.md rule 10) | c472fbf |
-| 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | see `git log` (“step 2.1”) |
+| 2.1 | File Tools: Merge PDFs (pdf-lib, in browser, reorder/delete pages) | f7ef920 |
 
 ---
 
