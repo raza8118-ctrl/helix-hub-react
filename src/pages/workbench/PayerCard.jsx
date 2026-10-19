@@ -31,6 +31,19 @@ const orderOf = (list, v) => { const i = list.findIndex(o => o.value === v); ret
 // Only http(s) links are opened; anything else gets https:// in front
 const safeUrl = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`);
 
+const limitText = r => (r.days != null ? `${r.days} days${r.measured_from ? ` from ${r.measured_from.toLowerCase()}` : ''}` : '—');
+// A client override replaces the standard limit with the same type, level and plan
+const limitKey = r => `${r.limit_type}|${r.level ?? ''}|${r.plan_id ?? ''}`;
+
+// Last client picked on the payer card, per browser
+const CLIENT_KEY = 'hh_payer_card_client';
+function readClientChoice() {
+  try { return localStorage.getItem(CLIENT_KEY) ?? ''; } catch { return ''; }
+}
+function saveClientChoice(id) {
+  try { if (id) localStorage.setItem(CLIENT_KEY, id); else localStorage.removeItem(CLIENT_KEY); } catch { /* storage unavailable */ }
+}
+
 // ── Sections ──────────────────────────────────────────────────────────────────
 // fields: key, label, type (text | textarea | number | checkbox | select | plan), options, required, hint
 // show(row, ctx) → { title, sub, items: [{ label, value, copy, href }] }
@@ -116,19 +129,26 @@ const SECTIONS = [
       { key: 'days', label: 'Days allowed', type: 'number', required: true },
       { key: 'measured_from', label: 'Counted from', type: 'select', options: MEASURED_FROM },
       { key: 'plan_id', label: 'Applies to', type: 'plan' },
+      { key: 'client_id', label: 'Client contract (leave blank for the standard limit)', type: 'client' },
       { key: 'notes', label: 'Notes', type: 'textarea' },
     ],
-    // Client-specific overrides (client_id set) arrive in step 1.5 — base limits only here
-    filter: r => r.client_id == null,
+    // Standard limits (client_id null) for everyone; with a client picked, that client's
+    // contract values (1.5) replace the matching standard ones
+    filter: (r, ctx) => (r.client_id == null ? !ctx.overridden(r) : String(r.client_id) === ctx.clientId),
     sort: (a, b) => orderOf(LIMIT_TYPES, a.limit_type) - orderOf(LIMIT_TYPES, b.limit_type) || (a.level ?? 0) - (b.level ?? 0),
-    show: (r, ctx) => ({
-      title: `${labelOf(LIMIT_TYPES, r.limit_type)}${r.level ? ` — level ${r.level}` : ''}`,
-      sub: ctx.planName(r.plan_id),
-      items: [
-        { label: 'Allowed', value: r.days != null ? `${r.days} days${r.measured_from ? ` from ${r.measured_from.toLowerCase()}` : ''}` : '—', big: true },
-        r.notes && { label: 'Notes', value: r.notes },
-      ],
-    }),
+    show: (r, ctx) => {
+      const base = r.client_id != null ? ctx.baseFor(r) : null;
+      return {
+        title: `${labelOf(LIMIT_TYPES, r.limit_type)}${r.level ? ` — level ${r.level}` : ''}`,
+        tag: r.client_id != null ? `Client contract: ${ctx.clientName(r.client_id)}` : null,
+        sub: ctx.planName(r.plan_id),
+        items: [
+          { label: 'Allowed', value: limitText(r), big: true },
+          r.client_id != null && { label: 'Standard limit', value: base ? limitText(base) : 'No standard limit recorded' },
+          r.notes && { label: 'Notes', value: r.notes },
+        ],
+      };
+    },
   },
   {
     key: 'notes', table: 'payer_notes', entity: 'payer_note', title: 'Tips & notes', icon: '📝', one: 'Note',
@@ -155,7 +175,7 @@ function toDb(section, values) {
     const v = values[f.key];
     if (f.type === 'checkbox') out[f.key] = !!v;
     else if (f.type === 'number') out[f.key] = v === '' || v == null ? null : parseInt(v, 10);
-    else if (f.type === 'plan') out[f.key] = v === '' || v == null ? null : Number(v);
+    else if (f.type === 'plan' || f.type === 'client') out[f.key] = v === '' || v == null ? null : Number(v);
     else out[f.key] = typeof v === 'string' ? (v.trim() || null) : (v ?? null);
   }
   if ('is_delegated' in out && !out.is_delegated) out.delegated_group = null;
@@ -190,6 +210,8 @@ export default function PayerCard({ payer, user, onClose }) {
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm]         = useState(null);   // { section, id?, values, error }
   const [saving, setSaving]     = useState(false);
+  const [clients, setClients]   = useState([]);
+  const [clientId, setClientId] = useState(readClientChoice);   // '' = standard limits
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -199,12 +221,34 @@ export default function PayerCard({ payer, user, onClose }) {
   }, [payer.id]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    S.get('clients').then(rows => setClients((rows ?? []).filter(c => c.active !== false)
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))));
+  }, []);
 
-  const plans = (data.plans ?? []).filter(p => p.active !== false);
-  const ctx = { planName: id => (id == null ? '' : `Plan: ${(data.plans ?? []).find(p => p.id === id)?.plan_name ?? 'unknown'}`) };
+  // A remembered client that no longer exists falls back to standard limits
+  const activeClientId = clients.some(c => String(c.id) === clientId) ? clientId : '';
+  function pickClient(id) { setClientId(id); saveClientChoice(id); }
+
+  const plans  = (data.plans ?? []).filter(p => p.active !== false);
+  const limits = data.limits ?? [];
+  const overrideKeys = new Set(limits
+    .filter(r => r.active !== false && r.client_id != null && String(r.client_id) === activeClientId)
+    .map(limitKey));
+  const ctx = {
+    clientId:   activeClientId,
+    planName:   id => (id == null ? '' : `Plan: ${(data.plans ?? []).find(p => p.id === id)?.plan_name ?? 'unknown'}`),
+    clientName: id => clients.find(c => c.id === id)?.name ?? 'unknown client',
+    overridden: base => overrideKeys.has(limitKey(base)),
+    baseFor:    o => limits.find(r => r.client_id == null && r.active !== false && limitKey(r) === limitKey(o)),
+  };
   const tablesMissing = !loading && SECTIONS.every(s => data[s.key] == null);
 
-  function openAdd(section) { setForm({ section, values: blankFor(section), error: '' }); }
+  function openAdd(section) {
+    const values = blankFor(section);
+    if (section.key === 'limits' && activeClientId) values.client_id = activeClientId;   // adding for the client being viewed
+    setForm({ section, values, error: '' });
+  }
   function openEdit(section, row) {
     const values = blankFor(section);
     for (const f of section.fields) values[f.key] = row[f.key] ?? values[f.key];
@@ -261,11 +305,14 @@ export default function PayerCard({ payer, user, onClose }) {
     }
     let input;
     if (f.type === 'textarea') input = <textarea rows={3} value={v ?? ''} onChange={e => setV({ [f.key]: e.target.value })} placeholder={f.hint} />;
-    else if (f.type === 'select' || f.type === 'plan') {
-      const options = f.type === 'plan' ? plans.map(p => ({ value: String(p.id), label: p.plan_name })) : f.options;
+    else if (f.type === 'select' || f.type === 'plan' || f.type === 'client') {
+      const options = f.type === 'plan'   ? plans.map(p => ({ value: String(p.id), label: p.plan_name }))
+                    : f.type === 'client' ? clients.map(c => ({ value: String(c.id), label: c.name }))
+                    : f.options;
+      const empty = f.type === 'plan' ? 'Whole payer (all plans)' : f.type === 'client' ? 'Standard (all clients)' : '— Not set —';
       input = (
         <select value={v == null ? '' : String(v)} onChange={e => setV({ [f.key]: e.target.value })}>
-          <option value="">{f.type === 'plan' ? 'Whole payer (all plans)' : '— Not set —'}</option>
+          <option value="">{empty}</option>
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       );
@@ -321,6 +368,16 @@ export default function PayerCard({ payer, user, onClose }) {
       )}
       {payer.notes && <div className="text-sm" style={{ marginBottom: 12 }}>{payer.notes}</div>}
 
+      {clients.length > 0 && !tablesMissing && (
+        <label className="row text-sm" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+          <span className="text-muted">Showing limits for:</span>
+          <select value={activeClientId} onChange={e => pickClient(e.target.value)} style={{ maxWidth: 260 }}>
+            <option value="">Standard (all clients)</option>
+            {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+          </select>
+        </label>
+      )}
+
       {loading && <div className="text-muted" style={{ padding: 12 }}>Loading payer details…</div>}
       {tablesMissing && (
         <div className="text-muted" style={{ padding: 12 }}>
@@ -331,7 +388,7 @@ export default function PayerCard({ payer, user, onClose }) {
 
       {/* Sections */}
       {!loading && !tablesMissing && SECTIONS.map(section => {
-        const all  = (data[section.key] ?? []).filter(r => !section.filter || section.filter(r));
+        const all  = (data[section.key] ?? []).filter(r => !section.filter || section.filter(r, ctx));
         const rows = all.filter(r => showInactive || r.active !== false).sort(section.sort);
         return (
           <div key={section.key} style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
@@ -358,6 +415,7 @@ export default function PayerCard({ payer, user, onClose }) {
                       <div style={{ fontWeight: 700 }}>
                         {view.title}{r.active === false && <span className="badge badge-red" style={{ marginLeft: 6 }}>Inactive</span>}
                       </div>
+                      {view.tag && <span className="badge badge-purple" style={{ marginTop: 4, display: 'inline-block' }}>{view.tag}</span>}
                       {view.sub && <div className="text-sm text-muted">{view.sub}</div>}
                     </div>
                     {view.items.filter(Boolean).map((item, i) => <Value key={i} item={item} />)}

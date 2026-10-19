@@ -19,7 +19,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 1.2 Search dropdown: type-ahead with aliases (e.g. "BCBSTX", "Blue Cross Texas").
 - [x] 1.3 Payer card: all info on one page, copy button on every field, portal links.
 - [x] 1.4 Forms: upload/download appeal, recon, auth and corrected-claim forms (Supabase storage) with version date.
-- [ ] 1.5 Client overrides: TFL/AFL etc. per client contract; card shows the selected client's values.
+- [x] 1.5 Client overrides: TFL/AFL etc. per client contract; card shows the selected client's values.
 - [ ] 1.6 Accuracy: "last verified" date + owner per field, "Report wrong info" button, change log, flag if not verified in 90 days.
 - [ ] 1.7 Excel import template + importer for bulk loading payer data.
 
