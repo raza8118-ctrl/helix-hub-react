@@ -27,6 +27,7 @@ const ACTION_LABELS = {
   verify_payer_info:     'Marked payer details verified',
   report_payer_info:     'Reported wrong payer info',
   resolve_payer_report:  'Resolved payer report',
+  import_payer_data:     'Imported payers from Excel',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',

@@ -8,27 +8,10 @@ import { confirmDialog } from '../../components/shared/Dialog';
 import { actionLabel } from '../../lib/auditLabels';
 import PayerForms from './PayerForms';
 import { VerifiedBadge, ReportWrongInfo, OpenReports } from './PayerAccuracy';
-
-// ── Option lists ──────────────────────────────────────────────────────────────
-const opts = list => list.map(v => (typeof v === 'string' ? { value: v, label: v } : v));
-
-const LINES_OF_BUSINESS = opts(['Medicare Advantage', 'Medicaid MCO', 'Commercial HMO', 'Commercial PPO', 'Commercial EPO/POS', 'Marketplace / Exchange', 'Medicare Supplement', 'Other']);
-const BLUECARD          = opts([{ value: 'home', label: 'BlueCard home plan' }, { value: 'host', label: 'BlueCard host plan' }]);
-const CLEARINGHOUSES    = ['Waystar', 'Availity', 'Change Healthcare', 'Office Ally', 'TriZetto', 'Claim.MD'];
-const TRANSACTIONS      = opts(['Claims (837)', 'ERA (835)', 'Eligibility (270/271)', 'Claim status (276/277)', 'Other']);
-const DEPARTMENTS       = opts([
-  { value: 'claims', label: 'Claims' }, { value: 'auth', label: 'Authorization' }, { value: 'appeals', label: 'Appeals' },
-  { value: 'provider_relations', label: 'Provider Relations' }, { value: 'eligibility', label: 'Eligibility' }, { value: 'other', label: 'Other' },
-]);
-const LIMIT_TYPES       = opts([
-  { value: 'TFL', label: 'Timely filing (TFL)' }, { value: 'CCTFL', label: 'Corrected claim (CCTFL)' },
-  { value: 'AFL', label: 'Appeal (AFL)' }, { value: 'RECON', label: 'Reconsideration' },
-]);
-const MEASURED_FROM     = opts(['Date of service', 'Discharge date', 'Denial / EOB date', 'Paid date', 'Other']);
-const NOTE_CATEGORIES   = opts(['General', 'Claims', 'Auth', 'Appeals', 'Portal', 'Other']);
-
-const labelOf = (list, v) => list.find(o => o.value === v)?.label ?? v;
-const orderOf = (list, v) => { const i = list.findIndex(o => o.value === v); return i < 0 ? list.length : i; };
+import {
+  LINES_OF_BUSINESS, BLUECARD, CLEARINGHOUSES, TRANSACTIONS, DEPARTMENTS, LIMIT_TYPES,
+  MEASURED_FROM, NOTE_CATEGORIES, labelOf, orderOf,
+} from '../../lib/payerOptions';
 
 // Only http(s) links are opened; anything else gets https:// in front
 const safeUrl = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`);

@@ -21,7 +21,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 1.4 Forms: upload/download appeal, recon, auth and corrected-claim forms (Supabase storage) with version date.
 - [x] 1.5 Client overrides: TFL/AFL etc. per client contract; card shows the selected client's values.
 - [x] 1.6 Accuracy: "last verified" date + owner per field, "Report wrong info" button, change log, flag if not verified in 90 days.
-- [ ] 1.7 Excel import template + importer for bulk loading payer data.
+- [x] 1.7 Excel import template + importer for bulk loading payer data.
 
 ## Phase 2 – File Tools
 - [ ] 2.1 Merge PDFs (in browser), reorder pages, delete pages.

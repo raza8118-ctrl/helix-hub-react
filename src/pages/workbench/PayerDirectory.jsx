@@ -1,6 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { S, db } from '../../lib/supabase';
 import { needsRecheck, PAYER_DETAIL_TABLES } from '../../lib/payers';
+import { hasAccess } from '../../lib/access';
+
+// Loaded only when an editor opens it (brings in the Excel library)
+const PayerImport = lazy(() => import('./PayerImport'));
 import PayerSearch from '../../components/shared/PayerSearch';
 import PayerCard from './PayerCard';
 
@@ -31,14 +35,18 @@ export default function PayerDirectory({ user }) {
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [reviewFilter, setReviewFilter] = useState('ALL');   // ALL | STALE | REPORTED
   const [summary, setSummary]   = useState({ stale: new Set(), reports: {} });
+  const [showImport, setShowImport] = useState(false);
+  const canEdit = hasAccess(user, 'payers_edit');
 
-  useEffect(() => {
+  function loadPayers() {
     S.get('payers').then(rows => {
-      if (rows == null) setError(true);
+      setError(rows == null);
       setPayers(rows ?? []);
     });
     loadAccuracySummary().then(setSummary).catch(() => {});
-  }, []);
+  }
+
+  useEffect(() => { loadPayers(); }, []);
 
   // Refresh the warning marks after the card is closed (it may have verified or resolved things)
   function closeCard() {
@@ -71,7 +79,16 @@ export default function PayerDirectory({ user }) {
           <div className="page-title">📇 Payer Directory</div>
           <div className="page-subtitle">Find any payer by its name or a short name like “BCBSTX”.</div>
         </div>
+        {canEdit && !error && payers != null && (
+          <button className="btn-sm" onClick={() => setShowImport(true)}>⬆ Import from Excel</button>
+        )}
       </div>
+
+      {showImport && (
+        <Suspense fallback={null}>
+          <PayerImport user={user} onClose={() => setShowImport(false)} onImported={loadPayers} />
+        </Suspense>
+      )}
 
       <div className="card mb-16">
         {payers == null && <div className="text-muted" style={{ padding: 8 }}>Loading payers…</div>}
