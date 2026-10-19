@@ -20,8 +20,9 @@ Stack: Vite + React 19 single-page app (no Next.js, no server code yet), Supabas
    - File merge/convert of patient files runs in the browser or on our own server, never a third-party converter site/API.
    - Every new module uses role-based access and writes to the audit log.
 7. **Check before finishing.** Run `npm run lint` and `npm run build`. Fix any errors you caused. Tell me how to test the feature in the browser.
-8. **Finish cleanly.** At the end: tick the step's checkbox in `docs/HELIX_ROADMAP.md`, give me a short summary of what changed, and suggest a git commit message. Do not commit or push unless I ask.
+8. **Finish cleanly.** At the end: tick the step's checkbox in `docs/HELIX_ROADMAP.md`, give me a short summary of what changed, then commit and push the step to `main` (I asked for this on 2026-10-18).
 9. **If unsure, ask.** If something in the existing code is unclear or a step would require changing working features, stop and ask me.
+10. **Save progress so nothing is lost.** Read `docs/PROGRESS.md` at the start of every session. When I approve a plan, write it into PROGRESS.md and push before building. During long builds, push checkpoints to the `wip` branch (never to `main`). When a step is done, update PROGRESS.md (completed steps, pending migrations, decisions) and push to `main`.
 
 ## Style
 - Keep the existing look (layout, colors, components). New modules appear in the existing sidebar/navigation.
