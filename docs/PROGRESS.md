@@ -21,9 +21,22 @@ below, in order, then click **↻ Sync structure** in the Owner Console.
 
 ## ▶ Current step
 
-**None in progress. Phase 2 (File Tools) is complete.** Next on the roadmap: **Phase 3 – SOP & Training Library, step 3.1**
-(structure: Software → Task → SOP; categories) — needs a plan and the product owner's “go”.
+**3.1 – SOP Library structure (Software → Task → SOP; categories)** — plan approved 2026-10-19 (“go”, defaults taken). Building.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: regular users see Published only; categories editable by editors):
+- New Workbench page **📚 SOP Library** (`wb_sops`, replaces the placeholder): Category → Software → Task → SOPs; search
+  across software/task/SOP titles; category filter.
+- Categories seeded: EMR, Clearinghouse, Payments/ERA, Payer portals, Medicare DDE, Other (editable, reorderable).
+- SOP in 3.1 = shell only: title, summary, owner, status Draft/Published, updated date. Template = 3.2, editor/uploads = 3.3,
+  client-specific/versions/acknowledge = 3.4 (new columns then), seeded software = 3.7.
+- Software: optional portal/login URL with copy button. Add/edit/reorder/deactivate in pop-ups; nothing deleted.
+- New grantable permission `sops_edit` “Edit SOP Library” (admins + managers). Viewing open to all; non-editors see Published only.
+- Audit: `sop_category_add/edit`, `sop_software_add/edit`, `sop_task_add/edit`, `sop_add/edit` (type + id, no free text).
+- DB: `supabase/migrations/20261019d_sop_library.sql` → `sop_categories`, `sop_software`, `sop_tasks`, `sops`
+  (ids not FKs, select/insert/update grants only). Page says “not set up yet” until it is run.
+- Files: new `src/lib/sops.js`, `src/pages/workbench/SopLibrary.jsx`, `src/pages/workbench/SopEditors.jsx`;
+  changed `WorkbenchApp.jsx`, `src/lib/access.js`.
 
 ### Reference: how 2.5 was built (done) — defaults chosen: cover sheet ON; `{PatientLast}` available, not in the default; “Page X of Y” bottom right + optional prefix
 
