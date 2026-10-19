@@ -10,8 +10,19 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**None in progress.** 2.4 is done. Next: **2.4b OCR for scanned PDFs** (added to the roadmap) or **2.5 Appeal Packet builder** —
-ask the product owner which. Any new File Tools PDF output must use `PdfSaveOptions.jsx`.
+**2.4b OCR for scanned PDFs** — **plan shown 2026-10-19, waiting for “go”.** Any new File Tools PDF output must use `PdfSaveOptions.jsx`.
+
+Draft plan:
+- Turn on the “In this browser with OCR (scanned PDFs)” method in PDF → Excel. Pages with real text still use the text
+  layer (fast, exact); only scanned pages are OCR'd: pdf.js renders at ~300 dpi → Tesseract words + boxes → the same
+  row/column logic as method A (`pageToRows` refactored to take positioned words).
+- Library: `tesseract.js` (Apache-2.0; npm latest 7.0.0) + `tesseract.js-core` (wasm engine) + `@tesseract.js-data/eng`
+  (MIT, English data) — all from npm, bundled with the app via Vite `?url` imports, **no CDN at runtime**; first use
+  downloads ~6–10 MB once (browser caches it). Lock entries from the registry (tesseract.js has ~9 small deps incl. node-fetch).
+- Preview highlights low-confidence cells (yellow) with a count (“N words were hard to read — please check”);
+  progress “Reading page 3 of 12 (OCR)…”, **Cancel** button; one OCR worker reused, closed when done.
+- English only; printed text only (no handwriting); speed ~3–10 s per page.
+- Audit `pdf_to_excel` gains `ocr_pages`. No DB changes. Possible later: “make scanned PDF searchable”.
 
 ### Reference: how 2.4 was built (done) — PO: “Go with A, with an option to select B, C, D and more; whatever is selected, proceed with that.”
 
