@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { S } from '../../lib/supabase';
 import PayerSearch from '../../components/shared/PayerSearch';
-import CopyButton from '../../components/shared/CopyButton';
+import PayerCard from './PayerCard';
 
 /**
- * Payer Directory (roadmap 1.2): find a payer by name or alias, or browse A–Z.
- * Open to every signed-in user. The full payer card (contacts, payer IDs, limits,
- * forms) arrives in step 1.3.
+ * Payer Directory: find a payer by name or alias (1.2) or browse A–Z, then open its
+ * full card (1.3). Open to every signed-in user; editing needs "Edit Payer Directory".
  */
-export default function PayerDirectory() {
+export default function PayerDirectory({ user }) {
   const [payers, setPayers]     = useState(null);   // null = loading / table missing
   const [error, setError]       = useState(false);
   const [selected, setSelected] = useState(null);
@@ -58,33 +57,7 @@ export default function PayerDirectory() {
       </div>
 
       {selected && (
-        <div className="card mb-16" style={{ borderLeft: '4px solid var(--accent)' }}>
-          <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span className="card-title" style={{ fontSize: 18 }}>{selected.name}</span>
-              <CopyButton value={selected.name} />
-              {selected.payer_type && <span className="badge badge-blue">{selected.payer_type}</span>}
-            </div>
-            <button className="btn-sm" onClick={() => setSelected(null)}>✕ Close</button>
-          </div>
-          {(selected.aliases ?? []).length > 0 && (
-            <div style={{ marginBottom: 10 }}>
-              <div className="text-sm text-muted" style={{ marginBottom: 4 }}>Also known as</div>
-              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                {selected.aliases.map(a => (
-                  <span key={a} className="row" style={{ gap: 4, alignItems: 'center' }}>
-                    <span className="badge badge-gray">{a}</span>
-                    <CopyButton value={a} />
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {selected.notes && <div className="text-sm" style={{ marginBottom: 10 }}>{selected.notes}</div>}
-          <div className="text-sm text-muted">
-            Contacts, payer IDs, filing limits and forms will appear here in the next update (roadmap step 1.3).
-          </div>
-        </div>
+        <PayerCard key={selected.id} payer={selected} user={user} onClose={() => setSelected(null)} />
       )}
 
       {payers != null && !error && (
