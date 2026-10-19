@@ -24,6 +24,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'audit_view',   label: 'View Audit Log',        defaultRoles: ['admin'] },
   // Viewing the Payer Directory is open to every signed-in user; editing is gated
   { group: 'Tools', key: 'payers_edit',  label: 'Edit Payer Directory',  defaultRoles: MANAGERS },
+  // File Tools are open to everyone; this only controls the company's Appeal Packet file naming convention
+  { group: 'Tools', key: 'packet_settings', label: 'Appeal Packet settings', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

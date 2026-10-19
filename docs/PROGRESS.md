@@ -10,12 +10,19 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.5 Appeal Packet builder** — **APPROVED (“go” 2026-10-19), building** with the suggested defaults: cover sheet ON by default;
-`{PatientLast}` token available but not in the default convention; “Page X of Y” bottom right with optional prefix.
-Checkpoints on `wip`; if a session ends mid-build, continue from `origin/wip`.
+**None in progress. Phase 2 (File Tools) is complete.** Next on the roadmap: **Phase 3 – SOP & Training Library, step 3.1**
+(structure: Software → Task → SOP; categories) — needs a plan and the product owner's “go”.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
 
-Draft plan:
+### Reference: how 2.5 was built (done) — defaults chosen: cover sheet ON; `{PatientLast}` available, not in the default; “Page X of Y” bottom right + optional prefix
+
+Code: `src/lib/packet.js` (sections, file→PDF, cover sheet, assembly, rotation-aware page stamps, naming) and
+`src/pages/workbench/AppealPacket.jsx` (UI + naming-convention pop-up). New grantable permission `packet_settings`
+(admins + managers) controls the company convention in kv `packet_naming` (default `{ClaimNo}_{Payer}_{Type}_{Date}`).
+Patient name / member ID / claim # typed in are used only to build the PDF in the browser — never saved or logged.
+Payer forms that are Word/Excel can't be added directly (must be saved as PDF first) — shown on the button.
+
+Plan as approved:
 - New File Tools tool **Appeal Packet**. Sections in default order: Cover letter → Appeal/Recon form → EOB / denial letter →
   Auth approval → Medical records → Other. Each takes PDFs and images (any File Tools format, incl. TIFF); several files
   per section; reorder sections and files; empty sections skipped.
@@ -164,6 +171,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | f72b66e |
 | 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
+| 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | see `git log` (step 2.5) |
 
 ---
 
@@ -195,6 +203,7 @@ The app hides/disables the related features until each one has been run, so code
 - **PDF library:** pdf-lib as a real dependency (option 1), not a CDN. pdf.js (pdfjs-dist) added the same way for compression.
 - **File Tools save step:** every output offers Original or Compress; levels are QUALITY (High = original quality, Medium = portal-friendly, Low = smallest readable) with an optional size limit.
 - **PDF → Excel methods:** in-browser always available; Vercel / Supabase / own-server methods appear in a selector and only an admin can switch one on, with a “BAA signed” confirmation (audited). Config in kv `pdf_extract_engines` per company.
+- **Appeal Packet:** cover sheet on by default; page numbers “Page X of Y” bottom right (optional prefix); company file-name convention set by `packet_settings` holders; `{PatientLast}` allowed but not default.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 
 ---

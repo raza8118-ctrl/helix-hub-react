@@ -34,6 +34,8 @@ const ACTION_LABELS = {
   excel_to_pdf:          'Converted Excel/CSV to PDF (File Tools)',
   pdf_to_excel:          'Extracted PDF tables to Excel (File Tools)',
   configure_extract_engine: 'Changed a PDF → Excel method',
+  build_appeal_packet:   'Built an appeal packet (File Tools)',
+  packet_naming_change:  'Changed appeal packet file naming',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',

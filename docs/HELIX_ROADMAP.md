@@ -29,7 +29,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 2.3 Excel → PDF, image → PDF.
 - [x] 2.4 PDF → Excel (table extraction on our own server). Built as: in-browser extraction + method selector; server methods (Vercel / Supabase / own server) connect once set up under a BAA — see `docs/PDF_EXTRACTION_SERVER.md`.
 - [x] 2.4b OCR for scanned PDFs (in the browser, or on a BAA-covered server).
-- [ ] 2.5 Appeal Packet builder: cover letter + form + EOB + auth approval + MR in order, page numbers, file naming convention.
+- [x] 2.5 Appeal Packet builder: cover letter + form + EOB + auth approval + MR in order, page numbers, file naming convention.
 
 ## Phase 3 – SOP & Training Library
 - [ ] 3.1 Structure: Software → Task → SOP; categories (EMR, Clearinghouse, Payments/ERA, Payer portals, Medicare DDE).
