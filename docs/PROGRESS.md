@@ -10,7 +10,8 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**2.2 Split PDF + compress** — planning. Plan shown to the product owner on 2026-10-19; waiting for the compression-engine choice and “go”.
+**2.2 Split PDF + compress** — **APPROVED (“go” 2026-10-19), building.** Engine: pdf.js (pdfjs-dist) as a real dependency.
+Build checkpoints go to the `wip` branch; if a session ends mid-build, continue from `origin/wip`.
 
 **Product owner requirement (2026-10-19):** whenever File Tools produces a file (merge, split, anything later), the
 save step offers **“Keep original size & quality”** or **“Compress”**; choosing Compress offers **Low / Medium / High**
