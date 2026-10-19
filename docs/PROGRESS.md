@@ -4,7 +4,18 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-19_
+_Last updated: 2026-10-19 — paused by the product owner after Phase 2; Phase 3 starts in a later session._
+
+---
+
+## ⏯ How to resume (product owner)
+
+1. Open the project folder `helix-hub` and start Claude Code there.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 3.1 plan, and waits for your “go”.
+
+Still waiting on you in Supabase (if not done yet): run the 6 migration files listed under “Waiting on the product owner”
+below, in order, then click **↻ Sync structure** in the Owner Console.
 
 ---
 
