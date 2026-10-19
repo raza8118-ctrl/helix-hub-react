@@ -10,7 +10,15 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**None in progress.** 2.1 is done. Next on the roadmap: **2.2 Split PDF, compress PDF** — needs a plan and the product owner's “go”.
+**2.2 Split PDF + compress** — planning. Plan shown to the product owner on 2026-10-19; waiting for the compression-engine choice and “go”.
+
+**Product owner requirement (2026-10-19):** whenever File Tools produces a file (merge, split, anything later), the
+save step offers **“Keep original size & quality”** or **“Compress”**; choosing Compress offers **Low / Medium / High**
+and the file is processed accordingly. This also applies retroactively to Merge (2.1).
+
+Recommended engine (pending confirmation): pdf.js (Apache-2.0) renders only pages that contain scanned images
+and re-saves them as JPEG at the chosen level; text-only pages are copied untouched so their text stays selectable.
+Ghostscript-in-browser rejected for now: AGPL licence + ~15 MB download.
 
 Notes for 2.2: File Tools lives in `src/pages/workbench/FileTools.jsx` (tool buttons at the top; “Split / Compress” is a disabled placeholder) and `src/lib/pdfTools.js` (pdf-lib helpers). pdf-lib can split easily; real compression (re-encoding images) is limited in pdf-lib — raise that with the product owner when planning.
 
