@@ -10,8 +10,21 @@ _Last updated: 2026-10-19_
 
 ## ▶ Current step
 
-**None in progress.** 2.4b is done (5b5c901). Next on the roadmap: **2.5 Appeal Packet builder** — needs a plan and the product owner's “go”.
+**2.5 Appeal Packet builder** — **plan shown 2026-10-19, waiting for “go” + 3 decisions** (cover sheet, naming tokens, page-number style).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Draft plan:
+- New File Tools tool **Appeal Packet**. Sections in default order: Cover letter → Appeal/Recon form → EOB / denial letter →
+  Auth approval → Medical records → Other. Each takes PDFs and images (any File Tools format, incl. TIFF); several files
+  per section; reorder sections and files; empty sections skipped.
+- **Payer form from the Payer Directory:** pick payer → its forms (1.4) → added to the Form section (private signed link).
+- **Optional packet cover sheet / index** (generated locally): payer, claim #, DOS, sent by/date, and a contents list with
+  page ranges per section; appeals fax/address auto-filled from the payer's Appeals contact.
+- **Page numbers** stamped on every page (“Page X of Y”, bottom right; optional prefix e.g. claim #), on/off.
+- **File naming convention** with tokens ({Payer} {Client} {ClaimNo} {Type} {Date} …); company default editable by
+  people with a new grantable permission `packet_settings` (admins + managers by default); stored in kv `packet_naming`.
+- Then the shared **Original / Compress (High/Medium/Low, size limit)** save step.
+- Everything in the browser; audit `build_appeal_packet` with counts only (no claim #/names). No DB changes.
 
 ### Reference: how 2.4b was built (done)
 
