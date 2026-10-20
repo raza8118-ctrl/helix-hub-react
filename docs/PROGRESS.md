@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.5 (learning paths) plan approved; building._
+_Last updated: 2026-10-20 — step 3.5 (learning paths) done; next is 3.6._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.5.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 3.5 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.6.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 3.6 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**3.5 – Learning paths by role — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 3.5 is done.** Next: **3.6 – Quizzes per SOP** (3–5 questions) with scores — needs a plan
+and a “go”. Learning paths are ready for a 4th item kind `quiz` (`learning_path_items.kind` check constraint would need
+widening in the 3.6 migration — additive: drop/re-add that CHECK only, no data change; ask the PO).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.5 was built (done)
+
+Code: `src/lib/training.js` (`loadTraining` loads paths/items/assignments/active progress + SOP acks + sops + users;
+`dueDateFor` = start moved off weekends + working days; `assignmentStatus` per item done/due/overdue, SOP items done via
+`sop_reads.acknowledged_at` for that SOP (any version); ticks/untick (inactive), `stampCompletion`, path/item save, copy,
+reorder, `assignPath` keeps progress and only changes the start date). UI: `Training.jsx` (tabs; opens SOPs with
+`SopPage forceAck backLabel` so any SOP in a path can be acknowledged; `loadAndStamp` stamps finished paths on load),
+`TrainingProgress.jsx` (`ProgressBar`, `AssignmentDays` self/trainer modes, team table + Excel), `TrainingPathEditor.jsx`
+(paths list, `PathEditor` days/items, `ItemModal`, `PathModal`), `TrainingAssign.jsx`. Sidebar: `modules.js` `wb_training`.
+Additions beyond the plan text: `learning_paths.days` (empty days while building), `learning_progress.active` (undo a tick).
+Known limit: an SOP with no published version can't be acknowledged, so its path item stays open until it is published.
 
 Plan as approved (defaults: due dates skip weekends; one team per path; people tick tasks/links themselves unless
 “Trainer must confirm”; no auto-assign on user creation — would need Team page changes):
@@ -317,6 +331,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | 0586f95 |
 | 3.3 | SOP full-page editor, formatting, screenshots (paste, crop, black-out), short videos | b99691e |
 | 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | c7bb125 |
+| 3.5 | Training page: learning paths by day, assign with due dates, my training, team progress, trainer confirm | (see next commit) |
 
 ---
 
@@ -334,6 +349,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 8. `supabase/migrations/20261020_sop_template.sql` (SOP page template, step 3.2)
 9. `supabase/migrations/20261020b_sop_media.sql` (SOP screenshots/videos bucket + `sop_media`, step 3.3)
 10. `supabase/migrations/20261021_sop_versions.sql` (SOP versions, client SOPs, acknowledgements, step 3.4)
+11. `supabase/migrations/20261021b_learning_paths.sql` (learning paths, assignments, progress, step 3.5)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -357,6 +373,7 @@ The app hides/disables the related features until each one has been run, so code
 - **SOP page:** fixed template sections; SOPs need re-checking every 180 days (“Mark as verified today” by editors); “Who uses it” = team chips + free text.
 - **SOP media:** up to 3 screenshots + 1 short video per step, optional walkthrough video; videos MP4/WEBM ≤ 25 MB / 3 min; every upload needs the no-PHI tick; screenshots can be cropped/blacked out in the browser; removing media only unlinks it.
 - **SOP versions:** readers see only published versions (current = newest in effect); editors work on the working copy and publish with a change note + effective date; acknowledgement per version for the ticked teams (all if none); tracking via `sops_tracking` (admin/manager/supervisor); every user can see every client's SOPs (no user↔client link yet).
+- **Training:** paths per team with Day 1…N; due dates skip weekends; SOP items complete on acknowledgement; people tick tasks/links unless “Trainer must confirm”; `training_manage` (admin/manager) builds/assigns, `training_track` (admin/manager/supervisor) sees progress + confirms; no auto-assign on user creation.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

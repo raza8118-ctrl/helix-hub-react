@@ -30,6 +30,9 @@ export const FEATURES = [
   { group: 'Tools', key: 'sops_edit',    label: 'Edit SOP Library',      defaultRoles: MANAGERS },
   // Who has opened / acknowledged each published SOP version
   { group: 'Tools', key: 'sops_tracking', label: 'See SOP read tracking', defaultRoles: MONITORS },
+  // Training: everyone sees their own learning paths; building/assigning and team progress are gated
+  { group: 'Tools', key: 'training_manage', label: 'Manage learning paths', defaultRoles: MANAGERS },
+  { group: 'Tools', key: 'training_track',  label: 'See training progress + confirm items', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

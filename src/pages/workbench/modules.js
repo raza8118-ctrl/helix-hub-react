@@ -36,6 +36,16 @@ export const WORKBENCH_MODULES = [
     ],
   },
   {
+    id: 'wb_training', label: 'Training', icon: '🎓', phase: 3,
+    purpose: 'Day-by-day learning paths for new joiners, with progress tracking for trainers.',
+    planned: [
+      'Learning paths by team (e.g. new AR joiner Day 1–5)',
+      'SOPs, tasks and links per day, with due dates',
+      'Team progress, overdue items and trainer sign-off',
+      'Short quizzes per SOP',
+    ],
+  },
+  {
     id: 'wb_denials', label: 'Denial Navigator', icon: '🧩', phase: 4,
     purpose: 'Look up a denial code and see exactly what to do — client rules first, then payer, then common steps.',
     planned: [

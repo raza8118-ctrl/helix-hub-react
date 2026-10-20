@@ -77,7 +77,7 @@ ${section('If it goes wrong', text(sop.troubleshooting))}
  * and published versions, client SOPs and acknowledgement (3.4).
  * Readers see the current published version; editors can switch to the working copy or any older version.
  */
-export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, onChanged, onOpenSop }) {
+export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, onChanged, onOpenSop, forceAck = false, backLabel = '← Back to library' }) {
   const versionsReady = meta != null;
   const [versions, setVersions] = useState(undefined);   // full versions with snapshots; undefined = loading
   const [reloadKey, setReloadKey] = useState(0);
@@ -165,13 +165,13 @@ export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, 
 
   // Acknowledgement status for the current version (only when it is on screen)
   const ackRow = currentId ? meta?.myReads.find(r => r.version_id === currentId && r.acknowledged_at) : null;
-  const needsAck = !!shown && shown === states.current && mustAcknowledge(user, states.current);
+  const needsAck = !!shown && shown === states.current && (forceAck || mustAcknowledge(user, states.current));
   const acked = ackedNow === currentId || !!ackRow;
 
   return (
     <div>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-        <button className="btn-sm" onClick={onBack}>← Back to library</button>
+        <button className="btn-sm" onClick={onBack}>{backLabel}</button>
         <span style={{ marginLeft: 'auto', flexWrap: 'wrap', gap: 6 }} className="row">
           {ready && !readerHasNothing && <button className="btn-sm" onClick={() => printSop(display, trail, names)}>🖨 Print</button>}
           {canEdit && ready && <button className="btn-sm" onClick={markVerified} disabled={verifying}>{verifying ? 'Saving…' : '✓ Mark as verified today'}</button>}
