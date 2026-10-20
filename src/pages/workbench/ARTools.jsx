@@ -9,11 +9,12 @@ import DeadlineTool from './DeadlineTool';
 import HomeHealthCalc from './HomeHealthCalc';
 import HospiceCalc from './HospiceCalc';
 import PaymentCalc from './PaymentCalc';
+import CodeLookup from './CodeLookup';
 
 /**
  * 🧮 AR Tools (roadmap Phase 6): everyday helpers for AR callers. 6.1 = Claim Note Generator
  * (+ 📚 Note formats for holders of “Manage claim note formats”); 6.2 = calculators (filing / appeal deadlines,
- * home health, hospice, expected payment). Later steps add code lookup here.
+ * home health, hospice, expected payment); 6.3 = code lookup (CARC/RARC, revenue, HIPPS, ICD-10).
  */
 export default function ARTools({ user }) {
   const canManageFormats = hasAccess(user, 'note_formats');
@@ -38,6 +39,7 @@ export default function ARTools({ user }) {
     { id: 'homehealth', label: '🏠 Home health' },
     { id: 'hospice', label: '🕊️ Hospice' },
     { id: 'payment', label: '💲 Expected payment' },
+    { id: 'codes', label: '🔎 Code lookup' },   // 6.3
     ...(canManageFormats && Array.isArray(formats) ? [{ id: 'formats', label: '📚 Note formats' }] : []),
   ];
 
@@ -65,6 +67,7 @@ export default function ARTools({ user }) {
       {tool === 'homehealth' && <HomeHealthCalc />}
       {tool === 'hospice' && <HospiceCalc />}
       {tool === 'payment' && <PaymentCalc />}
+      {tool === 'codes' && <CodeLookup user={user} />}
       {tool === 'formats' && canManageFormats && Array.isArray(formats) && (
         <NoteFormats formats={formats} clients={ctx.clients} user={user} onChanged={reloadFormats} />
       )}

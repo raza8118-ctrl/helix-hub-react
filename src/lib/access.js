@@ -39,6 +39,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'appeal_templates', label: 'Manage appeal letter templates', defaultRoles: MANAGERS },
   // AR Tools: everyone writes claim notes; each client's note format is managed by these people
   { group: 'Tools', key: 'note_formats', label: 'Manage claim note formats', defaultRoles: MANAGERS },
+  // Code lookup: searching is open to everyone; importing / editing the revenue, HIPPS and ICD-10 lists is gated
+  { group: 'Tools', key: 'ref_codes_edit', label: 'Manage code lists', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

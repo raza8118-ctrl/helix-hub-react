@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.3 (code lookup) plan approved; building._
+_Last updated: 2026-10-20 — step 6.3 (code lookup) done; next is 6.4._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 6.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 6.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,24 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**6.3 – Code lookup — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 6.3 is done.** Next: **6.4 – Smart Worklist** (upload aging/RTP file → prioritise by deadline,
+$ and payer → assign to users → auto-update production counts) — needs a plan and a “go”. ⚠ This is the first step that
+would STORE claim-level data (aging rows carry patient names / claim #s): the plan must settle PHI storage in Supabase
+(BAA, minimum fields, retention) with the PO, and how “production counts” map to the existing production tracking
+(Work Allocation / Daily Report — read `docs/PROJECT_MAP.md`) without changing working features.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 6.3 was built (done)
+
+`src/lib/refCodes.js`: `CODE_SETS`, `normRef` (upper, ICD-10 without dot, revenue padded to 4), `displayRef`,
+`detectCode` (3–4 digits → revenue, [1-4][A-L][A-C][1-3](1) → HIPPS, ICD-10-CM shape → icd10), `decodeHipps` (HH PDGM
+positions; clinical group letters A MMTA-Other, B Neuro, C Wound, D Complex nursing, E MS rehab, F Behavioral, G–L MMTA
+subgroups — labelled “verify against the CMS HIPPS table”), `searchRefCodes` (DB: code prefix `ilike` or every word in
+the description, limit), CRUD + verify/(re)activate, import: `readRefFile` (CMS .txt “CODE  description” lines, or
+xlsx/csv Code + Description), `compareRefImport` (pages the whole set 1,000 at a time), `applyRefImport` (500-row
+inserts, updates, optional retire via `.in(ids)`), `STARTER_REVENUE` (24, our wording). UI: `CodeLookup.jsx` (AR Tools
+tool; chips; 300 ms debounced DB search; CARC/RARC from the Denial library client-side with “Open in Denial Navigator”
+via `helix:open-tab`; HIPPS decoder card), `RefCodeEditors.jsx` (add/edit, import with preview + retire tick).
 
 Plan as approved (defaults: HIPPS decoded by rule, HH PDGM only; revenue descriptions in our words + import; ICD-10
 from the CMS file yearly; missing codes marked retired only when ticked; new permission admin/manager):
@@ -749,6 +765,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 5.5 | “Add to Appeal Packet”: letter + form + details handed to File Tools → Appeal Packet in memory (no DB change) | 3d52a5b |
 | 6.1 | AR Tools + Claim Note Generator: dropdown notes in client formats, Note formats tab, 8 standard formats | 90ccc7d |
 | 6.2 | AR Tools calculators: filing / appeal deadlines, NOA + PDGM + LUPA, NOE + hospice periods, expected payment (no DB change) | d016802 |
+| 6.3 | Code lookup: CARC/RARC, revenue (starter + import), HIPPS decoder, ICD-10 (CMS file import), `ref_codes_edit` | (see next commit) |
 
 ---
 
@@ -773,6 +790,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 15. `supabase/migrations/20261021f_appeal_templates.sql` (appeal letter templates, step 5.2)
 16. `supabase/migrations/20261021g_payer_form_fields.sql` (field maps for fillable payer forms, step 5.4)
 17. `supabase/migrations/20261021h_note_formats.sql` (claim note formats per client, step 6.1)
+18. `supabase/migrations/20261021i_ref_codes.sql` (revenue / HIPPS / ICD-10 code lists, step 6.3)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
