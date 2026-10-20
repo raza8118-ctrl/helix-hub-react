@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.7 done; Phase 3 (SOP & Training Library) complete; next is 4.1._
+_Last updated: 2026-10-20 — step 4.1 (Denial library) plan approved; building._
 
 ---
 
@@ -21,9 +21,28 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 3.7 is done — Phase 3 complete.** Next: **4.1 – Denial library** (CARC/RARC codes +
-plain-English denial reasons + search), first step of Phase 4 Denial Navigator — needs a plan and a “go”.
+**4.1 – Denial library — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: ~40 starter codes; import never touches plain-English reasons; category list below):
+- New page **🧩 Denial Navigator** (`wb_denials`, replaces the placeholder; everyone). 4.1 = Denial library.
+- Entry: type CARC / RARC / Group (CO/PR/OA/PI/CR) / Other (e.g. FISS reason codes); official description (from
+  import); our plain-English reason; category (Eligibility · Authorization · Coding · Timely filing · Duplicate ·
+  Documentation / records · Coordination of benefits · Medicare HH & Hospice · Patient responsibility · Other);
+  notes; “No longer used after” date; verified date + by.
+- Search: code (`16`, `CO-16`, `co16`, `N290`) or words; paste an ERA/EOB line (`CO-16 N290 MA130`) → every code found
+  shown together, group code explained. Results: plain reason first, official text below, copy button, Retired badge.
+- Import Excel/CSV (X12 lists downloaded by the PO from x12.org): preview new/changed/unchanged; fills official text +
+  retired dates only, never plain reasons. Full X12 lists are NOT bundled (reuse terms; no retyping from memory).
+- “Add starter codes”: ~40 common HH/hospice/AR codes with our own plain reasons + categories, marked
+  “Starter – please verify” until verified. No SQL seed. Add/edit single codes; make inactive; nothing deleted.
+- Permission `denials_edit` “Edit Denial library” (admin/manager, grantable; reused by 4.3). Viewing open to all.
+- DB: `supabase/migrations/20261021d_denial_codes.sql` → `denial_codes` (id, code_type, code, official_text,
+  plain_reason, category, notes, stopped_on, source starter/import/manual, verified_at/by, active, created/updated),
+  unique type+code. Pasted ERA lines are searched in the browser only — never saved or logged.
+- Files: new `src/lib/denials.js`, `src/pages/workbench/DenialNavigator.jsx`, `DenialEditors.jsx`; changed
+  `WorkbenchApp.jsx`, `src/lib/access.js`, `src/lib/auditLabels.js`. Audit `denial_code_add/edit/verify/deactivate`,
+  `denial_import` (counts), `denial_starter_add`.
 
 ### Reference: how 3.7 was built (done)
 
