@@ -9,12 +9,16 @@ import { loadSopLibrary } from '../../lib/sops';
 import { loadSopVersionMeta } from '../../lib/sopVersions';
 import AppealForm from './AppealForm';
 import AppealSidePanel from './AppealSidePanel';
+import AppealLetter from './AppealLetter';
+import AppealTemplates from './AppealTemplates';
+import { loadTemplates } from '../../lib/appealTemplates';
 import SopPage from './SopPage';
 import PayerCard from './PayerCard';
 import { confirmDialog } from '../../components/shared/Dialog';
 
 /**
- * ✉️ Appeal Builder (roadmap Phase 5). 5.1 = the appeal form + side panel (deadline, where to send, steps, facts).
+ * ✉️ Appeal Builder (roadmap Phase 5). 5.1 = the appeal form + side panel (deadline, where to send, steps, facts);
+ * 5.2 = the letter built from templates (filled locally) + 📚 Templates tab for "Manage appeal letter templates".
  * Nothing is saved to the database, logged or kept in browser storage — the form is in memory only.
  */
 export default function AppealBuilder({ user }) {
@@ -30,13 +34,18 @@ export default function AppealBuilder({ user }) {
   const [sopId, setSopId] = useState(null);
   const [sopCtx, setSopCtx] = useState(null);
   const [payerCard, setPayerCard] = useState(null);
+  const [templates, setTemplates] = useState(undefined);   // 5.2: undefined = loading, null = not set up
+  const [tab, setTab] = useState('appeal');                // 'appeal' | 'templates'
+  const canManageTemplates = hasAccess(user, 'appeal_templates');
 
+  const reloadTemplates = () => loadTemplates().then(setTemplates);
   useEffect(() => {
     let alive = true;
     clearPrefill();   // "Start an appeal" values are now in the form
     loadStepContext().then(c => { if (alive) setCtx(c); });
     loadDenialCodes().then(c => { if (alive) setCodes(c ?? []); });
     loadDenialSteps().then(s => { if (alive) setSteps(s); });
+    loadTemplates().then(t => { if (alive) setTemplates(t); });
     return () => { alive = false; };
   }, []);
 
@@ -102,22 +111,40 @@ export default function AppealBuilder({ user }) {
       <div className="page-header">
         <div>
           <div className="page-title">✉️ Appeal Builder</div>
-          <div className="page-subtitle">Fill in the claim and denial facts — the letter is built from them in the next steps.</div>
+          <div className="page-subtitle">Fill in the claim and denial facts — the letter below is built from them.</div>
         </div>
-        <button className="btn-sm" onClick={clearForm}>🗑 Clear form</button>
+        {tab === 'appeal' && <button className="btn-sm" onClick={clearForm}>🗑 Clear form</button>}
       </div>
 
-      {sensitive && (
+      {canManageTemplates && Array.isArray(templates) && (
+        <div className="row" style={{ gap: 6, marginBottom: 12 }}>
+          {[['appeal', '✉️ Appeal'], ['templates', '📚 Templates']].map(([id, label]) => (
+            <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
+      )}
+
+      {tab === 'templates' && canManageTemplates && Array.isArray(templates) && (
+        <AppealTemplates templates={templates} clients={ctx.clients} user={user} onChanged={reloadTemplates} />
+      )}
+
+      {tab === 'appeal' && sensitive && (
         <div className="card mb-16" style={{ border: '2px solid var(--danger)', fontWeight: 600 }}>
           🔒 Contains patient details — they stay on this computer only (not saved anywhere). Clear the form when you’re done.
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, alignItems: 'start' }}>
-        <AppealForm form={form} set={set} ctx={ctx} payer={payer} matched={matched} effectiveType={effectiveType} />
-        <AppealSidePanel form={form} effectiveType={effectiveType} client={client} payer={payer} matched={matched}
-          steps={steps} ctx={ctx} user={user} onOpenSop={setSopId} onOpenPayer={setPayerCard} />
-      </div>
+      {tab === 'appeal' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, alignItems: 'start' }}>
+            <AppealForm form={form} set={set} ctx={ctx} payer={payer} matched={matched} effectiveType={effectiveType} />
+            <AppealSidePanel form={form} effectiveType={effectiveType} client={client} payer={payer} matched={matched}
+              steps={steps} ctx={ctx} user={user} onOpenSop={setSopId} onOpenPayer={setPayerCard} />
+          </div>
+          <AppealLetter form={form} set={set} effectiveType={effectiveType} client={client} payer={payer}
+            matched={matched} templates={templates} user={user} />
+        </>
+      )}
     </div>
   );
 }

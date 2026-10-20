@@ -109,6 +109,8 @@ export const emptyAppeal = () => ({
   client_id: '', payer_id: '', codes: '', level: 'first', denial_type: '', typeTouched: false,
   denial_date: '', claim_number: '', dos_from: '', dos_to: '',
   patient_name: '', patient_dob: '', member_id: '', disagree: '',
+  // 5.2 letter: chosen template ('' = best match) and the letter text once the user edits it (null = built from the template)
+  template_id: '', letter_text: null,
   // key facts of every denial type live side by side so switching type doesn't lose typing
   ...Object.fromEntries(DENIAL_TYPES.flatMap(t => t.facts).map(f => [f.key, f.type === 'checklist' ? [] : ''])),
 });

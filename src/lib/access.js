@@ -35,6 +35,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'training_track',  label: 'See training progress + confirm items', defaultRoles: MONITORS },
   // Denial Navigator: looking codes up is open to everyone; editing / import is gated
   { group: 'Tools', key: 'denials_edit', label: 'Edit Denial library', defaultRoles: MANAGERS },
+  // Appeal Builder: everyone writes appeals; the company's letter templates are managed by these people
+  { group: 'Tools', key: 'appeal_templates', label: 'Manage appeal letter templates', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

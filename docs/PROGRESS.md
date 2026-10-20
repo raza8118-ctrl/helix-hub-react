@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.2 (appeal letter templates) plan approved; building._
+_Last updated: 2026-10-20 — step 5.2 (appeal letter templates) done; next is 5.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 5.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 5.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**5.2 – Appeal letter templates — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 5.2 is done.** Next: **5.3 – AI wording (no PHI sent) → real values filled locally → preview
+→ edit** — needs a plan and a “go”. The app already has an AI key setting (Settings page, `save_ai_key` audit action) —
+check how it's stored/used before planning. Only placeholders + non-identifier facts may be sent (see 5.1 `id` flags and
+`checkTemplate`-style PHI checks for free text).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 5.2 was built (done)
+
+`src/lib/appealTemplates.js`: `TEMPLATE_TYPES` (incl. `any`), `TOKEN_GROUPS` (frame tokens `[TODAY]`, `[SENDER_NAME]`,
+`[PAYER_APPEALS_ADDRESS]`, `[PAYER_APPEALS_FAX]` + all 5.1 tokens; `id` flag), `SAMPLE_VALUES` (made-up), `fillTemplate`
+(“?” optional lines dropped when a token is empty; blank-line runs collapsed; returns parts for highlighting, text,
+missing), `pickTemplate` (client +4, type +2, level +1; non-matching client/type/level excluded), `checkTemplate`
+(unknown tokens, real-looking dates, 6+ digit numbers), CRUD, `STARTER_TEMPLATES` (8, our wording, shared HEAD/FOOT).
+`AppealLetter.jsx`: best/chosen template, values = `placeholderMap` + frame (sender = `user.name`, address/fax = first
+appeals contact via `loadPayerInfo`), highlighted preview, Show placeholders, edit (`form.letter_text`, in memory; ↺
+Rebuild), 📋 Copy, 🖨 Print (new window). `AppealTemplates.jsx`: list by type, editor (placeholder picker, sample preview,
+warnings), copy, review, (re)activate, starter. `AppealBuilder.jsx`: ✉️ Appeal / 📚 Templates tabs (`appeal_templates`).
 
 Plan as approved (defaults: 8 starter letters; “?” optional-line rule; automatic best template; copy + print now, PDF in
 5.4; new permission admin/manager):
@@ -552,6 +567,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 4.3 | Denial “Manage steps”: coverage + gaps, copy to client, Excel import / export, review queue, inactive (no DB change) | c58c595 |
 | 4.4 | Deadline helper: due dates from payer / client limits, Medicare quick-fill, copy summary (no DB change) | c748f2c |
 | 5.1 | Appeal Builder form: denial types + key facts, placeholders, side panel, in-memory only (no DB change) | 6b7e428 |
+| 5.2 | Appeal letter templates: best-match letter filled locally, edit / copy / print, Templates tab, 8 starters | (see next commit) |
 
 ---
 
@@ -573,6 +589,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 12. `supabase/migrations/20261021c_sop_quizzes.sql` (SOP quizzes, attempts, `needs_quiz` on path items, step 3.6)
 13. `supabase/migrations/20261021d_denial_codes.sql` (Denial library codes, step 4.1)
 14. `supabase/migrations/20261021e_denial_steps.sql` (Denial Navigator layered steps, step 4.2)
+15. `supabase/migrations/20261021f_appeal_templates.sql` (appeal letter templates, step 5.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
