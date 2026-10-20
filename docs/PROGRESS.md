@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.5 (Add to Appeal Packet) plan approved; building._
+_Last updated: 2026-10-20 — step 5.5 done; Phase 5 (Appeal Builder) complete; next is 6.1._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.5.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 5.5 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 6.1 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**5.5 – “Add to Appeal Packet” — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 5.5 is done — Phase 5 complete.** Next: **6.1 – Claim Note Generator** (dropdowns → note in
+each client's note format), first step of Phase 6 Daily AR productivity — needs a plan and a “go”. The `wb_artools`
+placeholder module (AR Tools) already exists in `modules.js`; claim notes contain claim details → same PHI care as the
+Appeal Builder (in memory, never saved / logged; per-client note FORMATS hold placeholders only).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 5.5 was built (done)
+
+No database change. `src/lib/packetHandoff.js` (module-level `handoff`, `sendToPacket` fires `helix:open-tab` →
+`wb_files`, `peekPacketHandoff`, `clearPacketHandoff`, wiped on `helix:signed-out`). `appealPdf.js`: `buildLetterPdf(text,
+{ pageNumbers })`, `buildFormPart`. `AppealPdf.jsx`: “📦 Add to Appeal Packet” (after the deadline tick; letter without
+page numbers + form part with page counts; DOS as MM/DD/YYYY–MM/DD/YYYY; level → packet type; audit `appeal_to_packet`
+{letter, form}). `FileTools.jsx`: starts on `packet` when a hand-over waits. `AppealPacket.jsx`: state starting values
+from `peekPacketHandoff()` (type, payer, client, claim #, DOS, patient, member ID; letter/form files keyed `h-letter` /
+`h-form`), effect clears the hand-over and loads the payer's contacts/forms, “Started from the Appeal Builder” note.
+Plan deviation: no Replace / Add question — File Tools always opens fresh, so the packet is empty when the hand-over arrives.
 
 Plan as approved (defaults: no fax cover in the packet; letter without its own page numbers; ask Replace / Add when the
 packet isn't empty; deadline tick reused) — no database change:
@@ -652,6 +666,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 5.2 | Appeal letter templates: best-match letter filled locally, edit / copy / print, Templates tab, 8 starters | 83baf5c |
 | 5.3 | AI wording for appeal letters: placeholders-only request, PHI block + confirm, answer checks, show changes (no DB change) | 974fc62 |
 | 5.4 | Appeal PDF: fax cover (no PHI), cover letter, pre-filled payer form + field maps, deadline check, save step | 7ab604b |
+| 5.5 | “Add to Appeal Packet”: letter + form + details handed to File Tools → Appeal Packet in memory (no DB change) | (see next commit) |
 
 ---
 

@@ -7,6 +7,7 @@ import PdfSaveOptions from './PdfSaveOptions';
 import { ImagesToPdf, ExcelToPdf } from './ConvertTools';
 import PdfToExcel from './PdfToExcel';
 import AppealPacket from './AppealPacket';
+import { peekPacketHandoff } from '../../lib/packetHandoff';
 
 // Colour + letter per file so its pages are easy to spot
 const FILE_COLORS = ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0d9488'];
@@ -384,7 +385,8 @@ const TOOLS = [
 
 /** File Tools (Workbench). 2.1 Merge, 2.2 Split + Original/Compress save step. Conversions come later. */
 export default function FileTools({ user }) {
-  const [tool, setTool] = useState('merge');
+  // 5.5: open straight on the Appeal Packet when the Appeal Builder has handed an appeal over
+  const [tool, setTool] = useState(() => (peekPacketHandoff() ? 'packet' : 'merge'));
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
       <div className="page-header">

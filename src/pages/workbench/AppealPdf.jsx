@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { kv } from '../../lib/supabase';
 import { hasAccess } from '../../lib/access';
 import { levelOf } from '../../lib/appeals';
-import { buildAppealPdf, listFormFields } from '../../lib/appealPdf';
+import { buildAppealPdf, listFormFields, buildLetterPdf, buildFormPart, pageCount } from '../../lib/appealPdf';
+import { sendToPacket } from '../../lib/packetHandoff';
+import { logAudit } from '../../lib/audit';
 import { loadPayerFormBytes, hasFieldMaps } from '../../lib/payerForms';
-import { fromKeyOf, computeDeadline, fmtDue } from '../../lib/deadlines';
+import { fromKeyOf, computeDeadline, fmtDue, fmtUS } from '../../lib/deadlines';
 import { applyNaming, DEFAULT_NAMING } from '../../lib/packet';
 import PdfSaveOptions from './PdfSaveOptions';
 import FormFieldMapper from './FormFieldMapper';
@@ -12,6 +14,8 @@ import CopyButton from '../../components/shared/CopyButton';
 
 const FORM_TYPES = { appeal: 'Appeal form', recon: 'Reconsideration form', corrected_claim: 'Corrected claim form' };
 const SOON = 3;
+// Appeal level → Appeal Packet type (5.5)
+const PACKET_TYPE = { first: 'Appeal', second: 'Appeal', recon: 'Reconsideration', corrected: 'Corrected claim' };
 
 /**
  * 📄 Build the PDF (roadmap 5.4): fax cover sheet (no patient details) + cover letter + payer form (pre-filled when it
@@ -82,6 +86,32 @@ export default function AppealPdf({ letterText, values, info, payer, client, for
     cover: cover ? { toName: payer?.name, toFax: contact?.fax, toPhone: contact?.phone, fromName: user.name, fromClient: client?.name } : null,
   });
   const resetKey = JSON.stringify([cover, letterOn, letterText, formId, formData?.id, flatten, mapped, fileName, values]);
+
+  // 5.5: hand the letter (no own page numbers — the packet numbers everything) and the form to the Appeal Packet
+  const [handing, setHanding] = useState(false);
+  const [handError, setHandError] = useState('');
+  async function addToPacket() {
+    setHanding(true);
+    setHandError('');
+    try {
+      const letterBytes = letterOn && letterText?.trim() ? await buildLetterPdf(letterText, { pageNumbers: false }) : null;
+      const formBytes = formData?.bytes
+        ? await buildFormPart({ bytes: formData.bytes, fieldMap: mapped ? payerForm.field_map : null, flatten }, values, ctx)
+        : null;
+      const part = async (bytes, name) => (bytes ? { bytes, pageCount: await pageCount(bytes), name } : null);
+      const dos = [form.dos_from, form.dos_to].filter(Boolean).map(fmtUS).filter((d, i, all) => all.indexOf(d) === i).join('–');
+      logAudit({ actor: user, action: 'appeal_to_packet', entityType: 'appeal', details: { letter: !!letterBytes, form: !!formBytes } });
+      sendToPacket({
+        type: PACKET_TYPE[form.level] ?? 'Appeal', payer, clientId: form.client_id ? String(form.client_id) : '',
+        claimNo: form.claim_number ?? '', dos, patient: form.patient_name ?? '', memberId: form.member_id ?? '',
+        letter: await part(letterBytes, 'Cover letter (Appeal Builder)'),
+        form: await part(formBytes, `${payerForm?.title ?? 'Payer form'} (Appeal Builder)`),
+      });
+    } catch {
+      setHandError('The letter or form couldn’t be prepared. Try building the PDF instead.');
+    }
+    setHanding(false);
+  }
 
   return (
     <div style={{ borderTop: '1px solid var(--border)', marginTop: 12, paddingTop: 10 }}>
@@ -161,6 +191,14 @@ export default function AppealPdf({ letterText, values, info, payer, client, for
           auditAction="appeal_pdf_built"
           auditDetails={{ fax_cover: cover, letter: letterOn && !!letterText?.trim(), form: !!formData?.bytes, prefilled: !!mapped, flatten: !!(mapped && flatten), deadline: status }} />
       )}
+
+      {anything && (!needsAck || acked) && (
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+          <button className="btn-sm" onClick={addToPacket} disabled={handing}>{handing ? 'Preparing…' : '📦 Add to Appeal Packet'}</button>
+          <span className="text-sm text-muted">Opens File Tools → Appeal Packet with the letter and form, to add the EOB, auth approval and records.</span>
+        </div>
+      )}
+      {handError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{handError}</div>}
 
       {mapping && formData?.fields && (
         <FormFieldMapper payerForm={payerForm} bytes={formData.bytes} fields={formData.fields} user={user}

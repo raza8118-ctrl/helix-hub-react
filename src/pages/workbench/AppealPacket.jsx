@@ -3,6 +3,7 @@ import { S, kv } from '../../lib/supabase';
 import { hasAccess } from '../../lib/access';
 import { logAudit } from '../../lib/audit';
 import { payerFormLink } from '../../lib/payerForms';
+import { peekPacketHandoff, clearPacketHandoff } from '../../lib/packetHandoff';
 import { IMAGE_EXTENSIONS } from '../../lib/imageToPdf';
 import {
   PACKET_SECTIONS, PACKET_TYPES, NAMING_TOKENS, DEFAULT_NAMING, fileToPdf, applyNaming, assemblePacket,
@@ -82,19 +83,24 @@ function NamingSettings({ current, user, onClose, onSaved }) {
  */
 export default function AppealPacket({ user }) {
   const canEditNaming = hasAccess(user, 'packet_settings');
-  const [type, setType]         = useState('Appeal');
-  const [payer, setPayer]       = useState(null);
+  // 5.5: an appeal handed over from the Appeal Builder starts the packet (in memory only; taken once, below)
+  const [handoff] = useState(() => peekPacketHandoff());
+  const [type, setType]         = useState(handoff?.type ?? 'Appeal');
+  const [payer, setPayer]       = useState(handoff?.payer ?? null);
   const [contacts, setContacts] = useState([]);
   const [forms, setForms]       = useState([]);
   const [clients, setClients]   = useState([]);
-  const [clientId, setClientId] = useState('');
-  const [claimNo, setClaimNo]   = useState('');
-  const [dos, setDos]           = useState('');
-  const [patient, setPatient]   = useState('');
-  const [memberId, setMemberId] = useState('');
+  const [clientId, setClientId] = useState(handoff?.clientId ?? '');
+  const [claimNo, setClaimNo]   = useState(handoff?.claimNo ?? '');
+  const [dos, setDos]           = useState(handoff?.dos ?? '');
+  const [patient, setPatient]   = useState(handoff?.patient ?? '');
+  const [memberId, setMemberId] = useState(handoff?.memberId ?? '');
   const [sentBy, setSentBy]     = useState(user.name ?? user.emp_id);
   const [notes, setNotes]       = useState('');
-  const [sections, setSections] = useState(PACKET_SECTIONS.map(s => ({ ...s, files: [] })));
+  const [sections, setSections] = useState(() => PACKET_SECTIONS.map(s => {
+    const part = s.id === 'letter' ? handoff?.letter : s.id === 'form' ? handoff?.form : null;
+    return { ...s, files: part ? [{ key: `h-${s.id}`, name: part.name, bytes: part.bytes, pageCount: part.pageCount }] : [] };
+  }));
   const [busySection, setBusySection] = useState(null);
   const [problems, setProblems] = useState([]);
   const [cover, setCover]       = useState(true);
@@ -110,6 +116,17 @@ export default function AppealPacket({ user }) {
     S.get('clients').then(rows => setClients((rows ?? []).filter(c => c.active !== false)
       .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')))).catch(() => {});
   }, []);
+
+  // 5.5: the hand-over is used once, then wiped; a handed-over payer loads its contacts / forms like pickPayer
+  useEffect(() => {
+    clearPacketHandoff();
+    if (!handoff?.payer) return;
+    Promise.all([S.get('payer_contacts', { payer_id: handoff.payer.id }), S.get('payer_forms', { payer_id: handoff.payer.id })])
+      .then(([c, f]) => {
+        setContacts((c ?? []).filter(x => x.active !== false));
+        setForms((f ?? []).filter(x => x.active !== false && !x.superseded_at && x.file_path));
+      }).catch(() => {});
+  }, [handoff]);
 
   async function pickPayer(p) {
     setPayer(p);
@@ -206,6 +223,11 @@ export default function AppealPacket({ user }) {
       {/* Details */}
       <div className="card">
         <div className="card-title" style={{ marginBottom: 10 }}>Packet details</div>
+        {handoff && (
+          <div className="text-sm" style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 6, background: 'var(--surface-2)' }}>
+            ✉️ Started from the Appeal Builder — the cover letter and payer form are in their sections. Add the EOB, auth approval and records below.
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>
             <label>Packet type</label>

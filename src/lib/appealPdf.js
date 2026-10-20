@@ -33,8 +33,11 @@ function wrap(text, font, size, width) {
   return lines;
 }
 
-/** The letter text on Letter-size pages: Times 12 pt, 1" margins, wrapped, "Page X of Y" at the bottom. */
-export async function buildLetterPdf(text) {
+/**
+ * The letter text on Letter-size pages: Times 12 pt, 1" margins, wrapped, "Page X of Y" at the bottom
+ * (pageNumbers: false when the Appeal Packet numbers the whole packet instead — 5.5).
+ */
+export async function buildLetterPdf(text, { pageNumbers = true } = {}) {
   const { PDFDocument, StandardFonts, rgb } = await pdfLib();
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.TimesRoman);
@@ -50,7 +53,7 @@ export async function buildLetterPdf(text) {
     }
   }
   const pages = pdf.getPages();
-  pages.forEach((p, i) => {
+  if (pageNumbers) pages.forEach((p, i) => {
     const label = `Page ${i + 1} of ${pages.length}`;
     p.drawText(label, { x: (PAGE[0] - font.widthOfTextAtSize(label, 9)) / 2, y: 36, size: 9, font, color: rgb(0.35, 0.35, 0.35) });
   });
@@ -185,6 +188,12 @@ export async function mergePdfs(parts) {
   return out.save();
 }
 
+/** The payer form part: pre-filled from the field map when there is one, otherwise as-is. form = { bytes, fieldMap, flatten }. */
+export async function buildFormPart(form, values, ctx) {
+  if (!form.fieldMap) return form.bytes;
+  return (await fillForm(form.bytes, form.fieldMap, values, ctx, { flatten: form.flatten })).bytes;
+}
+
 /** Page count of a PDF. */
 export async function pageCount(bytes) {
   const { PDFDocument } = await pdfLib();
@@ -198,10 +207,7 @@ export async function pageCount(bytes) {
 export async function buildAppealPdf({ letterText, form, values, ctx, cover }) {
   const parts = [];
   if (letterText?.trim()) parts.push(await buildLetterPdf(letterText));
-  if (form?.bytes) {
-    const done = form.fieldMap ? await fillForm(form.bytes, form.fieldMap, values, ctx, { flatten: form.flatten }) : { bytes: form.bytes };
-    parts.push(done.bytes);
-  }
+  if (form?.bytes) parts.push(await buildFormPart(form, values, ctx));
   if (cover) {
     let pages = 1;
     for (const p of parts) pages += await pageCount(p);

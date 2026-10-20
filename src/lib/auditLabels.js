@@ -66,6 +66,7 @@ const ACTION_LABELS = {
   sop_quiz_attempt:      'Took SOP quiz',
   appeal_ai_wording:     'Used AI wording for an appeal',
   appeal_pdf_built:      'Built an appeal PDF',
+  appeal_to_packet:      'Sent an appeal to the Appeal Packet',
   payer_form_fields_map: 'Mapped payer form fields',
   denial_code_add:       'Added denial code',
   denial_code_edit:      'Edited denial code',
