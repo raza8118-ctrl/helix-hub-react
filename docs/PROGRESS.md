@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.4 (Smart Worklist) done; next is 6.5._
+_Last updated: 2026-10-20 — step 6.5 (follow-up tickler) plan approved; building._
 
 ---
 
@@ -21,10 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 6.4 is done.** Next: **6.5 – Follow-up tickler** (reminders per claim) — needs a plan and a
-“go”. Smart Worklist items already carry `follow_up` dates (“due / overdue” on My worklist); a tickler could build on
-`worklist_items` (no new PHI fields) — remember the 6.4 PHI decisions (minimum fields, no free-text notes on claims).
+**6.5 – Follow-up tickler — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: buckets overdue / today / this week / later; snooze +1 day · +3 days · next Monday · pick a
+date; sign-in pop-up on; browser notifications off until each person turns them on; 15-minute refresh; 90-day claim # wipe):
+- Smart Worklist **⏰ Follow-ups** tab (everyone, own only): worklist follow-up dates + personal reminders; counts;
+  group by payer (payer claims phone + copy); actions ✓ Done (worklist status for worklist claims), Snooze, 📝 Write note,
+  copy claim #.
+- **+ Reminder**: client, payer, what to do (call back, check status, expect payment, expect records request, appeal
+  decision due, other), due date, optional claim #. Claim Note Generator: “⏰ Also add a reminder” when a follow-up date is
+  set (optional claim #). No free text; no patient fields.
+- Reminding (in the app; no email/SMS — no server): sign-in pop-up “N due today, M overdue → Open”; sidebar badge on
+  “Smart Worklist (N)” refreshed every 15 min; optional per-person browser notifications while Helix Hub is open (count
+  only, never claim details). `App.jsx` additive only (nudge, 15-min count, badge on that one label).
+- Team view (`worklist_manage`; supervisors own team): per person overdue / due today / done today; Excel counts only.
+- PHI: reminder claim # wiped 90 days after done (or after the due date if never done); rows kept.
+- DB: `supabase/migrations/20261021k_followups.sql` → `followups` (id, emp_id, client_id, payer_id, claim_number,
+  action, due_date, status open/done, snoozed_count, done_at, cleared, created/updated). No patient / free-text columns.
+- Files: new `src/lib/followups.js`, `src/pages/workbench/Followups.jsx`, `ReminderModal.jsx`,
+  `src/components/shared/FollowupNudge.jsx`; changed `SmartWorklist.jsx`, `ClaimNoteGenerator.jsx`, `src/App.jsx`
+  (additive), `src/lib/auditLabels.js`. Audit `followup_add/done/snooze/clear` (ids only).
 
 ### Reference: how 6.4 was built (done)
 
