@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.4 (SOP versioning) plan approved; building._
+_Last updated: 2026-10-20 — step 3.4 (SOP versioning) done; next is 3.5._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 3.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.5.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 3.5 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**3.4 – Versioning, client SOPs, Acknowledge + read tracking — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 3.4 is done.** Next: **3.5 – Learning paths by role** (e.g. new AR joiner Day 1–5) with
+completion tracking — needs a plan and a “go”. Acknowledgements per version already exist in `sop_reads` and can count
+as “completed” for an SOP in a path.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.4 was built (done)
+
+Code: `src/lib/sopVersions.js` (`SNAPSHOT_KEYS`, `loadSopVersionMeta` — versions without snapshots via PostgREST
+`snapshot->>title` aliases + my reads, `versionStates` current/upcoming/archived from `effective_date` vs local `today()`,
+`hasUnpublishedChanges` compares working copy to the newest version, `publishSopVersion`, `recordSopRead`, `acknowledgeSop`,
+`pendingAcknowledgements`, `loadSopTracking`), `SopVersions.jsx` (Publish pop-up, Version history, Client copy pop-up),
+`SopTracking.jsx` (lazy-loaded panel + Excel via dynamic `import('xlsx')`). `SopPage.jsx`: readers see the current version
+(`sopAsVersion` = row identity + snapshot); editors switch Published / Working copy / any version (ARCHIVED/UPCOMING banner);
+publish button disabled when nothing changed. `SopLibrary.jsx` builds a reader view (`viewLib`) where titles/summaries come
+from the current version; SOPs with only upcoming versions are hidden from readers. Client SOPs sort first (`bySort`).
+Once 3.4 is set up the manual Draft/Published field is hidden in the SOP pop-up (`activeFields`): status becomes
+“published” on first publish. `sop_reads` counts opens of the current version (also editors' opens).
 
 Plan as approved (defaults: “must acknowledge” ticked; only editors open archived versions; acknowledgement applies to
 the ticked “Who uses it” teams, everyone if none; tracking for admins/managers/supervisors; all users see all clients' SOPs):
@@ -281,6 +296,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
 | 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | 0586f95 |
 | 3.3 | SOP full-page editor, formatting, screenshots (paste, crop, black-out), short videos | b99691e |
+| 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | (see next commit) |
 
 ---
 
@@ -297,6 +313,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 7. `supabase/migrations/20261019d_sop_library.sql` (SOP Library, step 3.1)
 8. `supabase/migrations/20261020_sop_template.sql` (SOP page template, step 3.2)
 9. `supabase/migrations/20261020b_sop_media.sql` (SOP screenshots/videos bucket + `sop_media`, step 3.3)
+10. `supabase/migrations/20261021_sop_versions.sql` (SOP versions, client SOPs, acknowledgements, step 3.4)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -319,6 +336,7 @@ The app hides/disables the related features until each one has been run, so code
 - **SOP Library:** viewing open to all (Published only); `sops_edit` (admins + managers, grantable) edits and sees Drafts. Categories are editable.
 - **SOP page:** fixed template sections; SOPs need re-checking every 180 days (“Mark as verified today” by editors); “Who uses it” = team chips + free text.
 - **SOP media:** up to 3 screenshots + 1 short video per step, optional walkthrough video; videos MP4/WEBM ≤ 25 MB / 3 min; every upload needs the no-PHI tick; screenshots can be cropped/blacked out in the browser; removing media only unlinks it.
+- **SOP versions:** readers see only published versions (current = newest in effect); editors work on the working copy and publish with a change note + effective date; acknowledgement per version for the ticked teams (all if none); tracking via `sops_tracking` (admin/manager/supervisor); every user can see every client's SOPs (no user↔client link yet).
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

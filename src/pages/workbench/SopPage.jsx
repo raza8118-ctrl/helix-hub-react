@@ -1,17 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
+import { hasAccess } from '../../lib/access';
 import {
   SOP_RECHECK_DAYS, statusOf, hasSopTemplate, sopSteps, sopNeedsRecheck,
 } from '../../lib/sops';
+import {
+  loadSopVersions, versionStates, sopAsVersion, hasUnpublishedChanges, mustAcknowledge, recordSopRead, acknowledgeSop,
+} from '../../lib/sopVersions';
 import { sopTextToHtml, escHtml as esc } from '../../lib/sopText';
 import { sopMediaLink } from '../../lib/sopMedia';
 import SopEditorPage from './SopEditorPage';
 import SopContent from './SopContent';
+import SopTracking from './SopTracking';
+import { PublishVersionModal, VersionHistory, ClientCopyModal } from './SopVersions';
 import { confirmDialog } from '../../components/shared/Dialog';
 import CopyButton from '../../components/shared/CopyButton';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
 /** Category › Software › Task above the SOP title. */
 function trailOf(sop, lib) {
@@ -66,22 +73,64 @@ ${section('If it goes wrong', text(sop.troubleshooting))}
 }
 
 /**
- * One SOP shown with the standard template (roadmap 3.2), with formatting, screenshots and videos (3.3):
- * Purpose · Who uses it · Before you start · Steps · What you should see · If it goes wrong · Owner / Last verified.
+ * One SOP shown with the standard template (roadmap 3.2), with formatting, screenshots and videos (3.3),
+ * and published versions, client SOPs and acknowledgement (3.4).
+ * Readers see the current published version; editors can switch to the working copy or any older version.
  */
-export default function SopPage({ sop, lib, names, user, canEdit, onBack, onChanged }) {
+export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, onChanged, onOpenSop }) {
+  const versionsReady = meta != null;
+  const [versions, setVersions] = useState(undefined);   // full versions with snapshots; undefined = loading
+  const [reloadKey, setReloadKey] = useState(0);
+  const [viewId, setViewId] = useState(null);             // null = default view, 'working', or a version id
   const [editing, setEditing] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [acking, setAcking] = useState(false);
+  const [ackedNow, setAckedNow] = useState(null);         // version id acknowledged in this visit
+
+  useEffect(() => {
+    let alive = true;
+    if (versionsReady) loadSopVersions(sop.id).then(list => { if (alive) setVersions(list ?? []); });
+    return () => { alive = false; };
+  }, [sop.id, versionsReady, reloadKey]);
+
+  const list = versionsReady ? (versions ?? []) : [];
+  const states = versionStates(list);
+  const loadingVersions = versionsReady && versions === undefined;
+
+  // Which content is on screen: a version, or null for the working copy / an SOP from before versions
+  let shown;
+  if (!canEdit) shown = states.current;
+  else if (viewId === 'working') shown = null;
+  else if (viewId != null) shown = list.find(v => v.id === viewId) ?? null;
+  else shown = states.current;
+  const legacy = !versionsReady || list.length === 0;     // nothing published as a version yet
+  const display = shown ? sopAsVersion(sop, shown) : sop;
+  const readerHasNothing = !canEdit && !loadingVersions && !shown && !legacy;   // only upcoming versions so far
+  const notCurrent = !!shown && shown !== states.current;
+
   const trail = trailOf(sop, lib);
   const ready = hasSopTemplate(sop);
   const status = statusOf(sop.status);
   const stale = ready && sopNeedsRecheck(sop);
+  const unpublished = canEdit && versionsReady && !loadingVersions && hasUnpublishedChanges(sop, states.latest);
+  const client = sop.client_id != null ? (lib.clients ?? []).find(c => c.id === sop.client_id) : null;
+  const copiedFrom = sop.copied_from != null ? lib.sops.find(s => s.id === sop.copied_from) : null;
+  const canTrack = hasAccess(user, 'sops_tracking');
+
+  // Count this opening of the current version (first/last opened, how many times)
+  const currentId = states.current?.id ?? null;
+  const empId = user.emp_id;
+  useEffect(() => {
+    if (currentId) recordSopRead(sop.id, currentId, { emp_id: empId });
+  }, [sop.id, currentId, empId]);
 
   if (editing) {
     return (
       <SopEditorPage sop={sop} user={user} trail={trail}
         onClose={() => setEditing(false)}
-        onSaved={() => { setEditing(false); onChanged(); }} />
+        onSaved={() => { setEditing(false); setViewId('working'); onChanged(); }} />
     );
   }
 
@@ -100,28 +149,95 @@ export default function SopPage({ sop, lib, names, user, canEdit, onBack, onChan
     onChanged();
   }
 
+  async function acknowledge() {
+    if (!await confirmDialog({
+      title: `Acknowledge v${states.current.version_no}?`,
+      message: `“${display.title}” — you confirm you have read and understood this SOP.`,
+      confirmText: 'I Acknowledge',
+    })) return;
+    setAcking(true);
+    const ok = await acknowledgeSop(sop.id, states.current, user);
+    setAcking(false);
+    if (!ok) return;
+    setAckedNow(states.current.id);
+    onChanged();
+  }
+
+  // Acknowledgement status for the current version (only when it is on screen)
+  const ackRow = currentId ? meta?.myReads.find(r => r.version_id === currentId && r.acknowledged_at) : null;
+  const needsAck = !!shown && shown === states.current && mustAcknowledge(user, states.current);
+  const acked = ackedNow === currentId || !!ackRow;
+
   return (
     <div>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
         <button className="btn-sm" onClick={onBack}>← Back to library</button>
-        <span style={{ marginLeft: 'auto' }} className="row">
-          {ready && <button className="btn-sm" onClick={() => printSop(sop, trail, names)}>🖨 Print</button>}
+        <span style={{ marginLeft: 'auto', flexWrap: 'wrap', gap: 6 }} className="row">
+          {ready && !readerHasNothing && <button className="btn-sm" onClick={() => printSop(display, trail, names)}>🖨 Print</button>}
           {canEdit && ready && <button className="btn-sm" onClick={markVerified} disabled={verifying}>{verifying ? 'Saving…' : '✓ Mark as verified today'}</button>}
-          {canEdit && ready && <button className="btn-primary btn-sm" onClick={() => setEditing(true)}>✎ Edit content</button>}
+          {canEdit && versionsReady && sop.client_id == null && (
+            <button className="btn-sm" onClick={() => setCopying(true)}>📋 Make a client copy</button>
+          )}
+          {canEdit && ready && <button className="btn-sm" onClick={() => setEditing(true)}>✎ Edit content</button>}
+          {canEdit && ready && versionsReady && (
+            <button className="btn-primary btn-sm" onClick={() => setPublishing(true)} disabled={loadingVersions || !unpublished}
+              title={unpublished ? 'Publish the working copy as a new version' : 'No changes since the last version'}>
+              📤 Publish new version
+            </button>
+          )}
         </span>
       </div>
 
-      <div className="card mb-16">
+      {canEdit && versionsReady && !loadingVersions && (
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+          <span className="text-sm text-muted">Showing:</span>
+          {states.current && (
+            <button className={shown === states.current ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={shown === states.current}
+              onClick={() => setViewId(null)}>Published (v{states.current.version_no})</button>
+          )}
+          <button className={!shown ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={!shown}
+            onClick={() => setViewId('working')}>Working copy</button>
+          {unpublished && <span className="badge badge-yellow">Unpublished changes</span>}
+          {notCurrent && <span className="badge badge-gray">Viewing v{shown.version_no}</span>}
+        </div>
+      )}
+
+      {notCurrent && (
+        <div className="card mb-16" style={{ border: '2px solid var(--danger)', fontWeight: 600 }}>
+          {states.upcoming.includes(shown)
+            ? `UPCOMING – v${shown.version_no} takes effect on ${fmtDay(shown.effective_date)}. Readers don’t see it yet.`
+            : `ARCHIVED – not current. This is v${shown.version_no}${states.current ? `; the current version is v${states.current.version_no}` : ''}.`}
+        </div>
+      )}
+
+      {states.upcoming.length > 0 && !notCurrent && (
+        <div className="card mb-16 text-sm" style={{ borderLeft: '4px solid var(--accent)' }}>
+          {canEdit
+            ? `v${states.upcoming[0].version_no} takes effect on ${fmtDay(states.upcoming[0].effective_date)}.`
+            : `An updated version of this SOP takes effect on ${fmtDay(states.upcoming[0].effective_date)}.`}
+        </div>
+      )}
+
+      <div className="card mb-16" style={client ? { borderLeft: '4px solid var(--accent)' } : undefined}>
         <div className="text-sm text-muted">
           {[trail.category?.name, trail.software?.name, trail.task?.name].filter(Boolean).join(' › ')}
         </div>
-        <div className="page-title" style={{ margin: '4px 0' }}>📄 {sop.title}</div>
-        {sop.summary && <div className="text-muted" style={{ whiteSpace: 'pre-wrap' }}>{sop.summary}</div>}
+        <div className="page-title" style={{ margin: '4px 0' }}>📄 {display.title}</div>
+        {display.summary && <div className="text-muted" style={{ whiteSpace: 'pre-wrap' }}>{display.summary}</div>}
         <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+          {client ? <span className="badge badge-blue">Client: {client.name}</span>
+            : versionsReady && <span className="badge badge-gray">Common SOP (all clients)</span>}
+          {shown && <span className="badge badge-green">v{shown.version_no} · effective {fmtDay(shown.effective_date)}</span>}
           {canEdit && <span className={`badge ${status.badge}`}>{status.label}</span>}
           {stale && <span className="badge badge-orange" title={`Not verified in the last ${SOP_RECHECK_DAYS} days`}>Needs re-check</span>}
           {sop.active === false && <span className="badge badge-gray">Inactive</span>}
         </div>
+        {copiedFrom && canEdit && (
+          <div className="text-sm text-muted" style={{ marginTop: 6 }}>
+            Copied from the common SOP{' '}
+            <button type="button" className="btn-sm" onClick={() => onOpenSop(copiedFrom.id)}>{copiedFrom.title} ›</button>
+          </div>
+        )}
         {trail.software?.portal_url && (
           <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
             <span className="text-sm text-muted">{trail.software.name} login:</span>
@@ -131,6 +247,21 @@ export default function SopPage({ sop, lib, names, user, canEdit, onBack, onChan
         )}
       </div>
 
+      {needsAck && (
+        <div className="card mb-16" style={{ border: `2px solid ${acked ? 'var(--success)' : 'var(--warning)'}` }}>
+          {acked
+            ? <div className="text-sm">✓ You acknowledged v{states.current.version_no}{ackRow ? ` on ${fmtDate(ackRow.acknowledged_at)}` : ''}.</div>
+            : (
+              <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span className="text-sm">Please read this SOP and confirm you understand it.</span>
+                <button className="btn-primary" style={{ marginLeft: 'auto' }} onClick={acknowledge} disabled={acking}>
+                  {acking ? 'Saving…' : `I have read and understood this SOP (v${states.current.version_no})`}
+                </button>
+              </div>
+            )}
+        </div>
+      )}
+
       {!ready && (
         <div className="card mb-16 text-muted">
           The SOP page template isn’t set up yet. An admin needs to run the SOP template database update
@@ -138,15 +269,33 @@ export default function SopPage({ sop, lib, names, user, canEdit, onBack, onChan
         </div>
       )}
 
-      {ready && <SopContent sop={sop} showEmpty={canEdit} />}
+      {loadingVersions && <div className="card mb-16 text-muted">Loading…</div>}
+      {readerHasNothing && <div className="card mb-16 text-muted">This SOP isn’t in effect yet.</div>}
+      {ready && !loadingVersions && !readerHasNothing && <SopContent sop={display} showEmpty={canEdit && !shown} />}
+
+      {canTrack && states.current && <SopTracking key={states.current.id} sop={sop} version={states.current} />}
+
+      {canEdit && versionsReady && !loadingVersions && (
+        <VersionHistory versions={list} states={states} names={names} viewingId={shown?.id ?? null}
+          onView={v => setViewId(v === states.current ? null : v.id)} />
+      )}
 
       <div className="card mb-16 text-sm text-muted">
         Owner: <b>{names[sop.owner] ?? sop.owner ?? 'none yet'}</b>
         {' · '}Last verified: <b>{sop.last_verified_at
           ? `${fmtDate(sop.last_verified_at)}${sop.last_verified_by ? ` by ${names[sop.last_verified_by] ?? sop.last_verified_by}` : ''}`
           : 'never'}</b>
-        {' · '}Updated {fmtDate(sop.updated_at)}
+        {shown ? ` · Published ${fmtDate(shown.published_at)}` : ` · Updated ${fmtDate(sop.updated_at)}`}
       </div>
+
+      {publishing && (
+        <PublishVersionModal sop={sop} versions={list} user={user} onClose={() => setPublishing(false)}
+          onPublished={() => { setPublishing(false); setViewId(null); setReloadKey(k => k + 1); onChanged(); }} />
+      )}
+      {copying && (
+        <ClientCopyModal sop={sop} lib={lib} user={user} onClose={() => setCopying(false)}
+          onCopied={row => { setCopying(false); onChanged(); onOpenSop(row.id); }} />
+      )}
     </div>
   );
 }

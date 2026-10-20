@@ -41,36 +41,53 @@ export const SOP_LEVELS = {
       { key: 'title',   label: 'SOP title', required: true, hint: 'e.g. Claim status check in Waystar' },
       { key: 'summary', label: 'Short summary', type: 'textarea', hint: 'One or two lines: what this SOP covers' },
       { key: 'owner',   label: 'Owner (keeps it up to date)', type: 'user' },
-      { key: 'status',  label: 'Status', type: 'select', options: SOP_STATUSES },
+      // 3.4: null = common SOP for all clients. Shown once the 3.4 database update has been run.
+      { key: 'client_id', label: 'Applies to', type: 'client', needsVersions: true },
+      // Before 3.4 the status was set by hand; with versions it follows "Publish new version"
+      { key: 'status',  label: 'Status', type: 'select', options: SOP_STATUSES, hideWithVersions: true },
     ],
   },
 };
 
-/** All four tables, or null when the 3.1 database update hasn't been run yet. */
+/** The editor fields that apply, depending on whether the 3.4 database update has been run. */
+export const activeFields = (level, versionsReady) => SOP_LEVELS[level].fields
+  .filter(f => !(f.needsVersions && !versionsReady) && !(f.hideWithVersions && versionsReady));
+
+/**
+ * All four tables (plus the clients list when available), or null when the 3.1 database update hasn't been run yet.
+ */
 export async function loadSopLibrary() {
   const tables = ['sop_categories', 'sop_software', 'sop_tasks', 'sops'];
-  const results = await Promise.all(tables.map(t => db(t).select('*')));
+  const [results, clients] = await Promise.all([
+    Promise.all(tables.map(t => db(t).select('*'))),
+    db('clients').select('id,name,active'),
+  ]);
   if (results.some(r => r.error)) return null;
   const [categories, software, tasks, sops] = results.map(r => r.data ?? []);
-  return { categories, software, tasks, sops };
+  const clientList = (clients.data ?? []).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+  return { categories, software, tasks, sops, clients: clientList };
 }
 
-const bySort = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+// Client-specific SOPs first (3.4), then the manual order
+const bySort = (a, b) => (b.client_id != null) - (a.client_id != null)
+  || (a.sort_order ?? 0) - (b.sort_order ?? 0)
   || (a.name ?? a.title ?? '').localeCompare(b.name ?? b.title ?? '');
 
 const has = (text, q) => (text ?? '').toLowerCase().includes(q);
 
 /**
  * Nested Category → Software → Task → SOP tree for display.
- * opts: query (search text), categoryId ('ALL' or id), showInactive, canSeeDrafts, status ('ALL' | 'draft' | 'published').
+ * opts: query (search text), categoryId ('ALL' or id), showInactive, canSeeDrafts, status ('ALL' | 'draft' | 'published'),
+ * clientId ('ALL' or a client id → that client's SOPs plus the common ones).
  * While searching, only matching branches are kept: a software/task whose own name matches keeps everything under it.
  */
-export function buildSopTree(lib, { query = '', categoryId = 'ALL', showInactive = false, canSeeDrafts = false, status = 'ALL' } = {}) {
+export function buildSopTree(lib, { query = '', categoryId = 'ALL', showInactive = false, canSeeDrafts = false, status = 'ALL', clientId = 'ALL' } = {}) {
   const q = query.trim().toLowerCase();
   const visible = r => showInactive || r.active !== false;
   const sopVisible = s => visible(s)
     && (canSeeDrafts || s.status === 'published')
-    && (status === 'ALL' || s.status === status);
+    && (status === 'ALL' || s.status === status)
+    && (clientId === 'ALL' || s.client_id == null || String(s.client_id) === String(clientId));
 
   return lib.categories
     .filter(visible)

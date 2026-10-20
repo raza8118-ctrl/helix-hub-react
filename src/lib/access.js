@@ -28,6 +28,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'packet_settings', label: 'Appeal Packet settings', defaultRoles: MANAGERS },
   // Published SOPs are open to everyone; editing (and seeing drafts) is gated
   { group: 'Tools', key: 'sops_edit',    label: 'Edit SOP Library',      defaultRoles: MANAGERS },
+  // Who has opened / acknowledged each published SOP version
+  { group: 'Tools', key: 'sops_tracking', label: 'See SOP read tracking', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

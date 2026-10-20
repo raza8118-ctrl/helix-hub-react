@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { db } from '../../lib/supabase';
 import { hasAccess } from '../../lib/access';
 import { loadSopLibrary, buildSopTree, countSops, statusOf, STARTER_CATEGORIES } from '../../lib/sops';
+import { loadSopVersionMeta, versionStates, pendingAcknowledgements } from '../../lib/sopVersions';
 import { SopEditModal } from './SopEditors';
 import SopPage from './SopPage';
 import { toggleSopActive, moveSopItem, addStarterCategories } from './sopActions';
@@ -14,6 +15,7 @@ const inactiveStyle = row => row.active === false ? { opacity: 0.55 } : undefine
  * SOP Library (roadmap 3.1): Category → Software → Task → SOP.
  * Everyone sees published SOPs; "Edit SOP Library" holders also see drafts and can add/edit/reorder.
  * Clicking an SOP opens its full page with the standard template (3.2).
+ * 3.4: readers see the current published version of each SOP; client filter; "to acknowledge" banner.
  */
 export default function SopLibrary({ user }) {
   const canEdit = hasAccess(user, 'sops_edit');
@@ -26,18 +28,43 @@ export default function SopLibrary({ user }) {
   const [open, setOpen]         = useState(() => new Set());   // expanded software ids
   const [editor, setEditor]     = useState(null);              // { level, row, parentId }
   const [openSopId, setOpenSopId] = useState(null);            // SOP shown as a full page (3.2)
+  const [meta, setMeta]         = useState(null);              // 3.4 versions + my reads; null = not set up
+  const [clientId, setClientId] = useState('ALL');
 
-  const load = () => loadSopLibrary().then(setLib);
+  // Library + version facts together; lib.versionsReady tells the editors whether 3.4 is set up
+  const empId = user.emp_id;
+  const fetchAll = id => Promise.all([loadSopLibrary(), loadSopVersionMeta({ emp_id: id })]);
+  const applyAll = ([l, m]) => { setLib(l ? { ...l, versionsReady: m != null } : l); setMeta(m); };
+  const load = () => fetchAll(empId).then(applyAll);
   useEffect(() => {
-    loadSopLibrary().then(setLib);
+    Promise.all([loadSopLibrary(), loadSopVersionMeta({ emp_id: empId })])
+      .then(([l, m]) => { setLib(l ? { ...l, versionsReady: m != null } : l); setMeta(m); });
     db('users').select('emp_id,name').then(({ data }) =>
       setUsers((data ?? []).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))));
-  }, []);
+  }, [empId]);
+
+  // What readers see: each SOP's current published version (title/summary from it). Editors see the working copies.
+  const viewLib = useMemo(() => {
+    if (!lib || canEdit || !meta) return lib;
+    const bySop = {};
+    meta.versions.forEach(v => { (bySop[v.sop_id] ??= []).push(v); });
+    const sops = lib.sops.flatMap(s => {
+      if (!bySop[s.id]?.length) return s.status === 'published' ? [s] : [];   // published before versions existed
+      const { current } = versionStates(bySop[s.id]);
+      return current ? [{ ...s, title: current.title ?? s.title, summary: current.summary ?? s.summary, status: 'published' }] : [];
+    });
+    return { ...lib, sops };
+  }, [lib, meta, canEdit]);
+
+  const pending = useMemo(() => viewLib && meta
+    ? pendingAcknowledgements(viewLib.sops.filter(s => s.active !== false), meta, user) : [], [viewLib, meta, user]);
+  const pendingIds = useMemo(() => new Set(pending.map(p => p.sop.id)), [pending]);
+  const clientName = useMemo(() => Object.fromEntries((lib?.clients ?? []).map(c => [c.id, c.name])), [lib]);
 
   const names = useMemo(() => Object.fromEntries(users.map(u => [u.emp_id, u.name ?? u.emp_id])), [users]);
-  const tree = useMemo(() => lib ? buildSopTree(lib, {
-    query, categoryId, status, showInactive: canEdit && showInactive, canSeeDrafts: canEdit,
-  }) : [], [lib, query, categoryId, status, showInactive, canEdit]);
+  const tree = useMemo(() => viewLib ? buildSopTree(viewLib, {
+    query, categoryId, status, clientId, showInactive: canEdit && showInactive, canSeeDrafts: canEdit,
+  }) : [], [viewLib, query, categoryId, status, clientId, showInactive, canEdit]);
   const searching = query.trim() !== '';
   const missingStarters = lib && STARTER_CATEGORIES.some(n => !lib.categories.some(c => c.name.toLowerCase() === n.toLowerCase()));
 
@@ -68,12 +95,13 @@ export default function SopLibrary({ user }) {
     );
   }
 
+  // Readers may only open SOPs they can see in the list (published, active); the page gets the raw row
   const openSop = lib && openSopId != null ? lib.sops.find(s => s.id === openSopId) : null;
-  if (openSop && (canEdit || (openSop.status === 'published' && openSop.active !== false))) {
+  if (openSop && (canEdit || viewLib.sops.some(s => s.id === openSop.id && s.active !== false))) {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <SopPage sop={openSop} lib={lib} names={names} user={user} canEdit={canEdit}
-          onBack={() => setOpenSopId(null)} onChanged={load} />
+        <SopPage key={openSop.id} sop={openSop} lib={lib} meta={meta} names={names} user={user} canEdit={canEdit}
+          onBack={() => setOpenSopId(null)} onChanged={load} onOpenSop={setOpenSopId} />
       </div>
     );
   }
@@ -105,6 +133,21 @@ export default function SopLibrary({ user }) {
         </div>
       )}
 
+      {lib && pending.length > 0 && (
+        <div className="card mb-16" style={{ border: '2px solid var(--warning)' }}>
+          <div className="bold" style={{ marginBottom: 6 }}>
+            📌 You have {pending.length} SOP{pending.length > 1 ? 's' : ''} to acknowledge
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            {pending.map(p => (
+              <button key={p.sop.id} className="btn-sm" onClick={() => setOpenSopId(p.sop.id)}>
+                {p.sop.title} (v{p.version.version_no}) ›
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {lib && (
         <>
           <div className="card mb-16">
@@ -117,6 +160,13 @@ export default function SopLibrary({ user }) {
                 {lib.categories.filter(c => c.active !== false).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
                   .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+              {lib.versionsReady && lib.clients.length > 0 && (
+                <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ maxWidth: 200 }}
+                  title="A client shows its own SOPs plus the common ones">
+                  <option value="ALL">All clients</option>
+                  {lib.clients.filter(c => c.active !== false).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
               {canEdit && (
                 <select value={status} onChange={e => setStatus(e.target.value)} style={{ maxWidth: 160 }}>
                   <option value="ALL">All statuses</option>
@@ -194,6 +244,7 @@ export default function SopLibrary({ user }) {
                               <div key={s.id} className="row" style={{
                                 gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '6px 0 6px 12px',
                                 borderLeft: '3px solid var(--accent)', marginTop: 4, ...inactiveStyle(s),
+                                ...(s.client_id != null ? { background: 'var(--surface-2)', borderRadius: '0 6px 6px 0' } : null),
                               }}>
                                 <div style={{ flex: '1 1 240px', minWidth: 0, cursor: 'pointer' }} role="button" tabIndex={0}
                                   title="Open this SOP" onClick={() => setOpenSopId(s.id)}
@@ -204,6 +255,8 @@ export default function SopLibrary({ user }) {
                                     {s.owner ? `Owner: ${names[s.owner] ?? s.owner} · ` : ''}Updated {fmtDate(s.updated_at)}
                                   </div>
                                 </div>
+                                {s.client_id != null && <span className="badge badge-blue">Client: {clientName[s.client_id] ?? '?'}</span>}
+                                {pendingIds.has(s.id) && <span className="badge badge-orange">To acknowledge</span>}
                                 {canEdit && <span className={`badge ${statusOf(s.status).badge}`}>{statusOf(s.status).label}</span>}
                                 {s.active === false && <span className="badge badge-gray">Inactive</span>}
                                 {controls({ level: 'sop', row: s, list: t.sops, index: i })}

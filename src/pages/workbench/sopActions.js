@@ -1,8 +1,9 @@
-// SOP Library list actions (make inactive, reorder, starter categories) — used by SopLibrary.jsx.
+// SOP Library list actions (make inactive, reorder, starter categories, client copy) — used by SopLibrary.jsx / SopPage.jsx.
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { SOP_LEVELS, STARTER_CATEGORIES } from '../../lib/sops';
-import { confirmDialog } from '../../components/shared/Dialog';
+import { SNAPSHOT_KEYS } from '../../lib/sopVersions';
+import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 
 const now = () => new Date().toISOString();
 const nameOf = (level, row) => row?.[SOP_LEVELS[level].nameKey] ?? '';
@@ -46,4 +47,30 @@ export async function addStarterCategories(lib, user) {
   if (!result?.length) return false;
   logAudit({ actor: user, action: 'sop_category_add', entityType: 'sop_category', details: { count: result.length } });
   return true;
+}
+
+/**
+ * "Make a client copy" (3.4): copies a common SOP's working copy into a new DRAFT for one client,
+ * under the same task. Returns the new SOP row, or null.
+ */
+export async function makeClientCopy(sop, client, lib, user) {
+  const title = `${sop.title} (${client.name})`;
+  if (lib.sops.some(s => s.task_id === sop.task_id && s.active !== false && s.title.toLowerCase() === title.toLowerCase())) {
+    await alertDialog({ title: 'Already exists', message: `There is already an SOP called “${title}” under this task.`, tone: 'warning' });
+    return null;
+  }
+  if (!await confirmDialog({
+    title: `Make a copy for ${client.name}?`,
+    message: `A new draft “${title}” is created with the same content. Edit it for the client, then publish it.`,
+    confirmText: 'Make Copy',
+  })) return null;
+  const content = Object.fromEntries(SNAPSHOT_KEYS.filter(k => k in sop && k !== 'title').map(k => [k, sop[k]]));
+  const max = Math.max(0, ...lib.sops.filter(s => s.task_id === sop.task_id).map(s => s.sort_order ?? 0));
+  const rows = await S.set('sops', {
+    ...content, title, task_id: sop.task_id, owner: sop.owner ?? null, client_id: client.id, copied_from: sop.id,
+    status: 'draft', sort_order: max + 1, active: true, created_by: user.emp_id, updated_by: user.emp_id,
+  });
+  if (!rows?.length) return null;
+  logAudit({ actor: user, action: 'sop_client_copy', entityType: 'sop', entityId: rows[0].id, details: { copied_from: sop.id, client_id: client.id } });
+  return rows[0];
 }

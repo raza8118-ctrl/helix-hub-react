@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
-import { SOP_LEVELS } from '../../lib/sops';
+import { SOP_LEVELS, activeFields } from '../../lib/sops';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
 
@@ -31,20 +31,23 @@ function siblingsOf(level, lib, parentId) {
  */
 export function SopEditModal({ level, row, parentId, lib, users, user, onClose, onSaved }) {
   const cfg = SOP_LEVELS[level];
+  const fields = activeFields(level, lib.versionsReady);
   const editing = row != null;
-  const [values, setValues] = useState(() => Object.fromEntries(cfg.fields.map(f => [f.key,
+  const [values, setValues] = useState(() => Object.fromEntries(fields.map(f => [f.key,
     editing ? (row[f.key] ?? '') : f.type === 'parent' ? (parentId ?? '') : f.key === 'status' ? 'draft' : ''])));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const setV = patch => { setValues(v => ({ ...v, ...patch })); setError(''); };
 
   async function save() {
-    const missing = cfg.fields.filter(f => f.required && (values[f.key] === '' || values[f.key] == null));
+    const missing = fields.filter(f => f.required && (values[f.key] === '' || values[f.key] == null));
     if (missing.length) return setError(`Please fill in: ${missing.map(m => m.label).join(', ')}.`);
     const clean = {};
-    for (const f of cfg.fields) {
+    for (const f of fields) {
       const v = values[f.key];
-      clean[f.key] = f.type === 'parent' ? Number(v) : (typeof v === 'string' ? v.trim() : v) || null;
+      clean[f.key] = f.type === 'parent' ? Number(v)
+        : f.type === 'client' ? (v === '' || v == null ? null : Number(v))
+        : (typeof v === 'string' ? v.trim() : v) || null;
     }
     if (clean.portal_url && !/^https?:\/\//i.test(clean.portal_url)) clean.portal_url = `https://${clean.portal_url}`;
 
@@ -85,13 +88,16 @@ export function SopEditModal({ level, row, parentId, lib, users, user, onClose, 
     let input;
     if (f.type === 'textarea') {
       input = <textarea rows={3} value={v ?? ''} placeholder={f.hint} onChange={e => setV({ [f.key]: e.target.value })} />;
-    } else if (f.type === 'parent' || f.type === 'select' || f.type === 'user') {
+    } else if (f.type === 'parent' || f.type === 'select' || f.type === 'user' || f.type === 'client') {
       const options = f.type === 'parent' ? parentOptions(level, lib, row?.[f.key])
                     : f.type === 'user'   ? users.map(u => ({ value: u.emp_id, label: `${u.name ?? u.emp_id} (${u.emp_id})` }))
+                    : f.type === 'client' ? (lib.clients ?? []).filter(c => c.active !== false || c.id === row?.client_id)
+                        .map(c => ({ value: c.id, label: c.name }))
                     : f.options;
+      const empty = { user: '— No owner yet —', client: 'All clients (common SOP)' }[f.type] ?? '— Choose —';
       input = (
         <select value={v == null ? '' : String(v)} onChange={e => setV({ [f.key]: e.target.value })}>
-          {f.type !== 'select' && <option value="">{f.type === 'user' ? '— No owner yet —' : '— Choose —'}</option>}
+          {f.type !== 'select' && <option value="">{empty}</option>}
           {options.map(o => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
         </select>
       );
@@ -109,11 +115,13 @@ export function SopEditModal({ level, row, parentId, lib, users, user, onClose, 
   return (
     <Modal title={`${editing ? 'Edit' : 'Add'} ${cfg.one}`} onClose={onClose} wide>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {cfg.fields.map(renderField)}
+        {fields.map(renderField)}
         {level === 'sop' && (
           <p className="text-sm text-muted" style={{ marginTop: 0 }}>
-            Only <b>Published</b> SOPs are shown to everyone; drafts are visible to SOP editors only.
-            Open the SOP afterwards to fill in its page (purpose, steps, troubleshooting…).
+            {lib.versionsReady
+              ? <>Readers only see an SOP once a version is published (open the SOP → <b>Publish new version</b>).</>
+              : <>Only <b>Published</b> SOPs are shown to everyone; drafts are visible to SOP editors only.</>}
+            {' '}Open the SOP afterwards to fill in its page (purpose, steps, troubleshooting…).
           </p>
         )}
         <p className="text-sm text-muted" style={{ marginTop: 0 }}>🔒 No patient information here.</p>
