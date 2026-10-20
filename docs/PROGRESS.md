@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.4 (SOP versioning) done; next is 3.5._
+_Last updated: 2026-10-20 — step 3.5 (learning paths) plan approved; building._
 
 ---
 
@@ -21,10 +21,30 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 3.4 is done.** Next: **3.5 – Learning paths by role** (e.g. new AR joiner Day 1–5) with
-completion tracking — needs a plan and a “go”. Acknowledgements per version already exist in `sop_reads` and can count
-as “completed” for an SOP in a path.
+**3.5 – Learning paths by role — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: due dates skip weekends; one team per path; people tick tasks/links themselves unless
+“Trainer must confirm”; no auto-assign on user creation — would need Team page changes):
+- New Workbench sidebar page **🎓 Training** (`wb_training`, all roles): **My training** · **Team progress** · **Manage paths**.
+- Path = name, description, team; **Day 1…N** with ▲▼ items: 📄 SOP (done = person acknowledged any version, via the 3.4
+  button), ✅ Task (self-tick), 🔗 Link (self-tick); any item can be “Trainer must confirm”. 3.6 adds 📝 Quiz items.
+  Copy / make inactive / reactivate paths; nothing deleted.
+- **Assign**: pick people (“Select whole team”), start date; Day N due = start + (N−1) working days. Re-assign keeps history.
+- **My training**: progress bar, “Day 3 of 5”, items by day with due dates, overdue in red, SOP items open the SOP
+  (acknowledge button shown for SOPs in my path even if the version didn't require it; “← Back to my training”), 🎉 complete.
+- **Team progress**: per person × path: % done, current day, overdue count, started/finished; drill into items; trainers
+  tick “Trainer must confirm” items; filters path/team/overdue only; Download Excel.
+- Permissions: `training_manage` “Manage learning paths” (admin/manager), `training_track` “See training progress +
+  confirm items” (admin/manager/supervisor). Both grantable.
+- DB: `supabase/migrations/20261021b_learning_paths.sql` → `learning_paths`, `learning_path_items`
+  (day_no, sort_order, kind sop/task/link, sop_id, title, url, needs_trainer, active), `learning_assignments`
+  (path_id, emp_id, start_date, assigned_by/at, completed_at, active), `learning_progress` (assignment_id, item_id,
+  done_at, done_by). SOP completion read from `sop_reads`. Select/insert/update only. No PHI.
+- Files: new `src/lib/training.js`, `src/pages/workbench/Training.jsx`, `TrainingPathEditor.jsx`, `TrainingAssign.jsx`,
+  `TrainingProgress.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `src/lib/access.js`, `src/lib/auditLabels.js`,
+  `SopPage.jsx`. Audit `training_path_add/edit`, `training_assign`, `training_item_done`, `training_trainer_confirm`,
+  `training_path_complete` (ids only).
 
 ### Reference: how 3.4 was built (done)
 
