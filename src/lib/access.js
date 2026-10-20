@@ -37,6 +37,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'denials_edit', label: 'Edit Denial library', defaultRoles: MANAGERS },
   // Appeal Builder: everyone writes appeals; the company's letter templates are managed by these people
   { group: 'Tools', key: 'appeal_templates', label: 'Manage appeal letter templates', defaultRoles: MANAGERS },
+  // AR Tools: everyone writes claim notes; each client's note format is managed by these people
+  { group: 'Tools', key: 'note_formats', label: 'Manage claim note formats', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

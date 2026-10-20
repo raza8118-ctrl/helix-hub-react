@@ -54,7 +54,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 5.5 "Add to Appeal Packet" (links to 2.5).
 
 ## Phase 6 – Daily AR productivity
-- [ ] 6.1 Claim Note Generator: dropdowns → note in each client's note format.
+- [x] 6.1 Claim Note Generator: dropdowns → note in each client's note format.
 - [ ] 6.2 Calculators: TFL/AFL deadline, NOA/NOE due date, PDGM 30-day periods, LUPA, hospice benefit periods, expected payment/sequestration.
 - [ ] 6.3 Code lookup: CARC/RARC, revenue codes, HIPPS, ICD-10.
 - [ ] 6.4 Smart Worklist: upload aging/RTP file → prioritise by deadline, $ and payer → assign to users → auto-update production counts.

@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.1 (Claim Note Generator) plan approved; building._
+_Last updated: 2026-10-20 — step 6.1 (Claim Note Generator) done; next is 6.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.1.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 6.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 6.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**6.1 – Claim Note Generator — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 6.1 is done.** Next: **6.2 – Calculators** (TFL/AFL deadline, NOA/NOE due date, PDGM 30-day
+periods, LUPA, hospice benefit periods, expected payment / sequestration) — needs a plan and a “go”. Add them as tools in
+`ARTools.jsx`; reuse `src/lib/deadlines.js` (4.4) for TFL/AFL. Medicare rules must be labelled “check current CMS rules”.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 6.1 was built (done)
+
+`src/lib/claimNotes.js`: `ACTIONS` (8), `STATUSES` (text, fields, follow-up days: partial +7, denied +3, in process +14,
+no claim +2, pending +7), `STATUS_FIELDS`, `NEXT_STEPS`, `DATE_STYLES` + `formatDate`, `suggestFollowUp`, `emptyNote`,
+`NOTE_TOKENS` ({DATE} {USER} {CLIENT} {PAYER} {PHONE} {ACTION} {REP} {REF} {STATUS} {STATUS_DETAILS} … {EXTRA}),
+`noteValues` (status details composed: paid amount/date/check, denied codes + reason, ETA, needs), `buildNote` (`[ … ]`
+groups dropped when any token inside is empty; tidies spaces / doubled punctuation / stray dashes; ALL CAPS option),
+`pickFormat` (client +4, action +2), `checkFormat`, CRUD, `STARTER_FORMATS` (8, one per action; `NEXT` tail shared).
+UI: `ARTools.jsx` (tool bar; built-in standard format used when the table is missing or empty), `ClaimNoteGenerator.jsx`
+(payer phones from `payer_contacts` claims first via datalist; denial reason = first sentence of the first known code;
+character counter vs `max_length`; 📋 Copy note keeps the last 5 in component state), `NoteFormats.jsx` (grouped by client;
+editor with options, placeholder buttons, sample preview, warnings; copy / review / (re)activate; starter).
 
 Plan as approved (defaults: actions / statuses / follow-up suggestions below; initials from the user's name; date style
 10/20/26; last 5 notes in memory only; no per-note audit; new permission admin/manager):
@@ -686,6 +701,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 5.3 | AI wording for appeal letters: placeholders-only request, PHI block + confirm, answer checks, show changes (no DB change) | 974fc62 |
 | 5.4 | Appeal PDF: fax cover (no PHI), cover letter, pre-filled payer form + field maps, deadline check, save step | 7ab604b |
 | 5.5 | “Add to Appeal Packet”: letter + form + details handed to File Tools → Appeal Packet in memory (no DB change) | 3d52a5b |
+| 6.1 | AR Tools + Claim Note Generator: dropdown notes in client formats, Note formats tab, 8 standard formats | (see next commit) |
 
 ---
 
@@ -709,6 +725,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 14. `supabase/migrations/20261021e_denial_steps.sql` (Denial Navigator layered steps, step 4.2)
 15. `supabase/migrations/20261021f_appeal_templates.sql` (appeal letter templates, step 5.2)
 16. `supabase/migrations/20261021g_payer_form_fields.sql` (field maps for fillable payer forms, step 5.4)
+17. `supabase/migrations/20261021h_note_formats.sql` (claim note formats per client, step 6.1)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -737,6 +754,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Denial library:** full X12 CARC/RARC lists are not bundled — the company imports them from x12.org; imports never change our plain-English reasons; starter codes (our wording) must be verified; `denials_edit` (admin/manager) edits; pasted ERA lines are never saved.
 - **Appeal Builder PHI:** the appeal form is never saved (DB, logs or browser storage) — memory only, wiped on refresh / sign-out / Clear; all dates, IDs, claim and auth numbers are identifiers and only ever leave the computer as placeholders.
 - **AI wording:** Claude Opus 5.5 (medium effort, refusal fallback on), browser call with the Settings key; only the placeholder template + non-identifying facts are sent, PHI-like free text blocks sending, user confirms each time; open to everyone (no per-person switch-off).
+- **Claim notes:** built in the browser, never saved / logged (last 5 in memory); formats per client + action with `[ … ]` optional parts; no patient-name placeholder; `note_formats` (admin/manager) manages formats.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

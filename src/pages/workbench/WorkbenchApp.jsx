@@ -7,6 +7,7 @@ const SopLibrary           = lazy(() => import('./SopLibrary'));
 const Training             = lazy(() => import('./Training'));
 const DenialNavigator      = lazy(() => import('./DenialNavigator'));
 const AppealBuilder        = lazy(() => import('./AppealBuilder'));
+const ARTools              = lazy(() => import('./ARTools'));
 
 /** Routes Workbench tabs (every role) — built modules get their page, the rest a "Coming soon" page. */
 export default function WorkbenchApp({ activeTab, user }) {
@@ -17,6 +18,7 @@ export default function WorkbenchApp({ activeTab, user }) {
     case 'wb_training': return <Training user={user} />;
     case 'wb_denials':  return <DenialNavigator user={user} />;
     case 'wb_appeals':  return <AppealBuilder user={user} />;
+    case 'wb_artools':  return <ARTools user={user} />;
     default:          return <WorkbenchPlaceholder tabId={activeTab} />;
   }
 }
