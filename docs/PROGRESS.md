@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-19 — step 3.1 (SOP Library structure) done; next is 3.2._
+_Last updated: 2026-10-20 — step 3.2 (SOP page template) plan approved; building._
 
 ---
 
@@ -21,9 +21,24 @@ below, in order, then click **↻ Sync structure** in the Owner Console.
 
 ## ▶ Current step
 
-**None in progress. Step 3.1 is done.** Next: **3.2 – SOP page template** (Purpose, Who uses it, Before you start,
-numbered Steps with screenshots, What you should see, If it goes wrong, Last verified + owner) — needs a plan and a “go”.
+**3.2 – SOP page template — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: re-check after 180 days; “Who uses it” = team chips + free text):
+- Clicking an SOP in the library opens a full **SOP page** (same screen, “← Back to library”) with fixed sections:
+  Purpose · Who uses it (team chips AR/Auth/Billing-Posting/Coding/Credentialing + notes) · Before you start ·
+  numbered **Steps** (instruction + optional tip + screenshot slot showing “Screenshot coming soon” until 3.3) ·
+  What you should see · If it goes wrong · footer Owner / Last verified (date + by) / Status / breadcrumb
+  Category › Software › Task with copy button for the software login link.
+- Empty sections hidden for regular users, shown as “Not filled in yet” to editors. “Needs re-check” badge after 180 days.
+  Print button (clean printout).
+- Editors (`sops_edit`): “Edit content” pop-up (plain text; steps add/remove/▲▼) and “Mark as verified today”.
+- 3.3 adds uploads (screenshots/videos), PHI banner, richer formatting.
+- DB: `supabase/migrations/20261020_sop_template.sql` adds to `rcm.sops`: `purpose`, `audience_teams text[]`,
+  `audience_notes`, `prerequisites`, `steps jsonb` ([{text, tip, image}]), `expected_result`, `troubleshooting`,
+  `last_verified_at`, `last_verified_by`. Until run, the SOP page says “Template not set up yet”; library unaffected.
+- Files: new `src/pages/workbench/SopPage.jsx`, `src/pages/workbench/SopContentEditor.jsx`; changed `src/lib/sops.js`,
+  `src/pages/workbench/SopLibrary.jsx`. Audit `sop_content_edit`, `sop_verify` (type + id only). No PHI stored.
 
 ### Reference: how 3.1 was built (done)
 
