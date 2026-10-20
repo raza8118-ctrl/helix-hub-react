@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.1 (Claim Note Generator) done; next is 6.2._
+_Last updated: 2026-10-20 — step 6.2 (calculators) plan approved; building._
 
 ---
 
@@ -21,10 +21,26 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 6.1 is done.** Next: **6.2 – Calculators** (TFL/AFL deadline, NOA/NOE due date, PDGM 30-day
-periods, LUPA, hospice benefit periods, expected payment / sequestration) — needs a plan and a “go”. Add them as tools in
-`ARTools.jsx`; reuse `src/lib/deadlines.js` (4.4) for TFL/AFL. Medicare rules must be labelled “check current CMS rules”.
+**6.2 – Calculators — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: weekend note only, no holiday calendar; 6 PDGM periods; LUPA threshold typed by hand; 2%
+sequestration preset; everything labelled “check current CMS rules”) — no database change, no audit:
+- AR Tools bar gains **⏰ Filing & appeal deadlines**, **🏠 Home health**, **🕊️ Hospice**, **💲 Expected payment**;
+  each has 📋 Copy result; nothing saved or logged.
+- Deadlines: the 4.4 Deadline helper with client + payer pickers (Medicare / by-hand work without a payer).
+- Home health: NOA due = From date + 5 calendar days (weekend → note CMS allows next business day); optional submitted
+  date → days late + reduction rule (1/30 of the 30-day period payment per day from the From date until submission) and $
+  estimate from an optional period payment. PDGM: SOC → periods 1–6 (start/end, early = 1st / late = later), 60-day cert
+  periods with recert window days 56–60, note that a > 60-day gap starts a new sequence. LUPA: threshold (2–6) + visits →
+  LUPA / not, visits needed.
+- Hospice: NOE due = election + 5 calendar days (weekend note); optional accepted date → non-covered days (election to the
+  day before acceptance). Benefit periods 90 / 90 / 60…; face-to-face flag from period 3 (within 30 days before start).
+- Expected payment: billed, allowed, deductible, coinsurance % or copay $, sequestration % (2% default, off for
+  non-Medicare) → contractual adjustment, patient responsibility, payer payment, sequestration, expected net; optional
+  actually paid → under / over.
+- Files: new `src/lib/medicareCalc.js`, `src/pages/workbench/HomeHealthCalc.jsx`, `HospiceCalc.jsx`, `PaymentCalc.jsx`,
+  `DeadlineTool.jsx`; changed `ARTools.jsx`.
 
 ### Reference: how 6.1 was built (done)
 
