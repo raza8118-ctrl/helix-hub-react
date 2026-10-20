@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.3 (AI wording, no PHI) done; next is 5.4._
+_Last updated: 2026-10-20 — step 5.4 (appeal PDF) plan approved; building._
 
 ---
 
@@ -21,11 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 5.3 is done.** Next: **5.4 – Output PDF cover letter, pre-filled payer form, payer
-address/fax from directory, AFL deadline check** — needs a plan and a “go”. Reusable: pdf-lib (2.1), `PdfSaveOptions.jsx`
-save step (required for File Tools PDF output), Appeal Packet builder (2.5, `src/lib/packet.js`), payer forms (1.4,
-`payerFormLink`), `computeDeadline` (4.4), the filled letter text in `AppealLetter.jsx`.
+**5.4 – Appeal PDF — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: fax cover on when a fax exists, no PHI on it; flatten filled forms on; deadline warnings at
+past due and ≤ 3 days; packet naming convention reused; field maps edited by Payer Directory editors):
+- Appeal Builder **📄 Build the PDF** section: ticked parts in order — (1) fax cover sheet (To payer appeals + fax, From
+  sender + client, pages, date, “Re: Appeal”, confidentiality notice; no patient details), (2) cover letter (the 📝 Letter
+  text filled locally; Letter size, Times, 1" margins, wrapping, Page X of Y), (3) payer form from the Payer Directory
+  (appeal / recon / corrected-claim): fillable → pre-filled via the form's field map, optional flatten; not fillable →
+  added as-is “fill by hand”. Send-to details with copy buttons beside the button.
+- Deadline check before saving (4.4 limits + denial date): past due → warning + good-cause reminder; ≤ 3 days → heads-up;
+  no limit → “not checked”.
+- **🧩 Map form fields** pop-up (`payers_edit`): every PDF field (name, type, page) → placeholder / fixed text / tick
+  rule (e.g. tick when level = recon) / blank; test fill with made-up sample data; saved on the payer form.
+- Shared Original/Compress save step; file name from the packet naming convention (editable). Built in the browser; never
+  uploaded / saved / logged. Audit `appeal_pdf_built` counts only (pages, form, fax cover, deadline status). 5.5 adds
+  “Add to Appeal Packet”.
+- DB: `supabase/migrations/20261021g_payer_form_fields.sql` → `payer_forms.field_map jsonb` (no PHI). Until run: forms
+  attached as-is.
+- Files: new `src/lib/appealPdf.js`, `src/pages/workbench/AppealPdf.jsx`, `FormFieldMapper.jsx`; changed
+  `AppealBuilder.jsx`, `src/lib/payerForms.js`, `src/lib/auditLabels.js`.
 
 ### Reference: how 5.3 was built (done)
 
