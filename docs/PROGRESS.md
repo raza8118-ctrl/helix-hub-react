@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.2 (calculators) done; next is 6.3._
+_Last updated: 2026-10-20 — step 6.3 (code lookup) plan approved; building._
 
 ---
 
@@ -21,11 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 6.2 is done.** Next: **6.3 – Code lookup** (CARC/RARC, revenue codes, HIPPS, ICD-10) — needs
-a plan and a “go”. CARC/RARC already live in the Denial library (4.1, `denial_codes` + import); revenue codes / HIPPS /
-ICD-10 lists have licensing / size questions (ICD-10-CM is public from CMS but ~74k codes; HIPPS changes yearly) — plan
-an import approach like 4.1 rather than bundling. Add as an AR Tools tool.
+**6.3 – Code lookup — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: HIPPS decoded by rule, HH PDGM only; revenue descriptions in our words + import; ICD-10
+from the CMS file yearly; missing codes marked retired only when ticked; new permission admin/manager):
+- AR Tools **🔎 Code lookup** (everyone): one box + chips All / CARC-RARC / Revenue / HIPPS / ICD-10; detects 0551 →
+  revenue, 1FC21 → HIPPS, I50.9 / I509 → ICD-10, CO-16 / N290 → CARC/RARC, words → description search; copy button,
+  retired badge, 50 + Show more; nothing saved / logged.
+- CARC/RARC: read-only search of the Denial library + “Open in Denial Navigator ›”.
+- HIPPS (HH PDGM): built-in decoder (1 admission source + timing, 2 clinical group A–L, 3 functional level A–C,
+  4 comorbidity 1–3, 5 fixed); “check current CMS rules”; imported HIPPS descriptions shown too.
+- Revenue codes: NUBC wording not bundled; “Add starter revenue codes” (~25 HH/hospice codes, our wording, verify);
+  import of a licensed list.
+- ICD-10-CM: import the free CMS `icd10cm-codes-YYYY.txt` (code + description) or Excel/CSV; preview new / changed /
+  unchanged / not in this file; optional “mark missing as retired”; nothing deleted; search in the database.
+- Permission `ref_codes_edit` “Manage code lists” (admin/manager). DB: `supabase/migrations/20261021i_ref_codes.sql` →
+  `ref_codes` (id, code_set revenue/hipps/icd10, code, description, notes, source, list_year, retired, verified_at/by,
+  active, created/updated), unique set+code, search indexes. No PHI.
+- Files: new `src/lib/refCodes.js`, `src/pages/workbench/CodeLookup.jsx`, `RefCodeEditors.jsx`; changed `ARTools.jsx`,
+  `src/lib/access.js`, `src/lib/auditLabels.js`. Audit `ref_code_add/edit/verify/activate/deactivate`, `ref_code_import`,
+  `ref_code_starter_add`; searches never logged.
 
 ### Reference: how 6.2 was built (done)
 
