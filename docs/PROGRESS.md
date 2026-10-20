@@ -534,7 +534,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | bf44eb5 |
 | 4.3 | Denial “Manage steps”: coverage + gaps, copy to client, Excel import / export, review queue, inactive (no DB change) | c58c595 |
 | 4.4 | Deadline helper: due dates from payer / client limits, Medicare quick-fill, copy summary (no DB change) | c748f2c |
-| 5.1 | Appeal Builder form: denial types + key facts, placeholders, side panel, in-memory only (no DB change) | (see next commit) |
+| 5.1 | Appeal Builder form: denial types + key facts, placeholders, side panel, in-memory only (no DB change) | 6b7e428 |
 
 ---
 
