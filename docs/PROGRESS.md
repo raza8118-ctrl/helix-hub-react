@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.5 done; Phase 5 (Appeal Builder) complete; next is 6.1._
+_Last updated: 2026-10-20 — step 6.1 (Claim Note Generator) plan approved; building._
 
 ---
 
@@ -21,11 +21,30 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 5.5 is done — Phase 5 complete.** Next: **6.1 – Claim Note Generator** (dropdowns → note in
-each client's note format), first step of Phase 6 Daily AR productivity — needs a plan and a “go”. The `wb_artools`
-placeholder module (AR Tools) already exists in `modules.js`; claim notes contain claim details → same PHI care as the
-Appeal Builder (in memory, never saved / logged; per-client note FORMATS hold placeholders only).
+**6.1 – Claim Note Generator — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: actions / statuses / follow-up suggestions below; initials from the user's name; date style
+10/20/26; last 5 notes in memory only; no per-note audit; new permission admin/manager):
+- **🧮 AR Tools** (`wb_artools`, replaces placeholder; everyone) with a tool bar like File Tools; first tool
+  **📝 Claim Note Generator**.
+- Inputs: client, payer (claims phone from the Payer Directory + copy); action (Called payer / Checked portal or
+  clearinghouse / Submitted or rebilled / Sent corrected claim / Sent appeal or recon / Sent records or requested info /
+  Escalated / Write-off or adjustment request); claim status driving fields (Paid: amount, date, check/EFT #; Denied:
+  codes checked against the Denial library + plain reason; In process: expected time; No claim on file; Pending info:
+  what's needed; Partially paid); call details (rep, ref #, phone); next step dropdown + follow-up date suggested from the
+  status (in process +14, pending info +7…); extra note with no-patient-details reminder.
+- Note built instantly in the client's format; 📋 Copy note, character counter vs the format's max length, ↺ New note;
+  nothing saved / logged / in browser storage; last 5 re-copyable while AR Tools is open; no audit per note.
+- **📚 Note formats** tab (`note_formats` “Manage claim note formats”, admin/manager): client (or all) + action (or any) +
+  body with `{PLACEHOLDERS}`; options date style (10/20/26, 10/20/2026, 2026-10-20), ALL CAPS, max length, initials vs full
+  name; `[ … ]` drops when its placeholder is empty; best match client+action → client → all; live preview with made-up
+  values; “Add standard formats” (3Gen default per action, “please review”). No patient-name placeholder exists.
+- DB: `supabase/migrations/20261021h_note_formats.sql` → `note_formats` (id, name, client_id, action, body, date_style,
+  upper_case, max_length, name_style, source, reviewed_at/by, active, created/updated).
+- Files: new `src/lib/claimNotes.js`, `src/pages/workbench/ARTools.jsx`, `ClaimNoteGenerator.jsx`, `NoteFormats.jsx`;
+  changed `WorkbenchApp.jsx`, `src/lib/access.js`, `src/lib/auditLabels.js`. Audit only format changes
+  (`note_format_add/edit/review/activate/deactivate`, `note_starter_add`).
 
 ### Reference: how 5.5 was built (done)
 
