@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.3 (SOP editor + uploads) plan approved; building._
+_Last updated: 2026-10-20 — step 3.3 (SOP editor + uploads) done; next is 3.4._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 3.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 3.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**3.3 – SOP editor + uploads — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 3.3 is done.** Next: **3.4 – Versioning** (client-specific vs common SOPs, effective dates,
+archive old versions, “Acknowledge” button + read tracking) — needs a plan and a “go”. `sop_media` already records every
+upload (never deleted), so old versions can keep pointing at their screenshots/videos.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.3 was built (done)
+
+Code: `src/lib/sopMedia.js` (checks, `renderScreenshot` crop/black-out/resize/WEBP→JPEG fallback, `uploadSopMedia`
+→ bucket + `sop_media` row + audit, cached 1 h signed links), `src/lib/sopText.js` (parse/format/HTML for print),
+`src/pages/workbench/SopEditorPage.jsx` (full-page editor; paste/drag-drop per step; uploads happen immediately, links saved
+with the SOP), `ScreenshotTool.jsx` (crop + black-out canvas, `VideoConfirm`), `SopMedia.jsx` (`SopImage` lightbox,
+`SopVideo`), `SopText.jsx` (display), `SopContent.jsx` (sections; shared by page + Preview). `SopPage.jsx` opens the editor
+in place and prints screenshots. `SopContentEditor.jsx` (3.2 pop-up) is unused, kept. Old `steps[].image` is read as `images[0]`.
+“Media set up?” is detected by the `walkthrough_video` key on the SOP row. Text formatting is plain marks rendered as React
+elements — never `dangerouslySetInnerHTML`. Lint note: `react-refresh` forbids mixing component and non-component exports
+in one file, hence `sopText.js` (logic) vs `SopText.jsx` (component).
 
 Plan as approved (defaults: 3 screenshots per step; videos ≤ 25 MB / 3 min; black-out tool; upload tick box every time):
 - **Full-page editor** (replaces the 3.2 pop-up) in the same screen, Edit / Preview tabs, Save / Cancel, unsaved-changes warning.
@@ -248,6 +262,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
 | 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
 | 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | 0586f95 |
+| 3.3 | SOP full-page editor, formatting, screenshots (paste, crop, black-out), short videos | (see next commit) |
 
 ---
 
@@ -263,6 +278,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 6. `supabase/migrations/20261019c_payer_reports.sql`
 7. `supabase/migrations/20261019d_sop_library.sql` (SOP Library, step 3.1)
 8. `supabase/migrations/20261020_sop_template.sql` (SOP page template, step 3.2)
+9. `supabase/migrations/20261020b_sop_media.sql` (SOP screenshots/videos bucket + `sop_media`, step 3.3)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -284,6 +300,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Appeal Packet:** cover sheet on by default; page numbers “Page X of Y” bottom right (optional prefix); company file-name convention set by `packet_settings` holders; `{PatientLast}` allowed but not default.
 - **SOP Library:** viewing open to all (Published only); `sops_edit` (admins + managers, grantable) edits and sees Drafts. Categories are editable.
 - **SOP page:** fixed template sections; SOPs need re-checking every 180 days (“Mark as verified today” by editors); “Who uses it” = team chips + free text.
+- **SOP media:** up to 3 screenshots + 1 short video per step, optional walkthrough video; videos MP4/WEBM ≤ 25 MB / 3 min; every upload needs the no-PHI tick; screenshots can be cropped/blacked out in the browser; removing media only unlinks it.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

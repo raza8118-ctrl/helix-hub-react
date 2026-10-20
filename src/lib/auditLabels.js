@@ -46,6 +46,7 @@ const ACTION_LABELS = {
   sop_edit:              'Edited SOP details',
   sop_content_edit:      'Edited SOP page content',
   sop_verify:            'Marked SOP verified',
+  sop_media_upload:      'Uploaded SOP screenshot/video',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',

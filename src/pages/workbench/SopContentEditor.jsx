@@ -1,3 +1,4 @@
+// Not used since roadmap 3.3 — replaced by the full-page editor SopEditorPage.jsx. Kept (nothing is deleted).
 import { useState } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';

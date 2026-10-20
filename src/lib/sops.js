@@ -126,9 +126,20 @@ export const SOP_RECHECK_DAYS = 180;
 /** True once the 3.2 database update has been run (the template columns come back with the row). */
 export const hasSopTemplate = sop => sop != null && 'steps' in sop;
 
-/** Steps as a clean list — company copies made by "Sync structure" may hold null. */
+/**
+ * Steps as a clean list — company copies made by "Sync structure" may hold null.
+ * Each step: { text, tip, images: [{ path, width, height }], video: { path, duration } | null } (media from 3.3).
+ */
 export const sopSteps = sop => (Array.isArray(sop?.steps) ? sop.steps : [])
-  .map(s => ({ text: s?.text ?? '', tip: s?.tip ?? '', image: s?.image ?? null }));
+  .map(s => ({
+    text: s?.text ?? '',
+    tip: s?.tip ?? '',
+    images: (Array.isArray(s?.images) ? s.images : s?.image ? [s.image] : []).filter(img => img?.path),
+    video: s?.video?.path ? s.video : null,
+  }));
+
+/** True once the 3.3 database update has been run (screenshots / videos can be stored). */
+export const hasSopMedia = sop => sop != null && 'walkthrough_video' in sop;
 
 /** True when the SOP has never been verified, or not within SOP_RECHECK_DAYS. */
 export function sopNeedsRecheck(sop) {
