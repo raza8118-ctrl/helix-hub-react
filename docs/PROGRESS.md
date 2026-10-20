@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.2 (appeal letter templates) done; next is 5.3._
+_Last updated: 2026-10-20 — step 5.3 (AI wording, no PHI) plan approved; building._
 
 ---
 
@@ -21,11 +21,30 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 5.2 is done.** Next: **5.3 – AI wording (no PHI sent) → real values filled locally → preview
-→ edit** — needs a plan and a “go”. The app already has an AI key setting (Settings page, `save_ai_key` audit action) —
-check how it's stored/used before planning. Only placeholders + non-identifier facts may be sent (see 5.1 `id` flags and
-`checkTemplate`-style PHI checks for free text).
+**5.3 – AI wording (no PHI) — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: Claude Opus 5.5 at medium effort; refusal fallback on; sending blocked when the PHI check finds
+something; confirmation tick every time; available to all roles, switchable per person) — no database change:
+- 📝 Letter gets **“✨ Improve wording with AI”**: style (Firm and formal / Neutral / Short and to the point), optional
+  “use my Why-we-disagree notes as arguments”; “What AI will see” box = template with placeholders only + non-identifier
+  facts (denial type, codes + plain reason, level, payer name, client name, records list, units, notes if ticked). Never
+  patient name/DOB/member ID/claim #/auth #/any dates/🔒 fields.
+- PHI check on free text (date-like, long numbers, DOB/MRN/SSN words…) blocks sending; tick “I confirm there is no patient
+  information…” required.
+- Answer validated: every identifier placeholder of the template still present, no new placeholders, no real-looking
+  dates/numbers added; missing required placeholder → rejected. Filled locally → editable letter (5.2); Show changes
+  (template vs AI side by side); ↺ Use the template version instead; Copy / Print as before.
+- API (raw fetch from the browser like the existing `callAI`, which stays untouched): model `claude-opus-5-5`, thinking
+  adaptive (can't be off), `output_config: { effort: 'medium', format: json_schema {letter, notes} }`, max_tokens 16000,
+  fixed instructions (keep every [TOKEN], never invent facts/dates/numbers, no patient details), no prefill;
+  `fallbacks: "default"` + header `anthropic-beta: server-side-fallback-2026-07-01`; handle `stop_reason: "refusal"`.
+  No key in Settings → “AI wording isn’t set up — an admin can add the AI key in Settings.” Known: the key is readable
+  by app users (existing design) — a server proxy could be a later step; no PHI sent so no BAA needed for this feature.
+- New grantable permission `appeal_ai` “Use AI wording for appeals” (all roles by default). Audit `appeal_ai_wording`
+  with denial type, style, success only — never text.
+- Files: new `src/lib/appealAI.js`, `src/pages/workbench/AppealAIPanel.jsx`; changed `AppealLetter.jsx`,
+  `src/lib/appeals.js`, `src/lib/access.js`, `src/lib/auditLabels.js`.
 
 ### Reference: how 5.2 was built (done)
 
