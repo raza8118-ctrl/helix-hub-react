@@ -5,6 +5,13 @@ import {
   verifyCode, setCodeActive, missingStarterCodes,
 } from '../../lib/denials';
 import { DenialCodeModal, DenialImportModal, DenialStarterModal } from './DenialEditors';
+import DenialLayers from './DenialLayers';
+import SopPage from './SopPage';
+import PayerCard from './PayerCard';
+import PayerSearch from '../../components/shared/PayerSearch';
+import { loadDenialSteps, loadStepContext } from '../../lib/denialSteps';
+import { loadSopLibrary } from '../../lib/sops';
+import { loadSopVersionMeta } from '../../lib/sopVersions';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
 
@@ -12,8 +19,9 @@ const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const PAGE = 60;
 
-// One code: type, code + copy, badges, plain reason first, official wording below; editor buttons when allowed
-function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle }) {
+// One code: type, code + copy, badges, plain reason first, official wording below; editor buttons when allowed;
+// "What to do ▾" shows the layered steps (4.2) passed as children
+function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, children }) {
   const t = typeOf(row.code_type);
   return (
     <div className="card mb-16" style={row.active === false ? { opacity: 0.6 } : undefined}>
@@ -43,13 +51,25 @@ function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle }) {
       )}
       {row.notes && <div className="text-sm" style={{ marginTop: 4 }}>📝 {row.notes}</div>}
       {row.verified_at && <div className="text-sm text-muted" style={{ marginTop: 4 }}>Verified {fmtDate(row.verified_at)}</div>}
+      {stepsReady && (
+        <button className={stepsOpen ? 'btn-primary btn-sm' : 'btn-sm'} style={{ marginTop: 8 }} aria-expanded={stepsOpen}
+          onClick={() => onToggleSteps(row.id)}>
+          {stepsOpen ? 'What to do ▴' : 'What to do ▾'}
+        </button>
+      )}
+      {stepsOpen && children}
     </div>
   );
 }
 
+// Remembered client / payer pickers (this computer only; storage may be blocked)
+const readPick = key => { try { return localStorage.getItem(key) || ''; } catch { return ''; } };
+const writePick = (key, value) => { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key); } catch { /* blocked */ } };
+
 /**
  * 🧩 Denial Navigator (roadmap Phase 4). 4.1 = Denial library: CARC / RARC / group codes with plain-English reasons.
  * Search by code or words, or paste a line from an ERA / EOB (searched in the browser only — never saved or logged).
+ * 4.2: "What to do" per code in layers — client steps → payer rule (+ Payer Directory info) → common 3Gen steps.
  */
 export default function DenialNavigator({ user }) {
   const canEdit = hasAccess(user, 'denials_edit');
@@ -62,13 +82,47 @@ export default function DenialNavigator({ user }) {
   const [onlyUnverified, setOnlyUnverified] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [modal, setModal] = useState(null);           // { kind: 'code' | 'import' | 'starter', row?, presetCode? }
+  // 4.2 layered steps
+  const [steps, setSteps] = useState(undefined);     // undefined = loading, null = not set up
+  const [ctx, setCtx] = useState({ clients: [], payers: [], sops: [] });
+  const [clientId, setClientId] = useState(() => readPick('helix_denial_client'));
+  const [payerId, setPayerId] = useState(() => readPick('helix_denial_payer'));
+  const [openSteps, setOpenSteps] = useState(() => new Set());
+  const [sopId, setSopId] = useState(null);          // SOP opened from a layer
+  const [sopCtx, setSopCtx] = useState(null);
+  const [payerCard, setPayerCard] = useState(null);  // payer opened from a layer
 
   const reload = () => loadDenialCodes().then(setCodes);
+  const reloadSteps = () => loadDenialSteps().then(setSteps);
   useEffect(() => {
     let alive = true;
     loadDenialCodes().then(c => { if (alive) setCodes(c); });
+    loadDenialSteps().then(s => { if (alive) setSteps(s); });
+    loadStepContext().then(c => { if (alive) setCtx(c); });
     return () => { alive = false; };
   }, []);
+
+  // SOPs linked from a layer open here (same as Training), with the SOP Library data they need
+  const empId = user.emp_id;
+  useEffect(() => {
+    let alive = true;
+    if (sopId != null) {
+      Promise.all([loadSopLibrary(), loadSopVersionMeta({ emp_id: empId })]).then(([lib, meta]) => {
+        if (alive) setSopCtx({ lib: lib ? { ...lib, versionsReady: meta != null } : null, meta });
+      });
+    }
+    return () => { alive = false; };
+  }, [sopId, empId]);
+
+  const client = ctx.clients.find(c => String(c.id) === String(clientId)) ?? null;
+  const payer = ctx.payers.find(p => String(p.id) === String(payerId)) ?? null;
+  const pickClient = id => { setClientId(id); writePick('helix_denial_client', id); };
+  const pickPayer = id => { setPayerId(id); writePick('helix_denial_payer', id); };
+  const toggleSteps = id => setOpenSteps(s => {
+    const n = new Set(s);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
 
   const parsed = useMemo(() => parseCodeLine(query), [query]);
   const results = useMemo(() => codes && !parsed ? searchCodes(codes, query, {
@@ -89,7 +143,49 @@ export default function DenialNavigator({ user }) {
       : { title: `Reactivate ${row.code}?`, message: row.plain_reason ?? '', confirmText: 'Reactivate' })) return;
     if (await setCodeActive(row, !off, user)) reload();
   }
-  const cardProps = { canEdit, onVerify: verify, onEdit: row => setModal({ kind: 'code', row }), onToggle: toggleActive };
+  const cardProps = {
+    canEdit, onVerify: verify, onEdit: row => setModal({ kind: 'code', row }), onToggle: toggleActive,
+    stepsReady: Array.isArray(steps), onToggleSteps: toggleSteps,
+  };
+  // The layered "What to do" panel for one code (children of its card)
+  const layers = row => (
+    <DenialLayers code={row} steps={steps} ctx={ctx} client={client} payer={payer} user={user} canEdit={canEdit}
+      onChanged={reloadSteps} onOpenSop={setSopId} onOpenPayer={setPayerCard} />
+  );
+
+  if (sopId != null) {
+    const canEditSops = hasAccess(user, 'sops_edit');
+    const sop = sopCtx?.lib?.sops.find(s => s.id === sopId);
+    const readable = sop && (canEditSops || (sop.active !== false && sop.status === 'published'));
+    const back = () => { setSopId(null); setSopCtx(null); };
+    return (
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        {!sopCtx && <div className="card text-muted">Loading SOP…</div>}
+        {sopCtx && !readable && (
+          <div className="card">
+            <button className="btn-sm" onClick={back}>← Back to Denial Navigator</button>
+            <p className="text-muted">This SOP isn’t published yet.</p>
+          </div>
+        )}
+        {sopCtx && readable && (
+          <SopPage key={sop.id} sop={sop} lib={sopCtx.lib} meta={sopCtx.meta} names={{}} user={user} canEdit={canEditSops}
+            backLabel="← Back to Denial Navigator" onBack={back}
+            onChanged={() => Promise.all([loadSopLibrary(), loadSopVersionMeta({ emp_id: empId })])
+              .then(([lib, meta]) => setSopCtx({ lib: lib ? { ...lib, versionsReady: meta != null } : null, meta }))}
+            onOpenSop={setSopId} />
+        )}
+      </div>
+    );
+  }
+
+  if (payerCard) {
+    return (
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <button className="btn-sm" style={{ marginBottom: 12 }} onClick={() => setPayerCard(null)}>← Back to Denial Navigator</button>
+        <PayerCard key={payerCard.id} payer={payerCard} user={user} onClose={() => setPayerCard(null)} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
@@ -112,6 +208,31 @@ export default function DenialNavigator({ user }) {
         <div className="card text-muted">
           The Denial library isn’t set up yet. An admin needs to run the denial codes database update
           (<code>20261021d_denial_codes.sql</code>) in Supabase.
+        </div>
+      )}
+
+      {codes && Array.isArray(steps) && (
+        <div className="card mb-16">
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span className="text-sm bold">Working on:</span>
+            <select value={clientId} onChange={e => pickClient(e.target.value)} style={{ maxWidth: 240 }} aria-label="Client">
+              <option value="">Any client</option>
+              {ctx.clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+            </select>
+            {payer ? (
+              <span className="row" style={{ gap: 4, alignItems: 'center' }}>
+                <span className="badge badge-blue">Payer: {payer.name}</span>
+                <button className="btn-sm" title="Clear payer" onClick={() => pickPayer('')}>✕</button>
+              </span>
+            ) : (
+              <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                <PayerSearch payers={ctx.payers} onSelect={p => pickPayer(String(p.id))} placeholder="Payer (optional) — name or alias" />
+              </div>
+            )}
+          </div>
+          <div className="text-sm text-muted" style={{ marginTop: 4 }}>
+            Open “What to do” on a code to see the client’s steps first, then the payer’s rule, then the common steps.
+          </div>
         </div>
       )}
 
@@ -161,7 +282,7 @@ export default function DenialNavigator({ user }) {
               {parsed.map((p, i) => {
                 if (p.type === 'group') {
                   const row = findCode(codes, p);
-                  return row ? <CodeCard key={i} row={row} {...cardProps} /> : (
+                  return row ? <CodeCard key={i} row={row} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
                     <div key={i} className="card mb-16"><span className="badge badge-blue">Group</span> <b>{p.code}</b> — {GROUP_CODES[p.code]}</div>
                   );
                 }
@@ -173,7 +294,7 @@ export default function DenialNavigator({ user }) {
                         <b>{p.group}</b> = {GROUP_CODES[p.group]}
                       </div>
                     )}
-                    {row ? <CodeCard row={row} group={p.group} {...cardProps} /> : (
+                    {row ? <CodeCard row={row} group={p.group} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
                       <div className="card mb-16 text-muted">
                         <span className="badge badge-gray">{typeOf(p.type).label}</span> <b>{p.code}</b> isn’t in the library yet.
                         {canEdit && <button className="btn-sm" style={{ marginLeft: 8 }} onClick={() => setModal({ kind: 'code', presetCode: p })}>+ Add it</button>}
@@ -189,7 +310,7 @@ export default function DenialNavigator({ user }) {
             <>
               <div className="text-sm text-muted mb-16">{results.length} code{results.length === 1 ? '' : 's'}</div>
               {results.length === 0 && <div className="card text-muted" style={{ textAlign: 'center' }}>Nothing matches.</div>}
-              {results.slice(0, limit).map(row => <CodeCard key={row.id} row={row} {...cardProps} />)}
+              {results.slice(0, limit).map(row => <CodeCard key={row.id} row={row} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard>)}
               {results.length > limit && (
                 <button className="btn-sm" style={{ marginBottom: 16 }} onClick={() => setLimit(l => l + PAGE)}>
                   Show more ({results.length - limit} left)

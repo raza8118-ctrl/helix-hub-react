@@ -42,7 +42,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 
 ## Phase 4 – Denial Navigator
 - [x] 4.1 Denial library: CARC/RARC codes + plain-English denial reasons + search.
-- [ ] 4.2 Layered steps: Client SOP (top, highlighted) → Payer rule (from Payer Directory) → Common 3Gen steps.
+- [x] 4.2 Layered steps: Client SOP (top, highlighted) → Payer rule (from Payer Directory) → Common 3Gen steps.
 - [ ] 4.3 Admin screen to add/update denial steps per client and common.
 - [ ] 4.4 Deadline helper: appeal/corrected-claim deadline from denial date using payer/client limits.
 

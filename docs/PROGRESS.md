@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.2 (layered denial steps) plan approved; building._
+_Last updated: 2026-10-20 — step 4.2 (layered denial steps) done; next is 4.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 4.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 4.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,21 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**4.2 – Layered steps — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 4.2 is done.** Next: **4.3 – Admin screen** to add/update denial steps per client and common
+(overview of which codes have common/client/payer steps and gaps, copy common → client, bulk Excel import, review
+queue) — needs a plan and a “go”. Inline editing already exists in each layer (4.2).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 4.2 was built (done)
+
+Code: `src/lib/denialSteps.js` (`loadDenialSteps`, `loadStepContext` clients/payers/sops, `layerEntry` = the one
+active entry per code + scope + client/payer, `saveSteps` refuses a second active entry, verify / make inactive,
+`stepsNeedRecheck` uses `SOP_RECHECK_DAYS`; `loadPayerInfo(payerId, clientId)` session-cached: appeals contacts,
+AFL/RECON/CCTFL limits with the client's override replacing the base of the same type+level+plan, current
+appeal/recon/corrected-claim forms with files, pinned Claims/Appeals notes). UI: `DenialLayers.jsx` (`LayerBox`,
+`PayerDirectoryInfo`), `DenialStepsModal.jsx`; `DenialNavigator.jsx` adds “Working on” client select + PayerSearch
+(remembered in localStorage `helix_denial_client` / `helix_denial_payer`), “What to do ▾” per code card, opens linked
+SOPs (`SopPage`, like Training) and the payer card (`PayerCard`) in place. Form downloads use 60-second signed links.
 
 Plan as approved (defaults: pickers remembered per computer; client steps only when a client is picked; layers expand on
 demand; 180-day re-check; editing = existing `denials_edit`):
@@ -427,6 +440,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.6 | SOP quizzes: editor, take quiz with scores, tracking column, “Must pass the quiz” in learning paths | 67c73e9 |
 | 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | 98f21ea |
 | 4.1 | Denial Navigator: denial library, code / ERA-line search, X12 import, starter codes, `denials_edit` | b583097 |
+| 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | (see next commit) |
 
 ---
 
@@ -447,6 +461,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 11. `supabase/migrations/20261021b_learning_paths.sql` (learning paths, assignments, progress, step 3.5)
 12. `supabase/migrations/20261021c_sop_quizzes.sql` (SOP quizzes, attempts, `needs_quiz` on path items, step 3.6)
 13. `supabase/migrations/20261021d_denial_codes.sql` (Denial library codes, step 4.1)
+14. `supabase/migrations/20261021e_denial_steps.sql` (Denial Navigator layered steps, step 4.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
