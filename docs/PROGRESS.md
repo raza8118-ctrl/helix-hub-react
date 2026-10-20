@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.1 (Appeal Builder form) done; next is 5.2._
+_Last updated: 2026-10-20 — step 5.2 (appeal letter templates) plan approved; building._
 
 ---
 
@@ -21,10 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 5.1 is done.** Next: **5.2 – Letter templates per denial type, using placeholders only** —
-needs a plan and a “go”. Templates should use the 5.1 tokens (`placeholderMap` in `src/lib/appeals.js`); real values are
-only ever filled in locally.
+**5.2 – Appeal letter templates — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: 8 starter letters; “?” optional-line rule; automatic best template; copy + print now, PDF in
+5.4; new permission admin/manager):
+- Template = plain text with 5.1 tokens + frame tokens `[TODAY]`, `[SENDER_NAME]`, `[PAYER_APPEALS_ADDRESS]`,
+  `[PAYER_APPEALS_FAX]`; a line starting with `?` is dropped when any token in it is empty. Each template: denial type,
+  appeal level (any / specific), optional client. Placeholders only — editor warns on real-looking dates, long ID
+  numbers, unknown tokens.
+- Appeal Builder **📝 Letter** section: best template auto-picked (client+type+level → type+level → type → general),
+  changeable; preview filled locally, empty tokens highlighted; Show placeholders / Show filled; editable letter kept in
+  memory with the form; 📋 Copy letter, 🖨 Print. Nothing saved or logged.
+- **📚 Templates** tab (new grantable `appeal_templates` “Manage appeal letter templates”, admin/manager): list by type,
+  add / edit / copy / make inactive / reactivate; editor with placeholder picker, live preview with made-up sample
+  values, checker; “Add starter templates” (8: one per denial type + corrected-claim cover letter; “Starter – please
+  review”).
+- DB: `supabase/migrations/20261021f_appeal_templates.sql` → `appeal_templates` (id, name, denial_type, level,
+  client_id, body, source starter/manual, reviewed_at/by, active, created/updated). No PHI.
+- Files: new `src/lib/appealTemplates.js`, `src/pages/workbench/AppealLetter.jsx`, `AppealTemplates.jsx`; changed
+  `AppealBuilder.jsx`, `src/lib/appeals.js`, `src/lib/access.js`, `src/lib/auditLabels.js`. Audit
+  `appeal_template_add/edit/review/activate/deactivate`, `appeal_starter_add` (letters never logged).
 
 ### Reference: how 5.1 was built (done)
 
