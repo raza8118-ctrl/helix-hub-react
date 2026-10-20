@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
-import { SOP_LEVELS, activeFields } from '../../lib/sops';
+import { SOP_LEVELS, activeFields, missingStarterSoftware } from '../../lib/sops';
+import { addStarterSoftware } from './sopActions';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
 
@@ -130,6 +131,67 @@ export function SopEditModal({ level, row, parentId, lib, users, user, onClose, 
           <button className="btn-sm" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * "Add standard software" (roadmap 3.7): lists the standard software that isn't in the library yet,
+ * grouped by category and all ticked; adds the ticked ones (and any missing standard category).
+ */
+export function StarterSoftwareModal({ lib, user, onClose, onSaved }) {
+  const missing = missingStarterSoftware(lib);
+  const [picked, setPicked] = useState(() => new Set(missing.map(s => s.name)));
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const groups = [...new Set(missing.map(s => s.category))];
+  const hasCategory = name => lib.categories.some(c => c.active !== false && c.name.trim().toLowerCase() === name.toLowerCase());
+
+  const toggle = name => setPicked(s => {
+    const n = new Set(s);
+    if (n.has(name)) n.delete(name); else n.add(name);
+    return n;
+  });
+
+  async function save() {
+    const chosen = missing.filter(s => picked.has(s.name));
+    if (!chosen.length) return setError('Tick at least one.');
+    setSaving(true);
+    const added = await addStarterSoftware(lib, chosen, user);
+    setSaving(false);
+    if (!added) return setError('Could not add them. Please try again.');
+    onSaved();
+  }
+
+  return (
+    <Modal title="Add standard software" onClose={onClose} wide>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <p className="text-sm text-muted" style={{ marginTop: 0 }}>
+          Untick anything your teams don’t use. Login links are left empty — add each one later with ✎
+          (many are different for each client). No tasks or SOPs are created.
+        </p>
+        {groups.map(cat => (
+          <div key={cat} style={{ marginBottom: 10 }}>
+            <div className="bold" style={{ marginBottom: 4 }}>
+              {cat}{!hasCategory(cat) && <span className="text-sm text-muted"> — this category will be added</span>}
+            </div>
+            {missing.filter(s => s.category === cat).map(s => (
+              <label key={s.name} className="row text-sm" style={{ gap: 8, padding: '3px 0', cursor: 'pointer', alignItems: 'center' }}>
+                <input type="checkbox" checked={picked.has(s.name)} onChange={() => { toggle(s.name); setError(''); }} />
+                <span className="bold">{s.name}</span>
+                <span className="text-muted">{s.vendor}</span>
+              </label>
+            ))}
+          </div>
+        ))}
+        {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
+        <div className="form-actions">
+          <button className="btn-sm" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={save} disabled={saving || !picked.size}>
+            {saving ? 'Adding…' : `Add ${picked.size} software`}
           </button>
         </div>
       </div>

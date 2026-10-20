@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.7 (seed software list) plan approved; building._
+_Last updated: 2026-10-20 — step 3.7 done; Phase 3 (SOP & Training Library) complete; next is 4.1._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.7.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 3.7 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 4.1 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,16 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**3.7 – Seed software list — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 3.7 is done — Phase 3 complete.** Next: **4.1 – Denial library** (CARC/RARC codes +
+plain-English denial reasons + search), first step of Phase 4 Denial Navigator — needs a plan and a “go”.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.7 was built (done)
+
+No database change. `STARTER_SOFTWARE` + `missingStarterSoftware(lib)` in `src/lib/sops.js`; `addStarterSoftware` in
+`sopActions.js` (creates a missing standard category first, appends software at the end of each category, one audit
+`sop_software_add` {count, standard}); `StarterSoftwareModal` in `SopEditors.jsx`; button “Add standard software (N)” in
+`SopLibrary.jsx` while any standard entry is missing. Present = same name in any category, any letter case.
 
 Plan as approved — no database change (no new migration):
 - Editors get **“Add standard software”** in the SOP Library (like “Add standard categories”), shown while any standard
@@ -371,6 +379,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | c7bb125 |
 | 3.5 | Training page: learning paths by day, assign with due dates, my training, team progress, trainer confirm | 7d88686 |
 | 3.6 | SOP quizzes: editor, take quiz with scores, tracking column, “Must pass the quiz” in learning paths | 67c73e9 |
+| 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | (see next commit) |
 
 ---
 

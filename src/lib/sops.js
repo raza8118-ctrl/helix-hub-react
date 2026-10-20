@@ -11,6 +11,32 @@ export const statusOf = value => SOP_STATUSES.find(s => s.value === value) ?? SO
 // Starting categories — the migration seeds them for 3Gen; added companies get an "Add" button
 export const STARTER_CATEGORIES = ['EMR', 'Clearinghouse', 'Payments/ERA', 'Payer portals', 'Medicare DDE', 'Other'];
 
+// Standard software (roadmap 3.7) — offered by "Add standard software". Login links are left for editors to add
+// (many are client-specific). category must be one of STARTER_CATEGORIES.
+export const STARTER_SOFTWARE = [
+  { category: 'EMR',           name: 'WellSky (Kinnser)',        vendor: 'Home health / hospice EMR' },
+  { category: 'EMR',           name: 'Axxess',                   vendor: 'Home health / hospice EMR' },
+  { category: 'EMR',           name: 'HCHB',                     vendor: 'Homecare Homebase', notes: 'Login link is client-specific.' },
+  { category: 'Clearinghouse', name: 'Waystar',                  vendor: 'Claims, claim status, remits' },
+  { category: 'Clearinghouse', name: 'Inovalon',                 vendor: 'ABILITY network — clearinghouse and Medicare system access' },
+  { category: 'Payments/ERA',  name: 'ECHO Health',              vendor: 'Virtual card / EFT payments and ERAs' },
+  { category: 'Payments/ERA',  name: 'PaySpan',                  vendor: 'EFT / ERA enrolment and remits' },
+  { category: 'Payer portals', name: 'Availity',                 vendor: 'Multi-payer portal (eligibility, claims, auths)' },
+  { category: 'Payer portals', name: 'NaviNet',                  vendor: 'Multi-payer portal' },
+  { category: 'Payer portals', name: 'Palmetto GBA eServices',   vendor: 'Medicare MAC portal' },
+  { category: 'Payer portals', name: 'myCGS',                    vendor: 'Medicare MAC portal' },
+  { category: 'Payer portals', name: 'NGSConnex',                vendor: 'Medicare MAC portal' },
+  { category: 'Medicare DDE',  name: 'FISS DDE – Palmetto GBA',  vendor: 'Medicare Part A incl. home health & hospice' },
+  { category: 'Medicare DDE',  name: 'FISS DDE – CGS',           vendor: 'Medicare Part A incl. home health & hospice' },
+  { category: 'Medicare DDE',  name: 'FISS DDE – NGS',           vendor: 'Medicare Part A incl. home health & hospice' },
+];
+
+/** Standard software not yet in the library (same name in any category, any letter case, counts as present). */
+export function missingStarterSoftware(lib) {
+  const have = new Set((lib?.software ?? []).map(sw => (sw.name ?? '').trim().toLowerCase()));
+  return STARTER_SOFTWARE.filter(s => !have.has(s.name.toLowerCase()));
+}
+
 // One entry per level: its table, parent link and the fields its editor pop-up shows
 export const SOP_LEVELS = {
   category: {

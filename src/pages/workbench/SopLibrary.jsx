@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '../../lib/supabase';
 import { hasAccess } from '../../lib/access';
-import { loadSopLibrary, buildSopTree, countSops, statusOf, STARTER_CATEGORIES } from '../../lib/sops';
+import { loadSopLibrary, buildSopTree, countSops, statusOf, STARTER_CATEGORIES, missingStarterSoftware } from '../../lib/sops';
 import { loadSopVersionMeta, versionStates, pendingAcknowledgements } from '../../lib/sopVersions';
-import { SopEditModal } from './SopEditors';
+import { SopEditModal, StarterSoftwareModal } from './SopEditors';
 import SopPage from './SopPage';
 import { toggleSopActive, moveSopItem, addStarterCategories } from './sopActions';
 import CopyButton from '../../components/shared/CopyButton';
@@ -27,6 +27,7 @@ export default function SopLibrary({ user }) {
   const [showInactive, setShowInactive] = useState(false);
   const [open, setOpen]         = useState(() => new Set());   // expanded software ids
   const [editor, setEditor]     = useState(null);              // { level, row, parentId }
+  const [starterSoftware, setStarterSoftware] = useState(false);   // "Add standard software" pop-up (3.7)
   const [openSopId, setOpenSopId] = useState(null);            // SOP shown as a full page (3.2)
   const [meta, setMeta]         = useState(null);              // 3.4 versions + my reads; null = not set up
   const [clientId, setClientId] = useState('ALL');
@@ -67,6 +68,7 @@ export default function SopLibrary({ user }) {
   }) : [], [viewLib, query, categoryId, status, clientId, showInactive, canEdit]);
   const searching = query.trim() !== '';
   const missingStarters = lib && STARTER_CATEGORIES.some(n => !lib.categories.some(c => c.name.toLowerCase() === n.toLowerCase()));
+  const missingSoftware = lib ? missingStarterSoftware(lib) : [];
 
   const toggleOpen = id => setOpen(s => {
     const n = new Set(s);
@@ -118,6 +120,11 @@ export default function SopLibrary({ user }) {
             {missingStarters && (
               <button className="btn-sm" onClick={async () => afterChange(await addStarterCategories(lib, user))}>
                 Add standard categories
+              </button>
+            )}
+            {missingSoftware.length > 0 && (
+              <button className="btn-sm" onClick={() => setStarterSoftware(true)}>
+                Add standard software ({missingSoftware.length})
               </button>
             )}
             <button className="btn-sm" onClick={() => edit('category')}>+ Category</button>
@@ -278,6 +285,10 @@ export default function SopLibrary({ user }) {
         <SopEditModal {...editor} lib={lib} users={users} user={user}
           onClose={() => setEditor(null)}
           onSaved={() => { if (editor.parentId && editor.level === 'task') setOpen(s => new Set(s).add(editor.parentId)); setEditor(null); load(); }} />
+      )}
+      {starterSoftware && lib && (
+        <StarterSoftwareModal lib={lib} user={user} onClose={() => setStarterSoftware(false)}
+          onSaved={() => { setStarterSoftware(false); load(); }} />
       )}
     </div>
   );

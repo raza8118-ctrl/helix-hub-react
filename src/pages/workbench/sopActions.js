@@ -1,4 +1,4 @@
-// SOP Library list actions (make inactive, reorder, starter categories, client copy) — used by SopLibrary.jsx / SopPage.jsx.
+// SOP Library list actions (make inactive, reorder, starter categories/software, client copy) — used by SopLibrary.jsx / SopPage.jsx.
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { SOP_LEVELS, STARTER_CATEGORIES } from '../../lib/sops';
@@ -73,4 +73,37 @@ export async function makeClientCopy(sop, client, lib, user) {
   if (!rows?.length) return null;
   logAudit({ actor: user, action: 'sop_client_copy', entityType: 'sop', entityId: rows[0].id, details: { copied_from: sop.id, client_id: client.id } });
   return rows[0];
+}
+
+/**
+ * Adds the picked standard software (3.7) under their standard categories. A missing category is created
+ * with its standard name. Returns the number of software rows added (0 on failure).
+ */
+export async function addStarterSoftware(lib, picked, user) {
+  const findCat = name => lib.categories.find(c => c.active !== false && c.name.trim().toLowerCase() === name.toLowerCase());
+  const catIds = {};
+  let nextCatOrder = Math.max(0, ...lib.categories.map(c => c.sort_order ?? 0));
+  for (const name of [...new Set(picked.map(p => p.category))]) {
+    const existing = findCat(name);
+    if (existing) { catIds[name] = existing.id; continue; }
+    const rows = await S.set('sop_categories', {
+      name, sort_order: ++nextCatOrder, active: true, created_by: user.emp_id, updated_by: user.emp_id,
+    });
+    if (!rows?.length) return 0;
+    catIds[name] = rows[0].id;
+    logAudit({ actor: user, action: 'sop_category_add', entityType: 'sop_category', entityId: rows[0].id });
+  }
+  const orderIn = {};
+  const rows = picked.map(p => {
+    const categoryId = catIds[p.category];
+    orderIn[categoryId] ??= Math.max(0, ...lib.software.filter(sw => sw.category_id === categoryId).map(sw => sw.sort_order ?? 0));
+    return {
+      category_id: categoryId, name: p.name, vendor: p.vendor ?? null, notes: p.notes ?? null, portal_url: null,
+      sort_order: ++orderIn[categoryId], active: true, created_by: user.emp_id, updated_by: user.emp_id,
+    };
+  });
+  const saved = await S.set('sop_software', rows);
+  if (!saved?.length) return 0;
+  logAudit({ actor: user, action: 'sop_software_add', entityType: 'sop_software', details: { count: saved.length, standard: true } });
+  return saved.length;
 }

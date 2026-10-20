@@ -38,7 +38,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 3.4 Versioning: client-specific vs common SOPs, effective dates, archive old versions, "Acknowledge" button + read tracking.
 - [x] 3.5 Learning paths by role (e.g. new AR joiner Day 1–5) with completion tracking.
 - [x] 3.6 Quizzes per SOP (3–5 questions) with scores.
-- [ ] 3.7 Seed software list: Waystar, Availity, ECHO, PaySpan, WellSky (Kinnser), Axxess, HCHB, Inovalon, NaviNet, payer portals, Medicare FISS DDE (Palmetto, CGS, NGS – incl. hospice).
+- [x] 3.7 Seed software list: Waystar, Availity, ECHO, PaySpan, WellSky (Kinnser), Axxess, HCHB, Inovalon, NaviNet, payer portals, Medicare FISS DDE (Palmetto, CGS, NGS – incl. hospice).
 
 ## Phase 4 – Denial Navigator
 - [ ] 4.1 Denial library: CARC/RARC codes + plain-English denial reasons + search.
