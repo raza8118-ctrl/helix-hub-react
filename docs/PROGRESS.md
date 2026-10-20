@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.3 (code lookup) done; next is 6.4._
+_Last updated: 2026-10-20 — step 6.4 (Smart Worklist) plan approved; building._
 
 ---
 
@@ -21,12 +21,40 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 6.3 is done.** Next: **6.4 – Smart Worklist** (upload aging/RTP file → prioritise by deadline,
-$ and payer → assign to users → auto-update production counts) — needs a plan and a “go”. ⚠ This is the first step that
-would STORE claim-level data (aging rows carry patient names / claim #s): the plan must settle PHI storage in Supabase
-(BAA, minimum fields, retention) with the PO, and how “production counts” map to the existing production tracking
-(Work Allocation / Daily Report — read `docs/PROJECT_MAP.md`) without changing working features.
+**6.4 – Smart Worklist — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+PO decisions (2026-10-20): **no BAA with Supabase → store minimum fields only** (never patient name / DOB / member ID /
+MRN / address); **new page beside Work Allocation** (Work Allocation / My Allocation untouched); **production counts =
+suggest, user confirms** in the Daily Report.
+
+Plan as approved (defaults: bands with equal weights; auto-split by count; 90-day auto-clear; statuses below; supervisors
+manage worklists for their own team):
+- New Workbench page **📋 Smart Worklist** (`wb_worklist`, all roles). Managers (`worklist_manage`: admin/manager/
+  supervisor) upload / prioritise / assign; everyone sees **My worklist** (own claims only).
+- Upload Excel/CSV: auto-matched columns (claim #, client, payer → Payer Directory incl. aliases, DOS from/to, billed,
+  balance, aging days, denial date, last billed, status/reason); patient-identifying + unneeded columns are dropped and
+  listed in the preview; worklist name, client, Daily Report task it counts towards.
+- Priority score + band 🔴/🟠/🟢 with reason: deadline (TFL from DOS / appeal from denial date via payer/client limits,
+  4.4), balance $, starred payers; three weight sliders; sort/filter by band, payer, aging, status.
+- Assign: tick → person, or auto-split among chosen people by count or by $ (highest priority first); reassign/unassign.
+- My worklist: priority order; status (Worked – follow-up · Appealed · Rebilled / corrected · Paid · Denied – no
+  further action · Closed) + follow-up date; worked statuses count as “worked today”; follow-ups due / overdue on top;
+  “📝 Write note” opens the AR Tools Claim Note Generator with payer + client prefilled; no free-text notes stored.
+- Progress (managers): per person assigned / worked today / remaining / overdue follow-ups; Excel export (stored fields only).
+- Daily Report (`ProdReport.jsx`, additive banner only): “From your Smart Worklist today: N claims worked → <task>.
+  Add to my counts” fills the form field; saved only when the user saves the report as usual.
+- PHI hygiene: on close or automatically 90 days after upload, claim # and DOS are wiped (rows kept; status / counts /
+  $ totals kept); manager “Close & clear details”. Limits: no BAA, app-enforced access (no DB row rules) — noted.
+- DB: `supabase/migrations/20261021j_worklists.sql` → `worklists` (id, name, client_id, count_task, weights, starred
+  payers, status open/closed, uploaded_by/at, closed_at, cleared_at, created/updated), `worklist_items` (id, worklist_id,
+  claim_number, payer_id, payer_name, client_id, dos_from, dos_to, billed, balance, aging_days, denial_date, last_billed,
+  deadline, deadline_type, priority_score, band, reason, assigned_to, status, follow_up, worked_at, worked_by, cleared,
+  active). No patient columns.
+- Files: new `src/lib/worklist.js`, `src/pages/workbench/SmartWorklist.jsx`, `WorklistUpload.jsx`, `WorklistManage.jsx`,
+  `MyWorklist.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `src/lib/access.js`, `src/lib/auditLabels.js`,
+  `src/pages/employee/ProdReport.jsx` (banner only), `ClaimNoteGenerator.jsx` (prefill). Audit `worklist_upload`,
+  `worklist_assign`, `worklist_item_status` (id only), `worklist_close_clear` — never claim numbers.
 
 ### Reference: how 6.3 was built (done)
 
@@ -820,6 +848,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Appeal Builder PHI:** the appeal form is never saved (DB, logs or browser storage) — memory only, wiped on refresh / sign-out / Clear; all dates, IDs, claim and auth numbers are identifiers and only ever leave the computer as placeholders.
 - **AI wording:** Claude Opus 5.5 (medium effort, refusal fallback on), browser call with the Settings key; only the placeholder template + non-identifying facts are sent, PHI-like free text blocks sending, user confirms each time; open to everyone (no per-person switch-off).
 - **Claim notes:** built in the browser, never saved / logged (last 5 in memory); formats per client + action with `[ … ]` optional parts; no patient-name placeholder; `note_formats` (admin/manager) manages formats.
+- **Smart Worklist PHI (PO 2026-10-20):** no BAA with Supabase → worklists store minimum claim fields only (no patient name / DOB / member ID / MRN / address); claim # and DOS wiped on close or 90 days after upload; counts flow to the Daily Report only when the user confirms; Work Allocation stays as is.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 
