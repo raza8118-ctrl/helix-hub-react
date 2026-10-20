@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.6 (SOP quizzes) plan approved; building._
+_Last updated: 2026-10-20 — step 3.6 (SOP quizzes) done; next is 3.7._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.6.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 3.6 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.7.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 3.7 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,21 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**3.6 – Quizzes per SOP — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 3.6 is done.** Next: **3.7 – Seed software list** (Waystar, Availity, ECHO, PaySpan,
+WellSky (Kinnser), Axxess, HCHB, Inovalon, NaviNet, payer portals, Medicare FISS DDE — Palmetto, CGS, NGS incl. hospice)
+— needs a plan and a “go”. Software goes into `sop_software` under the 3.1 categories; added companies start empty
+(same “Add standard …” button approach as categories).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.6 was built (done)
+
+Code: `src/lib/sopQuiz.js` (load quiz / my attempts / per-person summary, `checkQuiz`, `saveSopQuiz`, `shuffledOrder`,
+`scoreQuiz`, `saveAttempt` with a copy of the questions; `loadQuizPasses` returns null when 3.6 isn't set up),
+`SopQuiz.jsx` (card on the SOP page: take / result / best score; editors get “Add/Edit quiz”), `SopQuizEditor.jsx`
+(pop-up). Answers are stored as ORIGINAL option indexes; the display order is shuffled per attempt. `SopTracking.jsx`
+adds a Quiz column + Excel columns. Training: `loadTraining` adds `quizAttempts` + `quizReady`; `assignmentStatus` SOP rows
+carry `acked` and `quiz`; an item with `needs_quiz` is done = acknowledged AND passed (done date = the later of the two).
+`needs_quiz` is only written when `quizReady` (column comes with the 3.6 migration). `sopVersions.js` didn't need changes.
 
 Plan as approved (defaults: 80% pass mark; unlimited retakes; right answers shown only after passing; answer order
 shuffled; “Must pass the quiz” off by default on path items):
@@ -350,6 +363,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.3 | SOP full-page editor, formatting, screenshots (paste, crop, black-out), short videos | b99691e |
 | 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | c7bb125 |
 | 3.5 | Training page: learning paths by day, assign with due dates, my training, team progress, trainer confirm | 7d88686 |
+| 3.6 | SOP quizzes: editor, take quiz with scores, tracking column, “Must pass the quiz” in learning paths | (see next commit) |
 
 ---
 
@@ -368,6 +382,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 9. `supabase/migrations/20261020b_sop_media.sql` (SOP screenshots/videos bucket + `sop_media`, step 3.3)
 10. `supabase/migrations/20261021_sop_versions.sql` (SOP versions, client SOPs, acknowledgements, step 3.4)
 11. `supabase/migrations/20261021b_learning_paths.sql` (learning paths, assignments, progress, step 3.5)
+12. `supabase/migrations/20261021c_sop_quizzes.sql` (SOP quizzes, attempts, `needs_quiz` on path items, step 3.6)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -392,6 +407,7 @@ The app hides/disables the related features until each one has been run, so code
 - **SOP media:** up to 3 screenshots + 1 short video per step, optional walkthrough video; videos MP4/WEBM ≤ 25 MB / 3 min; every upload needs the no-PHI tick; screenshots can be cropped/blacked out in the browser; removing media only unlinks it.
 - **SOP versions:** readers see only published versions (current = newest in effect); editors work on the working copy and publish with a change note + effective date; acknowledgement per version for the ticked teams (all if none); tracking via `sops_tracking` (admin/manager/supervisor); every user can see every client's SOPs (no user↔client link yet).
 - **Training:** paths per team with Day 1…N; due dates skip weekends; SOP items complete on acknowledgement; people tick tasks/links unless “Trainer must confirm”; `training_manage` (admin/manager) builds/assigns, `training_track` (admin/manager/supervisor) sees progress + confirms; no auto-assign on user creation.
+- **Quizzes:** one per SOP; multiple choice / True-False; 80% default pass mark; unlimited retakes; right answers shown only after passing; shuffled answers; quiz in a learning path = “Must pass the quiz” tick on SOP items (not a separate item kind); scoring in the browser (fine for internal checks, not formal certification).
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

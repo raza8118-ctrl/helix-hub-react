@@ -58,7 +58,7 @@ export function AssignmentDays({ data, assignment, user, mode, onChanged, onOpen
           {rows.length > 0 && rows.every(r => r.done) && <span className="badge badge-green">✓ Done</span>}
         </div>
         {rows.length === 0 && <div className="text-sm text-muted">Nothing planned for this day.</div>}
-        {rows.map(({ item, done, doneAt, doneBy, overdue }) => {
+        {rows.map(({ item, done, doneAt, doneBy, overdue, acked, quiz }) => {
           const sopRow = item.kind === 'sop' ? data.sops.find(s => s.id === item.sop_id) : null;
           return (
             <div key={item.id} className="row" style={{
@@ -69,6 +69,7 @@ export function AssignmentDays({ data, assignment, user, mode, onChanged, onOpen
               <span style={{ flex: '1 1 220px', minWidth: 0, textDecoration: done ? 'line-through' : undefined, opacity: done ? 0.75 : 1 }}>
                 {itemTitle(data, item)}
                 {item.needs_trainer && <span className="badge badge-gray" style={{ marginLeft: 6 }}>Trainer confirms</span>}
+                {item.needs_quiz && <span className="badge badge-gray" style={{ marginLeft: 6 }}>Quiz must be passed</span>}
               </span>
               <span className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 {item.kind === 'link' && item.url && (
@@ -83,7 +84,16 @@ export function AssignmentDays({ data, assignment, user, mode, onChanged, onOpen
                   </span>
                 )}
                 {!done && item.kind === 'sop' && (
-                  <span className="text-sm text-muted">{sopRow ? 'Open it and click “I have read and understood”' : 'SOP not found'}</span>
+                  <span className="text-sm text-muted">
+                    {!sopRow ? 'SOP not found'
+                      : !acked ? 'Open it and click “I have read and understood”'
+                      : '✓ Acknowledged · quiz not passed yet'}
+                  </span>
+                )}
+                {item.kind === 'sop' && quiz && (
+                  <span className={`badge ${quiz.passedAt ? 'badge-green' : 'badge-orange'}`}>
+                    Quiz {quiz.best}%{quiz.passedAt ? ' ✓' : ''}
+                  </span>
                 )}
                 {!done && item.kind !== 'sop' && (isTrainer || !item.needs_trainer) && (
                   <button className="btn-sm" disabled={busy} onClick={() => tick(item)}>{isTrainer ? 'Confirm done' : 'Mark done'}</button>
@@ -133,6 +143,10 @@ export default function TrainingProgress({ data, user, onChanged, onOpenSop }) {
       'Start date': a.start_date, 'Done': s.done, 'Total': s.total, '% done': s.pct,
       'Current day': s.complete ? 'Complete' : s.currentDay ?? '', Overdue: s.overdue,
       Finished: a.completed_at ? fmtDate(a.completed_at) : '',
+      'Quizzes passed': (() => {
+        const quizItems = s.items.filter(r => r.item.needs_quiz);
+        return quizItems.length ? `${quizItems.filter(r => r.quiz?.passedAt).length} of ${quizItems.length}` : '';
+      })(),
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, 'Training progress');

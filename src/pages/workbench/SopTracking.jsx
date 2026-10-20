@@ -1,22 +1,28 @@
 import { useState } from 'react';
 import { loadSopTracking } from '../../lib/sopVersions';
+import { loadQuizSummary } from '../../lib/sopQuiz';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const quizText = q => !q ? '' : `${q.best}%${q.passedAt ? ` ✓ ${fmtDate(q.passedAt)}` : ''} (${q.attempts}×)`;
 
 /**
- * Who has opened / acknowledged the current version of an SOP (roadmap 3.4).
+ * Who has opened / acknowledged the current version of an SOP (roadmap 3.4), with quiz results (3.6).
  * Loaded only when opened. Shown to holders of "See SOP read tracking".
  */
 export default function SopTracking({ sop, version }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState(undefined);   // undefined = not loaded, null = failed
+  const [quiz, setQuiz] = useState(null);        // { [emp_id]: { best, attempts, passedAt } }, null = no quiz data
   const [onlyPending, setOnlyPending] = useState(true);
   const [team, setTeam] = useState('ALL');
 
   async function toggle() {
     const next = !open;
     setOpen(next);
-    if (next) setRows(await loadSopTracking(version));
+    if (!next) return;
+    const [tracking, summary] = await Promise.all([loadSopTracking(version), loadQuizSummary(sop.id)]);
+    setRows(tracking);
+    setQuiz(summary && Object.keys(summary).length ? summary : null);
   }
 
   const expected = (rows ?? []).filter(r => r.expected);
@@ -33,6 +39,10 @@ export default function SopTracking({ sop, version }) {
       'Must acknowledge': r.expected ? 'Yes' : 'No',
       'First opened': fmtDate(r.opened), 'Last opened': fmtDate(r.lastOpened), 'Times opened': r.views,
       Acknowledged: fmtDate(r.acknowledged),
+      ...(quiz ? {
+        'Quiz best %': quiz[r.emp_id]?.best ?? '', 'Quiz attempts': quiz[r.emp_id]?.attempts ?? 0,
+        'Quiz passed': fmtDate(quiz[r.emp_id]?.passedAt),
+      } : {}),
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, `v${version.version_no}`);
@@ -70,7 +80,7 @@ export default function SopTracking({ sop, version }) {
                 <table className="text-sm" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ textAlign: 'left' }}>
-                      {['Name', 'Team', 'First opened', 'Times', 'Acknowledged'].map(h => (
+                      {['Name', 'Team', 'First opened', 'Times', 'Acknowledged', ...(quiz ? ['Quiz'] : [])].map(h => (
                         <th key={h} style={{ padding: '4px 6px', borderBottom: '1px solid var(--border)' }}>{h}</th>
                       ))}
                     </tr>
@@ -85,6 +95,7 @@ export default function SopTracking({ sop, version }) {
                         <td style={{ padding: '4px 6px' }}>
                           {r.acknowledged ? `✓ ${fmtDate(r.acknowledged)}` : r.expected ? <span className="badge badge-orange">Pending</span> : '—'}
                         </td>
+                        {quiz && <td style={{ padding: '4px 6px' }}>{quizText(quiz[r.emp_id]) || '—'}</td>}
                       </tr>
                     ))}
                   </tbody>

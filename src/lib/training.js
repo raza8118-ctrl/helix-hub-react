@@ -4,6 +4,7 @@
 import { db, S } from './supabase';
 import { logAudit } from './audit';
 import { today, addDays, isWknd } from './helpers';
+import { loadQuizPasses, summarise } from './sopQuiz';
 
 export const ITEM_KINDS = [
   { value: 'sop',  label: 'SOP',  icon: '📄', hint: 'Done when the person acknowledges the SOP' },
@@ -20,7 +21,7 @@ const bySort = (a, b) => a.day_no - b.day_no || (a.sort_order ?? 0) - (b.sort_or
  * acks = SOP acknowledgements (sop_id + emp_id), empty if the 3.4 update isn't there.
  */
 export async function loadTraining() {
-  const [paths, items, assignments, progress, acks, sops, users] = await Promise.all([
+  const [paths, items, assignments, progress, acks, sops, users, quizAttempts] = await Promise.all([
     db('learning_paths').select('*'),
     db('learning_path_items').select('*'),
     db('learning_assignments').select('*'),
@@ -28,6 +29,7 @@ export async function loadTraining() {
     db('sop_reads').select('sop_id,emp_id,acknowledged_at').not('acknowledged_at', 'is', null),
     db('sops').select('id,title,status,active'),
     db('users').select('emp_id,name,team,active'),
+    loadQuizPasses(),
   ]);
   if ([paths, items, assignments, progress].some(r => r.error)) return null;
   return {
@@ -38,6 +40,8 @@ export async function loadTraining() {
     acks: acks.error ? [] : acks.data ?? [],
     sops: sops.error ? [] : sops.data ?? [],
     users: (users.data ?? []).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')),
+    quizAttempts: quizAttempts ?? [],   // 3.6: [{ sop_id, emp_id, score_pct, passed, taken_at }]
+    quizReady: quizAttempts != null,    // the 3.6 update (quizzes + learning_path_items.needs_quiz) has been run
   };
 }
 
@@ -63,7 +67,8 @@ export const pathDays = (path, items) => Math.max(path.days ?? 1, ...items.map(i
 
 /**
  * Status of one assignment: every item with done / due / overdue, plus totals.
- * Returns { items: [{ item, done, doneAt, doneBy, due, overdue }], total, done, pct, currentDay, overdue, days, complete }.
+ * Returns { items: [{ item, done, doneAt, doneBy, due, overdue, acked, quiz }], total, done, pct, currentDay, overdue, days, complete }.
+ * SOP items with needs_quiz (3.6) are done only when acknowledged AND the quiz is passed; quiz = { best, attempts, passedAt }.
  */
 export function assignmentStatus(data, assignment) {
   const path = data.paths.find(p => p.id === assignment.path_id);
@@ -71,17 +76,20 @@ export function assignmentStatus(data, assignment) {
   const ticks = Object.fromEntries(data.progress.filter(p => p.assignment_id === assignment.id).map(p => [p.item_id, p]));
   const day = today();
   const rows = items.map(item => {
-    let doneAt = null, doneBy = null;
+    let doneAt = null, doneBy = null, acked = null, quiz = null;
     if (item.kind === 'sop') {
       const ack = data.acks.find(a => a.sop_id === item.sop_id && a.emp_id === assignment.emp_id);
-      doneAt = ack?.acknowledged_at ?? null;
-      doneBy = ack ? assignment.emp_id : null;
+      acked = ack?.acknowledged_at ?? null;
+      quiz = summarise((data.quizAttempts ?? []).filter(a => a.sop_id === item.sop_id && a.emp_id === assignment.emp_id))[assignment.emp_id] ?? null;
+      const quizOk = !item.needs_quiz || !!quiz?.passedAt;
+      doneAt = acked && quizOk ? [acked, item.needs_quiz ? quiz.passedAt : null].filter(Boolean).sort().pop() : null;
+      doneBy = doneAt ? assignment.emp_id : null;
     } else if (ticks[item.id]) {
       doneAt = ticks[item.id].done_at;
       doneBy = ticks[item.id].done_by;
     }
     const due = dueDateFor(assignment.start_date, item.day_no);
-    return { item, done: !!doneAt, doneAt, doneBy, due, overdue: !doneAt && due < day };
+    return { item, done: !!doneAt, doneAt, doneBy, due, overdue: !doneAt && due < day, acked, quiz };
   });
   const done = rows.filter(r => r.done).length;
   const firstOpen = rows.find(r => !r.done);
@@ -156,6 +164,7 @@ export async function copyPath(data, path, user) {
   const items = pathItems(data, path.id).map(i => ({
     path_id: copy.id, day_no: i.day_no, sort_order: i.sort_order, kind: i.kind, sop_id: i.sop_id, title: i.title,
     url: i.url, needs_trainer: i.needs_trainer, active: true, created_by: user.emp_id, updated_by: user.emp_id,
+    ...(data.quizReady ? { needs_quiz: !!i.needs_quiz } : {}),
   }));
   if (items.length) await S.set('learning_path_items', items);
   return copy;

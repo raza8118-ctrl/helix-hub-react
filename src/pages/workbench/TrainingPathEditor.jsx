@@ -58,7 +58,7 @@ function PathModal({ path, user, onClose, onSaved }) {
 function ItemModal({ data, path, item, dayNo, days, user, onClose, onSaved }) {
   const [v, setV] = useState({
     kind: item?.kind ?? 'sop', sop_id: item?.sop_id ?? '', title: item?.title ?? '', url: item?.url ?? '',
-    needs_trainer: item?.needs_trainer ?? false, day_no: item?.day_no ?? dayNo,
+    needs_trainer: item?.needs_trainer ?? false, needs_quiz: item?.needs_quiz ?? false, day_no: item?.day_no ?? dayNo,
   });
   const [sopQuery, setSopQuery] = useState('');
   const [error, setError] = useState('');
@@ -85,6 +85,7 @@ function ItemModal({ data, path, item, dayNo, days, user, onClose, onSaved }) {
       sop_id: v.kind === 'sop' ? Number(v.sop_id) : null,
       title: v.title.trim() || null, url: v.kind === 'link' ? url : null,
       needs_trainer: v.kind === 'sop' ? false : !!v.needs_trainer,
+      ...(data.quizReady ? { needs_quiz: v.kind === 'sop' && !!v.needs_quiz } : {}),
     }, user);
     setSaving(false);
     if (!row) return setError('Could not save. Please try again.');
@@ -141,6 +142,12 @@ function ItemModal({ data, path, item, dayNo, days, user, onClose, onSaved }) {
           <label className="row text-sm" style={{ gap: 8, cursor: 'pointer', marginBottom: 12 }}>
             <input type="checkbox" checked={v.needs_trainer} onChange={e => set({ needs_trainer: e.target.checked })} />
             Trainer must confirm (the person can’t tick it themselves)
+          </label>
+        )}
+        {v.kind === 'sop' && data.quizReady && (
+          <label className="row text-sm" style={{ gap: 8, cursor: 'pointer', marginBottom: 12 }}>
+            <input type="checkbox" checked={v.needs_quiz} onChange={e => set({ needs_quiz: e.target.checked })} />
+            Must pass the quiz (done only when the SOP is acknowledged and its quiz passed)
           </label>
         )}
         <p className="text-sm text-muted" style={{ marginTop: 0 }}>🔒 No patient information here.</p>
@@ -216,6 +223,7 @@ function PathEditor({ data, path, user, onBack, onChanged }) {
                   {itemTitle(data, item)}
                   {item.kind === 'link' && item.url && <span className="text-sm text-muted"> · {item.url}</span>}
                   {item.needs_trainer && <span className="badge badge-gray" style={{ marginLeft: 6 }}>Trainer confirms</span>}
+                  {item.needs_quiz && <span className="badge badge-gray" style={{ marginLeft: 6 }}>Quiz must be passed</span>}
                 </span>
                 <span className="row" style={{ gap: 4 }}>
                   <button className="btn-sm" title="Move up" disabled={busy || i === 0} onClick={() => move(list, i, -1)}>▲</button>

@@ -62,6 +62,8 @@ const ACTION_LABELS = {
   training_item_undo:    'Undid training item',
   training_trainer_confirm: 'Trainer confirmed training item',
   training_path_complete:   'Completed learning path',
+  sop_quiz_edit:         'Edited SOP quiz',
+  sop_quiz_attempt:      'Took SOP quiz',
   upload_payer_form:         'Uploaded payer form',
   upload_payer_form_version: 'Uploaded new form version',
   assign_team:           'Assigned supervisor team',

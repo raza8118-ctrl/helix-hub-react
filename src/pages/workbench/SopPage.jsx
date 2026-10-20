@@ -13,6 +13,7 @@ import { sopMediaLink } from '../../lib/sopMedia';
 import SopEditorPage from './SopEditorPage';
 import SopContent from './SopContent';
 import SopTracking from './SopTracking';
+import SopQuiz from './SopQuiz';
 import { PublishVersionModal, VersionHistory, ClientCopyModal } from './SopVersions';
 import { confirmDialog } from '../../components/shared/Dialog';
 import CopyButton from '../../components/shared/CopyButton';
@@ -272,6 +273,7 @@ export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, 
       {loadingVersions && <div className="card mb-16 text-muted">Loading…</div>}
       {readerHasNothing && <div className="card mb-16 text-muted">This SOP isn’t in effect yet.</div>}
       {ready && !loadingVersions && !readerHasNothing && <SopContent sop={display} showEmpty={canEdit && !shown} />}
+      {ready && !loadingVersions && !readerHasNothing && <SopQuiz key={sop.id} sop={sop} user={user} canEdit={canEdit} />}
 
       {canTrack && states.current && <SopTracking key={states.current.id} sop={sop} version={states.current} />}
 
