@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.1 (Denial library) plan approved; building._
+_Last updated: 2026-10-20 — step 4.1 (Denial library) done; next is 4.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.1.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 4.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 4.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**4.1 – Denial library — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 4.1 is done.** Next: **4.2 – Layered steps** (Client SOP on top, highlighted → Payer rule from
+the Payer Directory → Common 3Gen steps) — needs a plan and a “go”. Hooks available: `denial_codes` ids, SOPs with
+`client_id` (3.4), payer notes in the Payer Directory (1.x), client list (0.5).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 4.1 was built (done)
+
+Code: `src/lib/denials.js` (`CODE_TYPES`, `CATEGORIES`, `GROUP_CODES` meanings, `parseCodeLine` — tokens split on
+space/comma/;/|/slash, money amounts skipped, "CO 16"/"CO-16"/"co16" → group + CARC, M/MA/N+digits → RARC, 4–6 digits →
+other (FISS); `findCode` falls back between carc/other for numeric codes; `searchCodes`; import: `readImportFile` (first
+sheet; headers matched loosely: code / desc|text|meaning / type / stop|deactiv|retire; “Stop: mm/dd/yyyy” inside the
+description also read) → `compareImport` → `applyImport` (500-row batches, updates official_text + stopped_on only);
+`STARTER_CODES` (49: 5 group, 31 CARC, 13 RARC — our own wording, source 'starter', unverified)). UI:
+`DenialNavigator.jsx` (search box decides: only codes → “codes found” cards with group meaning; else text search with
+type/category/retired/unverified/inactive filters, 60 per page), `DenialEditors.jsx` (code / import / starter pop-ups).
+Route `wb_denials` in `WorkbenchApp.jsx` (placeholder entry already existed in `modules.js`).
 
 Plan as approved (defaults: ~40 starter codes; import never touches plain-English reasons; category list below):
 - New page **🧩 Denial Navigator** (`wb_denials`, replaces the placeholder; everyone). 4.1 = Denial library.
@@ -399,6 +413,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.5 | Training page: learning paths by day, assign with due dates, my training, team progress, trainer confirm | 7d88686 |
 | 3.6 | SOP quizzes: editor, take quiz with scores, tracking column, “Must pass the quiz” in learning paths | 67c73e9 |
 | 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | 98f21ea |
+| 4.1 | Denial Navigator: denial library, code / ERA-line search, X12 import, starter codes, `denials_edit` | (see next commit) |
 
 ---
 
@@ -418,6 +433,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 10. `supabase/migrations/20261021_sop_versions.sql` (SOP versions, client SOPs, acknowledgements, step 3.4)
 11. `supabase/migrations/20261021b_learning_paths.sql` (learning paths, assignments, progress, step 3.5)
 12. `supabase/migrations/20261021c_sop_quizzes.sql` (SOP quizzes, attempts, `needs_quiz` on path items, step 3.6)
+13. `supabase/migrations/20261021d_denial_codes.sql` (Denial library codes, step 4.1)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -443,6 +459,7 @@ The app hides/disables the related features until each one has been run, so code
 - **SOP versions:** readers see only published versions (current = newest in effect); editors work on the working copy and publish with a change note + effective date; acknowledgement per version for the ticked teams (all if none); tracking via `sops_tracking` (admin/manager/supervisor); every user can see every client's SOPs (no user↔client link yet).
 - **Training:** paths per team with Day 1…N; due dates skip weekends; SOP items complete on acknowledgement; people tick tasks/links unless “Trainer must confirm”; `training_manage` (admin/manager) builds/assigns, `training_track` (admin/manager/supervisor) sees progress + confirms; no auto-assign on user creation.
 - **Quizzes:** one per SOP; multiple choice / True-False; 80% default pass mark; unlimited retakes; right answers shown only after passing; shuffled answers; quiz in a learning path = “Must pass the quiz” tick on SOP items (not a separate item kind); scoring in the browser (fine for internal checks, not formal certification).
+- **Denial library:** full X12 CARC/RARC lists are not bundled — the company imports them from x12.org; imports never change our plain-English reasons; starter codes (our wording) must be verified; `denials_edit` (admin/manager) edits; pasted ERA lines are never saved.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

@@ -33,6 +33,8 @@ export const FEATURES = [
   // Training: everyone sees their own learning paths; building/assigning and team progress are gated
   { group: 'Tools', key: 'training_manage', label: 'Manage learning paths', defaultRoles: MANAGERS },
   { group: 'Tools', key: 'training_track',  label: 'See training progress + confirm items', defaultRoles: MONITORS },
+  // Denial Navigator: looking codes up is open to everyone; editing / import is gated
+  { group: 'Tools', key: 'denials_edit', label: 'Edit Denial library', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,
