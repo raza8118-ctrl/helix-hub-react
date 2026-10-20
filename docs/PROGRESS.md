@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.2 (SOP page template) done; next is 3.3._
+_Last updated: 2026-10-20 — step 3.3 (SOP editor + uploads) plan approved; building._
 
 ---
 
@@ -14,17 +14,33 @@ _Last updated: 2026-10-20 — step 3.2 (SOP page template) done; next is 3.3._
 2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.3.”**
 3. Claude reads this file, fetches the latest code from GitHub, shows the 3.3 plan, and waits for your “go”.
 
-Still waiting on you in Supabase (if not done yet): run the 8 migration files listed under “Waiting on the product owner”
-below, in order, then click **↻ Sync structure** in the Owner Console.
+Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
+once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
 
 ---
 
 ## ▶ Current step
 
-**None in progress. Step 3.2 is done.** Next: **3.3 – SOP editor + upload** (text, screenshots, short videos;
-reminder banner: no PHI in screenshots) — needs a plan and a “go”. Screenshots go into each step's `image` slot
-(`steps[].image`, currently always null; the page shows “Screenshot coming soon”).
+**3.3 – SOP editor + uploads — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: 3 screenshots per step; videos ≤ 25 MB / 3 min; black-out tool; upload tick box every time):
+- **Full-page editor** (replaces the 3.2 pop-up) in the same screen, Edit / Preview tabs, Save / Cancel, unsaved-changes warning.
+  `SopContentEditor.jsx` stays in the repo unused.
+- **Formatting, no new library:** toolbar Bold / • bullets / 1. numbered / ⚠ Important line; links auto-clickable.
+  Stored as plain text with simple marks (`**bold**`, `- item`, `1. item`, `! important`), rendered as React elements (no HTML).
+- **Screenshots per step:** up to 3; Ctrl+V paste, drag-drop or pick (PNG/JPG/WEBP). **Black-out + crop tool** in the
+  browser before upload; re-encoding strips EXIF; resized to ≤ 1600 px wide, ~≤ 1 MB. Click to enlarge on the SOP page.
+- **Videos:** one short video per step + optional SOP “Watch the walkthrough” video; MP4/WEBM ≤ 25 MB, ≤ 3 min; no compression.
+- **PHI:** red banner in the editor; every upload needs the tick “I checked: no patient names, DOB, member IDs, claim
+  numbers or addresses are visible.” Private bucket, short-lived signed links (same caveat as payer forms: no PHI allowed).
+- **Nothing deleted:** removing media only unlinks it; file + `sop_media` row kept (for 3.4 versions).
+- DB: `supabase/migrations/20261020b_sop_media.sql` → private bucket `sop-media` (images + mp4/webm, 25 MB, read + insert
+  only), table `sop_media` (id, sop_id, kind, path, size, width, height, duration, uploaded_by, uploaded_at, active),
+  column `sops.walkthrough_video jsonb`. Step media in `steps[]`: `images: [...]`, `video`.
+- Files: new `src/lib/sopMedia.js`, `src/lib/sopText.js`, `src/pages/workbench/SopEditorPage.jsx`, `ScreenshotTool.jsx`,
+  `SopMedia.jsx`; changed `SopPage.jsx`, `SopLibrary.jsx`, `src/lib/sops.js`, `src/lib/auditLabels.js`.
+  Audit `sop_media_upload` (kind + size only, never file names), `sop_content_edit`. Editing/upload = `sops_edit` only.
 
 ### Reference: how 3.2 was built (done)
 
@@ -269,6 +285,7 @@ The app hides/disables the related features until each one has been run, so code
 - **SOP Library:** viewing open to all (Published only); `sops_edit` (admins + managers, grantable) edits and sees Drafts. Categories are editable.
 - **SOP page:** fixed template sections; SOPs need re-checking every 180 days (“Mark as verified today” by editors); “Who uses it” = team chips + free text.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
+- **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 
 ---
 
