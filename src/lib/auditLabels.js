@@ -64,6 +64,7 @@ const ACTION_LABELS = {
   training_path_complete:   'Completed learning path',
   sop_quiz_edit:         'Edited SOP quiz',
   sop_quiz_attempt:      'Took SOP quiz',
+  appeal_ai_wording:     'Used AI wording for an appeal',
   denial_code_add:       'Added denial code',
   denial_code_edit:      'Edited denial code',
   denial_code_verify:    'Marked denial code verified',

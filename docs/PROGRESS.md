@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.3 (AI wording, no PHI) plan approved; building._
+_Last updated: 2026-10-20 — step 5.3 (AI wording, no PHI) done; next is 5.4._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 5.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 5.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**5.3 – AI wording (no PHI) — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 5.3 is done.** Next: **5.4 – Output PDF cover letter, pre-filled payer form, payer
+address/fax from directory, AFL deadline check** — needs a plan and a “go”. Reusable: pdf-lib (2.1), `PdfSaveOptions.jsx`
+save step (required for File Tools PDF output), Appeal Packet builder (2.5, `src/lib/packet.js`), payer forms (1.4,
+`payerFormLink`), `computeDeadline` (4.4), the filled letter text in `AppealLetter.jsx`.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 5.3 was built (done)
+
+No database change. **Change from the plan (PO decision 2026-10-20):** no `appeal_ai` permission — AI wording is open to
+everyone; per-person switch-off would have needed Team page changes (role defaults can't be revoked per user today).
+`src/lib/appealAI.js`: `STYLES`, `phiIssues` (date-like incl. month names, 5+ digit numbers, ID-like letter/digit mixes,
+phone, email, DOB/MRN/SSN/member ID/claim #/Mr./Mrs. words), `buildAIRequest` (facts = denial type, level, payer, client,
+codes, plain reason + NON-identifier key facts of the type + notes if ticked; free-text facts and the template are PHI-
+checked → `problems` block sending), fixed `SYSTEM` instructions, `validateAILetter` (identifier tokens of the template
+must survive; unknown tokens rejected; new/unused tokens + date/number warnings), `improveWording` (raw fetch, model
+`claude-opus-5-5`, `output_config { effort: 'medium', format: json_schema { letter, notes } }`, `fallbacks: 'default'`
++ `anthropic-beta: server-side-fallback-2026-07-01`, refusal / max_tokens / 401 / 429 messages; audit
+`appeal_ai_wording` {denial_type, style, ok} only). `AppealAIPanel.jsx` (styles, notes tick, “What AI will see”, PHI block,
+confirm tick, try again, ↺ template version). `AppealLetter.jsx`: letter body = `form.ai_body ?? template.body` (AI text
+keeps placeholders and is filled locally, so later form edits still flow in); 🔀 Show changes; changing template clears
+the AI text. Never sent: the edited/filled letter (`letter_text`).
 
 Plan as approved (defaults: Claude Opus 5.5 at medium effort; refusal fallback on; sending blocked when the PHI check finds
 something; confirmation tick every time; available to all roles, switchable per person) — no database change:
@@ -587,6 +606,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 4.4 | Deadline helper: due dates from payer / client limits, Medicare quick-fill, copy summary (no DB change) | c748f2c |
 | 5.1 | Appeal Builder form: denial types + key facts, placeholders, side panel, in-memory only (no DB change) | 6b7e428 |
 | 5.2 | Appeal letter templates: best-match letter filled locally, edit / copy / print, Templates tab, 8 starters | 83baf5c |
+| 5.3 | AI wording for appeal letters: placeholders-only request, PHI block + confirm, answer checks, show changes (no DB change) | (see next commit) |
 
 ---
 
@@ -636,6 +656,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Quizzes:** one per SOP; multiple choice / True-False; 80% default pass mark; unlimited retakes; right answers shown only after passing; shuffled answers; quiz in a learning path = “Must pass the quiz” tick on SOP items (not a separate item kind); scoring in the browser (fine for internal checks, not formal certification).
 - **Denial library:** full X12 CARC/RARC lists are not bundled — the company imports them from x12.org; imports never change our plain-English reasons; starter codes (our wording) must be verified; `denials_edit` (admin/manager) edits; pasted ERA lines are never saved.
 - **Appeal Builder PHI:** the appeal form is never saved (DB, logs or browser storage) — memory only, wiped on refresh / sign-out / Clear; all dates, IDs, claim and auth numbers are identifiers and only ever leave the computer as placeholders.
+- **AI wording:** Claude Opus 5.5 (medium effort, refusal fallback on), browser call with the Settings key; only the placeholder template + non-identifying facts are sent, PHI-like free text blocks sending, user confirms each time; open to everyone (no per-person switch-off).
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

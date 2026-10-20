@@ -49,7 +49,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 ## Phase 5 – Appeal Builder
 - [x] 5.1 Form: client, payer, denial reason, claim #, DOS, key fact (e.g. auth # + approval date).
 - [x] 5.2 Letter templates per denial type, using placeholders only.
-- [ ] 5.3 AI wording (no PHI sent) → real values filled locally → preview → edit.
+- [x] 5.3 AI wording (no PHI sent) → real values filled locally → preview → edit.
 - [ ] 5.4 Output PDF cover letter, pre-filled payer form, payer address/fax from directory, AFL deadline check.
 - [ ] 5.5 "Add to Appeal Packet" (links to 2.5).
 

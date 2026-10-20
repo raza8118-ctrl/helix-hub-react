@@ -111,6 +111,8 @@ export const emptyAppeal = () => ({
   patient_name: '', patient_dob: '', member_id: '', disagree: '',
   // 5.2 letter: chosen template ('' = best match) and the letter text once the user edits it (null = built from the template)
   template_id: '', letter_text: null,
+  // 5.3 AI wording: the AI's reworded template (placeholders only — filled locally like any template) and choices
+  ai_body: null, ai_notes: '', ai_style: 'neutral', ai_use_notes: false,
   // key facts of every denial type live side by side so switching type doesn't lose typing
   ...Object.fromEntries(DENIAL_TYPES.flatMap(t => t.facts).map(f => [f.key, f.type === 'checklist' ? [] : ''])),
 });
