@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.4 (deadline helper) plan approved; building._
+_Last updated: 2026-10-20 — step 4.4 done; Phase 4 (Denial Navigator) complete; next is 5.1._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 4.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 5.1 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**4.4 – Deadline helper — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 4.4 is done — Phase 4 complete.** Next: **5.1 – Appeal Builder form** (client, payer, denial
+reason, claim #, DOS, key fact e.g. auth # + approval date), first step of Phase 5 — needs a plan and a “go”.
+Reminder (CLAUDE.md rule 6): appeal letters use placeholders like `[PATIENT_NAME]`; real values filled locally; never
+send PHI to an AI API. The `wb_appeals` placeholder module already exists in `modules.js`. Reusable pieces: Denial
+library + layered steps (4.1–4.3), `deadlines.js` (4.4), Payer Directory forms/contacts, Appeal Packet (2.5).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 4.4 was built (done)
+
+No database change. `src/lib/deadlines.js` (`DATE_FIELDS` matching `payer_limits.measured_from` labels, `fromKeyOf`
+— unknown/Other → denial date flagged “assumed”, `MEDICARE_PRESETS` (redetermination 120 d + 5 d receipt,
+QIC reconsideration 180 d + 5 d receipt, TFL 1 calendar year from DOS), `computeDeadline` (calendar days; years add
+calendar years, Feb 29 → Feb 28; weekend → `sendBy` previous Friday), `STATUS_STYLE` ok / soon (≤ 14) / late,
+`summaryLine` for claim notes). `DeadlineHelper.jsx` card (sources: payer limits via `loadPayerInfo` — now incl. TFL —
+/ Medicare / by hand; asks only the needed dates; 📋 Copy summary). `DenialNavigator.jsx` shows it in 🔎 Look up;
+`DenialLayers.jsx` payer box has “⏰ Work out the deadline” (opens + scrolls to `#deadline-helper`). Dates never stored.
 
 Plan as approved (defaults: 🟠 at ≤ 14 days; calendar days; weekend warning without moving the date; Medicare
 quick-fill included + labelled; TFL shown for reference) — no database change:
@@ -486,6 +500,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 4.1 | Denial Navigator: denial library, code / ERA-line search, X12 import, starter codes, `denials_edit` | b583097 |
 | 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | bf44eb5 |
 | 4.3 | Denial “Manage steps”: coverage + gaps, copy to client, Excel import / export, review queue, inactive (no DB change) | c58c595 |
+| 4.4 | Deadline helper: due dates from payer / client limits, Medicare quick-fill, copy summary (no DB change) | (see next commit) |
 
 ---
 

@@ -44,7 +44,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 4.1 Denial library: CARC/RARC codes + plain-English denial reasons + search.
 - [x] 4.2 Layered steps: Client SOP (top, highlighted) → Payer rule (from Payer Directory) → Common 3Gen steps.
 - [x] 4.3 Admin screen to add/update denial steps per client and common.
-- [ ] 4.4 Deadline helper: appeal/corrected-claim deadline from denial date using payer/client limits.
+- [x] 4.4 Deadline helper: appeal/corrected-claim deadline from denial date using payer/client limits.
 
 ## Phase 5 – Appeal Builder
 - [ ] 5.1 Form: client, payer, denial reason, claim #, DOS, key fact (e.g. auth # + approval date).

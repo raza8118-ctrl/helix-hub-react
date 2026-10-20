@@ -7,6 +7,7 @@ import {
 import { DenialCodeModal, DenialImportModal, DenialStarterModal } from './DenialEditors';
 import DenialLayers from './DenialLayers';
 import DenialAdmin from './DenialAdmin';
+import DeadlineHelper from './DeadlineHelper';
 import SopPage from './SopPage';
 import PayerCard from './PayerCard';
 import PayerSearch from '../../components/shared/PayerSearch';
@@ -94,6 +95,7 @@ export default function DenialNavigator({ user }) {
   const [sopCtx, setSopCtx] = useState(null);
   const [payerCard, setPayerCard] = useState(null);  // payer opened from a layer
   const [tab, setTab] = useState('lookup');           // 4.3: 'lookup' | 'manage'
+  const [deadlineOpen, setDeadlineOpen] = useState(false);   // 4.4 deadline helper card
 
   const reload = () => loadDenialCodes().then(setCodes);
   const reloadSteps = () => loadDenialSteps().then(setSteps);
@@ -150,10 +152,15 @@ export default function DenialNavigator({ user }) {
     canEdit, onVerify: verify, onEdit: row => setModal({ kind: 'code', row }), onToggle: toggleActive,
     stepsReady: Array.isArray(steps), onToggleSteps: toggleSteps,
   };
+  // "⏰ Work out the deadline" in a payer layer opens the helper card and scrolls to it
+  const openDeadline = () => {
+    setDeadlineOpen(true);
+    requestAnimationFrame(() => document.getElementById('deadline-helper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
   // The layered "What to do" panel for one code (children of its card)
   const layers = row => (
     <DenialLayers code={row} steps={steps} ctx={ctx} client={client} payer={payer} user={user} canEdit={canEdit}
-      onChanged={reloadSteps} onOpenSop={setSopId} onOpenPayer={setPayerCard} />
+      onChanged={reloadSteps} onOpenSop={setSopId} onOpenPayer={setPayerCard} onDeadline={openDeadline} />
   );
 
   if (sopId != null) {
@@ -263,6 +270,8 @@ export default function DenialNavigator({ user }) {
           </div>
         </div>
       )}
+
+      {codes && <DeadlineHelper payer={payer} client={client} open={deadlineOpen} onToggle={() => setDeadlineOpen(o => !o)} />}
 
       {codes && (
         <>

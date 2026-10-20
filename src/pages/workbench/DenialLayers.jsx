@@ -42,7 +42,7 @@ function LayerBox({ scope, title, entry, emptyText, highlight, sops, canEdit, on
 }
 
 // Appeals contacts, limits, forms and pinned notes from the Payer Directory
-function PayerDirectoryInfo({ payer, client, onOpenPayer }) {
+function PayerDirectoryInfo({ payer, client, onOpenPayer, onDeadline }) {
   const [info, setInfo] = useState({ key: null, data: null });
   const key = `${payer.id}|${client?.id ?? ''}`;
   useEffect(() => {
@@ -61,7 +61,8 @@ function PayerDirectoryInfo({ payer, client, onOpenPayer }) {
     <div className="text-sm" style={{ marginTop: 8, borderTop: '1px dashed var(--border)', paddingTop: 6 }}>
       <div className="row" style={{ gap: 6, alignItems: 'center', marginBottom: 4 }}>
         <span className="text-muted">From the Payer Directory</span>
-        <button className="btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onOpenPayer(payer)}>Open payer card ›</button>
+        {onDeadline && <button className="btn-sm" style={{ marginLeft: 'auto' }} onClick={onDeadline}>⏰ Work out the deadline</button>}
+        <button className="btn-sm" style={onDeadline ? undefined : { marginLeft: 'auto' }} onClick={() => onOpenPayer(payer)}>Open payer card ›</button>
       </div>
       {!data && <div className="text-muted">Loading…</div>}
       {data && !data.contacts.length && !data.limits.length && !data.forms.length && !data.notes.length && (
@@ -110,7 +111,7 @@ function PayerDirectoryInfo({ payer, client, onOpenPayer }) {
  * "What to do" for one denial code (roadmap 4.2): 🟨 client steps (highlighted, when a client is picked) →
  * 🟦 payer rule + Payer Directory info (when a payer is picked) → ⬜ common 3Gen steps.
  */
-export default function DenialLayers({ code, steps, ctx, client, payer, user, canEdit, onChanged, onOpenSop, onOpenPayer }) {
+export default function DenialLayers({ code, steps, ctx, client, payer, user, canEdit, onChanged, onOpenSop, onOpenPayer, onDeadline }) {
   const [editing, setEditing] = useState(null);   // { scope, target, entry }
   const clientEntry = client ? layerEntry(steps, code.id, 'client', client.id) : null;
   const payerEntry = payer ? layerEntry(steps, code.id, 'payer', payer.id) : null;
@@ -143,7 +144,7 @@ export default function DenialLayers({ code, steps, ctx, client, payer, user, ca
       {payer && (
         <LayerBox {...box('payer', payer, payerEntry)} title={`Payer rule — ${payer.name}`}
           emptyText={`No payer-specific steps for ${payer.name} and this code.`}>
-          <PayerDirectoryInfo payer={payer} client={client} onOpenPayer={onOpenPayer} />
+          <PayerDirectoryInfo payer={payer} client={client} onOpenPayer={onOpenPayer} onDeadline={onDeadline} />
         </LayerBox>
       )}
       <LayerBox {...box('common', null, commonEntry)} title="Common 3Gen steps"

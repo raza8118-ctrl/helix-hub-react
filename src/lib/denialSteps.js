@@ -83,7 +83,8 @@ export async function setStepsActive(row, active, user) {
 const payerInfoCache = new Map();   // `${payerId}|${clientId}` → promise
 
 /**
- * Appeals contacts, appeal / corrected-claim / recon limits (client override first), appeal-type forms and pinned
+ * Appeals contacts, appeal / recon / corrected-claim / timely filing limits (client override first; TFL added for the
+ * 4.4 deadline helper), appeal-type forms and pinned
  * Claims/Appeals notes for a payer. Cached for the session; pass fresh = true to reload.
  */
 export function loadPayerInfo(payerId, clientId = null, fresh = false) {
@@ -98,7 +99,7 @@ export function loadPayerInfo(payerId, clientId = null, fresh = false) {
     ]);
     const live = r => (r.error ? [] : (r.data ?? []).filter(x => x.active !== false));
     // Limits: a client's override replaces the base limit of the same type + level
-    const allLimits = live(limits).filter(l => ['AFL', 'CCTFL', 'RECON'].includes(l.limit_type));
+    const allLimits = live(limits).filter(l => ['AFL', 'CCTFL', 'RECON', 'TFL'].includes(l.limit_type));
     const chosen = allLimits.filter(l => l.client_id == null).map(base => {
       const override = clientId != null && allLimits.find(o => String(o.client_id) === String(clientId)
         && o.limit_type === base.limit_type && (o.level ?? null) === (base.level ?? null) && (o.plan_id ?? null) === (base.plan_id ?? null));
@@ -109,7 +110,7 @@ export function loadPayerInfo(payerId, clientId = null, fresh = false) {
       && !chosen.some(c => c.id === o.id)
       && !allLimits.some(b => b.client_id == null && b.limit_type === o.limit_type && (b.level ?? null) === (o.level ?? null) && (b.plan_id ?? null) === (o.plan_id ?? null)))
       .forEach(o => chosen.push({ ...o, isOverride: true }));
-    const order = { AFL: 0, RECON: 1, CCTFL: 2 };
+    const order = { AFL: 0, RECON: 1, CCTFL: 2, TFL: 3 };
     return {
       contacts: live(contacts).filter(c => c.department === 'appeals'),
       limits: chosen.sort((a, b) => order[a.limit_type] - order[b.limit_type] || (a.level ?? 0) - (b.level ?? 0)),
