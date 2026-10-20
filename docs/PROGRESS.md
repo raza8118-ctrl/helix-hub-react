@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.4 (appeal PDF) done; next is 5.5._
+_Last updated: 2026-10-20 — step 5.5 (Add to Appeal Packet) plan approved; building._
 
 ---
 
@@ -21,11 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 5.4 is done.** Next: **5.5 – “Add to Appeal Packet” (links to 2.5)** — last step of Phase 5;
-needs a plan and a “go”. The Appeal Packet (2.5) lives in File Tools (`AppealPacket.jsx`, `src/lib/packet.js`
-`assemblePacket` with sections letter / form / eob / auth / records / other + its own cover sheet); the appeal PDF parts
-come from `src/lib/appealPdf.js` (`buildLetterPdf`, `fillForm`, `buildFaxCover`). Hand-over must stay in memory (PHI).
+**5.5 – “Add to Appeal Packet” — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: no fax cover in the packet; letter without its own page numbers; ask Replace / Add when the
+packet isn't empty; deadline tick reused) — no database change:
+- Appeal Builder 📄 Build the PDF gets **📦 Add to Appeal Packet** (same past-due / ≤ 3 days “I understand” tick first).
+- Hands over: cover letter PDF (no own page numbers) → packet *Cover letter*; payer form (pre-filled / flattened as
+  chosen) → *Appeal / Recon form*; fields payer (loads its contacts + forms), client, claim #, DOS (`MM/DD/YYYY–MM/DD/YYYY`),
+  patient name, member ID, packet type (first/second → Appeal, recon → Reconsideration, corrected → Corrected claim).
+  The 5.4 fax cover is not handed over (the packet has its own cover sheet).
+- Switches to File Tools → Appeal Packet with a “Started from the Appeal Builder…” note; if the packet already has files:
+  Replace or Add.
+- PHI: hand-over in memory only (no DB / browser storage / logs), wiped once picked up and on sign-out; packet cover sheet
+  still shows patient / member / claim (2.5 design; can be unticked). Audit `appeal_to_packet` counts only.
+- Files: new `src/lib/packetHandoff.js`; changed `AppealPdf.jsx`, `src/lib/appealPdf.js`, `AppealPacket.jsx` (additive:
+  picks up a waiting hand-over), `FileTools.jsx` (opens on Appeal Packet when one is waiting), `src/lib/auditLabels.js`.
 
 ### Reference: how 5.4 was built (done)
 
