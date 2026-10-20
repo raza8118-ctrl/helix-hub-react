@@ -113,7 +113,7 @@ export function SopEditModal({ level, row, parentId, lib, users, user, onClose, 
         {level === 'sop' && (
           <p className="text-sm text-muted" style={{ marginTop: 0 }}>
             Only <b>Published</b> SOPs are shown to everyone; drafts are visible to SOP editors only.
-            The full SOP page (steps, screenshots) is added in a later update.
+            Open the SOP afterwards to fill in its page (purpose, steps, troubleshooting…).
           </p>
         )}
         <p className="text-sm text-muted" style={{ marginTop: 0 }}>🔒 No patient information here.</p>

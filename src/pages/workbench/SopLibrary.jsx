@@ -3,6 +3,7 @@ import { db } from '../../lib/supabase';
 import { hasAccess } from '../../lib/access';
 import { loadSopLibrary, buildSopTree, countSops, statusOf, STARTER_CATEGORIES } from '../../lib/sops';
 import { SopEditModal } from './SopEditors';
+import SopPage from './SopPage';
 import { toggleSopActive, moveSopItem, addStarterCategories } from './sopActions';
 import CopyButton from '../../components/shared/CopyButton';
 
@@ -12,6 +13,7 @@ const inactiveStyle = row => row.active === false ? { opacity: 0.55 } : undefine
 /**
  * SOP Library (roadmap 3.1): Category → Software → Task → SOP.
  * Everyone sees published SOPs; "Edit SOP Library" holders also see drafts and can add/edit/reorder.
+ * Clicking an SOP opens its full page with the standard template (3.2).
  */
 export default function SopLibrary({ user }) {
   const canEdit = hasAccess(user, 'sops_edit');
@@ -23,6 +25,7 @@ export default function SopLibrary({ user }) {
   const [showInactive, setShowInactive] = useState(false);
   const [open, setOpen]         = useState(() => new Set());   // expanded software ids
   const [editor, setEditor]     = useState(null);              // { level, row, parentId }
+  const [openSopId, setOpenSopId] = useState(null);            // SOP shown as a full page (3.2)
 
   const load = () => loadSopLibrary().then(setLib);
   useEffect(() => {
@@ -62,6 +65,16 @@ export default function SopLibrary({ user }) {
           {row.active === false ? '↺' : '⊘'}
         </button>
       </span>
+    );
+  }
+
+  const openSop = lib && openSopId != null ? lib.sops.find(s => s.id === openSopId) : null;
+  if (openSop && (canEdit || (openSop.status === 'published' && openSop.active !== false))) {
+    return (
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <SopPage sop={openSop} lib={lib} names={names} user={user} canEdit={canEdit}
+          onBack={() => setOpenSopId(null)} onChanged={load} />
+      </div>
     );
   }
 
@@ -182,8 +195,10 @@ export default function SopLibrary({ user }) {
                                 gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '6px 0 6px 12px',
                                 borderLeft: '3px solid var(--accent)', marginTop: 4, ...inactiveStyle(s),
                               }}>
-                                <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-                                  <div className="text-sm bold">📄 {s.title}</div>
+                                <div style={{ flex: '1 1 240px', minWidth: 0, cursor: 'pointer' }} role="button" tabIndex={0}
+                                  title="Open this SOP" onClick={() => setOpenSopId(s.id)}
+                                  onKeyDown={e => { if (e.key === 'Enter') setOpenSopId(s.id); }}>
+                                  <div className="text-sm bold" style={{ color: 'var(--accent)' }}>📄 {s.title} ›</div>
                                   {s.summary && <div className="text-sm text-muted">{s.summary}</div>}
                                   <div className="text-sm text-muted">
                                     {s.owner ? `Owner: ${names[s.owner] ?? s.owner} · ` : ''}Updated {fmtDate(s.updated_at)}

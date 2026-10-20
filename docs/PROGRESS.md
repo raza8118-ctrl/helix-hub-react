@@ -4,25 +4,35 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.2 (SOP page template) plan approved; building._
+_Last updated: 2026-10-20 — step 3.2 (SOP page template) done; next is 3.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 3.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 3.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 3.3 plan, and waits for your “go”.
 
-Still waiting on you in Supabase (if not done yet): run the 7 migration files listed under “Waiting on the product owner”
+Still waiting on you in Supabase (if not done yet): run the 8 migration files listed under “Waiting on the product owner”
 below, in order, then click **↻ Sync structure** in the Owner Console.
 
 ---
 
 ## ▶ Current step
 
-**3.2 – SOP page template — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 3.2 is done.** Next: **3.3 – SOP editor + upload** (text, screenshots, short videos;
+reminder banner: no PHI in screenshots) — needs a plan and a “go”. Screenshots go into each step's `image` slot
+(`steps[].image`, currently always null; the page shows “Screenshot coming soon”).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 3.2 was built (done)
+
+Code: `src/lib/sops.js` (`SOP_SECTIONS`, `SOP_RECHECK_DAYS` = 180, `hasSopTemplate`, `sopSteps`, `sopNeedsRecheck`,
+`sopSectionFilled`), `src/pages/workbench/SopPage.jsx` (page view, print in a new window, “Mark as verified today”),
+`src/pages/workbench/SopContentEditor.jsx` (content pop-up). `SopLibrary.jsx` opens an SOP via `openSopId`.
+“Template set up?” is detected by the `steps` key on the SOP row. Sync-structure copies drop `not null`, so code treats
+null steps/teams as empty. Audit labels for all SOP actions added to `auditLabels.js`. Never-verified SOPs show “Needs re-check”.
 
 Plan as approved (defaults: re-check after 180 days; “Who uses it” = team chips + free text):
 - Clicking an SOP in the library opens a full **SOP page** (same screen, “← Back to library”) with fixed sections:
@@ -221,6 +231,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
 | 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
 | 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
+| 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | (see next commit) |
 
 ---
 
@@ -235,6 +246,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 5. `supabase/migrations/20261019b_payer_forms_storage.sql`
 6. `supabase/migrations/20261019c_payer_reports.sql`
 7. `supabase/migrations/20261019d_sop_library.sql` (SOP Library, step 3.1)
+8. `supabase/migrations/20261020_sop_template.sql` (SOP page template, step 3.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -255,6 +267,7 @@ The app hides/disables the related features until each one has been run, so code
 - **PDF → Excel methods:** in-browser always available; Vercel / Supabase / own-server methods appear in a selector and only an admin can switch one on, with a “BAA signed” confirmation (audited). Config in kv `pdf_extract_engines` per company.
 - **Appeal Packet:** cover sheet on by default; page numbers “Page X of Y” bottom right (optional prefix); company file-name convention set by `packet_settings` holders; `{PatientLast}` allowed but not default.
 - **SOP Library:** viewing open to all (Published only); `sops_edit` (admins + managers, grantable) edits and sees Drafts. Categories are editable.
+- **SOP page:** fixed template sections; SOPs need re-checking every 180 days (“Mark as verified today” by editors); “Who uses it” = team chips + free text.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 
 ---

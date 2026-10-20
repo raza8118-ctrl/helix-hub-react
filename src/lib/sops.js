@@ -107,3 +107,38 @@ export function buildSopTree(lib, { query = '', categoryId = 'ALL', showInactive
 export const countSops = node =>
   node.sops ? node.sops.length
   : (node.tasks ?? node.software ?? []).reduce((n, child) => n + countSops(child), 0);
+
+// ── SOP page template (roadmap 3.2) ─────────────────────────────────────────
+
+// Text sections of an SOP page, in display order (Steps and Who uses it are drawn separately)
+export const SOP_SECTIONS = [
+  { key: 'purpose',         label: 'Purpose',             hint: 'Why this SOP exists and when to use it' },
+  { key: 'audience',        label: 'Who uses it' },
+  { key: 'prerequisites',   label: 'Before you start',    hint: 'Access, documents or information you need first' },
+  { key: 'steps',           label: 'Steps' },
+  { key: 'expected_result', label: 'What you should see', hint: 'The result that tells you it worked' },
+  { key: 'troubleshooting', label: 'If it goes wrong',    hint: 'Common problems and what to do about each' },
+];
+
+// An SOP should be checked again this many days after it was last verified
+export const SOP_RECHECK_DAYS = 180;
+
+/** True once the 3.2 database update has been run (the template columns come back with the row). */
+export const hasSopTemplate = sop => sop != null && 'steps' in sop;
+
+/** Steps as a clean list — company copies made by "Sync structure" may hold null. */
+export const sopSteps = sop => (Array.isArray(sop?.steps) ? sop.steps : [])
+  .map(s => ({ text: s?.text ?? '', tip: s?.tip ?? '', image: s?.image ?? null }));
+
+/** True when the SOP has never been verified, or not within SOP_RECHECK_DAYS. */
+export function sopNeedsRecheck(sop) {
+  if (!sop?.last_verified_at) return true;
+  return Date.now() - new Date(sop.last_verified_at).getTime() > SOP_RECHECK_DAYS * 86400000;
+}
+
+/** Whether a template section has anything in it (empty ones are hidden from readers). */
+export function sopSectionFilled(sop, key) {
+  if (key === 'audience') return (sop.audience_teams ?? []).length > 0 || !!sop.audience_notes?.trim();
+  if (key === 'steps') return sopSteps(sop).some(s => s.text.trim());
+  return !!sop[key]?.trim();
+}
