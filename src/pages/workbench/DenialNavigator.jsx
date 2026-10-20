@@ -6,6 +6,7 @@ import {
 } from '../../lib/denials';
 import { DenialCodeModal, DenialImportModal, DenialStarterModal } from './DenialEditors';
 import DenialLayers from './DenialLayers';
+import DenialAdmin from './DenialAdmin';
 import SopPage from './SopPage';
 import PayerCard from './PayerCard';
 import PayerSearch from '../../components/shared/PayerSearch';
@@ -70,6 +71,7 @@ const writePick = (key, value) => { try { if (value) localStorage.setItem(key, v
  * 🧩 Denial Navigator (roadmap Phase 4). 4.1 = Denial library: CARC / RARC / group codes with plain-English reasons.
  * Search by code or words, or paste a line from an ERA / EOB (searched in the browser only — never saved or logged).
  * 4.2: "What to do" per code in layers — client steps → payer rule (+ Payer Directory info) → common 3Gen steps.
+ * 4.3: editors get a "Manage steps" tab (coverage, copy to client, Excel import / export, review queue).
  */
 export default function DenialNavigator({ user }) {
   const canEdit = hasAccess(user, 'denials_edit');
@@ -91,6 +93,7 @@ export default function DenialNavigator({ user }) {
   const [sopId, setSopId] = useState(null);          // SOP opened from a layer
   const [sopCtx, setSopCtx] = useState(null);
   const [payerCard, setPayerCard] = useState(null);  // payer opened from a layer
+  const [tab, setTab] = useState('lookup');           // 4.3: 'lookup' | 'manage'
 
   const reload = () => loadDenialCodes().then(setCodes);
   const reloadSteps = () => loadDenialSteps().then(setSteps);
@@ -187,6 +190,30 @@ export default function DenialNavigator({ user }) {
     );
   }
 
+  // 🔎 Look up · 🛠 Manage steps (4.3, editors only, once the steps table exists)
+  const canManage = canEdit && codes && Array.isArray(steps);
+  const tabBar = canManage && (
+    <div className="row" style={{ gap: 6, marginBottom: 12 }}>
+      {[['lookup', '🔎 Look up'], ['manage', '🛠 Manage steps']].map(([id, label]) => (
+        <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+      ))}
+    </div>
+  );
+  if (canManage && tab === 'manage') {
+    return (
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div className="page-header">
+          <div>
+            <div className="page-title">🧩 Denial Navigator</div>
+            <div className="page-subtitle">Manage the steps: which codes have common, client and payer steps, and what needs checking.</div>
+          </div>
+        </div>
+        {tabBar}
+        <DenialAdmin codes={codes} steps={steps} ctx={ctx} user={user} onChanged={reloadSteps} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
       <div className="page-header">
@@ -202,6 +229,7 @@ export default function DenialNavigator({ user }) {
           </div>
         )}
       </div>
+      {tabBar}
 
       {codes === undefined && <div className="card text-muted">Loading…</div>}
       {codes === null && (

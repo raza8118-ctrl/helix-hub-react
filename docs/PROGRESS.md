@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.3 (denial steps admin) plan approved; building._
+_Last updated: 2026-10-20 — step 4.3 (denial steps admin) done; next is 4.4._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 4.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 4.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 4.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**4.3 – Denial steps admin screen — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 4.3 is done.** Next: **4.4 – Deadline helper** (appeal / corrected-claim deadline from the
+denial date using payer/client limits) — needs a plan and a “go”. `loadPayerInfo` (4.2) already resolves AFL / RECON /
+CCTFL limits with client overrides; `payer_limits.measured_from` says what the days count from.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 4.3 was built (done)
+
+No database change. `DenialNavigator.jsx` shows tabs 🔎 Look up / 🛠 Manage steps for `denials_edit` once
+`denial_steps` exists. `DenialAdmin.jsx`: Coverage table (per code: common ✓, client/payer counts with names on hover,
+re-check count, optional client/payer column with “missing”; filters; tick codes; 100 per page), Review queue (never
+verified first, then oldest), Inactive (reactivate refused while another active entry exists for that layer).
+`DenialAdminTools.jsx`: `CodeStepsModal` (all entries of a code + add common/client/payer), `CopyStepsModal`
+(common or client → client; `planCopy` / `applyCopy` in `denialSteps.js`; skips clients that already have steps; copies
+unverified, client copies drop the source's linked SOP), `StepsImportModal`. `src/lib/denialStepsImport.js`: template
+(Code Type, Code, Layer, Client, Payer, Steps, Linked SOP title, Notes + “How to” sheet), read (exact template headers,
+any case), compare (payer by exact name or alias via `matchPayer` score 0; errors per row), apply (skip / replace;
+replace only overwrites non-blank optional cells), export (re-importable layout + Verified column).
 
 Plan as approved (defaults: import skips existing unless “replace”; copies start unverified; 180-day review; editors only)
 — no database change:
@@ -455,6 +470,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | 98f21ea |
 | 4.1 | Denial Navigator: denial library, code / ERA-line search, X12 import, starter codes, `denials_edit` | b583097 |
 | 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | bf44eb5 |
+| 4.3 | Denial “Manage steps”: coverage + gaps, copy to client, Excel import / export, review queue, inactive (no DB change) | (see next commit) |
 
 ---
 

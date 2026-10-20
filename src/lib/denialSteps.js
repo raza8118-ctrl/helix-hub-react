@@ -120,3 +120,36 @@ export function loadPayerInfo(payerId, clientId = null, fresh = false) {
   payerInfoCache.set(key, p);
   return p;
 }
+
+// ── Copy steps to a client (4.3) ───────────────────────────────────────────
+
+/**
+ * What copying would do: for each code, the source entry (common, or another client's) and whether the target client
+ * already has steps. Returns { copy: [source entries], skipped: n, missing: n (no source steps) }.
+ */
+export function planCopy(steps, codeIds, from, targetClientId) {
+  const copy = [];
+  let skipped = 0, missing = 0;
+  for (const codeId of codeIds) {
+    const source = from.scope === 'common'
+      ? layerEntry(steps, codeId, 'common')
+      : layerEntry(steps, codeId, 'client', from.clientId);
+    if (!source) { missing++; continue; }
+    if (layerEntry(steps, codeId, 'client', targetClientId)) { skipped++; continue; }
+    copy.push(source);
+  }
+  return { copy, skipped, missing };
+}
+
+/** Creates the target client's entries from the planned sources (unverified). Returns how many were added. */
+export async function applyCopy(plan, targetClientId, user) {
+  if (!plan.copy.length) return 0;
+  const rows = await S.set('denial_steps', plan.copy.map(src => ({
+    code_id: src.code_id, scope: 'client', client_id: targetClientId, payer_id: null, steps: src.steps,
+    sop_id: src.scope === 'client' ? null : src.sop_id, notes: src.notes, active: true,
+    created_by: user.emp_id, updated_by: user.emp_id,
+  })));
+  if (!rows?.length) return 0;
+  logAudit({ actor: user, action: 'denial_steps_copy', entityType: 'denial_step', details: { count: rows.length, client_id: targetClientId } });
+  return rows.length;
+}
