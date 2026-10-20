@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.4 done; Phase 4 (Denial Navigator) complete; next is 5.1._
+_Last updated: 2026-10-20 — step 5.1 (Appeal Builder form) plan approved; building._
 
 ---
 
@@ -21,12 +21,30 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 4.4 is done — Phase 4 complete.** Next: **5.1 – Appeal Builder form** (client, payer, denial
-reason, claim #, DOS, key fact e.g. auth # + approval date), first step of Phase 5 — needs a plan and a “go”.
-Reminder (CLAUDE.md rule 6): appeal letters use placeholders like `[PATIENT_NAME]`; real values filled locally; never
-send PHI to an AI API. The `wb_appeals` placeholder module already exists in `modules.js`. Reusable pieces: Denial
-library + layered steps (4.1–4.3), `deadlines.js` (4.4), Payer Directory forms/contacts, Appeal Packet (2.5).
+**5.1 – Appeal Builder form — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: nothing saved; denial types + key facts below; placeholders for all dates and IDs;
+App.jsx tab listener) — no database change:
+- **✉️ Appeal Builder** (`wb_appeals`, replaces placeholder; everyone). Denial Navigator code cards get “✉️ Start an
+  appeal” → opens Appeal Builder pre-filled with the code + Working-on client/payer.
+- Form: (1) client, payer, denial code(s) (typed or pasted ERA line, checked against the library), denial date,
+  claim #, DOS from/to, appeal level (1st / 2nd / reconsideration / corrected claim), denial type (auto from the code
+  category, changeable) with key facts — Authorization (auth #, approval date, auth from–to, visits/units),
+  Timely filing (original submission date, clearinghouse acceptance report # + date, payer receipt date), Medical
+  necessity / records (records checklist: plan of care, visit notes, physician order, face-to-face…; order date),
+  Eligibility / COB (eligibility check date + source, primary EOB date + amount), Duplicate (original claim #, why
+  not), Coding / billing (what was wrong / corrected), Other (free text); (2) 🔒 patient identifiers (name, DOB,
+  member ID) with their placeholders; (3) “Why we disagree” free text + no-patient-details warning.
+- Side panel: deadline (4.4 with denial date + payer/client limits), where to send (appeals fax/address + copy,
+  appeal forms), steps to follow (4.2 layers, collapsed), facts summary with placeholders (`[AUTH_NUMBER] = …`) for
+  5.2/5.3. Dates, claim #, auth #, member details are identifiers → always placeholders for AI.
+- PHI: nothing saved to the DB, logged or put in browser storage; in-memory only while Helix Hub is open (survives
+  tab switches; wiped on refresh / sign-out / 🗑 Clear form); “🔒 Contains patient details — clear when done” banner;
+  no audit entry. (Later optional: non-PHI appeal tracker.)
+- Files: new `src/lib/appeals.js`, `src/pages/workbench/AppealBuilder.jsx`, `AppealForm.jsx`, `AppealSidePanel.jsx`;
+  changed `WorkbenchApp.jsx`, `DenialNavigator.jsx`, `src/App.jsx` (small additive listener so a page can open another
+  allowed sidebar tab).
 
 ### Reference: how 4.4 was built (done)
 
