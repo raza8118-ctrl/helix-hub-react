@@ -3,6 +3,7 @@ import Login       from './components/Login';
 import Sidebar     from './components/Sidebar';
 import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
+import FollowupNudge from './components/shared/FollowupNudge';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
@@ -119,6 +120,7 @@ export default function App() {
   const [unreadFeedback, setUnreadFeedback] = useState(0);
   const [missedDay, setMissedDay]     = useState(null);
   const [missedDismissed, setMissedDismissed] = useState(false);
+  const [followupDue, setFollowupDue] = useState(0);   // 6.5: follow-ups due → count on the Smart Worklist sidebar item
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -362,10 +364,14 @@ export default function App() {
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
   const tabs = withGrantedTabs(roleTabs, currentUser);
   const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
+  const sidebarTabs = followupDue > 0
+    ? tabs.map(t => (t.id === 'wb_worklist' ? { ...t, label: `${t.label} (${followupDue})` } : t))
+    : tabs;
 
   return (
     <div className="app-shell">
       <Starfield />
+      <FollowupNudge user={currentUser} onCount={setFollowupDue} />
       <Sidebar
         user={currentUser}
         theme={theme}
@@ -374,7 +380,7 @@ export default function App() {
         onOpenProfile={() => setShowProfile(true)}
         activeTab={activeTab}
         onTab={handleSetTab}
-        tabs={tabs}
+        tabs={sidebarTabs}
       />
 
       <div className="content-col">

@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.5 (follow-up tickler) plan approved; building._
+_Last updated: 2026-10-20 — step 6.5 (follow-up tickler) done; next is 6.6._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.5.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 6.5 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.6.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 6.6 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,24 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**6.5 – Follow-up tickler — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 6.5 is done.** Next: **6.6 – Portal launchpad per client** (last step of Phase 6) — needs a plan
+and a “go”. Building blocks: SOP Library software with `portal_url` (3.1 + standard software 3.7), payer contacts with
+`portal_url` (Payer Directory), clients (0.5). Never store portal passwords (the SOP software field already says so).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 6.5 was built (done)
+
+`src/lib/followups.js`: `REMINDER_ACTIONS`, `BUCKETS` + `bucketOf`, `snoozeOptions` (+1 / +3 working days, next Monday),
+`followupsReady`, `loadMyFollowups` (open reminders + own worklist items with a follow-up that aren't finished),
+`dueCounts`, `addReminder`, `markDone` (reminder → done; worklist item → chosen status via `updateItem`, follow-up cleared
+unless finished), `snooze`, `clearOldReminders` (claim # wiped 90 days after done / due; run when the tab opens),
+`teamCounts`, `helix:followups-changed` event, `openFollowups` / `peekOpenFollowups` (in-memory flag → Smart Worklist opens on
+⏰ Follow-ups), notification preference (`localStorage` `hh_followup_notify`, browser permission). UI: `Followups.jsx`
+(stats, by date / by payer with claims phone, rows with done-as status / snooze / date / 📝 Note, 🔔 switch, team table +
+Excel), `ReminderModal.jsx`, `FollowupNudge.jsx` (sign-in pop-up once per day per session, 15-minute `dueCounts`, browser
+notification when the count rises; counts only). `App.jsx` (7 lines): `followupDue` state, `<FollowupNudge>`, “Smart
+Worklist (N)” label via `sidebarTabs`. `SmartWorklist.jsx`: ⏰ Follow-ups tab for everyone; clients/payers loaded for all.
+`ClaimNoteGenerator.jsx`: “⏰ Also add a reminder” (action guessed from the note; optional claim #).
 
 Plan as approved (defaults: buckets overdue / today / this week / later; snooze +1 day · +3 days · next Monday · pick a
 date; sign-in pop-up on; browser notifications off until each person turns them on; 15-minute refresh; 90-day claim # wipe):
@@ -833,6 +849,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.2 | AR Tools calculators: filing / appeal deadlines, NOA + PDGM + LUPA, NOE + hospice periods, expected payment (no DB change) | d016802 |
 | 6.3 | Code lookup: CARC/RARC, revenue (starter + import), HIPPS decoder, ICD-10 (CMS file import), `ref_codes_edit` | c7ed1b5 |
 | 6.4 | Smart Worklist: upload (patient columns dropped), priority bands, assign / auto-split, My worklist, Daily Report suggestion, 90-day clear | e2d9a0c |
+| 6.5 | Follow-up tickler: Follow-ups tab (by date / payer), reminders, snooze, sign-in pop-up, sidebar count, browser notifications | (see next commit) |
 
 ---
 
@@ -859,6 +876,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 17. `supabase/migrations/20261021h_note_formats.sql` (claim note formats per client, step 6.1)
 18. `supabase/migrations/20261021i_ref_codes.sql` (revenue / HIPPS / ICD-10 code lists, step 6.3)
 19. `supabase/migrations/20261021j_worklists.sql` (Smart Worklist: worklists + minimum-field claim items, step 6.4)
+20. `supabase/migrations/20261021k_followups.sql` (follow-up reminders, step 6.5)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 

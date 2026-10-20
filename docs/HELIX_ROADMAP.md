@@ -58,7 +58,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 6.2 Calculators: TFL/AFL deadline, NOA/NOE due date, PDGM 30-day periods, LUPA, hospice benefit periods, expected payment/sequestration.
 - [x] 6.3 Code lookup: CARC/RARC, revenue codes, HIPPS, ICD-10.
 - [x] 6.4 Smart Worklist: upload aging/RTP file → prioritise by deadline, $ and payer → assign to users → auto-update production counts.
-- [ ] 6.5 Follow-up tickler (reminders per claim).
+- [x] 6.5 Follow-up tickler (reminders per claim).
 - [ ] 6.6 Portal launchpad per client.
 
 ## Phase 7 – Quality & team

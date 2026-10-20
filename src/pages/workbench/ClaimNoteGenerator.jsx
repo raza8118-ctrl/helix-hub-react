@@ -5,6 +5,7 @@ import {
   buildNote, pickFormat, peekNotePrefill, clearNotePrefill,
 } from '../../lib/claimNotes';
 import { parseCodeLine, findCode } from '../../lib/denials';
+import { addReminder } from '../../lib/followups';
 import PayerSearch from '../../components/shared/PayerSearch';
 import CopyButton from '../../components/shared/CopyButton';
 
@@ -67,6 +68,22 @@ export default function ClaimNoteGenerator({ user, ctx, formats, codes }) {
       setRecent(r => [{ text, at: Date.now() }, ...r.filter(x => x.text !== text)].slice(0, 5));
     } catch { /* clipboard blocked */ }
   }
+  // 6.5: turn the follow-up date into a personal reminder (no free text; claim # optional)
+  const [reminderClaim, setReminderClaim] = useState('');
+  const [reminderSaving, setReminderSaving] = useState(false);
+  const [reminderMsg, setReminderMsg] = useState('');
+  async function addFollowupReminder() {
+    setReminderSaving(true);
+    const action = note.action === 'call' ? 'call_back'
+      : ['appeal', 'corrected'].includes(note.action) || /appeal|reconsideration/i.test(note.next_step) ? 'appeal_decision'
+      : note.status === 'paid' || note.status === 'in_process' ? 'expect_payment' : 'check_status';
+    const row = await addReminder({ empId: user.emp_id, clientId: note.client_id ? Number(note.client_id) : null,
+      payerId: note.payer_id ? Number(note.payer_id) : null, claimNumber: reminderClaim, action, dueDate: note.follow_up }, user);
+    setReminderSaving(false);
+    setReminderMsg(row ? '✓ Added to ⏰ Follow-ups' : 'Reminders aren’t set up yet (follow-ups database update).');
+    if (row) setReminderClaim('');
+  }
+
   function newNote() {
     setNote(n => ({ ...emptyNote(), client_id: n.client_id, payer_id: n.payer_id }));
   }
@@ -159,6 +176,16 @@ export default function ClaimNoteGenerator({ user, ctx, formats, codes }) {
             <input type="date" value={note.follow_up} onChange={e => set({ follow_up: e.target.value, followTouched: true })} />
           </div>
         </div>
+        {note.follow_up && (
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+            <span className="text-sm">⏰ Also add a reminder</span>
+            <input type="text" value={reminderClaim} onChange={e => setReminderClaim(e.target.value)} placeholder="Claim # (optional)" style={{ maxWidth: 170 }} />
+            <button type="button" className="btn-sm" disabled={reminderSaving} onClick={addFollowupReminder}>
+              {reminderSaving ? 'Adding…' : 'Add reminder'}
+            </button>
+            {reminderMsg && <span className="text-sm text-muted">{reminderMsg}</span>}
+          </div>
+        )}
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Extra note</label>
           <input type="text" value={note.extra} onChange={e => set({ extra: e.target.value })} placeholder="Anything else (no patient names, DOB or IDs)" />

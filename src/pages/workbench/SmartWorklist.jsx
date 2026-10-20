@@ -7,6 +7,8 @@ import { loadWorklists, loadItems, dueForClearing, closeAndClear, CLEAR_AFTER_DA
 import WorklistUpload from './WorklistUpload';
 import WorklistManage from './WorklistManage';
 import MyWorklist from './MyWorklist';
+import Followups from './Followups';
+import { peekOpenFollowups, clearOpenFollowups } from '../../lib/followups';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
@@ -23,7 +25,7 @@ export default function SmartWorklist({ user }) {
   const [users, setUsers] = useState([]);
   const [ctx, setCtx] = useState({ clients: [], payers: [], sops: [] });
   const [tasks, setTasks] = useState([]);
-  const [tab, setTab] = useState('mine');
+  const [tab, setTab] = useState(() => (peekOpenFollowups() ? 'followups' : 'mine'));   // 6.5: sign-in pop-up opens Follow-ups
   const [view, setView] = useState(null);                  // null | 'upload' | worklist id
   const [listItems, setListItems] = useState({ id: null, items: null });
   const [showClosed, setShowClosed] = useState(false);
@@ -51,10 +53,17 @@ export default function SmartWorklist({ user }) {
     return () => { alive = false; };
   }, [empId, canManage, user, reloadKey]);
 
+  // Clients / payers are needed by everyone (6.5 reminders); people and tasks only by managers
+  useEffect(() => {
+    let alive = true;
+    clearOpenFollowups();
+    loadStepContext().then(c => { if (alive) setCtx(c); });
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     let alive = true;
     if (!canManage) return undefined;
-    loadStepContext().then(c => { if (alive) setCtx(c); });
     db('users').select('emp_id,name,team,role,active,supervisor_ids').then(({ data }) => {
       if (alive) setUsers((data ?? []).filter(u => u.active !== false).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')));
     });
@@ -99,14 +108,14 @@ export default function SmartWorklist({ user }) {
 
       {worklists && (
         <>
-          {canManage && (
-            <div className="row" style={{ gap: 6, marginBottom: 12 }}>
-              {[['mine', '🙋 My worklist'], ['manage', '🛠 Manage worklists']].map(([id, label]) => (
-                <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id}
-                  onClick={() => { setTab(id); setView(null); }}>{label}</button>
-              ))}
-            </div>
-          )}
+          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {[['mine', '🙋 My worklist'], ['followups', '⏰ Follow-ups'], ...(canManage ? [['manage', '🛠 Manage worklists']] : [])].map(([id, label]) => (
+              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id}
+                onClick={() => { setTab(id); setView(null); }}>{label}</button>
+            ))}
+          </div>
+
+          {tab === 'followups' && <Followups user={user} ctx={ctx} people={people} canManage={canManage} />}
 
           {tab === 'mine' && (
             <MyWorklist user={user} worklists={worklists} items={myItems}
