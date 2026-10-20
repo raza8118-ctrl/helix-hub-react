@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.2 (layered denial steps) done; next is 4.3._
+_Last updated: 2026-10-20 — step 4.3 (denial steps admin) plan approved; building._
 
 ---
 
@@ -21,10 +21,24 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 4.2 is done.** Next: **4.3 – Admin screen** to add/update denial steps per client and common
-(overview of which codes have common/client/payer steps and gaps, copy common → client, bulk Excel import, review
-queue) — needs a plan and a “go”. Inline editing already exists in each layer (4.2).
+**4.3 – Denial steps admin screen — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: import skips existing unless “replace”; copies start unverified; 180-day review; editors only)
+— no database change:
+- Denial Navigator tabs **🔎 Look up** · **🛠 Manage steps** (`denials_edit` only).
+- **Coverage**: row per code — Common ✓/—, Client steps (count, names on hover), Payer steps (count), Needs re-check;
+  filters type/category/search + “Missing common steps”; pick a client / payer → ✓/missing column; click a row → all
+  entries of the code (common, every client, every payer) to add / edit / verify / make inactive (4.2 pop-up).
+- **Copy**: tick codes → “Copy common steps to client…” (preview copied / skipped-existing); also client → client.
+  Copies start unverified (review queue).
+- **Excel**: template (Code type, Code, Layer, Client, Payer, Steps, Linked SOP title, Notes); import preview new /
+  update / skipped / errors; skip existing (default) or replace; blank cells never erase; nothing deleted. Export all.
+- **Review queue**: never verified or > 180 days, oldest first, inline ✓ Verified + Open; filter layer/client/payer.
+- **Inactive** entries with ↺ Reactivate.
+- Files: new `src/pages/workbench/DenialAdmin.jsx`, `DenialAdminTools.jsx`, `src/lib/denialStepsImport.js`; changed
+  `DenialNavigator.jsx`, `src/lib/denialSteps.js`, `src/lib/auditLabels.js`. Audit `denial_steps_copy`,
+  `denial_steps_import` (counts).
 
 ### Reference: how 4.2 was built (done)
 
