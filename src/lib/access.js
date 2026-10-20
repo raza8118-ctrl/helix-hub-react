@@ -41,6 +41,9 @@ export const FEATURES = [
   { group: 'Tools', key: 'note_formats', label: 'Manage claim note formats', defaultRoles: MANAGERS },
   // Code lookup: searching is open to everyone; importing / editing the revenue, HIPPS and ICD-10 lists is gated
   { group: 'Tools', key: 'ref_codes_edit', label: 'Manage code lists', defaultRoles: MANAGERS },
+  // Smart Worklist: everyone works their own claims; uploading / prioritising / assigning is gated
+  // (supervisors manage worklists for their own team)
+  { group: 'Tools', key: 'worklist_manage', label: 'Manage worklists', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { today, yesterday, fmtD, dlCSV, effectiveTarget, getHourlySlots } from '../../lib/helpers';
+import { workedCounts } from '../../lib/worklist';
 import {
   DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H,
   LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, ATTENDANCE_STATUSES, LEAVE_TYPES,
@@ -175,6 +176,22 @@ export default function ProdReport({ user }) {
     (Date.now() - new Date(submittedAt).getTime()) < 24 * 60 * 60 * 1000;
 
   useEffect(() => { load(); }, [date, hourlySlots]);
+
+  // Smart Worklist (roadmap 6.4): claims this person worked on this day, by the task each worklist counts towards.
+  // Only a suggestion — the counts change only when the person clicks "Add", and are saved with the report as usual.
+  const [worklistDone, setWorklistDone] = useState({ date: null, counts: {}, added: [] });
+  useEffect(() => {
+    let alive = true;
+    workedCounts(user.emp_id, date).then(counts => { if (alive) setWorklistDone({ date, counts, added: [] }); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user.emp_id, date]);
+  const worklistSuggestions = worklistDone.date === date
+    ? Object.entries(worklistDone.counts).filter(([task, n]) => n > 0 && taskDefs.some(t => t.name === task))
+    : [];
+  function addWorklistCount(task, n) {
+    setTaskCounts(prev => ({ ...prev, [task]: String((parseFloat(prev[task]) || 0) + n) }));
+    setWorklistDone(w => ({ ...w, added: [...w.added, task] }));
+  }
 
   async function load() {
     setLoading(true); setSaved(false); setSaveError('');
@@ -678,6 +695,21 @@ export default function ProdReport({ user }) {
               <div className="card-title">📋 Task Entry — {userProcs.join(' + ')}</div>
               <span className="text-sm text-muted">Weighted total: <strong>{isLegacyAuth ? slotGrandTotal : total.toFixed(2)}</strong></span>
             </div>
+
+            {!isLegacyAuth && isEditable && worklistSuggestions.length > 0 && (
+              <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 13 }}>
+                <strong>📋 From your Smart Worklist{date === today() ? ' today' : ''}:</strong>
+                {worklistSuggestions.map(([task, n]) => (
+                  <span key={task} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 10 }}>
+                    {n} claim{n === 1 ? '' : 's'} worked → <em>{task}</em>
+                    {worklistDone.added.includes(task)
+                      ? <span className="text-muted">✓ added</span>
+                      : <button type="button" className="btn-sm" onClick={() => addWorklistCount(task, n)}>Add to my counts</button>}
+                  </span>
+                ))}
+                <div className="text-muted" style={{ marginTop: 4 }}>Check you haven’t already counted these. Nothing is saved until you save your report.</div>
+              </div>
+            )}
 
             <div className="table-wrap">
               <table>

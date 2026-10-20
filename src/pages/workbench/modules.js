@@ -76,6 +76,15 @@ export const WORKBENCH_MODULES = [
       'Portal launchpad per client',
     ],
   },
+  {
+    id: 'wb_worklist', label: 'Smart Worklist', icon: '📋', phase: 6,
+    purpose: 'Aging / RTP claims prioritised by deadline, dollars and payer, assigned and worked claim by claim.',
+    planned: [
+      'Upload an aging or RTP file (patient details are never stored)',
+      'Priority bands with reasons, assign or auto-split to people',
+      'My worklist with status, follow-up dates and counts for the Daily Report',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

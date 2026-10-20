@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.4 (Smart Worklist) plan approved; building._
+_Last updated: 2026-10-20 — step 6.4 (Smart Worklist) done; next is 6.5._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 6.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.5.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 6.5 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,29 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**6.4 – Smart Worklist — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 6.4 is done.** Next: **6.5 – Follow-up tickler** (reminders per claim) — needs a plan and a
+“go”. Smart Worklist items already carry `follow_up` dates (“due / overdue” on My worklist); a tickler could build on
+`worklist_items` (no new PHI fields) — remember the 6.4 PHI decisions (minimum fields, no free-text notes on claims).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 6.4 was built (done)
+
+`src/lib/worklist.js`: `FIELDS` + header patterns, `PHI_HEADER` (patient / member / DOB / MRN / SSN / address / phone /
+name / MBI / account # …), `detectColumns`, `droppedColumns` {patient, other}, `toDate` / `toMoney`, `readWorklistFile`
+(rows stay in memory), `matchPayerName` (score ≤ 1, cached per name), `buildItems` (minimum fields only), `addDeadlines`
+(AFL from denial date else TFL from DOS via `loadPayerInfo` limits incl. client override; level 1 / no plan preferred),
+`prioritise` (computed in the browser: deadline 100/90/75/55/35/15 or aging fallback, balance percentile via binary
+search, starred payer 100; weights 0–3; bands ≥ 70 high / ≥ 40 medium; reason text), `ITEM_STATUSES`, `isDone`,
+`loadWorklists`, `loadItems` (1,000-row pages), `saveWorklist` (500-row inserts), `assignItems` (200 ids per update),
+`planSplit` (count round-robin / dollars greedy), `updateItem` (non-“new” status → worked_at / worked_by),
+`closeAndClear` (wipes claim_number / dos_from / dos_to, cleared = true), `dueForClearing` (90 days), `workedCounts`.
+Stored `priority_score` / `band` / `reason` columns are left empty (priority is always computed live).
+UI: `SmartWorklist.jsx` (tabs; auto-clear due lists on a manager's load; supervisors see their team's / own / team-less
+lists and assign to their team or supervisees), `WorklistUpload.jsx`, `WorklistManage.jsx` (progress, weights + starred
+payers saved on the worklist, filters, tick / assign / unassign, auto-split, Excel, close & clear), `MyWorklist.jsx`
+(stats, due follow-ups first, status + follow-up, 📝 Write note → `startClaimNote` prefill in `claimNotes.js`).
+`ProdReport.jsx` (32 added lines): `workedCounts` banner with “Add to my counts” per task (not for Legacy Auth; only when
+editable). `modules.js` + `WorkbenchApp.jsx`: `wb_worklist`.
 
 PO decisions (2026-10-20): **no BAA with Supabase → store minimum fields only** (never patient name / DOB / member ID /
 MRN / address); **new page beside Work Allocation** (Work Allocation / My Allocation untouched); **production counts =
@@ -794,6 +815,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.1 | AR Tools + Claim Note Generator: dropdown notes in client formats, Note formats tab, 8 standard formats | 90ccc7d |
 | 6.2 | AR Tools calculators: filing / appeal deadlines, NOA + PDGM + LUPA, NOE + hospice periods, expected payment (no DB change) | d016802 |
 | 6.3 | Code lookup: CARC/RARC, revenue (starter + import), HIPPS decoder, ICD-10 (CMS file import), `ref_codes_edit` | c7ed1b5 |
+| 6.4 | Smart Worklist: upload (patient columns dropped), priority bands, assign / auto-split, My worklist, Daily Report suggestion, 90-day clear | (see next commit) |
 
 ---
 
@@ -819,6 +841,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 16. `supabase/migrations/20261021g_payer_form_fields.sql` (field maps for fillable payer forms, step 5.4)
 17. `supabase/migrations/20261021h_note_formats.sql` (claim note formats per client, step 6.1)
 18. `supabase/migrations/20261021i_ref_codes.sql` (revenue / HIPPS / ICD-10 code lists, step 6.3)
+19. `supabase/migrations/20261021j_worklists.sql` (Smart Worklist: worklists + minimum-field claim items, step 6.4)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 

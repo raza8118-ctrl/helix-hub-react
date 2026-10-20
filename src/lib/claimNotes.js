@@ -220,3 +220,15 @@ export async function addStarterFormats(list, user) {
   logAudit({ actor: user, action: 'note_starter_add', entityType: 'note_format', details: { count: rows.length } });
   return rows.length;
 }
+
+// ── Prefill from the Smart Worklist (6.4) — in memory only ──────────────────
+
+let notePrefill = null;   // { client_id, payer_id }
+
+/** Opens AR Tools → Claim Note Generator with the client and payer already picked. */
+export function startClaimNote({ client_id, payer_id }) {
+  notePrefill = { client_id: client_id != null ? String(client_id) : '', payer_id: payer_id != null ? String(payer_id) : '' };
+  window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: 'wb_artools' }));
+}
+export const peekNotePrefill = () => notePrefill;
+export function clearNotePrefill() { notePrefill = null; }

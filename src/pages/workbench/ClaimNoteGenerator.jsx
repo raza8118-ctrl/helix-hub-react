@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { db } from '../../lib/supabase';
 import {
   ACTIONS, STATUSES, STATUS_FIELDS, NEXT_STEPS, STARTER_FORMATS, statusOf, suggestFollowUp, emptyNote, noteValues,
-  buildNote, pickFormat,
+  buildNote, pickFormat, peekNotePrefill, clearNotePrefill,
 } from '../../lib/claimNotes';
 import { parseCodeLine, findCode } from '../../lib/denials';
 import PayerSearch from '../../components/shared/PayerSearch';
@@ -13,7 +13,9 @@ import CopyButton from '../../components/shared/CopyButton';
  * Notes are built here in the browser and never saved or logged; the last 5 can be copied again while AR Tools is open.
  */
 export default function ClaimNoteGenerator({ user, ctx, formats, codes }) {
-  const [note, setNote] = useState(emptyNote);
+  // 6.4: "📝 Write note" from the Smart Worklist starts with that claim's client and payer
+  const [note, setNote] = useState(() => ({ ...emptyNote(), ...(peekNotePrefill() ?? {}) }));
+  useEffect(() => { clearNotePrefill(); }, []);
   const [phones, setPhones] = useState({ payerId: null, list: [] });
   const [recent, setRecent] = useState([]);       // [{ text, at }] — memory only
   const [copied, setCopied] = useState(false);
