@@ -231,7 +231,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
 | 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
 | 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
-| 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | (see next commit) |
+| 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | 0586f95 |
 
 ---
 
