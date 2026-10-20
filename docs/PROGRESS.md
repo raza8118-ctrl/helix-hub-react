@@ -440,7 +440,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.6 | SOP quizzes: editor, take quiz with scores, tracking column, “Must pass the quiz” in learning paths | 67c73e9 |
 | 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | 98f21ea |
 | 4.1 | Denial Navigator: denial library, code / ERA-line search, X12 import, starter codes, `denials_edit` | b583097 |
-| 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | (see next commit) |
+| 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | bf44eb5 |
 
 ---
 
