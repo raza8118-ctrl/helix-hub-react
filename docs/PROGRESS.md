@@ -379,7 +379,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | c7bb125 |
 | 3.5 | Training page: learning paths by day, assign with due dates, my training, team progress, trainer confirm | 7d88686 |
 | 3.6 | SOP quizzes: editor, take quiz with scores, tracking column, “Must pass the quiz” in learning paths | 67c73e9 |
-| 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | (see next commit) |
+| 3.7 | “Add standard software” (15 standard entries incl. Medicare DDE / MAC portals), no DB change | 98f21ea |
 
 ---
 
