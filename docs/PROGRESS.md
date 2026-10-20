@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.5 (learning paths) done; next is 3.6._
+_Last updated: 2026-10-20 — step 3.6 (SOP quizzes) plan approved; building._
 
 ---
 
@@ -21,10 +21,28 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 3.5 is done.** Next: **3.6 – Quizzes per SOP** (3–5 questions) with scores — needs a plan
-and a “go”. Learning paths are ready for a 4th item kind `quiz` (`learning_path_items.kind` check constraint would need
-widening in the 3.6 migration — additive: drop/re-add that CHECK only, no data change; ask the PO).
+**3.6 – Quizzes per SOP — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: 80% pass mark; unlimited retakes; right answers shown only after passing; answer order
+shuffled; “Must pass the quiz” off by default on path items):
+- **Quiz editor** (`sops_edit`, “📝 Edit quiz” on the SOP page): one quiz per SOP; multiple choice (2–5 answers, one
+  correct) or True/False; optional “Why” explanation; pass mark per quiz; 3–5 questions recommended (warn outside,
+  allow 1–10); ▲▼ reorder; switch quiz off; nothing deleted; no-PHI reminder.
+- **Take the quiz** (everyone, published SOPs): card at the bottom of the SOP; shuffled answers; Submit → score +
+  passed/failed; failed shows which were wrong (not the right answers); passed shows answers + “Why”; unlimited retakes;
+  “Your best” shown; a later quiz change doesn't undo an earlier pass.
+- **Scores:** SOP tracking panel + Excel get a Quiz column (best, attempts, passed date). Training: SOP items get a
+  “Must pass the quiz” tick (`learning_path_items.needs_quiz`) — done = acknowledged AND passed; My training / Team
+  progress / Excel show quiz status. (Chosen instead of a new item kind so no CHECK constraint changes.)
+- Scoring runs in the browser; quiz readable via the public key like all app data — fine for internal checks, not
+  formal certification.
+- DB: `supabase/migrations/20261021c_sop_quizzes.sql` → `sop_quizzes` (id, sop_id, pass_pct 80, questions jsonb,
+  active, created/updated), `sop_quiz_attempts` (id, quiz_id, sop_id, emp_id, correct, total, score_pct, passed,
+  answers jsonb, questions snapshot, taken_at), `learning_path_items.needs_quiz`. Select/insert/update only. No PHI.
+- Files: new `src/lib/sopQuiz.js`, `src/pages/workbench/SopQuiz.jsx`, `SopQuizEditor.jsx`; changed `SopPage.jsx`,
+  `SopTracking.jsx`, `src/lib/sopVersions.js`, `src/lib/training.js`, `TrainingPathEditor.jsx`, `TrainingProgress.jsx`,
+  `src/lib/auditLabels.js`. Audit `sop_quiz_edit`, `sop_quiz_attempt` (score + pass/fail, ids only).
 
 ### Reference: how 3.5 was built (done)
 
