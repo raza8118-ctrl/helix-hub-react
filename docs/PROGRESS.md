@@ -815,7 +815,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.1 | AR Tools + Claim Note Generator: dropdown notes in client formats, Note formats tab, 8 standard formats | 90ccc7d |
 | 6.2 | AR Tools calculators: filing / appeal deadlines, NOA + PDGM + LUPA, NOE + hospice periods, expected payment (no DB change) | d016802 |
 | 6.3 | Code lookup: CARC/RARC, revenue (starter + import), HIPPS decoder, ICD-10 (CMS file import), `ref_codes_edit` | c7ed1b5 |
-| 6.4 | Smart Worklist: upload (patient columns dropped), priority bands, assign / auto-split, My worklist, Daily Report suggestion, 90-day clear | (see next commit) |
+| 6.4 | Smart Worklist: upload (patient columns dropped), priority bands, assign / auto-split, My worklist, Daily Report suggestion, 90-day clear | e2d9a0c |
 
 ---
 
