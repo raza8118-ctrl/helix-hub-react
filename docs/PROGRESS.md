@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.3 (SOP editor + uploads) done; next is 3.4._
+_Last updated: 2026-10-20 — step 3.4 (SOP versioning) plan approved; building._
 
 ---
 
@@ -21,10 +21,28 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 3.3 is done.** Next: **3.4 – Versioning** (client-specific vs common SOPs, effective dates,
-archive old versions, “Acknowledge” button + read tracking) — needs a plan and a “go”. `sop_media` already records every
-upload (never deleted), so old versions can keep pointing at their screenshots/videos.
+**3.4 – Versioning, client SOPs, Acknowledge + read tracking — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: “must acknowledge” ticked; only editors open archived versions; acknowledgement applies to
+the ticked “Who uses it” teams, everyone if none; tracking for admins/managers/supervisors; all users see all clients' SOPs):
+- **Versions:** editors edit a working copy (`sops` row); readers see the published version. “📤 Publish new version”:
+  required change note, effective date (today/future), “Everyone must acknowledge”. Frozen snapshot v1, v2… (text, steps,
+  media links). Current = latest with effective_date ≤ today; older = Archived; future = upcoming (“v3 takes effect on …”).
+  Version history (date, by, note); editors can open old versions under an “ARCHIVED – not current” banner.
+  “Unpublished changes” badge. SOPs published before 3.4 with no version: readers see the row as before until v1.
+- **Client SOPs:** `sops.client_id` (null = common) set in the Add/Edit SOP pop-up; client badge, listed first + highlighted
+  under the task; client filter (client's + common); “📋 Make a client copy” → new draft for one client (`copied_from`).
+- **Acknowledge + reads:** must-acknowledge users = team in `audience_teams` (everyone if none); button “I have read and
+  understood this SOP (vN)”; new version needing ack asks again. Library banner “You have N SOPs to acknowledge”.
+  Reads recorded automatically (first/last opened, count) per person per version. Tracking panel “18 of 25 acknowledged”,
+  who hasn't (by team), dates, Download Excel. New grantable permission `sops_tracking` (admin/manager/supervisor).
+- DB: `supabase/migrations/20261021_sop_versions.sql` → `sops.client_id`, `sops.copied_from`; `sop_versions` (id, sop_id,
+  version_no, snapshot jsonb, change_note, effective_date, requires_ack, published_by, published_at); `sop_reads` (id,
+  sop_id, version_id, emp_id, first_viewed_at, last_viewed_at, view_count, acknowledged_at). Select/insert/update only.
+- Files: new `src/lib/sopVersions.js`, `src/pages/workbench/SopVersions.jsx`, `SopTracking.jsx`; changed `SopPage.jsx`,
+  `SopLibrary.jsx`, `src/lib/sops.js`, `SopEditors.jsx`, `sopActions.js`, `src/lib/access.js`, `src/lib/auditLabels.js`.
+  Audit `sop_publish_version`, `sop_acknowledge`, `sop_client_copy` (ids only); views go to `sop_reads`, not the Audit Log.
 
 ### Reference: how 3.3 was built (done)
 
