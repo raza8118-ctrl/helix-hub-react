@@ -1,4 +1,5 @@
-import { supabase, getTablePrefix } from './supabase';
+import { supabase, S, getTablePrefix } from './supabase';
+import { logAudit } from './audit';
 
 // Private bucket from supabase/migrations/20261019b_payer_forms_storage.sql
 const BUCKET = 'payer-forms';
@@ -42,4 +43,23 @@ export async function payerFormLink(path, fileName) {
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60, { download: fileName || true });
   if (error) { console.error('payerFormLink error', error.message); return null; }
   return data?.signedUrl ?? null;
+}
+
+// ── Appeal Builder (roadmap 5.4) ────────────────────────────────────────────
+
+/** The form file itself (for pre-filling in the browser), or null. */
+export async function loadPayerFormBytes(path) {
+  const { data, error } = await supabase.storage.from(BUCKET).download(path);
+  if (error || !data) { console.error('loadPayerFormBytes error', error?.message); return null; }
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+/** True once the 5.4 database update has been run (the row carries field_map). */
+export const hasFieldMaps = form => form != null && 'field_map' in form;
+
+/** Saves where appeal values go in a fillable form (no patient data). Returns true when saved. */
+export async function saveFieldMap(form, fieldMap, user) {
+  const ok = await S.update('payer_forms', { field_map: fieldMap, updated_by: user.emp_id, updated_at: new Date().toISOString() }, { id: form.id });
+  if (ok) logAudit({ actor: user, action: 'payer_form_fields_map', entityType: 'payer_form', entityId: form.id, details: { fields: Object.keys(fieldMap).length } });
+  return !!ok;
 }

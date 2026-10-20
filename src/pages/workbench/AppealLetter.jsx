@@ -3,6 +3,7 @@ import { placeholderMap, levelOf } from '../../lib/appeals';
 import { fillTemplate, pickTemplate, templateTypeLabel, levelLabel } from '../../lib/appealTemplates';
 import { loadPayerInfo } from '../../lib/denialSteps';
 import AppealAIPanel from './AppealAIPanel';
+import AppealPdf from './AppealPdf';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
 
@@ -25,18 +26,20 @@ function printLetter(text) {
  * 📝 Letter (roadmap 5.2): the best template for this appeal, filled in on this computer only.
  * Empty placeholders are highlighted; the letter can be edited (kept in memory with the form), copied or printed.
  * 5.3: optional AI wording (only placeholders + non-identifying facts are sent) replaces the template text and is
- * filled in the same way.
+ * filled in the same way. 5.4: 📄 Build the PDF (fax cover, cover letter, pre-filled payer form) underneath.
  */
 export default function AppealLetter({ form, set, effectiveType, client, payer, matched, templates, user }) {
   const [showTokens, setShowTokens] = useState(false);
-  const [info, setInfo] = useState({ key: null, contact: null });
-  const key = payer ? `${payer.id}|${client?.id ?? ''}` : null;
+  const [info, setInfo] = useState({ key: null, data: null });   // Payer Directory: contacts, limits, forms
+  const [infoVersion, setInfoVersion] = useState(0);              // bumped after a form's field map is saved
+  const key = payer ? `${payer.id}|${client?.id ?? ''}|${infoVersion}` : null;
   useEffect(() => {
     let alive = true;
-    if (payer) loadPayerInfo(payer.id, client?.id ?? null).then(d => { if (alive) setInfo({ key, contact: d.contacts[0] ?? null }); });
+    if (payer) loadPayerInfo(payer.id, client?.id ?? null, infoVersion > 0).then(d => { if (alive) setInfo({ key, data: d }); });
     return () => { alive = false; };
-  }, [payer, client?.id, key]);
-  const contact = info.key === key ? info.contact : null;
+  }, [payer, client?.id, key, infoVersion]);
+  const payerData = info.key === key ? info.data : null;
+  const contact = payerData?.contacts[0] ?? null;
 
   if (templates === undefined) return null;
   if (templates === null) {
@@ -164,6 +167,9 @@ export default function AppealLetter({ form, set, effectiveType, client, payer, 
           <span className="text-sm text-muted">🔒 Filled in on this computer only — not saved.</span>
         </div>
       )}
+
+      <AppealPdf letterText={letterText} values={values} info={payerData} payer={payer} client={client} form={form}
+        effectiveType={effectiveType} user={user} onFormsChanged={() => setInfoVersion(v => v + 1)} />
     </div>
   );
 }

@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.4 (appeal PDF) plan approved; building._
+_Last updated: 2026-10-20 — step 5.4 (appeal PDF) done; next is 5.5._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 5.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.5.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 5.5 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,25 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**5.4 – Appeal PDF — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 5.4 is done.** Next: **5.5 – “Add to Appeal Packet” (links to 2.5)** — last step of Phase 5;
+needs a plan and a “go”. The Appeal Packet (2.5) lives in File Tools (`AppealPacket.jsx`, `src/lib/packet.js`
+`assemblePacket` with sections letter / form / eob / auth / records / other + its own cover sheet); the appeal PDF parts
+come from `src/lib/appealPdf.js` (`buildLetterPdf`, `fillForm`, `buildFaxCover`). Hand-over must stay in memory (PHI).
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 5.4 was built (done)
+
+`src/lib/appealPdf.js` (pdf-lib, lazy): `buildLetterPdf` (Times 12 pt, 1" margins, word wrap + hard-break of long words,
+“Page X of Y” bottom centre), `buildFaxCover` (no patient details; pages incl. cover; confidentiality notice),
+`listFormFields` (text / checkbox / dropdown / radio / other + page via widget /P), `CHECK_RULES` (always / level:x /
+type:x), `fillForm` (field map rules; single-line fields get newlines → “, ”; max length respected; per-field try; Helvetica
+appearances; optional flatten; returns the original bytes on failure), `mergePdfs`, `buildAppealPdf` (letter → form →
+fax cover prepended with the final page count). `src/lib/payerForms.js` + `loadPayerFormBytes` (storage download),
+`hasFieldMaps`, `saveFieldMap` (audit `payer_form_fields_map`). `FormFieldMapper.jsx` (rules per field, “Test fill” with
+`SAMPLE_VALUES` opens a blob tab). `AppealPdf.jsx` (inside `AppealLetter.jsx`, which now keeps the whole
+`loadPayerInfo` data and reloads fresh after a map is saved): parts, form picker (PDF only), deadline status (late / soon
+≤ 3 days → “I understand” tick before the save step), file name from kv `packet_naming` (editable), `PdfSaveOptions`
+with audit `appeal_pdf_built` {fax_cover, letter, form, prefilled, flatten, deadline}.
 
 Plan as approved (defaults: fax cover on when a fax exists, no PHI on it; flatten filled forms on; deadline warnings at
 past due and ≤ 3 days; packet naming convention reused; field maps edited by Payer Directory editors):
@@ -623,6 +640,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 5.1 | Appeal Builder form: denial types + key facts, placeholders, side panel, in-memory only (no DB change) | 6b7e428 |
 | 5.2 | Appeal letter templates: best-match letter filled locally, edit / copy / print, Templates tab, 8 starters | 83baf5c |
 | 5.3 | AI wording for appeal letters: placeholders-only request, PHI block + confirm, answer checks, show changes (no DB change) | 974fc62 |
+| 5.4 | Appeal PDF: fax cover (no PHI), cover letter, pre-filled payer form + field maps, deadline check, save step | (see next commit) |
 
 ---
 
@@ -645,6 +663,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 13. `supabase/migrations/20261021d_denial_codes.sql` (Denial library codes, step 4.1)
 14. `supabase/migrations/20261021e_denial_steps.sql` (Denial Navigator layered steps, step 4.2)
 15. `supabase/migrations/20261021f_appeal_templates.sql` (appeal letter templates, step 5.2)
+16. `supabase/migrations/20261021g_payer_form_fields.sql` (field maps for fillable payer forms, step 5.4)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
