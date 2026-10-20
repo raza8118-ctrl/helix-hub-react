@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.1 (Denial library) done; next is 4.2._
+_Last updated: 2026-10-20 — step 4.2 (layered denial steps) plan approved; building._
 
 ---
 
@@ -21,10 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 4.1 is done.** Next: **4.2 – Layered steps** (Client SOP on top, highlighted → Payer rule from
-the Payer Directory → Common 3Gen steps) — needs a plan and a “go”. Hooks available: `denial_codes` ids, SOPs with
-`client_id` (3.4), payer notes in the Payer Directory (1.x), client list (0.5).
+**4.2 – Layered steps — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: pickers remembered per computer; client steps only when a client is picked; layers expand on
+demand; 180-day re-check; editing = existing `denials_edit`):
+- Denial Navigator gets **Client** and **Payer** pickers (payer = Payer Directory type-ahead with aliases). Each code card
+  gets **“What to do ▾”** with three layers: 🟨 **Client steps** (highlighted, top; only with a client picked; client's
+  steps + “📄 Open client SOP” opened in place like Training; “No special steps for X…” when none) → 🟦 **Payer rule**
+  (payer's steps for the code + auto from Payer Directory: appeals/recon fax & address with copy, appeal / corrected-claim
+  limits incl. client overrides, appeal/recon forms, pinned Claims/Appeals notes; “Open payer card ›”) → ⬜ **Common
+  3Gen steps** (always). Pasted ERA lines show “What to do” per code.
+- Steps entry per code + layer: numbered steps (SOP formatting marks), optional linked SOP, notes, verified + 180-day
+  re-check. Editors add/edit inline; make inactive; nothing deleted. 4.3 = admin overview/gaps/copy/import/review.
+- DB: `supabase/migrations/20261021e_denial_steps.sql` → `denial_steps` (id, code_id, scope common/client/payer,
+  client_id, payer_id, steps, sop_id, notes, verified_at/by, active, created/updated); one active per code+scope+target.
+- Files: new `src/lib/denialSteps.js`, `src/pages/workbench/DenialLayers.jsx`, `DenialStepsModal.jsx`; changed
+  `DenialNavigator.jsx`, `src/lib/auditLabels.js`. Audit `denial_steps_add/edit/verify/deactivate` (ids only).
 
 ### Reference: how 4.1 was built (done)
 
