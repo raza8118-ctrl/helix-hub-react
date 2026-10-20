@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 4.3 (denial steps admin) done; next is 4.4._
+_Last updated: 2026-10-20 — step 4.4 (deadline helper) plan approved; building._
 
 ---
 
@@ -21,10 +21,25 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 4.3 is done.** Next: **4.4 – Deadline helper** (appeal / corrected-claim deadline from the
-denial date using payer/client limits) — needs a plan and a “go”. `loadPayerInfo` (4.2) already resolves AFL / RECON /
-CCTFL limits with client overrides; `payer_limits.measured_from` says what the days count from.
+**4.4 – Deadline helper — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved (defaults: 🟠 at ≤ 14 days; calendar days; weekend warning without moving the date; Medicare
+quick-fill included + labelled; TFL shown for reference) — no database change:
+- **⏰ Deadline helper** card in Denial Navigator 🔎 Look up (under “Working on”); 🟦 payer layer gets “⏰ Work out the
+  deadline” jump button. Everyone.
+- Uses the Working-on payer + client: payer limits AFL (all levels) / RECON / CCTFL / TFL with the client contract
+  limit replacing the standard one. Asks only the dates those limits count from (denial/EOB, DOS, discharge, paid).
+- Result per limit: due date, “N days from <date>”, days left; 🟢 > 14 · 🟠 ≤ 14 · 🔴 past due (by N days); weekend
+  due date → “send by Friday to be safe” (never moved later); source label (payer standard / client contract).
+- 📋 Copy summary for claim notes (no patient details).
+- No limits recorded → enter days by hand (“entered by hand”) or “Use Medicare standard limits” (check current CMS
+  rules): redetermination 120 days from receipt of the initial determination (receipt = notice date + 5 days);
+  reconsideration (QIC) 180 days from receipt of the redetermination; timely filing 1 calendar year from DOS
+  (“through” date for institutional claims).
+- Calendar days; note that some payers count from receipt. Dates typed are never saved, logged or sent; no audit entry.
+- Files: new `src/lib/deadlines.js`, `src/pages/workbench/DeadlineHelper.jsx`; changed `DenialNavigator.jsx`,
+  `DenialLayers.jsx`, `src/lib/denialSteps.js` (TFL too). 6.2 calculators can reuse `deadlines.js`.
 
 ### Reference: how 4.3 was built (done)
 
