@@ -296,7 +296,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
 | 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | 0586f95 |
 | 3.3 | SOP full-page editor, formatting, screenshots (paste, crop, black-out), short videos | b99691e |
-| 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | (see next commit) |
+| 3.4 | SOP versions (publish, effective dates, archive), client SOPs + copy, Acknowledge, read tracking | c7bb125 |
 
 ---
 
