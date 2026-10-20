@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 3.6 (SOP quizzes) done; next is 3.7._
+_Last updated: 2026-10-20 — step 3.7 (seed software list) plan approved; building._
 
 ---
 
@@ -21,11 +21,18 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 3.6 is done.** Next: **3.7 – Seed software list** (Waystar, Availity, ECHO, PaySpan,
-WellSky (Kinnser), Axxess, HCHB, Inovalon, NaviNet, payer portals, Medicare FISS DDE — Palmetto, CGS, NGS incl. hospice)
-— needs a plan and a “go”. Software goes into `sop_software` under the 3.1 categories; added companies start empty
-(same “Add standard …” button approach as categories).
+**3.7 – Seed software list — plan approved 2026-10-20 (“go”), building.**
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+Plan as approved — no database change (no new migration):
+- Editors get **“Add standard software”** in the SOP Library (like “Add standard categories”), shown while any standard
+  entry is missing; pop-up lists the missing ones grouped by category, all ticked; names already present (any case)
+  are skipped; a missing standard category is re-created with its standard name. No tasks/SOPs created.
+- List: EMR — WellSky (Kinnser), Axxess, HCHB; Clearinghouse — Waystar, Inovalon (ABILITY); Payments/ERA — ECHO Health,
+  PaySpan; Payer portals — Availity, NaviNet, Palmetto GBA eServices, myCGS, NGSConnex; Medicare DDE — FISS DDE –
+  Palmetto GBA / CGS / NGS (incl. home health & hospice). Login links left blank on purpose (often client-specific).
+- Files: `src/lib/sops.js` (`STARTER_SOFTWARE`), `sopActions.js` (`addStarterSoftware`), `SopEditors.jsx` (pick-list
+  pop-up), `SopLibrary.jsx` (button). Audit one `sop_software_add` with the count.
 
 ### Reference: how 3.6 was built (done)
 
