@@ -8,6 +8,7 @@ import { DenialCodeModal, DenialImportModal, DenialStarterModal } from './Denial
 import DenialLayers from './DenialLayers';
 import DenialAdmin from './DenialAdmin';
 import DeadlineHelper from './DeadlineHelper';
+import { startAppeal } from '../../lib/appeals';
 import SopPage from './SopPage';
 import PayerCard from './PayerCard';
 import PayerSearch from '../../components/shared/PayerSearch';
@@ -23,7 +24,7 @@ const PAGE = 60;
 
 // One code: type, code + copy, badges, plain reason first, official wording below; editor buttons when allowed;
 // "What to do ▾" shows the layered steps (4.2) passed as children
-function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, children }) {
+function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, onStartAppeal, children }) {
   const t = typeOf(row.code_type);
   return (
     <div className="card mb-16" style={row.active === false ? { opacity: 0.6 } : undefined}>
@@ -53,12 +54,15 @@ function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady,
       )}
       {row.notes && <div className="text-sm" style={{ marginTop: 4 }}>📝 {row.notes}</div>}
       {row.verified_at && <div className="text-sm text-muted" style={{ marginTop: 4 }}>Verified {fmtDate(row.verified_at)}</div>}
-      {stepsReady && (
-        <button className={stepsOpen ? 'btn-primary btn-sm' : 'btn-sm'} style={{ marginTop: 8 }} aria-expanded={stepsOpen}
-          onClick={() => onToggleSteps(row.id)}>
-          {stepsOpen ? 'What to do ▴' : 'What to do ▾'}
-        </button>
-      )}
+      <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+        {stepsReady && (
+          <button className={stepsOpen ? 'btn-primary btn-sm' : 'btn-sm'} aria-expanded={stepsOpen}
+            onClick={() => onToggleSteps(row.id)}>
+            {stepsOpen ? 'What to do ▴' : 'What to do ▾'}
+          </button>
+        )}
+        {row.active !== false && <button className="btn-sm" onClick={() => onStartAppeal(row, group)}>✉️ Start an appeal</button>}
+      </div>
       {stepsOpen && children}
     </div>
   );
@@ -151,6 +155,8 @@ export default function DenialNavigator({ user }) {
   const cardProps = {
     canEdit, onVerify: verify, onEdit: row => setModal({ kind: 'code', row }), onToggle: toggleActive,
     stepsReady: Array.isArray(steps), onToggleSteps: toggleSteps,
+    // 5.1: open the Appeal Builder with this code (or the whole pasted ERA line) and the Working-on client / payer
+    onStartAppeal: (row, group) => startAppeal({ codes: parsed ? query : `${group ? `${group}-` : ''}${row.code}`, client_id: clientId, payer_id: payerId }),
   };
   // "⏰ Work out the deadline" in a payer layer opens the helper card and scrolls to it
   const openDeadline = () => {

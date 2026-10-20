@@ -236,6 +236,19 @@ export default function App() {
     sessionStorage.setItem('hh_tab', tabId);
   }
 
+  // A Workbench page can ask to open another Workbench tab (e.g. Denial Navigator → "Start an appeal").
+  // Only 'wb_' tabs, which every role has.
+  useEffect(() => {
+    const onOpen = e => {
+      const tabId = e.detail;
+      if (typeof tabId !== 'string' || !tabId.startsWith('wb_')) return;
+      setActiveTab(tabId);
+      sessionStorage.setItem('hh_tab', tabId);
+    };
+    window.addEventListener('helix:open-tab', onOpen);
+    return () => window.removeEventListener('helix:open-tab', onOpen);
+  }, []);
+
   // ── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin(u) {
     await refreshCompanyProcesses().catch(() => {});
@@ -285,6 +298,7 @@ export default function App() {
   // ── Logout ──────────────────────────────────────────────────────────────────
   // An owner viewing a company returns to the Owner Console instead of signing out.
   function handleLogout() {
+    window.dispatchEvent(new Event('helix:signed-out'));   // e.g. wipes an in-memory appeal form (patient details)
     if (!currentUser?.isOwner) handleOwnerSignOut();
     sessionStorage.removeItem('hh_user');
     sessionStorage.removeItem('hh_tab');

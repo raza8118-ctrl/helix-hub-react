@@ -47,7 +47,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 4.4 Deadline helper: appeal/corrected-claim deadline from denial date using payer/client limits.
 
 ## Phase 5 – Appeal Builder
-- [ ] 5.1 Form: client, payer, denial reason, claim #, DOS, key fact (e.g. auth # + approval date).
+- [x] 5.1 Form: client, payer, denial reason, claim #, DOS, key fact (e.g. auth # + approval date).
 - [ ] 5.2 Letter templates per denial type, using placeholders only.
 - [ ] 5.3 AI wording (no PHI sent) → real values filled locally → preview → edit.
 - [ ] 5.4 Output PDF cover letter, pre-filled payer form, payer address/fax from directory, AFL deadline check.

@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 5.1 (Appeal Builder form) plan approved; building._
+_Last updated: 2026-10-20 — step 5.1 (Appeal Builder form) done; next is 5.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.1.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 5.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 5.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 5.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**5.1 – Appeal Builder form — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 5.1 is done.** Next: **5.2 – Letter templates per denial type, using placeholders only** —
+needs a plan and a “go”. Templates should use the 5.1 tokens (`placeholderMap` in `src/lib/appeals.js`); real values are
+only ever filled in locally.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 5.1 was built (done)
+
+No database change. `src/lib/appeals.js`: `APPEAL_LEVELS` (→ limit type/level for the deadline), `BASE_FIELDS`,
+`PATIENT_FIELDS`, `DISAGREE_FIELD`, `DENIAL_TYPES` (auth / timely / necessity / eligibility / duplicate / coding / other,
+each with key-fact fields; `id: true` = identifier → placeholder only), `typeForCategory` (Denial library category →
+type), `placeholderMap(form, ctx)` → [{ token, label, value, id }], `hasIdentifiers`; module-level in-memory store
+(`getAppealDraft` / `saveAppealDraft` / `clearAppealDraft`, keyed by emp_id; never DB / logs / browser storage; cleared on
+the `helix:signed-out` event); `startAppeal` sets a prefill and fires `helix:open-tab` → `wb_appeals`. `src/App.jsx`
+(additive only): listener for `helix:open-tab` (only `wb_` tabs) and `helix:signed-out` dispatched in `handleLogout`.
+UI: `AppealBuilder.jsx` (form + side panel grid, PHI banner, 🗑 Clear form, SOP / payer card opened in place),
+`AppealForm.jsx`, `AppealSidePanel.jsx` (deadline for the chosen level via `loadPayerInfo` + `computeDeadline`, where to
+send + forms, read-only `DenialLayers` per code, facts summary). Denial Navigator cards: “✉️ Start an appeal”.
 
 Plan as approved (defaults: nothing saved; denial types + key facts below; placeholders for all dates and IDs;
 App.jsx tab listener) — no database change:
@@ -519,6 +534,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 4.2 | Denial “What to do”: client → payer (+ Payer Directory info) → common steps, inline editing | bf44eb5 |
 | 4.3 | Denial “Manage steps”: coverage + gaps, copy to client, Excel import / export, review queue, inactive (no DB change) | c58c595 |
 | 4.4 | Deadline helper: due dates from payer / client limits, Medicare quick-fill, copy summary (no DB change) | c748f2c |
+| 5.1 | Appeal Builder form: denial types + key facts, placeholders, side panel, in-memory only (no DB change) | (see next commit) |
 
 ---
 
@@ -566,6 +582,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Training:** paths per team with Day 1…N; due dates skip weekends; SOP items complete on acknowledgement; people tick tasks/links unless “Trainer must confirm”; `training_manage` (admin/manager) builds/assigns, `training_track` (admin/manager/supervisor) sees progress + confirms; no auto-assign on user creation.
 - **Quizzes:** one per SOP; multiple choice / True-False; 80% default pass mark; unlimited retakes; right answers shown only after passing; shuffled answers; quiz in a learning path = “Must pass the quiz” tick on SOP items (not a separate item kind); scoring in the browser (fine for internal checks, not formal certification).
 - **Denial library:** full X12 CARC/RARC lists are not bundled — the company imports them from x12.org; imports never change our plain-English reasons; starter codes (our wording) must be verified; `denials_edit` (admin/manager) edits; pasted ERA lines are never saved.
+- **Appeal Builder PHI:** the appeal form is never saved (DB, logs or browser storage) — memory only, wiped on refresh / sign-out / Clear; all dates, IDs, claim and auth numbers are identifiers and only ever leave the computer as placeholders.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 
