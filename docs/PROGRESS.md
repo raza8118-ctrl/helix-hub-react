@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.2 (calculators) plan approved; building._
+_Last updated: 2026-10-20 — step 6.2 (calculators) done; next is 6.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 6.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 6.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**6.2 – Calculators — plan approved 2026-10-20 (“go”), building.**
+**None in progress. Step 6.2 is done.** Next: **6.3 – Code lookup** (CARC/RARC, revenue codes, HIPPS, ICD-10) — needs
+a plan and a “go”. CARC/RARC already live in the Denial library (4.1, `denial_codes` + import); revenue codes / HIPPS /
+ICD-10 lists have licensing / size questions (ICD-10-CM is public from CMS but ~74k codes; HIPPS changes yearly) — plan
+an import approach like 4.1 rather than bundling. Add as an AR Tools tool.
 Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+
+### Reference: how 6.2 was built (done)
+
+No database change, no audit. `src/lib/medicareCalc.js`: `nextBusinessDay`, `noaResult(from, submitted, payment)`
+(due = From + 5; late → `lateDays` = From → submission, `reduction` = payment/30 × days, capped), `pdgmPeriods(soc, 6)`
+(30-day periods, early = 1st, cert = pairs of 60 days, recert window last 5 days), `lupaResult`, `noeResult(election,
+accepted)` (due = election + 5; late → non-covered = election → day before acceptance), `hospicePeriods` (90/90/60…, F2F
+from period 3 within 30 days before), `paymentResult` (deductible + copay + coinsurance % of remainder = patient; payer
+before sequestration; sequestration %; net; difference vs actually paid), `usd`. UI tools in `ARTools.jsx`:
+`DeadlineTool.jsx` (client select + PayerSearch around `DeadlineHelper` always open), `HomeHealthCalc.jsx` (exports
+`RuleNote`), `HospiceCalc.jsx`, `PaymentCalc.jsx`; each has 📋 Copy result.
 
 Plan as approved (defaults: weekend note only, no holiday calendar; 6 PDGM periods; LUPA threshold typed by hand; 2%
 sequestration preset; everything labelled “check current CMS rules”) — no database change, no audit:
@@ -718,6 +732,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 5.4 | Appeal PDF: fax cover (no PHI), cover letter, pre-filled payer form + field maps, deadline check, save step | 7ab604b |
 | 5.5 | “Add to Appeal Packet”: letter + form + details handed to File Tools → Appeal Packet in memory (no DB change) | 3d52a5b |
 | 6.1 | AR Tools + Claim Note Generator: dropdown notes in client formats, Note formats tab, 8 standard formats | 90ccc7d |
+| 6.2 | AR Tools calculators: filing / appeal deadlines, NOA + PDGM + LUPA, NOE + hospice periods, expected payment (no DB change) | (see next commit) |
 
 ---
 

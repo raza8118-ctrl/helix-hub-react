@@ -5,10 +5,15 @@ import { loadDenialCodes } from '../../lib/denials';
 import { loadFormats } from '../../lib/claimNotes';
 import ClaimNoteGenerator from './ClaimNoteGenerator';
 import NoteFormats from './NoteFormats';
+import DeadlineTool from './DeadlineTool';
+import HomeHealthCalc from './HomeHealthCalc';
+import HospiceCalc from './HospiceCalc';
+import PaymentCalc from './PaymentCalc';
 
 /**
  * 🧮 AR Tools (roadmap Phase 6): everyday helpers for AR callers. 6.1 = Claim Note Generator
- * (+ 📚 Note formats for holders of “Manage claim note formats”). Later steps add calculators and code lookup here.
+ * (+ 📚 Note formats for holders of “Manage claim note formats”); 6.2 = calculators (filing / appeal deadlines,
+ * home health, hospice, expected payment). Later steps add code lookup here.
  */
 export default function ARTools({ user }) {
   const canManageFormats = hasAccess(user, 'note_formats');
@@ -28,6 +33,11 @@ export default function ARTools({ user }) {
 
   const tools = [
     { id: 'notes', label: '📝 Claim Note Generator' },
+    // 6.2 calculators
+    { id: 'deadlines', label: '⏰ Filing & appeal deadlines' },
+    { id: 'homehealth', label: '🏠 Home health' },
+    { id: 'hospice', label: '🕊️ Hospice' },
+    { id: 'payment', label: '💲 Expected payment' },
     ...(canManageFormats && Array.isArray(formats) ? [{ id: 'formats', label: '📚 Note formats' }] : []),
   ];
 
@@ -51,6 +61,10 @@ export default function ARTools({ user }) {
         </div>
       )}
       {tool === 'notes' && <ClaimNoteGenerator user={user} ctx={ctx} formats={Array.isArray(formats) ? formats : []} codes={codes} />}
+      {tool === 'deadlines' && <DeadlineTool ctx={ctx} />}
+      {tool === 'homehealth' && <HomeHealthCalc />}
+      {tool === 'hospice' && <HospiceCalc />}
+      {tool === 'payment' && <PaymentCalc />}
       {tool === 'formats' && canManageFormats && Array.isArray(formats) && (
         <NoteFormats formats={formats} clients={ctx.clients} user={user} onChanged={reloadFormats} />
       )}
