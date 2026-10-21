@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 8.3 (directory suggestions) done; Phase 8 complete; next is 9.1._
+_Last updated: 2026-10-21 — step 9.1 (Ask Helix assistant) done; next is 9.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.1.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 9.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 9.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**9.1 – Ask Helix (AI assistant over Helix Hub data, PHI-free) — plan approved 2026-10-21, building.**
+**None in progress. Step 9.1 is done.** Next: **9.2 – Auth assistant** — needs a plan and a “go”. Building blocks:
+Ask Helix (`assistant.js`: `deidentify`, `TOOLS` / `runTool`, `ask` loop), Payer Directory auth contacts / notes,
+SOPs, Payer Updates (authorization category), Smart Worklist / follow-ups, PHI rules.
+
+### Reference: how 9.1 was built (done)
+
+No database change. `src/lib/assistant.js`: `deidentify` (PATIENT_WORDS block; REPLACEMENTS email / phone / numeric +
+month dates / ID-like / 5+ digits → placeholders; DENIAL_CODE kept), `loadKnowledge` (clients, payers, denial codes +
+steps, readable SOPs = current published version or status published before versions, active payer updates),
+`TOOLS` (8, `strict`, all props required: search_payers, get_payer, search_sops, get_sop, search_denial_codes,
+get_denial_steps, search_payer_updates, list_clients), `runTool` (client override limits applied by name; sources
+payer / sop / denial / updates), `SYSTEM`, `callClaude` (tools + `tool_choice` auto, effort medium, `fallbacks:
+"default"`), `ask` (copy of history, append `json.content` unchanged, all tool_results in one user message, lookup cap,
+throws keep the old history, audit counts). UI: `AskHelix.jsx` (examples, chat, “Looking in …” progress, preview /
+blocked cards, source chips → payer card in place (← Back) / `openSopLibrary` / Denial Navigator / Payer Updates,
+📋 Copy answer, 10-question cap + New conversation). `modules.js` + `WorkbenchApp.jsx`: `wb_assistant`.
 
 Plan as approved (defaults: everyone, no per-person switch; up to 8 lookups per question; last 10 messages kept in
 memory only; patient words block sending, dates / numbers / IDs / phones / emails replaced):
@@ -1210,6 +1225,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 8.1 | Payer Updates: bulletin PDF upload with patient-word scan + confirmation, AI extraction (Claude Opus 5.5, structured output), review / edit rows, private PDF storage, recent updates feed | 8d7c08e |
 | 8.2 | Payer Updates feed: For my team (✓ Got it, read counts, sidebar count), All updates search + effective filters + Excel, edit / retire changes | 548b8d9 |
 | 8.3 | Directory suggestions: AI reads a bulletin for contacts / payer IDs / base limits / notes with evidence, compared with the directory, reviewed + approved by payers_edit (written + verified, payer card history), payer card notice | e094416 |
+| 9.1 | Ask Helix: AI assistant with browser-run lookups (payers, published SOPs, denial steps, payer updates), PHI-free de-identification, source links, memory-only chat (no DB change) | (this commit) |
 
 ---
 
@@ -1285,6 +1301,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Payer Updates AI:** the whole bulletin PDF goes to Claude as a base64 document block (browser `fetch`, Settings key, `claude-opus-5-5`, effort medium, `fallbacks: "default"`, json_schema output); no Anthropic SDK dependency (package-lock can’t be regenerated without Node); uploader must tick “no patient information” every time, plus a second tick when the local pdf.js scan finds patient words; AI rows are suggestions — reviewed before saving; usage logged (pages, rows, ok) never the text; `payer_updates_edit` (admin/manager) uploads.
 - **Payer Updates notices:** in-app only (no email / SMS); “new” = added in the last 30 days, for my team or changes listing no team (no team on the user → all); sidebar “Payer Updates (N)” from `PayerUpdatesBadge` (15 min + `helix:payer-updates-changed`); read counts per team for admins / managers / supervisors; changes retired, never deleted.
 - **Directory suggestions:** approval = `payers_edit` (no new permission); AI suggestions run automatically after an AI-extracted bulletin is saved and on “💡 Suggest directory changes”; base rows only (no plan-specific rows, no client contract limits); compared again at approval time (add vs update, identical skipped); approved rows verified today and logged as `add_payer_info` / `edit_payer_info` with `payer_id` (shows in the payer card 🕘 History); rejected kept.
+- **Ask Helix:** PHI-free always on — patient words block sending; dates / long numbers / ID-like codes / phones / emails → placeholders with a “what will be sent” preview (CARC / RARC kept); only the cleaned question + reference data go to Claude; tools run in the browser (manual loop, `strict`, max 8 lookups); history append-only and capped at 10 questions per conversation (thinking blocks passed back unchanged); memory only; audit `assistant_ask` counts only; open to everyone, no new permission.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

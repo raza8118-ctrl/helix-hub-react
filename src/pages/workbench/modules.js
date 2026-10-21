@@ -130,6 +130,14 @@ export const WORKBENCH_MODULES = [
       'Suggested Payer Directory updates from bulletins (admin approves)',
     ],
   },
+  {
+    id: 'wb_assistant', label: 'Ask Helix', icon: '🤖', phase: 9,
+    purpose: 'Ask a question — answered from the Payer Directory, SOPs, Denial Navigator and Payer Updates, with sources.',
+    planned: [
+      'PHI-free: questions are de-identified in the browser before anything is sent',
+      'Answers only from Helix Hub data, with links to the source records',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

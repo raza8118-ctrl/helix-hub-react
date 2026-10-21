@@ -74,7 +74,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 8.3 Suggest updates to the Payer Directory from bulletins (admin approves).
 
 ## Phase 9 – AI Assistant
-- [ ] 9.1 Assistant that searches Payer Directory, SOPs, Denial Navigator and Payer Updates (PHI-free mode, de-identify input).
+- [x] 9.1 Assistant that searches Payer Directory, SOPs, Denial Navigator and Payer Updates (PHI-free mode, de-identify input).
 - [ ] 9.2 Auth assistant.
 - [ ] 9.3 Credentialing assistant (status checklist, CAQH/revalidation reminders).
 - [ ] 9.4 Coding assistant (MR/OASIS → code suggestions with evidence, coder approves). REQUIRES BAA-covered AI, hosting and database + compliance sign-off before starting.
