@@ -21,9 +21,29 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 7.3 is done.** Next: **7.4 – Shift handover notes + escalation tracker** — needs a plan and a
-“go”. Building blocks: client queries escalation flag (7.3), follow-ups (6.5), Smart Worklist (6.4), `users.team`,
-supervisors (`supervisor_ids`), PHI rules.
+**7.4 – Shift handover notes + escalation tracker — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: handover per person; “For my team” = last 2 shift dates; target dates Critical same day /
+High +1 working day / others +3; no sign-in pop-up, unread count on the tab; 7.3 escalated queries shown read-only):
+- New Workbench page **🔁 Handover & Escalations** (`wb_handover`, everyone).
+- **📝 My handover** (one per person per shift date): Done today, Carry over items (client, payer + claim # optional,
+  what's left, Normal / Urgent), Watch out, Blockers; draft → Submit; editable until the end of the next day.
+- **📥 For my team** (N unread): team handovers of the last 2 shift dates; ✓ Read (tracked); items 🙋 I'll take it /
+  ✓ Done / ⚑ Escalate (→ escalation).
+- **⚑ Escalations**: title, type (Payer issue · Client issue · System / software down · Access / login · Claim stuck ·
+  Process question · Other), severity Low / Medium / High / Critical, client / payer / claim # optional, details, raised
+  by, assigned to, target date; Open → In progress → Resolved (resolution) → Closed, Reopen; history; views Raised by me /
+  Assigned to me / All (`escalations_manage` admin/manager/supervisor); filters; overdue badge; escalated client queries
+  read-only with “Open in Client Queries”.
+- **📊 Overview** (managers / supervisors): handover submitted per person per team per date, carry-over not picked up,
+  open escalations by age / type, overdue, average time to resolve; Excel without claim #.
+- PHI: all text through `phiIssues`; claim # wiped 90 days after item done / escalation closed.
+- DB: `supabase/migrations/20261021p_handover_escalations.sql` → `handovers`, `handover_items`, `handover_reads`,
+  `escalations`, `escalation_events`.
+- Files: new `src/lib/handover.js`, `src/lib/escalations.js`, `src/pages/workbench/HandoverEscalations.jsx`,
+  `HandoverForm.jsx`, `HandoverInbox.jsx`, `EscalationList.jsx`, `EscalationEditor.jsx`, `HandoverOverview.jsx`; changed
+  `modules.js`, `WorkbenchApp.jsx`, `access.js`, `auditLabels.js`. Audit `handover_submit/edit/read`,
+  `handover_item_pick/done`, `escalation_add/edit/assign/status/reopen/clear` (ids only).
 
 ### Reference: how 7.3 was built (done)
 
