@@ -21,10 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 9.3 is done.** Next on the roadmap: **9.4 – Coding assistant (MR / OASIS → code suggestions)**
-— the roadmap says it **requires BAA-covered AI, hosting and database + compliance sign-off before starting** (it would
-process medical records = PHI). Do not plan or build it until the product owner confirms those are in place; offer
-Phase 10 (10.1 global search, 10.2 reports, 10.3 announcements board, 10.4 Chrome extension “later”) instead.
+**10.1 – Global search (Ctrl+K) — plan approved 2026-10-21, building.** (9.4 Coding assistant is on hold: the roadmap
+requires BAA-covered AI, hosting and database + compliance sign-off before starting — do not plan or build it until the
+product owner confirms.)
+
+Plan as approved (defaults: Ctrl+K / ⌘K, ignored while typing in other fields; 6 results per group + “Show all”;
+claims / worklist / follow-up items excluded; nothing sent or logged; recent picks in localStorage):
+- Search box over the page from Ctrl+K or a 🔍 Search button in the top bar; grouped results; ↑ ↓ Enter, Esc.
+- Groups (only what the person can open): Pages (allowed sidebar tabs), Payers (name + aliases → payer card), Clients
+  (→ Portal launchpad for that client), SOPs (published → SOP Library searched), Denial codes (→ Denial Navigator on the
+  code), Payer updates (→ All updates searched), Client queries (Q-#### / words → searched), Escalations (E-#### →
+  Escalations tab), Credentialing providers (name / NPI → provider page), “Ask Helix: …” (question pre-filled; PHI-free
+  check still runs). Data loaded on first open per session (↻ refresh); modules not set up are skipped.
+- New `src/lib/navigate.js` (`openRecord(tab, what)` / `peekRecord(tab)`), `src/lib/globalSearch.js`,
+  `src/components/shared/GlobalSearch.jsx`; one-line additive hand-off reads in `PayerDirectory.jsx`,
+  `DenialNavigator.jsx`, `ClientQueries.jsx`, `HandoverEscalations.jsx`, `Credentialing.jsx`, `PayerUpdates.jsx`,
+  `ARTools.jsx` (+ `PortalLaunchpad.jsx` client), `AskHelix.jsx`; `App.jsx` additive (mount + 🔍 button). No DB change.
 
 ### Reference: how 9.3 was built (done)
 
