@@ -85,6 +85,15 @@ export const WORKBENCH_MODULES = [
       'My worklist with status, follow-up dates and counts for the Daily Report',
     ],
   },
+  {
+    id: 'wb_qa', label: 'QA Audits', icon: '✅', phase: 7,
+    purpose: 'Audit claims against team scorecards; every error is linked to its SOP and acknowledged by the agent.',
+    planned: [
+      'Scorecards with weighted / critical checkpoints and error categories',
+      'Random sampling of worked claims from the Smart Worklist',
+      'Agent acknowledgement or dispute, and results by person and error type',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

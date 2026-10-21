@@ -46,6 +46,10 @@ export const FEATURES = [
   { group: 'Tools', key: 'worklist_manage', label: 'Manage worklists', defaultRoles: MONITORS },
   // Portal launchpad: opening links is open to everyone; setting up each client's links is gated (never passwords)
   { group: 'Tools', key: 'portals_edit', label: 'Manage portal links', defaultRoles: MANAGERS },
+  // QA Audits: everyone sees their own audits; auditing (supervisors: own team; the QA flag also allows it) and
+  // managing scorecards / error categories are gated
+  { group: 'Tools', key: 'qa_audit',  label: 'Do QA audits',          defaultRoles: MONITORS },
+  { group: 'Tools', key: 'qa_manage', label: 'Manage QA scorecards',  defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

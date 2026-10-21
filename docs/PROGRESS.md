@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 6.6 (portal launchpad) done; Phase 6 complete; next is 7.1._
+_Last updated: 2026-10-21 — step 7.1 (QA Audits) done; next is 7.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.1.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 7.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 7.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,29 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**7.1 – QA Audit module — plan approved 2026-10-21, building.**
+**None in progress. Step 7.1 is done.** Next: **7.2 – Error library (“mistakes and fixes”)** — needs a plan and a “go”.
+Building blocks: QA error categories + failed checkpoints with linked SOPs (7.1, `qa_audits.results`), SOP Library,
+`openSopLibrary(query)` hand-off in `sops.js`.
+
+### Reference: how 7.1 was built (done)
+
+`src/lib/qa.js`: `QA_STATUSES` (queued → draft → sent → acknowledged | disputed → resolved), `RESULTS`, `canAudit`
+(`qa_audit` or `users.is_qa`), `canManageQa`, `seesEveryone` / `scopePeople` (supervisors: team + supervisees; never
+yourself), `loadPeople` (falls back without team / is_qa), `newResults` (copy of the checkpoints), `failed`, `scoreOf`
+(passed weight ÷ checked weight, 1 decimal, critical fail → 0), `commentProblem` (`phiIssues` from `appealAI.js`),
+`qaReady`, `loadQaSetup`, `loadAudits` (paged) / `loadMyAudits`, `saveAudit` (draft / send), `acknowledgeAudit`,
+`disputeAudit`, `resolveDispute` (ticked fails overturned, score recalculated), `setAuditActive` (Skip), `clearOldAudits`
+(claim # wiped 90 days after `closed_at`; run when an auditor opens the page), sampling `loadWorkedClaims` (worklist items
+worked in the range, not yet picked) / `pickSample` (per person, count or %, Fisher–Yates) / `queueSample`, results
+`summarise` / `errorCounts`, starters (`STARTER_QA_CATEGORIES` 10, `STARTER_SCORECARDS` AR follow-up / Payment posting /
+Authorization / Charge entry) + `addQaStarters`, `saveQaItem` / `setQaItemActive` / `moveCheckpoint`.
+UI: `QaAudits.jsx` (tabs 🔍 Audit: disputes to resolve, my drafts, sampled queue with Start / Skip, + New audit;
+🙋 My audits (N waiting); 🎲 Sampling; 📊 Results; 🗂 Scorecards & categories), `QaAuditForm.jsx` (agent → team scorecard
+suggested; pass / fail / N/A; fail → category + SOP + comment; live score), `MyQaAudits.jsx` (`AuditDetails`,
+`ResolveModal`, acknowledge / dispute; 📚 Read the SOP → `openSopLibrary(title)`), `QaSampling.jsx`, `QaResults.jsx`
+(date range + team, by person, errors by category, SOPs linked to errors, waiting / disputed, Excel without claim #),
+`QaScorecards.jsx`. `modules.js` + `WorkbenchApp.jsx`: `wb_qa`. `access.js`: `qa_audit` (admin/manager/supervisor),
+`qa_manage` (admin/manager). Daily Report / Quality Monitor untouched.
 
 Plan as approved (defaults: QA scores do NOT fill the Daily Report quality %; short comments allowed with the no-PHI
 warning + DOB / member-ID-looking text blocked; supervisors audit their own team; pass mark 95%; critical fail = 0):
@@ -903,6 +925,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.4 | Smart Worklist: upload (patient columns dropped), priority bands, assign / auto-split, My worklist, Daily Report suggestion, 90-day clear | e2d9a0c |
 | 6.5 | Follow-up tickler: Follow-ups tab (by date / payer), reminders, snooze, sign-in pop-up, sidebar count, browser notifications | d97fea6 |
 | 6.6 | Portal launchpad: per-client software / payer portal / other links, ⭐ favourites, How-to SOPs, link checks, `portals_edit` | 10eb284 |
+| 7.1 | QA Audits: scorecards + error categories linked to SOPs, audits, sampling from the Smart Worklist, acknowledge / dispute, results | (this commit) |
 
 ---
 
@@ -931,6 +954,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 19. `supabase/migrations/20261021j_worklists.sql` (Smart Worklist: worklists + minimum-field claim items, step 6.4)
 20. `supabase/migrations/20261021k_followups.sql` (follow-up reminders, step 6.5)
 21. `supabase/migrations/20261021l_client_portals.sql` (portal launchpad links per client, step 6.6)
+22. `supabase/migrations/20261021m_qa_audits.sql` (QA scorecards, error categories, audits, step 7.1)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -962,6 +986,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Claim notes:** built in the browser, never saved / logged (last 5 in memory); formats per client + action with `[ … ]` optional parts; no patient-name placeholder; `note_formats` (admin/manager) manages formats.
 - **Smart Worklist PHI (PO 2026-10-20):** no BAA with Supabase → worklists store minimum claim fields only (no patient name / DOB / member ID / MRN / address); claim # and DOS wiped on close or 90 days after upload; counts flow to the Daily Report only when the user confirms; Work Allocation stays as is.
 - **Portal launchpad:** login pages only — never user names / passwords / PINs (notes and links mentioning them are refused); opening a portal is not logged; ⭐ favourites per browser; links re-checked every 180 days; `portals_edit` (admin/manager) sets each client up; “All clients” links show everywhere.
+- **QA Audits:** separate from the Daily Report quality % and Quality Monitor (not linked — PO default 2026-10-21); auditors = QA flag + `qa_audit` (supervisors only their team / supervisees; admins, managers, QA everyone; nobody audits themselves); results are a copy of the checkpoints at audit time; critical fail = 0; overturned fails count as passes; comments checked with `phiIssues`; claim # wiped 90 days after closing; Excel has no claim numbers.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 
