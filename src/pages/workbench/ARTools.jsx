@@ -11,6 +11,7 @@ import HospiceCalc from './HospiceCalc';
 import PaymentCalc from './PaymentCalc';
 import CodeLookup from './CodeLookup';
 import PortalLaunchpad from './PortalLaunchpad';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 /**
  * 🧮 AR Tools (roadmap Phase 6): everyday helpers for AR callers. 6.1 = Claim Note Generator
@@ -19,7 +20,8 @@ import PortalLaunchpad from './PortalLaunchpad';
  */
 export default function ARTools({ user }) {
   const canManageFormats = hasAccess(user, 'note_formats');
-  const [tool, setTool] = useState('notes');
+  const [tool, setTool] = useState(() => peekRecord('wb_artools')?.tool ?? 'notes');   // 10.1: from global search
+  const [portalClient] = useState(() => peekRecord('wb_artools')?.clientId ?? null);
   const [ctx, setCtx] = useState({ clients: [], payers: [], sops: [] });
   const [codes, setCodes] = useState([]);
   const [formats, setFormats] = useState(undefined);   // undefined = loading, null = not set up
@@ -27,6 +29,7 @@ export default function ARTools({ user }) {
   const reloadFormats = () => loadFormats().then(setFormats);
   useEffect(() => {
     let alive = true;
+    clearRecord('wb_artools');
     loadStepContext().then(c => { if (alive) setCtx(c); });
     loadDenialCodes().then(c => { if (alive) setCodes(c ?? []); });
     loadFormats().then(f => { if (alive) setFormats(f); });
@@ -70,7 +73,7 @@ export default function ARTools({ user }) {
       {tool === 'hospice' && <HospiceCalc />}
       {tool === 'payment' && <PaymentCalc />}
       {tool === 'codes' && <CodeLookup user={user} />}
-      {tool === 'portals' && <PortalLaunchpad user={user} ctx={ctx} />}
+      {tool === 'portals' && <PortalLaunchpad user={user} ctx={ctx} initialClientId={portalClient} />}
       {tool === 'formats' && canManageFormats && Array.isArray(formats) && (
         <NoteFormats formats={formats} clients={ctx.clients} user={user} onChanged={reloadFormats} />
       )}

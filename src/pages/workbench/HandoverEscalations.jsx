@@ -7,6 +7,7 @@ import HandoverForm from './HandoverForm';
 import HandoverInbox from './HandoverInbox';
 import EscalationList from './EscalationList';
 import HandoverOverview from './HandoverOverview';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 /**
  * 🔁 Handover & Escalations (roadmap 7.4): end-of-shift handover per person (read by the team next shift, carry-over
@@ -21,12 +22,13 @@ export default function HandoverEscalations({ user }) {
   const [team, setTeam] = useState([]);
   const [escalations, setEscalations] = useState([]);
   const [queries, setQueries] = useState([]);
-  const [tab, setTab] = useState('mine');
+  const [tab, setTab] = useState(() => peekRecord('wb_handover')?.tab ?? 'mine');   // 10.1: from global search
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey(k => k + 1);
 
   useEffect(() => {
     let alive = true;
+    clearRecord('wb_handover');
     handoverReady().then(ok => { if (alive) setReady(ok); });
     loadStepContext().then(c => { if (alive) setCtx(c); });
     loadPeople().then(p => { if (alive) setUsers(p); });

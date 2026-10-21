@@ -4,6 +4,7 @@ import { openSopLibrary } from '../../lib/sops';
 import CopyButton from '../../components/shared/CopyButton';
 import PayerCard from './PayerCard';
 import AuthChecklist from './AuthChecklist';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 const EXAMPLES = [
   'What is the appeal fax and appeal filing limit for Aetna?',
@@ -28,7 +29,7 @@ const withBold = text => String(text).split(/\*\*(.+?)\*\*/g).map((part, i) => (
  */
 export default function AskHelix({ user }) {
   const [knowledge, setKnowledge] = useState(null);
-  const [text, setText] = useState('');
+  const [text, setText] = useState(() => peekRecord('wb_assistant')?.question ?? '');   // 10.1: “Ask Helix: …” from global search
   const [preview, setPreview] = useState(null);          // de-identified text waiting for “Send”
   const [blocked, setBlocked] = useState(null);          // patient words found
   const [chat, setChat] = useState([]);                  // [{ role, text, sources?, error? }]
@@ -40,6 +41,7 @@ export default function AskHelix({ user }) {
 
   useEffect(() => {
     let alive = true;
+    clearRecord('wb_assistant');
     loadKnowledge(user).then(k => { if (alive) setKnowledge(k); });
     return () => { alive = false; };
   }, [user]);

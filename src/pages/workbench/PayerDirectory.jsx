@@ -7,6 +7,7 @@ import { hasAccess } from '../../lib/access';
 const PayerImport = lazy(() => import('./PayerImport'));
 import PayerSearch from '../../components/shared/PayerSearch';
 import PayerCard from './PayerCard';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 // Payer ids with an entry needing re-check (1.6), and open report counts per payer
 async function loadAccuracySummary() {
@@ -32,6 +33,7 @@ export default function PayerDirectory({ user }) {
   const [payers, setPayers]     = useState(null);   // null = loading / table missing
   const [error, setError]       = useState(false);
   const [selected, setSelected] = useState(null);
+  const [wanted, setWanted] = useState(() => peekRecord('wb_payers')?.payerId ?? null);   // 10.1: opened from global search
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [reviewFilter, setReviewFilter] = useState('ALL');   // ALL | STALE | REPORTED
   const [summary, setSummary]   = useState({ stale: new Set(), reports: {} });
@@ -46,15 +48,17 @@ export default function PayerDirectory({ user }) {
     loadAccuracySummary().then(setSummary).catch(() => {});
   }
 
-  useEffect(() => { loadPayers(); }, []);
+  useEffect(() => { loadPayers(); clearRecord('wb_payers'); }, []);
 
   // Refresh the warning marks after the card is closed (it may have verified or resolved things)
   function closeCard() {
     setSelected(null);
+    setWanted(null);
     loadAccuracySummary().then(setSummary).catch(() => {});
   }
 
   const active = useMemo(() => (payers ?? []).filter(p => p.active !== false), [payers]);
+  const cardPayer = selected ?? (wanted != null ? active.find(p => p.id === wanted) ?? null : null);
   const types  = useMemo(() => [...new Set(active.map(p => p.payer_type).filter(Boolean))].sort(), [active]);
   const browse = useMemo(() => active
     .filter(p => typeFilter === 'ALL' || p.payer_type === typeFilter)
@@ -102,9 +106,7 @@ export default function PayerDirectory({ user }) {
         )}
       </div>
 
-      {selected && (
-        <PayerCard key={selected.id} payer={selected} user={user} onClose={closeCard} />
-      )}
+      {cardPayer && <PayerCard key={cardPayer.id} payer={cardPayer} user={user} onClose={closeCard} />}
 
       {payers != null && !error && (
         <div className="card">

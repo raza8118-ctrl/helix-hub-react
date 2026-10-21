@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 9.3 (credentialing assistant) done; next is 9.4 (needs BAA + compliance sign-off first)._
+_Last updated: 2026-10-21 — step 10.1 (global search) done; 9.4 on hold (BAA + compliance sign-off); next is 10.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 9.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 10.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 10.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,9 +21,25 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**10.1 – Global search (Ctrl+K) — plan approved 2026-10-21, building.** (9.4 Coding assistant is on hold: the roadmap
-requires BAA-covered AI, hosting and database + compliance sign-off before starting — do not plan or build it until the
-product owner confirms.)
+**None in progress. Step 10.1 is done.** Next: **10.2 – Reports: denial trends by payer / client, weekly client reports**
+— needs a plan and a “go”. (9.4 Coding assistant stays on hold: the roadmap requires BAA-covered AI, hosting and
+database + compliance sign-off before starting — do not plan or build it until the product owner confirms.)
+Building blocks: worklist items (statuses, payers, clients, $), follow-ups, QA audits, client queries, escalations,
+Medicare trackers, daily_logs production / quality (existing Summary pages), Excel export pattern.
+
+### Reference: how 10.1 was built (done)
+
+No database change. `src/lib/navigate.js` (`setRecord` / `peekRecord` / `clearRecord`, memory only).
+`src/lib/globalSearch.js`: `GROUPS`, `PER_GROUP` 6, `loadIndex` (tabs → Pages; `loadKnowledge` → payers / clients /
+readable SOPs / denial codes / active payer updates; client_queries without claim #; escalations; active cred
+providers), `searchIndex` (all words must match; exact / starts-with ranks first; grouped), `getIndex` (one shared load
+per person per session, `fresh` for ↻), recent picks. `src/components/shared/GlobalSearch.jsx` (🔍 button + Ctrl/⌘K,
+overlay, ↑ ↓ Enter Esc, groups with Show all, “Ask Helix: …” row). `src/App.jsx` (additive): mounts it in the top bar
+next to the clock; `openFromSearch` bumps `pageVisit` (page key `${activeTab}|${pageVisit}`) then switches tab.
+Hand-off reads (initial state + clear in an effect): `PayerDirectory.jsx` (payerId → card), `DenialNavigator.jsx`
+(query), `ClientQueries.jsx` + `QueryList.jsx` (tab all + query, status All), `HandoverEscalations.jsx` (tab),
+`Credentialing.jsx` (providerId), `PayerUpdates.jsx` + `UpdatesSearch.jsx` (tab all + query), `ARTools.jsx` +
+`PortalLaunchpad.jsx` (portals + client), `SopLibrary.jsx` (query), `AskHelix.jsx` (question pre-filled).
 
 Plan as approved (defaults: Ctrl+K / ⌘K, ignored while typing in other fields; 6 results per group + “Show all”;
 claims / worklist / follow-up items excluded; nothing sent or logged; recent picks in localStorage):
@@ -1306,6 +1322,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 9.1 | Ask Helix: AI assistant with browser-run lookups (payers, published SOPs, denial steps, payer updates), PHI-free de-identification, source links, memory-only chat (no DB change) | 544c6a6 |
 | 9.2 | Auth assistant: payer card 🔐 Authorization rules, Ask Helix 🔐 Auth checklist (sourced, structured), claim note copy, “Auth decision due” follow-up, `get_auth_rules` lookup | c822a08 |
 | 9.3 | Credentialing: Due soon (CAQH 120 days, revalidations, expirables, stuck enrollments), providers + status checklist, provider × payer enrollment grid + Excel, AI enrollment checklist, `credentialing_edit` | de7a023 |
+| 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | (this commit) |
 
 ---
 
@@ -1386,6 +1403,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Ask Helix:** PHI-free always on — patient words block sending; dates / long numbers / ID-like codes / phones / emails → placeholders with a “what will be sent” preview (CARC / RARC kept); only the cleaned question + reference data go to Claude; tools run in the browser (manual loop, `strict`, max 8 lookups); history append-only and capped at 10 questions per conversation (thinking blocks passed back unchanged); memory only; audit `assistant_ask` counts only; open to everyone, no new permission.
 - **Auth assistant:** rules per payer + service (+ optional plan), no client-specific rules, maintained by `payers_edit` in the payer card (90-day re-check like the directory); checklist request = selections only (no patient fields / dates); “unknown” + missing list when no rule; follow-up = today + decision working days (3 when unknown) as a 6.5 reminder `auth_decision`.
 - **Credentialing:** everyone views; `credentialing_edit` (admin/manager, grant to the Credentialing team) edits; no SSN / DOB / home address fields; CAQH due = last attestation + 120 days; warnings 90 / 60 / 30; enrollment stuck = submitted / in process with no follow-up for 30 days; Medicare revalidation suggestion = approval + 5 years (button only, the MAC notice wins); AI checklist sends only payer + provider type + request.
+- **Global search:** in the browser only (not sent, not logged); claims / worklist / follow-up items are never indexed; client queries indexed without claim numbers; index loaded once per session per person (↻ refresh); recent picks (5) in localStorage `hh_search_recent`; records open through `navigate.js` (`setRecord` / `peekRecord` / `clearRecord`) and App remounts the page (`pageVisit` key) so it works even on the same page.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

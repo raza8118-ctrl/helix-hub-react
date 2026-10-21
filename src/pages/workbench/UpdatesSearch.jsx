@@ -11,8 +11,8 @@ const cell = { padding: '5px 8px', borderBottom: '1px solid var(--border)', text
  * 🔎 All updates (roadmap 8.2): every change from every bulletin in one table — search, filters, effective-date view,
  * ⬇ Excel of exactly what is filtered; editors edit or retire changes (never deleted).
  */
-export default function UpdatesSearch({ updates, reads, ctx, user, canEdit, onChanged, onOpenPdf }) {
-  const [query, setQuery] = useState('');
+export default function UpdatesSearch({ initialQuery = '', updates, reads, ctx, user, canEdit, onChanged, onOpenPdf }) {
+  const [query, setQuery] = useState(initialQuery);   // 10.1: from global search
   const [payer, setPayer] = useState('ALL');
   const [team, setTeam] = useState('ALL');
   const [category, setCategory] = useState('ALL');

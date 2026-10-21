@@ -8,6 +8,7 @@ import CredProviders from './CredProviders';
 import CredEnrollments from './CredEnrollments';
 import CredChecklist from './CredChecklist';
 import PayerCard from './PayerCard';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 const openTab = id => window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: id }));
 
@@ -21,14 +22,15 @@ export default function Credentialing({ user }) {
   const [data, setData] = useState(undefined);           // undefined = loading, null = not set up
   const [ctx, setCtx] = useState({ clients: [], payers: [], sops: [] });
   const [knowledge, setKnowledge] = useState(null);      // AI lookups — loaded when the checklist tab opens
-  const [tab, setTab] = useState('due');
-  const [openId, setOpenId] = useState(null);
+  const [tab, setTab] = useState(() => (peekRecord('wb_credentialing')?.providerId ? 'providers' : 'due'));   // 10.1
+  const [openId, setOpenId] = useState(() => peekRecord('wb_credentialing')?.providerId ?? null);
   const [payerCard, setPayerCard] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey(k => k + 1);
 
   useEffect(() => {
     let alive = true;
+    clearRecord('wb_credentialing');
     loadStepContext().then(c => { if (alive) setCtx(c); });
     return () => { alive = false; };
   }, []);

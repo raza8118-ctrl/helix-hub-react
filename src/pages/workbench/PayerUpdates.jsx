@@ -8,6 +8,7 @@ import BulletinList from './BulletinList';
 import UpdatesForTeam from './UpdatesForTeam';
 import UpdatesSearch from './UpdatesSearch';
 import DirectorySuggestions from './DirectorySuggestions';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 import { loadSuggestions, suggestFromBulletin, canApproveSuggestions, peekOpenSuggestions, clearOpenSuggestions } from '../../lib/payerSuggestions';
 
 /**
@@ -25,13 +26,15 @@ export default function PayerUpdates({ user }) {
   const [people, setPeople] = useState([]);
   const [suggestions, setSuggestions] = useState(null);     // 8.3; null = not set up / not shown
   const [suggesting, setSuggesting] = useState(null);       // bulletin id being read
-  const [tab, setTab] = useState(() => (peekOpenSuggestions() ? 'suggestions' : 'team'));   // 8.3: payer card “Review”
+  const [tab, setTab] = useState(() => peekRecord('wb_updates')?.tab ?? (peekOpenSuggestions() ? 'suggestions' : 'team'));   // 8.3 / 10.1
+  const [initialQuery] = useState(() => peekRecord('wb_updates')?.query ?? '');   // 10.1: from global search
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey(k => k + 1);
 
   useEffect(() => {
     let alive = true;
     clearOpenSuggestions();
+    clearRecord('wb_updates');
     loadStepContext().then(c => { if (alive) setCtx(c); });
     if (isLead) loadPeople().then(p => { if (alive) setPeople(p); });
     return () => { alive = false; };
@@ -113,7 +116,7 @@ export default function PayerUpdates({ user }) {
           {tab === 'team' && (
             <UpdatesForTeam updates={updates} reads={reads} people={people} ctx={ctx} user={user} showReaders={isLead} onChanged={reload} onOpenPdf={openPdf} />
           )}
-          {tab === 'all' && <UpdatesSearch updates={updates} reads={reads} ctx={ctx} user={user} canEdit={canEdit} onChanged={reload} onOpenPdf={openPdf} />}
+          {tab === 'all' && <UpdatesSearch initialQuery={initialQuery} updates={updates} reads={reads} ctx={ctx} user={user} canEdit={canEdit} onChanged={reload} onOpenPdf={openPdf} />}
           {tab === 'list' && (
             <BulletinList bulletins={activeBulletins} ctx={ctx} user={user} canEdit={canEdit} onChanged={reload}
               onSuggest={suggestions ? b => runSuggest(b) : null} suggesting={suggesting} />

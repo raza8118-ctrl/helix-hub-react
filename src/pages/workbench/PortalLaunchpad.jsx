@@ -20,11 +20,11 @@ const byOrder = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.
  * other links) with Open / Copy / How-to. Managers (“Manage portal links”) set each client's links up.
  * Never stores passwords; opening a portal is not logged.
  */
-export default function PortalLaunchpad({ user, ctx }) {
+export default function PortalLaunchpad({ user, ctx, initialClientId = null }) {
   const canEdit = hasAccess(user, 'portals_edit');
   const canSeeDrafts = hasAccess(user, 'sops_edit');
   const [data, setData] = useState(undefined);           // undefined = loading
-  const [clientId, setClientId] = useState(readClient);
+  const [clientId, setClientId] = useState(() => (initialClientId != null ? String(initialClientId) : readClient()));   // 10.1
   const [query, setQuery] = useState('');
   const [stars, setStars] = useState(() => readStars(user.emp_id));
   const [showInactive, setShowInactive] = useState(false);

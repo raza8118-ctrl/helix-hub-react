@@ -5,6 +5,7 @@ import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import FollowupNudge from './components/shared/FollowupNudge';
 import PayerUpdatesBadge from './components/shared/PayerUpdatesBadge';
+import GlobalSearch from './components/shared/GlobalSearch';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
@@ -123,6 +124,7 @@ export default function App() {
   const [missedDismissed, setMissedDismissed] = useState(false);
   const [followupDue, setFollowupDue] = useState(0);   // 6.5: follow-ups due → count on the Smart Worklist sidebar item
   const [updatesNew, setUpdatesNew] = useState(0);     // 8.2: unread payer changes for my team → count on Payer Updates
+  const [pageVisit, setPageVisit] = useState(0);       // 10.1: bumped when search opens a record so the page remounts
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -235,6 +237,12 @@ export default function App() {
   }, [currentUser]);
 
   // ── Tab switch (persisted so a browser refresh stays on the same tab) ───────
+  // 10.1: global search → remount the page (even when it is already open) so it reads the handed-over record
+  function openFromSearch(tabId) {
+    setPageVisit(v => v + 1);
+    handleSetTab(tabId);
+  }
+
   function handleSetTab(tabId) {
     setActiveTab(tabId);
     sessionStorage.setItem('hh_tab', tabId);
@@ -400,7 +408,10 @@ export default function App() {
               </span>
             )}
           </div>
-          <Clock />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <GlobalSearch user={currentUser} tabs={tabs} onOpen={openFromSearch} />
+            <Clock />
+          </div>
         </header>
 
         {currentUser.isOwner && (
@@ -461,7 +472,7 @@ export default function App() {
 
         <main className="main-content">
           <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
-            <div key={activeTab} className="page-transition">
+            <div key={`${activeTab}|${pageVisit}`} className="page-transition">
               {isAdmin
                 ? <AdminApp      activeTab={activeTab} user={currentUser} />
                 : isSupervisor

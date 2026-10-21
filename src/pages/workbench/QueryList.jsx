@@ -100,11 +100,11 @@ function History({ q, names, reloadKey }) {
  * Query list (roadmap 7.3). mode 'mine' = my queries, chase-due / overdue first (closed ones on request);
  * 'all' = every query with search and filters. Actions only for the owner / creator or “Manage client queries”.
  */
-export default function QueryList({ mode, queries, ctx, people, names, user, onChanged }) {
+export default function QueryList({ mode, initialQuery = '', queries, ctx, people, names, user, onChanged }) {
   const manager = canManageQueries(user);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);   // 10.1: global search hands over Q-####
   const [clientId, setClientId] = useState('ALL');
-  const [status, setStatus] = useState('OPEN');          // OPEN = open + waiting
+  const [status, setStatus] = useState(initialQuery ? 'ALL' : 'OPEN');   // OPEN = open + waiting; a searched reference may be closed
   const [category, setCategory] = useState('ALL');
   const [owner, setOwner] = useState('ALL');
   const [age, setAge] = useState('ALL');

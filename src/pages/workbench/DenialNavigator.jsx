@@ -17,6 +17,7 @@ import { loadSopLibrary } from '../../lib/sops';
 import { loadSopVersionMeta } from '../../lib/sopVersions';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -81,7 +82,8 @@ const writePick = (key, value) => { try { if (value) localStorage.setItem(key, v
 export default function DenialNavigator({ user }) {
   const canEdit = hasAccess(user, 'denials_edit');
   const [codes, setCodes] = useState(undefined);     // undefined = loading, null = not set up
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => peekRecord('wb_denials')?.query ?? '');   // 10.1: from global search
+  useEffect(() => { clearRecord('wb_denials'); }, []);
   const [type, setType] = useState('ALL');
   const [category, setCategory] = useState('ALL');
   const [showRetired, setShowRetired] = useState(true);

@@ -6,6 +6,7 @@ import { alertDialog } from '../../components/shared/Dialog';
 import QueryEditor from './QueryEditor';
 import QueryList from './QueryList';
 import QueryAging from './QueryAging';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 /**
  * 💬 Client Queries (roadmap 7.3): every question we send a client — logged, chased every 3 working days until
@@ -16,13 +17,15 @@ export default function ClientQueries({ user }) {
   const [queries, setQueries] = useState(undefined);   // undefined = loading, null = not set up
   const [ctx, setCtx] = useState({ clients: [], payers: [], sops: [] });
   const [people, setPeople] = useState([]);
-  const [tab, setTab] = useState('mine');
+  const [tab, setTab] = useState(() => peekRecord('wb_queries')?.tab ?? 'mine');   // 10.1: from global search
+  const [initialQuery] = useState(() => peekRecord('wb_queries')?.query ?? '');
   const [adding, setAdding] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey(k => k + 1);
 
   useEffect(() => {
     let alive = true;
+    clearRecord('wb_queries');
     loadStepContext().then(c => { if (alive) setCtx(c); });
     loadPeople().then(p => { if (alive) setPeople(p); });
     return () => { alive = false; };
@@ -73,7 +76,7 @@ export default function ClientQueries({ user }) {
             ))}
           </div>
           {(tab === 'mine' || tab === 'all') && (
-            <QueryList key={tab} mode={tab} queries={queries} ctx={ctx} people={people} names={names} user={user} onChanged={reload} />
+            <QueryList key={tab} mode={tab} initialQuery={tab === 'all' ? initialQuery : ''} queries={queries} ctx={ctx} people={people} names={names} user={user} onChanged={reload} />
           )}
           {tab === 'aging' && <QueryAging queries={queries} ctx={ctx} names={names} />}
         </>
