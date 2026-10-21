@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 10.2 (reports) done; 9.4 on hold (BAA + compliance sign-off); next is 10.3._
+_Last updated: 2026-10-21 — step 10.3 (notice board) done; 9.4 on hold (BAA + compliance sign-off); 10.4 marked “later”._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 10.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 10.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 10.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 10.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,24 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**10.3 – Announcements board (📌 Notice Board) — plan approved 2026-10-21, building.** Existing 📢 Announcements and Team
-Feed stay untouched. (9.4 Coding assistant stays on hold: BAA-covered AI, hosting and database + compliance sign-off.)
+**None in progress. Step 10.3 is done.** Remaining roadmap: **10.4 Chrome extension sidebar** (marked “later” on the
+roadmap — needs a decision from the product owner before planning: it is a separate browser extension project, not part
+of this Vite app's deploy) and **9.4 Coding assistant** (on hold: BAA-covered AI, hosting and database + compliance
+sign-off first). Ask the product owner which (if either) to start; otherwise the build list is complete and the next job
+is running migrations 1–33 and testing.
+
+### Reference: how 10.3 was built (done)
+
+`src/lib/board.js`: `CATEGORIES` (6), `canPost` (`board_post`), `canPostEveryone` (admin / manager / Post
+Announcements), `isLive`, `forMe`, `loadBoard` (notices pinned → newest, reads map; null until the migration),
+`unreadMustRead` (badge), `checkNotice` (title, dates, team limits, `phiIssues`), `saveNotice`, `setNoticeFlags` (pin /
+archive / restore), `markNoticeRead` (upsert); event `helix:board-changed`. UI: `NoticeBoard.jsx` (views For my team /
+Must read not yet read / Everything / Archive, category + search, cards with SopText body, links to SOP / payer (via
+`navigate.js`) / payer update, ✓ I've read this, “Read: AR 7 / 9” + not-yet list for leads / poster, edit / pin /
+archive; `noticeId` hand-off from global search highlights the card), `NoticeEditor.jsx` (preview, teams limited for
+supervisors), `src/components/shared/BoardBadge.jsx`. `App.jsx`: `boardNew` + `<BoardBadge>`; sidebar counts now from
+one `tabCounts` map (worklist / updates / board). `globalSearch.js`: Notices group (live notices). `modules.js` +
+`WorkbenchApp.jsx`: `wb_board`. `access.js`: `board_post`.
 
 Plan as approved (defaults: only must-read notices count for the badge; a notice expires the day after “until”; no team
 picked = everyone; no pop-up, badge only):
@@ -1366,6 +1382,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 9.3 | Credentialing: Due soon (CAQH 120 days, revalidations, expirables, stuck enrollments), providers + status checklist, provider × payer enrollment grid + Excel, AI enrollment checklist, `credentialing_edit` | de7a023 |
 | 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | 1a17e26 |
 | 10.2 | Reports: denial trends (payer / client / week / code + outcomes, table views, Excel), weekly client report (claims, denials, queries, escalations, Medicare, payer changes; email text, print, Excel, AI summary from numbers), optional worklist denial code | 574176f |
+| 10.3 | Notice Board: notices by category / team / client, pinned, show from-until, must-read with read tracking, SOP / payer / payer-update links, sidebar count, global search group (Announcements unchanged) | (this commit) |
 
 ---
 
@@ -1405,6 +1422,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 30. `supabase/migrations/20261021u_payer_auth_rules.sql` (authorization rules per payer + service, step 9.2)
 31. `supabase/migrations/20261021v_credentialing.sql` (credentialing providers, payer enrollments, expiring items, step 9.3)
 32. `supabase/migrations/20261021w_worklist_denial_code.sql` (optional denial code on worklist claims, step 10.2)
+33. `supabase/migrations/20261021x_notice_board.sql` (notice board notices + reads, step 10.3)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1449,6 +1467,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Credentialing:** everyone views; `credentialing_edit` (admin/manager, grant to the Credentialing team) edits; no SSN / DOB / home address fields; CAQH due = last attestation + 120 days; warnings 90 / 60 / 30; enrollment stuck = submitted / in process with no follow-up for 30 days; Medicare revalidation suggestion = approval + 5 years (button only, the MAC notice wins); AI checklist sends only payer + provider type + request.
 - **Global search:** in the browser only (not sent, not logged); claims / worklist / follow-up items are never indexed; client queries indexed without claim numbers; index loaded once per session per person (↻ refresh); recent picks (5) in localStorage `hh_search_recent`; records open through `navigate.js` (`setRecord` / `peekRecord` / `clearRecord`) and App remounts the page (`pageVisit` key) so it works even on the same page.
 - **Reports:** `reports_view` (admin/manager/supervisor); denial trends = worklist claims with a denial date, “paid after denial” = status now Paid; denial code is an optional upload column (worklist upload retries without it until migration 32 is run); weekly = Mon–Sun; exports / email / AI summary carry counts and names only, never claim numbers; charts use the existing `BarChart` (single series, value mode) with a table view each.
+- **Notice Board:** beside the existing Announcements (not changed); `board_post` (admin/manager/supervisor) posts — supervisors to their own team, everyone needs admin / manager or Post Announcements; no team = everyone; badge = live must-read notices for my team not yet read (15 min + `helix:board-changed`); text checked with `phiIssues`; archive instead of delete; expired / scheduled / archived notices show under Archive.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

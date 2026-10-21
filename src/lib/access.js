@@ -66,6 +66,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'credentialing_edit', label: 'Manage credentialing', defaultRoles: MANAGERS },
   // Reports (10.2): client-level performance numbers
   { group: 'Tools', key: 'reports_view', label: 'View reports', defaultRoles: MONITORS },
+  // Notice Board (10.3): everyone reads; posting is gated (supervisors post to their own team)
+  { group: 'Tools', key: 'board_post', label: 'Post to the notice board', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

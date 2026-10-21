@@ -155,6 +155,14 @@ export const WORKBENCH_MODULES = [
       'Weekly client report: claims, denials, queries, escalations, Medicare, payer changes',
     ],
   },
+  {
+    id: 'wb_board', label: 'Notice Board', icon: '📌', phase: 10,
+    purpose: 'Lasting notices — process changes, client and payer news, system notices and wins — with must-read tracking.',
+    planned: [
+      'Notices by category and team, pinned first, with show-from / until dates',
+      'Must read: “✓ I\'ve read this” with read tracking per team',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

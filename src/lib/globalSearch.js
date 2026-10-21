@@ -5,6 +5,7 @@ import { db } from './supabase';
 import { loadKnowledge } from './assistant';
 import { queryRef, categoryLabel } from './clientQueries';
 import { escRef } from './escalations';
+import { isLive, categoryOf } from './board';
 
 export const GROUPS = [
   { key: 'pages',     label: 'Pages',                 icon: '📄' },
@@ -16,6 +17,7 @@ export const GROUPS = [
   { key: 'queries',   label: 'Client queries',        icon: '💬' },
   { key: 'escalations', label: 'Escalations',         icon: '⚑' },
   { key: 'providers', label: 'Credentialing providers', icon: '🪪' },
+  { key: 'notices',   label: 'Notices',                 icon: '📌' },   // 10.3
 ];
 export const PER_GROUP = 6;
 
@@ -26,11 +28,12 @@ const item = (group, id, title, sub, extra, tab, record = null) => ({
 
 /** Builds the index. tabs = the sidebar tabs this person can open ({ id, label, icon }). Missing modules are skipped. */
 export async function loadIndex(user, tabs) {
-  const [k, queries, escalations, providers] = await Promise.all([
+  const [k, queries, escalations, providers, notices] = await Promise.all([
     loadKnowledge(user),
     db('client_queries').select('id,client_id,category,question,status'),   // never the claim number
     db('escalations').select('id,title,type,status'),
     db('cred_providers').select('id,name,npi,provider_type,active'),
+    db('board_notices').select('id,title,body,category,show_from,show_until,active'),
   ]);
   const clientName = id => k.clients.find(c => c.id === id)?.name;
   const out = [];
@@ -51,6 +54,9 @@ export async function loadIndex(user, tabs) {
   }
   for (const p of providers.error ? [] : (providers.data ?? []).filter(x => x.active !== false)) {
     out.push(item('providers', p.id, p.name, p.npi ? `NPI ${p.npi}` : '', p.npi, 'wb_credentialing', { providerId: p.id }));
+  }
+  for (const n of notices.error ? [] : (notices.data ?? []).filter(isLive)) {
+    out.push(item('notices', n.id, n.title, categoryOf(n.category).label, n.body, 'wb_board', { noticeId: n.id }));
   }
   return out;
 }

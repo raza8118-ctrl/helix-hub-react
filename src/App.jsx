@@ -6,6 +6,7 @@ import Starfield   from './components/shared/Starfield';
 import FollowupNudge from './components/shared/FollowupNudge';
 import PayerUpdatesBadge from './components/shared/PayerUpdatesBadge';
 import GlobalSearch from './components/shared/GlobalSearch';
+import BoardBadge from './components/shared/BoardBadge';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
@@ -125,6 +126,7 @@ export default function App() {
   const [followupDue, setFollowupDue] = useState(0);   // 6.5: follow-ups due → count on the Smart Worklist sidebar item
   const [updatesNew, setUpdatesNew] = useState(0);     // 8.2: unread payer changes for my team → count on Payer Updates
   const [pageVisit, setPageVisit] = useState(0);       // 10.1: bumped when search opens a record so the page remounts
+  const [boardNew, setBoardNew] = useState(0);         // 10.3: unread must-read notices → count on Notice Board
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -374,9 +376,10 @@ export default function App() {
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
   const tabs = withGrantedTabs(roleTabs, currentUser);
   const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
-  const sidebarTabs = followupDue > 0 || updatesNew > 0
-    ? tabs.map(t => (t.id === 'wb_worklist' && followupDue > 0 ? { ...t, label: `${t.label} (${followupDue})` }
-      : t.id === 'wb_updates' && updatesNew > 0 ? { ...t, label: `${t.label} (${updatesNew})` } : t))   // 8.2
+  // Counts on Workbench items: 6.5 follow-ups, 8.2 payer updates, 10.3 notice board
+  const tabCounts = { wb_worklist: followupDue, wb_updates: updatesNew, wb_board: boardNew };
+  const sidebarTabs = Object.values(tabCounts).some(n => n > 0)
+    ? tabs.map(t => (tabCounts[t.id] > 0 ? { ...t, label: `${t.label} (${tabCounts[t.id]})` } : t))
     : tabs;
 
   return (
@@ -384,6 +387,7 @@ export default function App() {
       <Starfield />
       <FollowupNudge user={currentUser} onCount={setFollowupDue} />
       <PayerUpdatesBadge user={currentUser} onCount={setUpdatesNew} />
+      <BoardBadge user={currentUser} onCount={setBoardNew} />
       <Sidebar
         user={currentUser}
         theme={theme}
