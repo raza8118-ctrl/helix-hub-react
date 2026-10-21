@@ -21,9 +21,26 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 9.1 is done.** Next: **9.2 – Auth assistant** — needs a plan and a “go”. Building blocks:
-Ask Helix (`assistant.js`: `deidentify`, `TOOLS` / `runTool`, `ask` loop), Payer Directory auth contacts / notes,
-SOPs, Payer Updates (authorization category), Smart Worklist / follow-ups, PHI rules.
+**9.2 – Auth assistant — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: rules per payer + service (+ optional plan), no client-specific rules; 90-day re-check like the
+directory; follow-up = today + turnaround working days, else 3; everyone uses the checklist, `payers_edit` maintains rules):
+- Payer card section **🔐 Authorization rules** (same editing / verify / report / history as other sections): service
+  (HH start of care · HH recert / extension · Skilled nursing visits · Therapy PT/OT/ST · Hospice · DME · Other), plan
+  optional, auth needed (Yes · No · After N visits · Notification only), submit method (portal · fax · phone · 278 /
+  clearinghouse), turnaround days, valid days, documents, retro allowed + days, notes.
+- Ask Helix tab **🔐 Auth checklist**: client, payer, plan, service, request type (Initial · Extension / concurrent ·
+  Retro) — no patient fields, no dates. ✨ Build checklist → AI with the Ask Helix lookups + `get_auth_rules` → fixed
+  checklist: auth needed (+ reason + source), how to submit (from the Auth contact), documents, decision ~N days +
+  validity, retro window, steps (auth SOP), ⚠ watch out (authorization payer updates), missing in Helix Hub. Actions:
+  📋 Copy checklist, 📝 Copy claim note (PHI-free), ⏰ Add follow-up (6.5 reminder, new action “Auth decision due”),
+  source chips. 💬 Ask also gets `get_auth_rules`.
+- PHI: only selections + reference data sent; audit `auth_checklist` counts only.
+- DB: `supabase/migrations/20261021u_payer_auth_rules.sql` → `payer_auth_rules` (id, payer_id, plan_id, service,
+  auth_required, visits_threshold, submit_method, turnaround_days, valid_days, documents, retro_allowed, retro_days,
+  notes, active, verified_at/by, created/updated).
+- Files: new `src/lib/authAssistant.js`, `src/pages/workbench/AuthChecklist.jsx`; changed `assistant.js`,
+  `AskHelix.jsx`, `PayerCard.jsx` (new section entry), `payerOptions.js`, `followups.js` (new action), `auditLabels.js`.
 
 ### Reference: how 9.1 was built (done)
 
