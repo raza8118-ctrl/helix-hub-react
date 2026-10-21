@@ -70,7 +70,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 
 ## Phase 8 – Payer Updates Feed
 - [x] 8.1 Upload payer bulletin PDF → AI extracts rows (payer, effective date, change, teams affected, action needed). Bulletins contain no PHI.
-- [ ] 8.2 Searchable list, Excel download, notify affected teams.
+- [x] 8.2 Searchable list, Excel download, notify affected teams.
 - [ ] 8.3 Suggest updates to the Payer Directory from bulletins (admin approves).
 
 ## Phase 9 – AI Assistant

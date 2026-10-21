@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 8.1 (payer bulletins → AI rows) done; next is 8.2._
+_Last updated: 2026-10-21 — step 8.2 (payer updates feed) done; next is 8.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 8.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 8.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 8.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 8.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,22 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**8.2 – Payer Updates: searchable list, Excel, notify teams — plan approved 2026-10-21, building.**
+**None in progress. Step 8.2 is done.** Next: **8.3 – Suggest updates to the Payer Directory from bulletins (admin
+approves)** — needs a plan and a “go”. Building blocks: `payer_updates` rows (8.1/8.2) with payer match, Payer Directory
+tables (`payer_contacts`, `payer_ids`, `payer_limits`, `payer_notes`, `payers.aliases`) + editors in `PayerCard.jsx`,
+change history / verified dates (1.6), `payers_edit`, AI call in `payerUpdates.js`.
+
+### Reference: how 8.2 was built (done)
+
+`src/lib/payerUpdates.js` additions: `loadBulletins({ includeRetired })`, `NEW_DAYS` 30, `SOON_DAYS` 14,
+`EFFECTIVE_FILTERS`, `forTeam`, `startsIn`, `isNew`, `matchesEffective`, `loadReads` ({ update_id: [emp_id] }, null
+until the migration), `markUpdateRead` (upsert), `unreadForMe` (badge count), `editUpdate`, `retireUpdate`, event
+`helix:payer-updates-changed` (also fired by `saveBulletin`). UI: `PayerUpdates.jsx` (tabs 🆕 For my team (N new) /
+🔎 All updates / 📋 By bulletin (active changes only) / ⬆ Upload; flat `updates` with `bulletin` attached; shared
+`openPdf`), `UpdatesForTeam.jsx` (unread first, show read, Starts in N days, ✓ Got it, “Read: AR 7 / 9” for leads),
+`UpdatesSearch.jsx` (filters, table, Excel of the filtered rows, ✏️ / Retire / Restore), `UpdateEditor.jsx`,
+`src/components/shared/PayerUpdatesBadge.jsx`. `src/App.jsx` (additive): `updatesNew` state, `<PayerUpdatesBadge>`,
+`sidebarTabs` now labels both `wb_worklist` and `wb_updates`.
 
 Plan as approved (defaults: “new” = last 30 days; “Starts soon” = ≤ 14 days; sidebar count every 15 min; read counts
 for supervisors / managers only; in-app notices only — no email / SMS):
@@ -1144,6 +1159,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 7.4 | Handover & Escalations: per-person shift handover + carry-over items, team inbox with read tracking, escalation tracker (severity targets, history), overview + Excel | 10ce91c |
 | 7.5 | Medicare Trackers: ADR tracker (+ ask client / escalate), overpayments & credit balances (60-day refund, quarter view), RTP / suspense monitor (FISS upload, patient columns dropped, auto-clear), overview + Excel | 3c9c8a4 |
 | 8.1 | Payer Updates: bulletin PDF upload with patient-word scan + confirmation, AI extraction (Claude Opus 5.5, structured output), review / edit rows, private PDF storage, recent updates feed | 8d7c08e |
+| 8.2 | Payer Updates feed: For my team (✓ Got it, read counts, sidebar count), All updates search + effective filters + Excel, edit / retire changes | (this commit) |
 
 ---
 
@@ -1178,6 +1194,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 25. `supabase/migrations/20261021p_handover_escalations.sql` (shift handovers, carry-over items, reads, escalations + history, step 7.4)
 26. `supabase/migrations/20261021q_medicare_trackers.sql` (ADRs, overpayments / credit balances, RTP / suspense items + uploads, history, step 7.5)
 27. `supabase/migrations/20261021r_payer_updates.sql` (payer bulletins + extracted changes, private `payer-bulletins` bucket, step 8.1)
+28. `supabase/migrations/20261021s_payer_update_reads.sql` (who read each payer change, step 8.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1215,6 +1232,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Handover & Escalations:** own sidebar page `wb_handover`; one handover per person per shift date (editable until the end of the next day); “For my team” = `scopePeople` (same team; supervisors + supervisees; admins / managers / QA everyone) for the last 2 shift dates; escalations visible to raiser / assignee, `escalations_manage` (admin/manager/supervisor) sees all + overview; targets Critical same day / High +1 / others +3 working days; escalated client queries shown read-only; all text via `phiIssues`; claim # wiped 90 days after done / closed.
 - **Medicare Trackers:** own sidebar page `wb_medicare`; one config per tracker (`TRACKERS` in `medicareTrackers.js`) drives a shared editor + list; defaults ADR due = letter + 45, refund due = identified + 60, CMS-838 = quarter end + 30 (all labelled “check current rules”); RTP upload snapshot per client, claims missing from the new file → “Cleared from FISS”; `medicare_manage` (admin/manager/supervisor) uploads / assigns / changes all; claim # / DCN wiped 90 days after closed.
 - **Payer Updates AI:** the whole bulletin PDF goes to Claude as a base64 document block (browser `fetch`, Settings key, `claude-opus-5-5`, effort medium, `fallbacks: "default"`, json_schema output); no Anthropic SDK dependency (package-lock can’t be regenerated without Node); uploader must tick “no patient information” every time, plus a second tick when the local pdf.js scan finds patient words; AI rows are suggestions — reviewed before saving; usage logged (pages, rows, ok) never the text; `payer_updates_edit` (admin/manager) uploads.
+- **Payer Updates notices:** in-app only (no email / SMS); “new” = added in the last 30 days, for my team or changes listing no team (no team on the user → all); sidebar “Payer Updates (N)” from `PayerUpdatesBadge` (15 min + `helix:payer-updates-changed`); read counts per team for admins / managers / supervisors; changes retired, never deleted.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

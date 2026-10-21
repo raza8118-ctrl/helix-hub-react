@@ -8,6 +8,8 @@ import { hasAccess } from './access';
 import { loadPdfjs } from './pdfjs';
 import { matchPayerName } from './worklist';
 import { TEAMS } from './constants';
+import { addDays, today } from './helpers';
+import { daysBetween } from './deadlines';
 
 const BUCKET = 'payer-bulletins';
 const MODEL = 'claude-opus-5-5';
@@ -193,14 +195,19 @@ export function rowWarnings(rows) {
 
 // ── Saving & loading ───────────────────────────────────────────────────────
 
-/** Loads bulletins + their active rows, or null when the 8.1 database update hasn't been run. */
-export async function loadBulletins() {
+/**
+ * Loads bulletins + their active rows, or null when the 8.1 database update hasn't been run.
+ * includeRetired (8.2): also the retired changes (the search list shows them on request).
+ */
+export async function loadBulletins({ includeRetired = false } = {}) {
   const { data, error } = await db('payer_bulletins').select('*').order('uploaded_at', { ascending: false }).limit(300);
   if (error) return null;
   const ids = (data ?? []).map(b => b.id);
   const rows = [];
   for (let i = 0; i < ids.length; i += 200) {
-    const { data: u } = await db('payer_updates').select('*').in('bulletin_id', ids.slice(i, i + 200)).eq('status', 'active');
+    let q = db('payer_updates').select('*').in('bulletin_id', ids.slice(i, i + 200));
+    if (!includeRetired) q = q.eq('status', 'active');
+    const { data: u } = await q;
     rows.push(...(u ?? []));
   }
   return (data ?? []).map(b => ({ ...b, updates: rows.filter(r => r.bulletin_id === b.id) }));
@@ -241,6 +248,7 @@ export async function saveBulletin(file, bulletin, rows, { pages, ai }, user) {
   })));
   if (!ok) return null;
   logAudit({ actor: user, action: 'bulletin_save', entityType: 'payer_bulletin', entityId: saved.id, details: { rows: rows.length, ai: !!ai } });
+  changed();   // 8.2: sidebar count
   return saved;
 }
 
@@ -255,5 +263,80 @@ export async function bulletinLink(path) {
 export async function setBulletinActive(b, active, user) {
   const ok = await S.update('payer_bulletins', { active, updated_by: user.emp_id, updated_at: now() }, { id: b.id });
   if (ok) logAudit({ actor: user, action: active ? 'bulletin_activate' : 'bulletin_deactivate', entityType: 'payer_bulletin', entityId: b.id });
+  return !!ok;
+}
+
+// ── Feed: for my team, reads, search (roadmap 8.2) ─────────────────────────
+
+export const NEW_DAYS = 30;            // “For my team” = changes added in the last 30 days
+export const SOON_DAYS = 14;           // “Starts in N days” badge
+export const EFFECTIVE_FILTERS = [
+  { value: 'ANY',    label: 'Any date' },
+  { value: 'NEXT30', label: 'Next 30 days' },
+  { value: 'NOW',    label: 'Already in effect' },
+  { value: 'FUTURE', label: 'Future' },
+];
+const changed = () => window.dispatchEvent(new Event('helix:payer-updates-changed'));   // refreshes the sidebar count
+
+/** A change concerns a person when it lists their team, lists no team, or the person has no team. */
+export const forTeam = (u, team) => !team || !(u.teams ?? []).length || u.teams.includes(team);
+/** Days until the change takes effect (negative = already in effect), or null without a date. */
+export const startsIn = u => (u.effective_date ? daysBetween(today(), u.effective_date) : null);
+export const isNew = u => u.created_at >= new Date(`${addDays(today(), -NEW_DAYS)}T00:00:00`).toISOString();
+
+export function matchesEffective(u, filter) {
+  const d = startsIn(u);
+  if (filter === 'ANY') return true;
+  if (d == null) return false;
+  if (filter === 'NEXT30') return d >= 0 && d <= 30;
+  if (filter === 'NOW') return d <= 0;
+  return d > 0;
+}
+
+/** Every read: { [update_id]: [emp_id] } — or {} when the 8.2 database update hasn't been run. */
+export async function loadReads() {
+  const out = {};
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db('payer_update_reads').select('update_id,emp_id').range(from, from + 999);
+    if (error) return from === 0 ? null : out;
+    for (const r of data ?? []) (out[r.update_id] ??= []).push(r.emp_id);
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+export async function markUpdateRead(u, user) {
+  const ok = await S.set('payer_update_reads', { update_id: u.id, emp_id: user.emp_id, read_at: new Date().toISOString() }, ['update_id', 'emp_id']);
+  if (ok) { logAudit({ actor: user, action: 'payer_update_read', entityType: 'payer_update', entityId: u.id }); changed(); }
+  return !!ok;
+}
+
+/** New changes for this person not yet read — for the sidebar count. 0 if not set up. */
+export async function unreadForMe(user) {
+  const since = new Date(`${addDays(today(), -NEW_DAYS)}T00:00:00`).toISOString();
+  const [ups, reads, bulletins] = await Promise.all([
+    db('payer_updates').select('id,teams,bulletin_id').eq('status', 'active').gte('created_at', since),
+    db('payer_update_reads').select('update_id').eq('emp_id', user.emp_id),
+    db('payer_bulletins').select('id').eq('active', false),
+  ]);
+  if (ups.error || reads.error) return 0;
+  const read = new Set((reads.data ?? []).map(r => r.update_id));
+  const off = new Set((bulletins.data ?? []).map(b => b.id));
+  return (ups.data ?? []).filter(u => !off.has(u.bulletin_id) && !read.has(u.id) && forTeam(u, user.team)).length;
+}
+
+export async function editUpdate(u, v, user) {
+  const ok = await S.update('payer_updates', {
+    payer_id: v.payer_id || null, payer_name: v.payer_name?.trim() || null, effective_date: v.effective_date || null,
+    change_text: v.change_text.trim(), category: v.category || 'other', teams: v.teams ?? [], action_needed: v.action_needed?.trim() || null,
+    updated_by: user.emp_id, updated_at: new Date().toISOString(),
+  }, { id: u.id });
+  if (ok) { logAudit({ actor: user, action: 'payer_update_edit', entityType: 'payer_update', entityId: u.id }); changed(); }
+  return !!ok;
+}
+
+export async function retireUpdate(u, retire, user) {
+  const ok = await S.update('payer_updates', { status: retire ? 'retired' : 'active', updated_by: user.emp_id, updated_at: new Date().toISOString() }, { id: u.id });
+  if (ok) { logAudit({ actor: user, action: retire ? 'payer_update_retire' : 'payer_update_restore', entityType: 'payer_update', entityId: u.id }); changed(); }
   return !!ok;
 }

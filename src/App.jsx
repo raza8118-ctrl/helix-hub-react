@@ -4,6 +4,7 @@ import Sidebar     from './components/Sidebar';
 import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import FollowupNudge from './components/shared/FollowupNudge';
+import PayerUpdatesBadge from './components/shared/PayerUpdatesBadge';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
@@ -121,6 +122,7 @@ export default function App() {
   const [missedDay, setMissedDay]     = useState(null);
   const [missedDismissed, setMissedDismissed] = useState(false);
   const [followupDue, setFollowupDue] = useState(0);   // 6.5: follow-ups due → count on the Smart Worklist sidebar item
+  const [updatesNew, setUpdatesNew] = useState(0);     // 8.2: unread payer changes for my team → count on Payer Updates
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -364,14 +366,16 @@ export default function App() {
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
   const tabs = withGrantedTabs(roleTabs, currentUser);
   const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
-  const sidebarTabs = followupDue > 0
-    ? tabs.map(t => (t.id === 'wb_worklist' ? { ...t, label: `${t.label} (${followupDue})` } : t))
+  const sidebarTabs = followupDue > 0 || updatesNew > 0
+    ? tabs.map(t => (t.id === 'wb_worklist' && followupDue > 0 ? { ...t, label: `${t.label} (${followupDue})` }
+      : t.id === 'wb_updates' && updatesNew > 0 ? { ...t, label: `${t.label} (${updatesNew})` } : t))   // 8.2
     : tabs;
 
   return (
     <div className="app-shell">
       <Starfield />
       <FollowupNudge user={currentUser} onCount={setFollowupDue} />
+      <PayerUpdatesBadge user={currentUser} onCount={setUpdatesNew} />
       <Sidebar
         user={currentUser}
         theme={theme}
