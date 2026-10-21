@@ -16,6 +16,20 @@ export const LIMIT_TYPES       = opts([
 ]);
 export const MEASURED_FROM     = opts(['Date of service', 'Discharge date', 'Denial / EOB date', 'Paid date', 'Other']);
 export const NOTE_CATEGORIES   = opts(['General', 'Claims', 'Auth', 'Appeals', 'Portal', 'Other']);
+// Authorization rules (9.2)
+export const AUTH_SERVICES     = opts([
+  { value: 'hh_soc', label: 'Home health – start of care' }, { value: 'hh_recert', label: 'Home health – recert / extension' },
+  { value: 'skilled_nursing', label: 'Skilled nursing visits' }, { value: 'therapy', label: 'Therapy (PT / OT / ST)' },
+  { value: 'hospice', label: 'Hospice' }, { value: 'dme', label: 'DME' }, { value: 'other', label: 'Other' },
+]);
+export const AUTH_REQUIRED     = opts([
+  { value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }, { value: 'after_visits', label: 'After N visits' },
+  { value: 'notify', label: 'Notification only' },
+]);
+export const AUTH_METHODS      = opts([
+  { value: 'portal', label: 'Portal' }, { value: 'fax', label: 'Fax' }, { value: 'phone', label: 'Phone' },
+  { value: 'edi_278', label: '278 / clearinghouse' },
+]);
 
 export const labelOf = (list, v) => list.find(o => o.value === v)?.label ?? v;
 export const orderOf = (list, v) => { const i = list.findIndex(o => o.value === v); return i < 0 ? list.length : i; };

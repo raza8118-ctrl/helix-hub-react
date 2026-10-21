@@ -165,6 +165,7 @@ const ACTION_LABELS = {
   directory_suggestion_approve: 'Approved a suggested Payer Directory change',
   directory_suggestion_reject:  'Rejected a suggested Payer Directory change',
   assistant_ask:         'Asked Helix (AI assistant)',
+  auth_checklist:        'Built an auth checklist (AI)',
   payer_form_fields_map: 'Mapped payer form fields',
   denial_code_add:       'Added denial code',
   denial_code_edit:      'Edited denial code',

@@ -11,7 +11,7 @@ import { VerifiedBadge, ReportWrongInfo, OpenReports } from './PayerAccuracy';
 import { pendingForPayer, openSuggestions } from '../../lib/payerSuggestions';
 import {
   LINES_OF_BUSINESS, BLUECARD, CLEARINGHOUSES, TRANSACTIONS, DEPARTMENTS, LIMIT_TYPES,
-  MEASURED_FROM, NOTE_CATEGORIES, labelOf, orderOf,
+  MEASURED_FROM, NOTE_CATEGORIES, AUTH_SERVICES, AUTH_REQUIRED, AUTH_METHODS, labelOf, orderOf,
 } from '../../lib/payerOptions';
 
 // Only http(s) links are opened; anything else gets https:// in front
@@ -135,6 +135,37 @@ const SECTIONS = [
         ],
       };
     },
+  },
+  {
+    // 9.2: used by Ask Helix → 🔐 Auth checklist
+    key: 'auth', table: 'payer_auth_rules', entity: 'payer_auth_rule', title: 'Authorization rules', icon: '🔐', one: 'Auth rule',
+    fields: [
+      { key: 'service', label: 'Service', type: 'select', options: AUTH_SERVICES, required: true },
+      { key: 'plan_id', label: 'Applies to', type: 'plan' },
+      { key: 'auth_required', label: 'Auth needed?', type: 'select', options: AUTH_REQUIRED, required: true },
+      { key: 'visits_threshold', label: 'Auth needed after this many visits', type: 'number', hint: 'Only for “After N visits”' },
+      { key: 'submit_method', label: 'How to submit', type: 'select', options: AUTH_METHODS },
+      { key: 'turnaround_days', label: 'Decision usually takes (working days)', type: 'number' },
+      { key: 'valid_days', label: 'Auth valid for (days)', type: 'number' },
+      { key: 'documents', label: 'Documents to send', type: 'textarea', hint: 'e.g. Referral, face-to-face, signed plan of care, OASIS' },
+      { key: 'retro_allowed', label: 'Retro auth allowed', type: 'checkbox' },
+      { key: 'retro_days', label: 'Retro allowed within (days)', type: 'number' },
+      { key: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+    sort: (a, b) => orderOf(AUTH_SERVICES, a.service) - orderOf(AUTH_SERVICES, b.service),
+    show: (r, ctx) => ({
+      title: labelOf(AUTH_SERVICES, r.service),
+      sub: ctx.planName(r.plan_id),
+      items: [
+        { label: 'Auth needed', value: r.auth_required === 'after_visits' ? `After ${r.visits_threshold ?? '?'} visits` : labelOf(AUTH_REQUIRED, r.auth_required), big: true },
+        r.submit_method && { label: 'Submit by', value: labelOf(AUTH_METHODS, r.submit_method) },
+        r.turnaround_days != null && { label: 'Decision usually in', value: `${r.turnaround_days} working days` },
+        r.valid_days != null && { label: 'Valid for', value: `${r.valid_days} days` },
+        { label: 'Retro', value: r.retro_allowed ? `Allowed${r.retro_days != null ? ` within ${r.retro_days} days` : ''}` : 'Not allowed' },
+        r.documents && { label: 'Documents', value: r.documents },
+        r.notes && { label: 'Notes', value: r.notes },
+      ],
+    }),
   },
   {
     key: 'notes', table: 'payer_notes', entity: 'payer_note', title: 'Tips & notes', icon: '📝', one: 'Note',

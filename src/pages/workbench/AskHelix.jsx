@@ -3,6 +3,7 @@ import { deidentify, loadKnowledge, ask, MAX_QUESTIONS } from '../../lib/assista
 import { openSopLibrary } from '../../lib/sops';
 import CopyButton from '../../components/shared/CopyButton';
 import PayerCard from './PayerCard';
+import AuthChecklist from './AuthChecklist';
 
 const EXAMPLES = [
   'What is the appeal fax and appeal filing limit for Aetna?',
@@ -12,7 +13,7 @@ const EXAMPLES = [
 ];
 const LOOKUP_LABELS = {
   search_payers: 'Payer Directory', get_payer: 'payer card', search_sops: 'SOP Library', get_sop: 'SOP',
-  search_denial_codes: 'Denial Navigator', get_denial_steps: 'denial steps', search_payer_updates: 'Payer Updates', list_clients: 'client list',
+  search_denial_codes: 'Denial Navigator', get_denial_steps: 'denial steps', search_payer_updates: 'Payer Updates', list_clients: 'client list', get_auth_rules: 'auth rules',
 };
 const SOURCE_ICONS = { payer: '📇', sop: '📚', denial: '🧩', updates: '📰' };
 const openTab = id => window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: id }));
@@ -34,6 +35,7 @@ export default function AskHelix({ user }) {
   const [history, setHistory] = useState([]);            // API messages (append-only)
   const [busy, setBusy] = useState('');
   const [payerCard, setPayerCard] = useState(null);
+  const [tab, setTab] = useState('ask');                 // 9.2: 'ask' | 'auth'
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -97,10 +99,21 @@ export default function AskHelix({ user }) {
           <div className="page-title">🤖 Ask Helix</div>
           <div className="page-subtitle">Answers from the Payer Directory, SOPs, Denial Navigator and Payer Updates — with links to the source.</div>
         </div>
-        {chat.length > 0 && <button className="btn-sm" onClick={reset} disabled={!!busy}>↺ New conversation</button>}
+        {tab === 'ask' && chat.length > 0 && <button className="btn-sm" onClick={reset} disabled={!!busy}>↺ New conversation</button>}
       </div>
 
       {!knowledge && <div className="card text-muted">Loading Helix Hub data…</div>}
+
+      {knowledge && (
+        <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          {[['ask', '💬 Ask'], ['auth', '🔐 Auth checklist']].map(([id, label]) => (
+            <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
+      )}
+      {knowledge && tab === 'auth' && <AuthChecklist knowledge={knowledge} user={user} lookupLabels={LOOKUP_LABELS} onOpenSource={openSource} />}
+
+      {tab === 'ask' && (<>
 
       {knowledge && chat.length === 0 && (
         <div className="card mb-16">
@@ -170,7 +183,7 @@ export default function AskHelix({ user }) {
           )}
         </div>
       )}
-
+      </>)}
     </div>
   );
 }

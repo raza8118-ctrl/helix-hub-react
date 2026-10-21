@@ -13,6 +13,7 @@ export const REMINDER_ACTIONS = [
   { value: 'expect_payment',         label: 'Expect payment' },
   { value: 'expect_records_request', label: 'Expect records request' },
   { value: 'appeal_decision',        label: 'Appeal decision due' },
+  { value: 'auth_decision',          label: 'Auth decision due' },   // 9.2
   { value: 'other',                  label: 'Other' },
 ];
 export const actionLabel = v => REMINDER_ACTIONS.find(a => a.value === v)?.label ?? 'Follow up';

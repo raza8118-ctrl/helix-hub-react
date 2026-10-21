@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 9.1 (Ask Helix assistant) done; next is 9.2._
+_Last updated: 2026-10-21 — step 9.2 (auth assistant) done; next is 9.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 9.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 9.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**9.2 – Auth assistant — plan approved 2026-10-21, building.**
+**None in progress. Step 9.2 is done.** Next: **9.3 – Credentialing assistant (status checklist, CAQH / revalidation
+reminders)** — needs a plan and a “go”. Building blocks: Ask Helix `converse` loop + lookups (`assistant.js`), follow-up
+reminders (6.5 `addReminder`), clients (0.5), payers, `users.team` (Credentialing), escalations (7.4). Note: provider
+NPIs / names are not PHI but credentialing data is business-sensitive — plan access carefully.
+
+### Reference: how 9.2 was built (done)
+
+`src/lib/payerOptions.js`: `AUTH_SERVICES`, `AUTH_REQUIRED`, `AUTH_METHODS`. `PayerCard.jsx`: new SECTIONS entry `auth`
+(table `payer_auth_rules`, entity `payer_auth_rule`, “Authorization rules”) — editing / verify / reports / history come
+from the existing section machinery. `src/lib/assistant.js`: `get_auth_rules` tool (rules with plan names, auth
+contacts, Auth-category notes; “not set up” error when the table is missing); the loop is now the exported
+`converse({ system, messages, format, knowledge, onLookup })`, `callClaude` takes system + optional json_schema; `ask`
+wraps it. `src/lib/authAssistant.js`: `REQUEST_TYPES`, `NEEDED`, `SYSTEM`, `SCHEMA`, `buildChecklist` (audit
+`auth_checklist` counts only), `checklistText`, `addAuthFollowup` (`addWorkdays` from clientQueries). `followups.js`:
+reminder action `auth_decision`. UI: `AuthChecklist.jsx` (payer → plans, client, service, request; result card with
+badge, submit, decision / valid / retro, documents, steps, watch out, missing, sources, copy checklist / claim note,
+⏰ Add follow-up), `AskHelix.jsx` tabs 💬 Ask / 🔐 Auth checklist.
 
 Plan as approved (defaults: rules per payer + service (+ optional plan), no client-specific rules; 90-day re-check like the
 directory; follow-up = today + turnaround working days, else 3; everyone uses the checklist, `payers_edit` maintains rules):
@@ -1243,6 +1259,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 8.2 | Payer Updates feed: For my team (✓ Got it, read counts, sidebar count), All updates search + effective filters + Excel, edit / retire changes | 548b8d9 |
 | 8.3 | Directory suggestions: AI reads a bulletin for contacts / payer IDs / base limits / notes with evidence, compared with the directory, reviewed + approved by payers_edit (written + verified, payer card history), payer card notice | e094416 |
 | 9.1 | Ask Helix: AI assistant with browser-run lookups (payers, published SOPs, denial steps, payer updates), PHI-free de-identification, source links, memory-only chat (no DB change) | 544c6a6 |
+| 9.2 | Auth assistant: payer card 🔐 Authorization rules, Ask Helix 🔐 Auth checklist (sourced, structured), claim note copy, “Auth decision due” follow-up, `get_auth_rules` lookup | (this commit) |
 
 ---
 
@@ -1279,6 +1296,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 27. `supabase/migrations/20261021r_payer_updates.sql` (payer bulletins + extracted changes, private `payer-bulletins` bucket, step 8.1)
 28. `supabase/migrations/20261021s_payer_update_reads.sql` (who read each payer change, step 8.2)
 29. `supabase/migrations/20261021t_payer_suggestions.sql` (suggested Payer Directory changes from bulletins, step 8.3)
+30. `supabase/migrations/20261021u_payer_auth_rules.sql` (authorization rules per payer + service, step 9.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1319,6 +1337,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Payer Updates notices:** in-app only (no email / SMS); “new” = added in the last 30 days, for my team or changes listing no team (no team on the user → all); sidebar “Payer Updates (N)” from `PayerUpdatesBadge` (15 min + `helix:payer-updates-changed`); read counts per team for admins / managers / supervisors; changes retired, never deleted.
 - **Directory suggestions:** approval = `payers_edit` (no new permission); AI suggestions run automatically after an AI-extracted bulletin is saved and on “💡 Suggest directory changes”; base rows only (no plan-specific rows, no client contract limits); compared again at approval time (add vs update, identical skipped); approved rows verified today and logged as `add_payer_info` / `edit_payer_info` with `payer_id` (shows in the payer card 🕘 History); rejected kept.
 - **Ask Helix:** PHI-free always on — patient words block sending; dates / long numbers / ID-like codes / phones / emails → placeholders with a “what will be sent” preview (CARC / RARC kept); only the cleaned question + reference data go to Claude; tools run in the browser (manual loop, `strict`, max 8 lookups); history append-only and capped at 10 questions per conversation (thinking blocks passed back unchanged); memory only; audit `assistant_ask` counts only; open to everyone, no new permission.
+- **Auth assistant:** rules per payer + service (+ optional plan), no client-specific rules, maintained by `payers_edit` in the payer card (90-day re-check like the directory); checklist request = selections only (no patient fields / dates); “unknown” + missing list when no rule; follow-up = today + decision working days (3 when unknown) as a 6.5 reminder `auth_decision`.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

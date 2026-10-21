@@ -11,7 +11,7 @@ import { searchPayers } from './payers';
 import { loadSopLibrary } from './sops';
 import { loadSopVersionMeta, loadSopVersions, versionStates } from './sopVersions';
 import { loadBulletins } from './payerUpdates';
-import { labelOf, DEPARTMENTS, LIMIT_TYPES } from './payerOptions';
+import { labelOf, DEPARTMENTS, LIMIT_TYPES, AUTH_SERVICES, AUTH_REQUIRED, AUTH_METHODS } from './payerOptions';
 
 const MODEL = 'claude-opus-5-5';
 export const MAX_LOOKUPS = 8;
@@ -98,6 +98,11 @@ export const TOOLS = [
     query: str('Words to search for, or ""'), payer_name: str('Payer name or ""'),
   }),
   tool('list_clients', 'The client (agency) names Helix Hub knows.', {}),
+  // 9.2
+  tool('get_auth_rules', 'Authorization rules for one payer: per service whether auth is needed, how to submit, usual decision time, validity, documents, retro window — plus the payer\'s authorization contact and auth notes. service "" = all services.', {
+    payer_id: { type: 'integer', description: 'payer_id from search_payers' },
+    service: { type: 'string', enum: ['', ...AUTH_SERVICES.map(s => s.value)], description: 'Service code or ""' },
+  }),
 ];
 
 const words = q => String(q ?? '').toLowerCase().split(/\s+/).filter(w => w.length > 1);
@@ -201,6 +206,32 @@ async function runTool(name, input, k) {
         sources: list.length ? [{ kind: 'updates', id: 'updates', label: 'Payer Updates' }] : [],
       };
     }
+    case 'get_auth_rules': {
+      const p = k.payers.find(x => x.id === input.payer_id);
+      if (!p) return { result: { error: 'No payer with that payer_id — use search_payers first.' }, sources: [] };
+      const [rules, contacts, notes, plans] = await Promise.all(
+        ['payer_auth_rules', 'payer_contacts', 'payer_notes', 'payer_plans'].map(t => db(t).select('*').eq('payer_id', p.id)));
+      if (rules.error) return { result: { error: 'Authorization rules are not set up yet in Helix Hub.' }, sources: [] };
+      const planName = id => live(plans).find(x => x.id === id)?.plan_name;
+      const list = live(rules).filter(r => !input.service || r.service === input.service);
+      return {
+        result: clean({
+          payer: p.name,
+          rules: list.map(r => clean({
+            service: labelOf(AUTH_SERVICES, r.service), plan: planName(r.plan_id) ?? 'All plans',
+            auth_needed: r.auth_required === 'after_visits' ? `After ${r.visits_threshold ?? '?'} visits` : labelOf(AUTH_REQUIRED, r.auth_required),
+            submit_by: r.submit_method ? labelOf(AUTH_METHODS, r.submit_method) : null, decision_working_days: r.turnaround_days,
+            valid_days: r.valid_days, documents: r.documents, retro: r.retro_allowed ? `Allowed${r.retro_days != null ? ` within ${r.retro_days} days` : ''}` : 'Not allowed',
+            notes: r.notes, last_verified: r.verified_at?.slice(0, 10),
+          })),
+          no_rule_for_service: input.service && !list.length ? labelOf(AUTH_SERVICES, input.service) : null,
+          auth_contacts: live(contacts).filter(c => c.department === 'auth').map(c => clean({ plan: planName(c.plan_id), phone: c.phone,
+            ext_or_ivr: c.phone_ext, fax: c.fax, email: c.email, portal: c.portal_url, hours: c.hours, notes: c.notes })),
+          auth_notes: live(notes).filter(n => /auth/i.test(n.category ?? '')).map(n => n.note),
+        }),
+        sources: [{ kind: 'payer', id: p.id, label: p.name }],
+      };
+    }
     case 'list_clients':
       return { result: k.clients.map(c => c.name), sources: [] };
     default:
@@ -225,7 +256,7 @@ values — work without them and never ask for patient details.
 Write for busy staff: lead with the answer in one or two sentences, then short bullet points or numbered steps. Name the
 source (payer card, SOP title, denial code, bulletin) for each fact. No headings.`;
 
-async function callClaude(key, messages) {
+async function callClaude(key, system, messages, format) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -233,8 +264,8 @@ async function callClaude(key, messages) {
       'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: MODEL, max_tokens: 16000, system: SYSTEM, tools: TOOLS, tool_choice: { type: 'auto' }, messages,
-      output_config: { effort: 'medium' }, fallbacks: 'default',
+      model: MODEL, max_tokens: 16000, system, tools: TOOLS, tool_choice: { type: 'auto' }, messages,
+      output_config: { effort: 'medium', ...(format ? { format } : {}) }, fallbacks: 'default',
     }),
   });
   if (!res.ok) {
@@ -247,49 +278,62 @@ async function callClaude(key, messages) {
 }
 
 /**
- * Asks one (already de-identified) question. history = the API messages so far (append-only, never edited — the
- * model's thinking blocks are passed back exactly as returned). onLookup(name) reports progress.
- * Returns { answer, sources, messages (the new history), lookups } or throws Error (NO_KEY when no AI key).
+ * The lookup loop shared by Ask Helix and the Auth checklist (9.2): calls Claude, runs the tools it asks for in the
+ * browser, repeats until it answers. messages are appended to, never edited (thinking blocks passed back exactly as
+ * returned). format = optional json_schema for the final answer. Returns { text, sources, messages, lookups }.
  */
-export async function ask(question, history, knowledge, user, onLookup) {
+export async function converse({ system, messages: history, format = null, knowledge, onLookup }) {
   const key = await kv.get('anthropic_key');
   if (!key) throw new Error('NO_KEY');
-  const messages = [...history, { role: 'user', content: question }];
+  const messages = [...history];
   const sources = new Map();
   let lookups = 0;
-  let ok = false;
-  try {
-    for (let round = 0; round < MAX_LOOKUPS + 2; round++) {
-      const json = await callClaude(key, messages);
-      messages.push({ role: 'assistant', content: json.content });
-      if (json.stop_reason === 'refusal') throw new Error('The AI declined to answer this question.');
-      if (json.stop_reason === 'max_tokens') throw new Error('The answer was cut off — please ask a narrower question.');
-      const calls = (json.content ?? []).filter(b => b.type === 'tool_use');
-      if (json.stop_reason !== 'tool_use' || !calls.length) {
-        const answer = (json.content ?? []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
-        ok = true;
-        return { answer: answer || 'I couldn’t put an answer together — please try rephrasing.', sources: [...sources.values()], messages, lookups };
-      }
-      // Every tool_use gets a tool_result, all in one user message
-      const results = await Promise.all(calls.map(async c => {
-        lookups += 1;
-        if (lookups > MAX_LOOKUPS) {
-          return { type: 'tool_result', tool_use_id: c.id, is_error: true, content: 'Lookup limit reached — answer with what you have.' };
-        }
-        onLookup?.(c.name);
-        try {
-          const { result, sources: found } = await runTool(c.name, c.input ?? {}, knowledge);
-          found.forEach(s => sources.set(`${s.kind}:${s.id}`, s));
-          return { type: 'tool_result', tool_use_id: c.id, content: JSON.stringify(result).slice(0, RESULT_LIMIT) };
-        } catch {
-          return { type: 'tool_result', tool_use_id: c.id, is_error: true, content: 'This lookup failed.' };
-        }
-      }));
-      messages.push({ role: 'user', content: results });
+  for (let round = 0; round < MAX_LOOKUPS + 2; round++) {
+    const json = await callClaude(key, system, messages, format);
+    messages.push({ role: 'assistant', content: json.content });
+    if (json.stop_reason === 'refusal') throw new Error('The AI declined to answer this question.');
+    if (json.stop_reason === 'max_tokens') throw new Error('The answer was cut off — please ask a narrower question.');
+    const calls = (json.content ?? []).filter(b => b.type === 'tool_use');
+    if (json.stop_reason !== 'tool_use' || !calls.length) {
+      const text = (json.content ?? []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      return { text, sources: [...sources.values()], messages, lookups };
     }
-    throw new Error('The assistant took too many steps — please ask a narrower question.');
+    // Every tool_use gets a tool_result, all in one user message
+    const results = await Promise.all(calls.map(async c => {
+      lookups += 1;
+      if (lookups > MAX_LOOKUPS) {
+        return { type: 'tool_result', tool_use_id: c.id, is_error: true, content: 'Lookup limit reached — answer with what you have.' };
+      }
+      onLookup?.(c.name);
+      try {
+        const { result, sources: found } = await runTool(c.name, c.input ?? {}, knowledge);
+        found.forEach(s => sources.set(`${s.kind}:${s.id}`, s));
+        return { type: 'tool_result', tool_use_id: c.id, content: JSON.stringify(result).slice(0, RESULT_LIMIT) };
+      } catch {
+        return { type: 'tool_result', tool_use_id: c.id, is_error: true, content: 'This lookup failed.' };
+      }
+    }));
+    messages.push({ role: 'user', content: results });
+  }
+  throw new Error('The assistant took too many steps — please ask a narrower question.');
+}
+
+/**
+ * Asks one (already de-identified) question. history = the API messages so far (append-only). onLookup(name) reports
+ * progress. Returns { answer, sources, messages (the new history), lookups } or throws Error (NO_KEY when no AI key).
+ */
+export async function ask(question, history, knowledge, user, onLookup) {
+  let ok = false;
+  let lookups = 0;
+  let found = 0;
+  try {
+    const r = await converse({ system: SYSTEM, messages: [...history, { role: 'user', content: question }], knowledge, onLookup });
+    lookups = r.lookups;
+    found = r.sources.length;
+    ok = true;
+    return { answer: r.text || 'I couldn’t put an answer together — please try rephrasing.', sources: r.sources, messages: r.messages, lookups };
   } finally {
     // Usage record only — never the question or the answer
-    logAudit({ actor: user, action: 'assistant_ask', entityType: 'assistant', details: { lookups, sources: sources.size, ok } });
+    logAudit({ actor: user, action: 'assistant_ask', entityType: 'assistant', details: { lookups, sources: found, ok } });
   }
 }
