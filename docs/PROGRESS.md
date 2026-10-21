@@ -21,11 +21,25 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 10.1 is done.** Next: **10.2 – Reports: denial trends by payer / client, weekly client reports**
-— needs a plan and a “go”. (9.4 Coding assistant stays on hold: the roadmap requires BAA-covered AI, hosting and
-database + compliance sign-off before starting — do not plan or build it until the product owner confirms.)
-Building blocks: worklist items (statuses, payers, clients, $), follow-ups, QA audits, client queries, escalations,
-Medicare trackers, daily_logs production / quality (existing Summary pages), Excel export pattern.
+**10.2 – Reports — plan approved 2026-10-21, building.** (9.4 Coding assistant stays on hold: BAA-covered AI, hosting
+and database + compliance sign-off needed first — do not plan or build it until the product owner confirms.)
+
+Plan as approved (defaults: denial trends = worklist claims with a denial date; “paid after denial” = status now Paid;
+week Mon–Sun, last week by default; AI summary optional, numbers only; no scheduled / emailed reports — no server):
+- Optional new worklist column **denial code (CARC / RARC)**, detected on upload when the file has a reason-code column
+  (codes are not PHI).
+- New sidebar page **📈 Reports** (`wb_reports`, permission `reports_view` admin/manager/supervisor, grantable).
+- **🧩 Denial trends**: range (30 / 90 / 180 days / custom, by denial date), client, payer; existing `BarChart`: by payer
+  (top 10, count + $), by client, week-by-week, top denial codes with Denial-library reason; outcome table per payer
+  (denied, appealed, rebilled, paid after denial, denied final, still open); table view for each chart; Excel (no claim #).
+- **🗓 Weekly client report**: client + week → claims worked (count, $, outcomes, top payers), denials, open follow-ups,
+  client queries asked / answered / open + waiting on client, escalations opened / resolved, Medicare (ADRs due,
+  overpayments open, RTP open), payer changes effective this month for the client's payers; 📋 Copy as email text, 🖨
+  Print, ⬇ Excel; ✨ Write summary (Claude, numbers only).
+- DB: `supabase/migrations/20261021w_worklist_denial_code.sql` → `worklist_items.denial_code`.
+- Files: new `src/lib/reports.js`, `src/pages/workbench/Reports.jsx`, `DenialTrends.jsx`, `WeeklyClientReport.jsx`;
+  changed `worklist.js` (FIELDS entry), `WorklistUpload.jsx` (if needed), `modules.js`, `WorkbenchApp.jsx`, `access.js`,
+  `auditLabels.js`. Audit `report_view`, `report_export`, `report_ai_summary` (client / range only).
 
 ### Reference: how 10.1 was built (done)
 
