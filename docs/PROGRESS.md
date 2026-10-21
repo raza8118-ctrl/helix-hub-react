@@ -1427,7 +1427,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 10.3 | Notice Board: notices by category / team / client, pinned, show from-until, must-read with read tracking, SOP / payer / payer-update links, sidebar count, global search group (Announcements unchanged) | 52b0b22 |
 | Extra | Floating 🤖 Ask button + panel (shared memory-only conversation), Ask Helix: Helix data first then labelled general guidance, 📍 “Where to do it” buttons (`list_helix_tools` / `show_where_to_do_it`), no DB change | 14b42d1 |
 | Extra | Calm navigation: Workbench split into 4 foldable groups, all sections foldable, ⭐ pins (6), « icons-only, ☰ phone drawer, thinner banners (no DB change) | 3520d8c |
-| Extra | Calm navigation follow-up: bigger sidebar (256px, 14.5px names), one row per group with hover / click fly-out menus, group icons, icons-only uses the same fly-outs (no DB change) | (this commit) |
+| Extra | Calm navigation follow-up: bigger sidebar (256px, 14.5px names), one row per group with hover / click fly-out menus, group icons, icons-only uses the same fly-outs (no DB change) | 5141e86 |
 
 ---
 
