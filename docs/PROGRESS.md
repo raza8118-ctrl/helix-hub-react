@@ -999,7 +999,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.6 | Portal launchpad: per-client software / payer portal / other links, ⭐ favourites, How-to SOPs, link checks, `portals_edit` | 10eb284 |
 | 7.1 | QA Audits: scorecards + error categories linked to SOPs, audits, sampling from the Smart Worklist, acknowledge / dispute, results | f61896a |
 | 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | 9c7a3c6 |
-| 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | (this commit) |
+| 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | 06b8177 |
 
 ---
 
