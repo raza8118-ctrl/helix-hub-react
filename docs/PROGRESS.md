@@ -21,10 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 7.5 is done — Phase 7 is complete.** Next: **8.1 – Payer Updates Feed: upload a payer bulletin
-PDF → AI extracts rows** (payer, effective date, change, teams affected, action needed; bulletins contain no PHI) —
-needs a plan and a “go”. Building blocks: AI call pattern + Settings key (5.3 `appealAI.js`), PDF text extraction
-(2.4 `pdfExtract.js` / 2.4b OCR), Payer Directory (payer matching `matchPayer`), `users.team`.
+**8.1 – Payer bulletin PDF → AI extracts rows — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: Claude Opus 5.5, medium effort, `fallbacks: "default"`; browser `fetch` like 5.3 — no SDK
+dependency because package-lock can't be regenerated without Node; whole PDF sent as a document block; 100 pages /
+30 MB; patient-word scan warns + second tick, doesn't block; upload = admin / manager):
+- New sidebar page **📰 Payer Updates** (`wb_updates`, everyone). 8.1 = ⬆ Upload bulletin + 📋 Recent updates; full
+  searchable list / Excel / notify is 8.2; directory suggestions 8.3.
+- Upload (`payer_updates_edit`, admin/manager, grantable): PDF; required tick “payer bulletin with no patient
+  information”; local pdf.js text scan for patient words (patient name, DOB, member ID, MBI, MRN, SSN, date of birth) →
+  red warning with words + page and a second tick. ✨ Extract with AI → bulletin title / issuer / published date + rows
+  (payer → Payer Directory match incl. aliases or “not in directory”, effective date, what changed, category Billing /
+  claims · Authorization · Coding · Fee schedule / payment · Policy / coverage · Forms / portals · Credentialing ·
+  Other, teams AR / Auth / Billing/Posting / Coding / Credentialing, action needed, source page). Review: edit / delete
+  / add rows; missing effective date or payer highlighted; Save. PDF stored in a private bucket (signed links). Only the
+  PDF + fixed instructions go to the AI; audit usage line (pages, rows, ok). No key → manual rows.
+- 📋 Recent updates (everyone): latest bulletins + rows, Open PDF, filter by payer / team.
+- DB: `supabase/migrations/20261021r_payer_updates.sql` → `payer_bulletins`, `payer_updates`, private bucket
+  `payer-bulletins` (PDF, 30 MB).
+- Files: new `src/lib/payerUpdates.js`, `src/pages/workbench/PayerUpdates.jsx`, `BulletinUpload.jsx`,
+  `BulletinList.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `access.js`, `auditLabels.js`. Audit
+  `bulletin_extract_ai`, `bulletin_save`, `bulletin_deactivate`.
 
 ### Reference: how 7.5 was built (done)
 
