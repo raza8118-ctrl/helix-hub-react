@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 7.2 (error library) done; next is 7.3._
+_Last updated: 2026-10-21 — step 7.3 (client queries) done; next is 7.4._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 7.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 7.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,26 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**7.3 – Client Query Log with aging — plan approved 2026-10-21, building.**
+**None in progress. Step 7.3 is done.** Next: **7.4 – Shift handover notes + escalation tracker** — needs a plan and a
+“go”. Building blocks: client queries escalation flag (7.3), follow-ups (6.5), Smart Worklist (6.4), `users.team`,
+supervisors (`supervisor_ids`), PHI rules.
+
+### Reference: how 7.3 was built (done)
+
+`src/lib/clientQueries.js`: `QUERY_CATEGORIES` (8), `QUERY_STATUSES` (open / waiting / answered / closed / cancelled),
+`ASKED_VIA`, `AGE_BUCKETS` (0–2 / 3–7 / 8–14 / 15–30 / 30+), `queryRef` (Q-0042), `addWorkdays`, `isOpen`, `ageDays`
+(asked → answered / closed, or today), `ageBucket`, `isOverdue` (past expected date), `chaseDue` (3 working days since
+asked / last chased), `canManageQueries` / `canChange` (owner, creator or `queries_manage`), `textProblem` (`phiIssues`),
+`loadQueries` (paged; null until the migration), `loadEvents`, `checkQuery`, `addQuery` (+ “asked” event), shared
+`change()` (update + event + audit) behind `editQuery` / `chaseQuery` (→ waiting, count + 1) / `answerQuery` /
+`closeQuery` / `cancelQuery` / `reopenQuery` / `escalateQuery` / `assignQuery`, `addNote`, `clearOldQueries` (claim #
+wiped 90 days after `closed_at`; run on page open), `chaseMessage` (ref, contact, category, asked date, question),
+`agingBy` (client or owner). UI: `ClientQueries.jsx` (tabs My queries (N · M to chase) / All queries / Aging; + New
+query → “Logged as Q-…” pop-up), `QueryEditor.jsx`, `QueryList.jsx` (filters; needs-attention sort; row badges overdue /
+chase due / urgent / escalated; actions 📨 Chase pop-up with Copy + Mark as chased, ✓ Answered, Close, Cancel, Reopen,
+⚑ Escalate / remove, 📝 Note, ✏️ Edit, owner select for managers; history timeline), `QueryAging.jsx` (totals, client ×
+age table, owners, Excel). `modules.js` + `WorkbenchApp.jsx`: `wb_queries`. `access.js`: `queries_manage`. People list via
+`loadPeople` from `qa.js`.
 
 Plan as approved (defaults: strict `phiIssues` check on question / answer / notes (dates blocked too); chase every 3
 working days; everyone sees all queries, changes only their own; no sidebar badge):
@@ -980,6 +999,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.6 | Portal launchpad: per-client software / payer portal / other links, ⭐ favourites, How-to SOPs, link checks, `portals_edit` | 10eb284 |
 | 7.1 | QA Audits: scorecards + error categories linked to SOPs, audits, sampling from the Smart Worklist, acknowledge / dispute, results | f61896a |
 | 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | 9c7a3c6 |
+| 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | (this commit) |
 
 ---
 
@@ -1010,6 +1030,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 21. `supabase/migrations/20261021l_client_portals.sql` (portal launchpad links per client, step 6.6)
 22. `supabase/migrations/20261021m_qa_audits.sql` (QA scorecards, error categories, audits, step 7.1)
 23. `supabase/migrations/20261021n_error_library.sql` (error library “Mistakes & fixes”, step 7.2)
+24. `supabase/migrations/20261021o_client_queries.sql` (client query log + history, step 7.3)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1043,6 +1064,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Portal launchpad:** login pages only — never user names / passwords / PINs (notes and links mentioning them are refused); opening a portal is not logged; ⭐ favourites per browser; links re-checked every 180 days; `portals_edit` (admin/manager) sets each client up; “All clients” links show everywhere.
 - **QA Audits:** separate from the Daily Report quality % and Quality Monitor (not linked — PO default 2026-10-21); auditors = QA flag + `qa_audit` (supervisors only their team / supervisees; admins, managers, QA everyone; nobody audits themselves); results are a copy of the checkpoints at audit time; critical fail = 0; overturned fails count as passes; comments checked with `phiIssues`; claim # wiped 90 days after closing; Excel has no claim numbers.
 - **Error library:** a tab on QA Audits (everyone); anyone suggests, `mistakes_edit` (admin/manager) or the QA flag edits / publishes; general know-how only — all text checked with `phiIssues`, never tied to a claim; QA link stored as `mistake_id` inside `qa_audits.results`; 180-day re-check; “Seen in QA” = failed, not overturned, last 90 days.
+- **Client Queries:** own sidebar page `wb_queries`; everyone sees all queries and changes their own (owner / creator), `queries_manage` (admin/manager/supervisor) changes anyone’s and reassigns; texts checked with `phiIssues` (dates blocked too); chase due = 3 working days since asked / last chased; claim # wiped 90 days after closing; Excel without claim #.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

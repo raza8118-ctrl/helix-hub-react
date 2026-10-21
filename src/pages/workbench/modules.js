@@ -94,6 +94,15 @@ export const WORKBENCH_MODULES = [
       'Agent acknowledgement or dispute, and results by person and error type',
     ],
   },
+  {
+    id: 'wb_queries', label: 'Client Queries', icon: '💬', phase: 7,
+    purpose: 'Every question sent to a client — logged, chased until answered, with aging per client.',
+    planned: [
+      'Log a query with a reference (Q-0042), owner and expected answer date',
+      'Chase every 3 working days with a copy-ready message; escalate when stuck',
+      'Aging per client and per owner, with Excel export',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({
