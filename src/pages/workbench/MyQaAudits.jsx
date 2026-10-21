@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { qaStatusOf, failed, scoreOf, DEFAULT_PASS_MARK, acknowledgeAudit, disputeAudit, resolveDispute, commentProblem } from '../../lib/qa';
 import { openSopLibrary } from '../../lib/sops';
 import Modal from '../../components/shared/Modal';
+import { MistakeDetails } from './ErrorLibrary';
 
 const fmtDate = d => (d ? new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 
 /** Score + every checkpoint of one audit; failed ones show the error category and a 📚 Read the SOP button. */
-export function AuditDetails({ audit, setup, ctx, names }) {
+export function AuditDetails({ audit, setup, ctx, names, mistakes = [] }) {
+  const [fix, setFix] = useState(null);                 // 7.2: error library entry shown in a pop-up
   const catName = id => setup.categories.find(c => c.id === id)?.name ?? 'No category';
   const sop = id => ctx.sops.find(s => s.id === id);
   const card = setup.scorecards.find(c => c.id === audit.scorecard_id);
@@ -39,12 +41,20 @@ export function AuditDetails({ audit, setup, ctx, names }) {
               {failed(r) && <div className="text-sm"><b>{catName(r.category_id)}</b>{r.comment ? ` — ${r.comment}` : ''}</div>}
             </span>
             {failed(r) && s && <button type="button" className="btn-sm" onClick={() => openSopLibrary(s.title)}>📚 Read the SOP</button>}
+            {failed(r) && mistakes.some(m => m.id === r.mistake_id) && (
+              <button type="button" className="btn-sm" onClick={() => setFix(mistakes.find(m => m.id === r.mistake_id))}>📖 How to fix</button>
+            )}
           </div>
         );
       })}
       {audit.comment && <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>💬 {audit.comment}</p>}
       {audit.dispute_reason && <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>⚖️ Dispute: {audit.dispute_reason}</p>}
       {audit.resolution_note && <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>📝 Resolution: {audit.resolution_note}</p>}
+      {fix && (
+        <Modal title={`📖 ${fix.title}`} onClose={() => setFix(null)} wide>
+          <MistakeDetails m={fix} ctx={ctx} />
+        </Modal>
+      )}
     </div>
   );
 }
@@ -95,7 +105,7 @@ export function ResolveModal({ audit, setup, ctx, names, user, onClose, onSaved 
 }
 
 /** 🙋 My audits: audits sent to me — acknowledge, or dispute with a reason. */
-export default function MyQaAudits({ audits, setup, ctx, names, user, onChanged }) {
+export default function MyQaAudits({ audits, setup, ctx, names, user, onChanged, mistakes = [] }) {
   const [open, setOpen] = useState(null);
   const [disputing, setDisputing] = useState(null);
   const [reason, setReason] = useState('');
@@ -142,7 +152,7 @@ export default function MyQaAudits({ audits, setup, ctx, names, user, onChanged 
           </div>
           {(open === a.id || a.status === 'sent') && (
             <div style={{ marginTop: 8 }}>
-              <AuditDetails audit={a} setup={setup} ctx={ctx} names={names} />
+              <AuditDetails audit={a} setup={setup} ctx={ctx} names={names} mistakes={mistakes} />
               {a.status === 'sent' && (
                 <div className="form-actions">
                   <button className="btn-sm" disabled={busy} onClick={() => { setDisputing(a); setReason(''); setError(''); }}>⚖️ Dispute</button>

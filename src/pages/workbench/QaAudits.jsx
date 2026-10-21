@@ -10,6 +10,8 @@ import QaSampling from './QaSampling';
 import MyQaAudits, { ResolveModal } from './MyQaAudits';
 import QaResults from './QaResults';
 import QaScorecards from './QaScorecards';
+import ErrorLibrary from './ErrorLibrary';
+import { loadMistakes, seenCounts } from '../../lib/mistakes';
 
 const fmtDate = d => (d ? new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 const cell = { padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'left', verticalAlign: 'top' };
@@ -28,6 +30,8 @@ export default function QaAudits({ user }) {
   const [users, setUsers] = useState([]);
   const [mine, setMine] = useState([]);
   const [all, setAll] = useState([]);
+  const [mistakes, setMistakes] = useState([]);         // 7.2 error library; null = not set up
+  const [seen, setSeen] = useState({});
   const [tab, setTab] = useState(auditor ? 'audit' : 'mine');
   const [editing, setEditing] = useState(null);        // audit being filled in ({} = new)
   const [resolving, setResolving] = useState(null);
@@ -48,9 +52,9 @@ export default function QaAudits({ user }) {
     if (!ready) return undefined;
     (async () => {
       if (auditor) await clearOldAudits(user);   // claim # wiped 90 days after an audit is closed
-      const [s, m, a] = await Promise.all([loadQaSetup(), loadMyAudits(empId), auditor ? loadAudits() : Promise.resolve([])]);
+      const [s, m, a, lib, counts] = await Promise.all([loadQaSetup(), loadMyAudits(empId), auditor ? loadAudits() : Promise.resolve([]), loadMistakes(), seenCounts()]);
       if (!alive) return;
-      setSetup(s); setMine(m); setAll(a);
+      setSetup(s); setMine(m); setAll(a); setMistakes(lib); setSeen(counts);
     })();
     return () => { alive = false; };
   }, [ready, auditor, empId, user, reloadKey]);
@@ -66,6 +70,7 @@ export default function QaAudits({ user }) {
   const tabs = [
     ...(auditor ? [['audit', '🔍 Audit']] : []),
     ['mine', `🙋 My audits${waiting ? ` (${waiting})` : ''}`],
+    ['library', '📖 Mistakes & fixes'],   // 7.2
     ...(auditor ? [['sampling', '🎲 Sampling'], ['results', '📊 Results']] : []),
     ...(manager ? [['setup', '🗂 Scorecards & categories']] : []),
   ];
@@ -133,7 +138,7 @@ export default function QaAudits({ user }) {
       </div>
 
       {tab === 'audit' && auditor && editing && (
-        <QaAuditForm audit={editing} setup={setup} ctx={ctx} people={people} user={user}
+        <QaAuditForm audit={editing} setup={setup} ctx={ctx} people={people} user={user} mistakes={mistakes ?? []}
           onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
       )}
       {tab === 'audit' && auditor && !editing && (
@@ -162,11 +167,14 @@ export default function QaAudits({ user }) {
         </>
       )}
 
-      {tab === 'mine' && <MyQaAudits audits={mine} setup={setup} ctx={ctx} names={names} user={user} onChanged={reload} />}
+      {tab === 'mine' && <MyQaAudits audits={mine} setup={setup} ctx={ctx} names={names} user={user} onChanged={reload} mistakes={mistakes ?? []} />}
+      {tab === 'library' && (
+        <ErrorLibrary user={user} mistakes={mistakes} seen={seen} categories={setup.categories} ctx={ctx} onChanged={reload} />
+      )}
       {tab === 'sampling' && auditor && (
         <QaSampling user={user} setup={setup} people={people} onQueued={() => { reload(); setTab('audit'); }} />
       )}
-      {tab === 'results' && auditor && <QaResults audits={scoped} people={people} setup={setup} ctx={ctx} names={names} />}
+      {tab === 'results' && auditor && <QaResults audits={scoped} people={people} setup={setup} ctx={ctx} names={names} mistakes={mistakes ?? []} />}
       {tab === 'setup' && manager && <QaScorecards setup={setup} ctx={ctx} user={user} onChanged={reload} />}
 
       {resolving && (

@@ -50,6 +50,8 @@ export const FEATURES = [
   // managing scorecards / error categories are gated
   { group: 'Tools', key: 'qa_audit',  label: 'Do QA audits',          defaultRoles: MONITORS },
   { group: 'Tools', key: 'qa_manage', label: 'Manage QA scorecards',  defaultRoles: MANAGERS },
+  // Error library (7.2): everyone reads and suggests; editing / publishing is gated (the QA flag also allows it)
+  { group: 'Tools', key: 'mistakes_edit', label: 'Edit error library', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

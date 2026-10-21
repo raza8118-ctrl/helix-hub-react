@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 7.1 (QA Audits) done; next is 7.2._
+_Last updated: 2026-10-21 — step 7.2 (error library) done; next is 7.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 7.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 7.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**7.2 – Error library (“mistakes and fixes”) — plan approved 2026-10-21, building.**
+**None in progress. Step 7.2 is done.** Next: **7.3 – Client Query Log with aging** — needs a plan and a “go”.
+Building blocks: clients (0.5), payers, audit log, follow-up reminders pattern (6.5), PHI rules (minimum fields, no BAA).
+
+### Reference: how 7.2 was built (done)
+
+`src/lib/mistakes.js`: `SEVERITIES`, `TEXT_FIELDS` (what goes wrong / why it matters / fix steps / how to avoid),
+`canEditMistakes` (`mistakes_edit` or QA flag), `stepsOf` (one step per line), `needsRecheck` (180 days),
+`loadMistakes` (null until the migration), `seenCounts` (failed, not overturned QA checkpoints with `mistake_id`, work
+date last 90 days), `filterMistakes` (words in title / code / text; client / payer filters keep general entries; high
+first), `checkMistake` (`phiIssues` on title + text fields), `addMistake` (non-editors → `suggested`), `editMistake`,
+`publishMistake`, `verifyMistake`, `setMistakeActive`, `STARTER_MISTAKES` (8, linked to the 7.1 starter categories by
+name) + `addStarterMistakes` / `missingStarterMistakes`. UI: `ErrorLibrary.jsx` (exports `MistakeDetails`; filters team
+(own team preselected) / category / client / payer (only payers with entries) / severity; editors: Published / Suggestions
+/ All, show turned-off, Edit / Publish / ✓ Mark checked today / Turn off), `MistakeEditor.jsx`. QA changes (additive):
+`QaAudits.jsx` (loads mistakes + seen counts; 📖 tab for everyone), `QaAuditForm.jsx` (“Known mistake” on a fail, same
+category first, fills the SOP if empty), `MyQaAudits.jsx` (📖 How to fix pop-up), `QaResults.jsx` (most common known
+mistakes). `access.js`: `mistakes_edit`.
 
 Plan as approved (defaults: a tab on QA Audits, not its own sidebar page; everyone can suggest; QA flag can edit;
 180-day re-check):
@@ -942,6 +958,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.5 | Follow-up tickler: Follow-ups tab (by date / payer), reminders, snooze, sign-in pop-up, sidebar count, browser notifications | d97fea6 |
 | 6.6 | Portal launchpad: per-client software / payer portal / other links, ⭐ favourites, How-to SOPs, link checks, `portals_edit` | 10eb284 |
 | 7.1 | QA Audits: scorecards + error categories linked to SOPs, audits, sampling from the Smart Worklist, acknowledge / dispute, results | f61896a |
+| 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | (this commit) |
 
 ---
 
@@ -971,6 +988,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 20. `supabase/migrations/20261021k_followups.sql` (follow-up reminders, step 6.5)
 21. `supabase/migrations/20261021l_client_portals.sql` (portal launchpad links per client, step 6.6)
 22. `supabase/migrations/20261021m_qa_audits.sql` (QA scorecards, error categories, audits, step 7.1)
+23. `supabase/migrations/20261021n_error_library.sql` (error library “Mistakes & fixes”, step 7.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1003,6 +1021,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Smart Worklist PHI (PO 2026-10-20):** no BAA with Supabase → worklists store minimum claim fields only (no patient name / DOB / member ID / MRN / address); claim # and DOS wiped on close or 90 days after upload; counts flow to the Daily Report only when the user confirms; Work Allocation stays as is.
 - **Portal launchpad:** login pages only — never user names / passwords / PINs (notes and links mentioning them are refused); opening a portal is not logged; ⭐ favourites per browser; links re-checked every 180 days; `portals_edit` (admin/manager) sets each client up; “All clients” links show everywhere.
 - **QA Audits:** separate from the Daily Report quality % and Quality Monitor (not linked — PO default 2026-10-21); auditors = QA flag + `qa_audit` (supervisors only their team / supervisees; admins, managers, QA everyone; nobody audits themselves); results are a copy of the checkpoints at audit time; critical fail = 0; overturned fails count as passes; comments checked with `phiIssues`; claim # wiped 90 days after closing; Excel has no claim numbers.
+- **Error library:** a tab on QA Audits (everyone); anyone suggests, `mistakes_edit` (admin/manager) or the QA flag edits / publishes; general know-how only — all text checked with `phiIssues`, never tied to a claim; QA link stored as `mistake_id` inside `qa_audits.results`; 180-day re-check; “Seen in QA” = failed, not overturned, last 90 days.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

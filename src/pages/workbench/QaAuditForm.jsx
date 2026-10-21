@@ -7,7 +7,7 @@ import PayerSearch from '../../components/shared/PayerSearch';
  * One QA audit (roadmap 7.1): the agent's claim checked against a scorecard. Each failed checkpoint gets an error
  * category and the SOP that explains it. Saved as a draft or sent to the agent. Minimum claim fields only.
  */
-export default function QaAuditForm({ audit, setup, ctx, people, user, onClose, onSaved }) {
+export default function QaAuditForm({ audit, setup, ctx, people, user, mistakes = [], onClose, onSaved }) {
   const cards = setup.scorecards.filter(c => c.active !== false || c.id === audit.scorecard_id);
   const pointsOf = cardId => setup.checkpoints.filter(c => c.scorecard_id === cardId && c.active !== false);
   const [form, setForm] = useState(() => ({
@@ -27,6 +27,9 @@ export default function QaAuditForm({ audit, setup, ctx, people, user, onClose, 
   const { score, passed, fatal } = scoreOf(form.results, passMark);
   const sops = useMemo(() => ctx.sops.filter(s => s.active !== false), [ctx.sops]);
   const categories = setup.categories.filter(c => c.active !== false);
+  // 7.2: known mistakes from the error library (same category first)
+  const known = mistakes.filter(m => m.active !== false && m.status === 'published');
+  const knownFor = catId => [...known].sort((a, b) => (b.category_id === catId) - (a.category_id === catId) || a.title.localeCompare(b.title));
   const payer = form.payer_id ? ctx.payers.find(p => p.id === form.payer_id) : null;
   const agent = people.find(p => p.emp_id === form.agent_emp_id);
 
@@ -130,6 +133,17 @@ export default function QaAuditForm({ audit, setup, ctx, people, user, onClose, 
                       {sops.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                     </select>
                   </div>
+                  {known.length > 0 && (
+                    <div className="field" style={{ flex: '1 1 200px', marginBottom: 0 }}><label>Known mistake (optional)</label>
+                      <select value={r.mistake_id ?? ''} onChange={e => {
+                        const m = known.find(x => x.id === Number(e.target.value));
+                        setResult(i, { mistake_id: m?.id ?? null, ...(m?.sop_id && !r.sop_id ? { sop_id: m.sop_id } : {}) });
+                      }}>
+                        <option value="">— None —</option>
+                        {knownFor(r.category_id).map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div className="field" style={{ flex: '2 1 240px', marginBottom: 0 }}><label>What to do next time (optional)</label>
                     <input type="text" value={r.comment ?? ''} maxLength={300} onChange={e => setResult(i, { comment: e.target.value })} />
                   </div>

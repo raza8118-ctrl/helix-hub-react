@@ -11,7 +11,7 @@ const scoreClass = v => (v == null ? '' : v >= 98 ? 'col-green' : v >= 90 ? 'col
  * 📊 QA results (roadmap 7.1): per person audits / average / pass rate / critical errors, errors by category (what to
  * train), SOPs linked to errors most, audits waiting for acknowledgement and open disputes. Excel has no claim numbers.
  */
-export default function QaResults({ audits, people, setup, ctx, names }) {
+export default function QaResults({ audits, people, setup, ctx, names, mistakes = [] }) {
   const [from, setFrom] = useState(addDays(today(), -30));
   const [to, setTo] = useState(today());
   const [team, setTeam] = useState('ALL');
@@ -23,6 +23,7 @@ export default function QaResults({ audits, people, setup, ctx, names }) {
   const rows = useMemo(() => summarise(list).sort((a, b) => (names[a.emp_id] ?? '').localeCompare(names[b.emp_id] ?? '')), [list, names]);
   const byCategory = useMemo(() => errorCounts(list, 'category_id'), [list]);
   const bySop = useMemo(() => errorCounts(list, 'sop_id').filter(r => r.id != null), [list]);
+  const byMistake = useMemo(() => errorCounts(list, 'mistake_id').filter(r => r.id != null), [list]);   // 7.2
   const catName = id => (id == null ? 'No category' : setup.categories.find(c => c.id === id)?.name ?? 'Removed category');
   const sopName = id => ctx.sops.find(s => s.id === id)?.title ?? 'Removed SOP';
   const totalErrors = byCategory.reduce((t, r) => t + r.count, 0);
@@ -107,6 +108,16 @@ export default function QaResults({ audits, people, setup, ctx, names }) {
             <div key={r.id} className="row text-sm" style={{ justifyContent: 'space-between', padding: '3px 0' }}><span>{sopName(r.id)}</span><b>{r.count}</b></div>
           ))}
         </div>
+        {byMistake.length > 0 && (
+          <div className="card mb-16" style={{ flex: '1 1 320px' }}>
+            <div className="card-header"><div className="card-title">📖 Most common known mistakes</div></div>
+            {byMistake.slice(0, 15).map(r => (
+              <div key={r.id} className="row text-sm" style={{ justifyContent: 'space-between', padding: '3px 0' }}>
+                <span>{mistakes.find(m => m.id === r.id)?.title ?? 'Removed entry'}</span><b>{r.count}</b>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {open.length > 0 && (
