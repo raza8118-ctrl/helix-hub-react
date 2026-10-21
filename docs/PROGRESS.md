@@ -21,10 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 10.2 is done.** Next: **10.3 – Announcements board** — needs a plan and a “go”. Note the app
-already has Announcements (`admin/AdminFeedback.jsx`, tables `feedback` / `feedback_acks`) and a Team Feed — 10.3 must
-build beside / on top of them, not replace them; check what “board” should add before planning. (9.4 Coding assistant
-stays on hold: BAA-covered AI, hosting and database + compliance sign-off needed first.)
+**10.3 – Announcements board (📌 Notice Board) — plan approved 2026-10-21, building.** Existing 📢 Announcements and Team
+Feed stay untouched. (9.4 Coding assistant stays on hold: BAA-covered AI, hosting and database + compliance sign-off.)
+
+Plan as approved (defaults: only must-read notices count for the badge; a notice expires the day after “until”; no team
+picked = everyone; no pop-up, badge only):
+- New sidebar page **📌 Notice Board** (`wb_board`, everyone): cards by category (Process change · Client news · Payer news
+  · System / IT · HR / events · Wins & shout-outs), 📌 pinned on top; title + body (SOP text formatting), audience
+  everyone / teams + optional client, show from / until (expired → Archive), Must read → ✓ I've read this with read
+  tracking (“Read by 12 / 15 in AR” + who hasn't), links to an SOP / payer update / payer; filters category, For my team,
+  Must read not yet read, Archive, search.
+- Sidebar “Notice Board (N)” for unread must-read notices for my team (15-minute check); notices in global search.
+- Permission `board_post` (admin/manager/supervisor, grantable); supervisors post to their team (everyone needs Post
+  Announcements); edit / unpin / archive — never deleted. Text checked with `phiIssues`.
+- DB: `supabase/migrations/20261021x_notice_board.sql` → `board_notices`, `board_reads`.
+- Files: new `src/lib/board.js`, `src/pages/workbench/NoticeBoard.jsx`, `NoticeEditor.jsx`,
+  `src/components/shared/BoardBadge.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `access.js`, `auditLabels.js`,
+  `App.jsx` (badge + label), `globalSearch.js` (Notices group). Audit `board_post/edit/archive/read` (ids only).
 
 ### Reference: how 10.2 was built (done)
 
