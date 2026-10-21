@@ -21,10 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 9.2 is done.** Next: **9.3 – Credentialing assistant (status checklist, CAQH / revalidation
-reminders)** — needs a plan and a “go”. Building blocks: Ask Helix `converse` loop + lookups (`assistant.js`), follow-up
-reminders (6.5 `addReminder`), clients (0.5), payers, `users.team` (Credentialing), escalations (7.4). Note: provider
-NPIs / names are not PHI but credentialing data is business-sensitive — plan access carefully.
+**9.3 – Credentialing assistant — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: CAQH every 120 days; warnings 90 / 60 / 30 days; enrollment “stuck” after 30 days without a
+follow-up; Medicare revalidation = suggested approval + 5 years, the MAC notice wins; everyone views, `credentialing_edit`
+(admin/manager, grantable) edits; no SSN / DOB / home address fields):
+- New sidebar page **🪪 Credentialing** (`wb_credentialing`), tabs ⏰ Due soon (count) · 👤 Providers · 🏥 Enrollments ·
+  ✨ Enrollment checklist (AI).
+- Due soon: CAQH re-attestation, revalidations (Medicare / Medicaid / payer re-credentialing), expirables (state license,
+  accreditation, liability insurance, CLIA, DEA, board certification, other), enrollments stuck in process; 🔴 overdue ·
+  🟠 30 · 🟡 60 · ⚪ 90; ✓ Done / update date, ⏰ Add to my follow-ups (6.5 action “Credentialing”), Open.
+- Providers: agency (client) or individual (name, type Agency/group · Physician · NP · PT/OT/ST · RN · Other, NPI, CAQH
+  ID, last attested, client, notes); 📋 Status checklist (enrollments + expirables + CAQH, traffic-light, copy).
+- Enrollments: client × payer grid (Not started · Application submitted · In process · Approved / participating · Denied ·
+  Termed); fields submitted, last follow-up, effective, payer provider ID, revalidation due, rep name / phone, notes;
+  Excel.
+- AI checklist: payer + provider type + request (New enrollment · Revalidation · Add location / change of info) → Ask
+  Helix lookups → documents, how to submit, timeline, follow-up steps, missing, sources; only selections sent.
+- DB: `supabase/migrations/20261021v_credentialing.sql` → `cred_providers`, `cred_enrollments`, `cred_expirables`.
+- Files: new `src/lib/credentialing.js`, `src/pages/workbench/Credentialing.jsx`, `CredDueSoon.jsx`, `CredProviders.jsx`,
+  `CredEnrollments.jsx`, `CredEditor.jsx`, `CredChecklist.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `access.js`,
+  `auditLabels.js`, `followups.js`. Audit `cred_provider_*`, `cred_enrollment_*`, `cred_expirable_*`, `cred_checklist`.
 
 ### Reference: how 9.2 was built (done)
 
