@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 7.5 (Medicare trackers) done; Phase 7 complete; next is 8.1._
+_Last updated: 2026-10-21 — step 8.1 (payer bulletins → AI rows) done; next is 8.2._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 8.1.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 8.1 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 8.2.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 8.2 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,24 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**8.1 – Payer bulletin PDF → AI extracts rows — plan approved 2026-10-21, building.**
+**None in progress. Step 8.1 is done.** Next: **8.2 – Payer Updates: searchable list, Excel download, notify affected
+teams** — needs a plan and a “go”. Building blocks: `payer_bulletins` / `payer_updates` (8.1, `payerUpdates.js`
+`loadBulletins`), `BulletinList.jsx` filters, Announcements / Team Feed (existing), `users.team`, sidebar count pattern
+(6.5 `FollowupNudge` / `sidebarTabs` label).
+
+### Reference: how 8.1 was built (done)
+
+`src/lib/payerUpdates.js`: `UPDATE_CATEGORIES` (8), `canEditUpdates`, `scanBulletin` (PDF / 30 MB / 100 pages; pdf.js
+text per page → patient words → `{ pages, hits }`), `extractBulletin` (base64 document block + fixed `SYSTEM`, json_schema
+`SCHEMA` {title, issuer, published_date, rows[payer_name, effective_date, change, category enum, teams enum, action_needed,
+source_page]}, `fallbacks: "default"`, refusal / max_tokens / 401 / 413 / 429 messages, payers matched with
+`matchPayerName` from `worklist.js`, audit `bulletin_extract_ai` with pages / rows / ok only), `blankUpdate`,
+`rowWarnings`, `checkBulletin`, `saveBulletin` (private upload under the company folder, bulletin + rows), `loadBulletins`
+(null until the migration), `bulletinLink` (60 s), `setBulletinActive`. UI: `PayerUpdates.jsx` (tabs Recent updates /
+Upload for editors), `BulletinUpload.jsx` (scan → ticks → ✨ Extract with AI or by hand → editable rows with No payer /
+No effective date badges → Save), `BulletinList.jsx` (payer filter incl. “not in directory”, team filter, Open PDF via a
+window opened before the await, turn off / on). `modules.js` + `WorkbenchApp.jsx`: `wb_updates`. `access.js`:
+`payer_updates_edit`.
 
 Plan as approved (defaults: Claude Opus 5.5, medium effort, `fallbacks: "default"`; browser `fetch` like 5.3 — no SDK
 dependency because package-lock can't be regenerated without Node; whole PDF sent as a document block; 100 pages /
@@ -1115,6 +1132,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | 06b8177 |
 | 7.4 | Handover & Escalations: per-person shift handover + carry-over items, team inbox with read tracking, escalation tracker (severity targets, history), overview + Excel | 10ce91c |
 | 7.5 | Medicare Trackers: ADR tracker (+ ask client / escalate), overpayments & credit balances (60-day refund, quarter view), RTP / suspense monitor (FISS upload, patient columns dropped, auto-clear), overview + Excel | 3c9c8a4 |
+| 8.1 | Payer Updates: bulletin PDF upload with patient-word scan + confirmation, AI extraction (Claude Opus 5.5, structured output), review / edit rows, private PDF storage, recent updates feed | (this commit) |
 
 ---
 
@@ -1148,6 +1166,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 24. `supabase/migrations/20261021o_client_queries.sql` (client query log + history, step 7.3)
 25. `supabase/migrations/20261021p_handover_escalations.sql` (shift handovers, carry-over items, reads, escalations + history, step 7.4)
 26. `supabase/migrations/20261021q_medicare_trackers.sql` (ADRs, overpayments / credit balances, RTP / suspense items + uploads, history, step 7.5)
+27. `supabase/migrations/20261021r_payer_updates.sql` (payer bulletins + extracted changes, private `payer-bulletins` bucket, step 8.1)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1184,6 +1203,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Client Queries:** own sidebar page `wb_queries`; everyone sees all queries and changes their own (owner / creator), `queries_manage` (admin/manager/supervisor) changes anyone’s and reassigns; texts checked with `phiIssues` (dates blocked too); chase due = 3 working days since asked / last chased; claim # wiped 90 days after closing; Excel without claim #.
 - **Handover & Escalations:** own sidebar page `wb_handover`; one handover per person per shift date (editable until the end of the next day); “For my team” = `scopePeople` (same team; supervisors + supervisees; admins / managers / QA everyone) for the last 2 shift dates; escalations visible to raiser / assignee, `escalations_manage` (admin/manager/supervisor) sees all + overview; targets Critical same day / High +1 / others +3 working days; escalated client queries shown read-only; all text via `phiIssues`; claim # wiped 90 days after done / closed.
 - **Medicare Trackers:** own sidebar page `wb_medicare`; one config per tracker (`TRACKERS` in `medicareTrackers.js`) drives a shared editor + list; defaults ADR due = letter + 45, refund due = identified + 60, CMS-838 = quarter end + 30 (all labelled “check current rules”); RTP upload snapshot per client, claims missing from the new file → “Cleared from FISS”; `medicare_manage` (admin/manager/supervisor) uploads / assigns / changes all; claim # / DCN wiped 90 days after closed.
+- **Payer Updates AI:** the whole bulletin PDF goes to Claude as a base64 document block (browser `fetch`, Settings key, `claude-opus-5-5`, effort medium, `fallbacks: "default"`, json_schema output); no Anthropic SDK dependency (package-lock can’t be regenerated without Node); uploader must tick “no patient information” every time, plus a second tick when the local pdf.js scan finds patient words; AI rows are suggestions — reviewed before saving; usage logged (pages, rows, ok) never the text; `payer_updates_edit` (admin/manager) uploads.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

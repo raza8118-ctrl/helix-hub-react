@@ -60,6 +60,8 @@ export const FEATURES = [
   // Medicare Trackers (7.5): everyone adds and works their own ADRs / overpayments; RTP uploads, assigning and changing
   // anyone's items are gated
   { group: 'Tools', key: 'medicare_manage', label: 'Manage Medicare trackers', defaultRoles: MONITORS },
+  // Payer Updates (8.1): everyone reads the feed; uploading bulletins (AI extraction) is gated
+  { group: 'Tools', key: 'payer_updates_edit', label: 'Manage payer updates', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

@@ -121,6 +121,15 @@ export const WORKBENCH_MODULES = [
       'RTP / suspense monitor from FISS list uploads (patient columns dropped)',
     ],
   },
+  {
+    id: 'wb_updates', label: 'Payer Updates', icon: '📰', phase: 8,
+    purpose: 'Payer bulletins turned into a feed of changes: payer, effective date, teams affected and action needed.',
+    planned: [
+      'Upload a bulletin PDF — AI suggests one row per change, you review and save',
+      'Searchable list, Excel download and notices to affected teams',
+      'Suggested Payer Directory updates from bulletins (admin approves)',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

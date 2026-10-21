@@ -69,7 +69,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 7.5 Medicare trackers: ADR tracker, recoupment/credit balance tracker, RTP/suspense monitor.
 
 ## Phase 8 – Payer Updates Feed
-- [ ] 8.1 Upload payer bulletin PDF → AI extracts rows (payer, effective date, change, teams affected, action needed). Bulletins contain no PHI.
+- [x] 8.1 Upload payer bulletin PDF → AI extracts rows (payer, effective date, change, teams affected, action needed). Bulletins contain no PHI.
 - [ ] 8.2 Searchable list, Excel download, notify affected teams.
 - [ ] 8.3 Suggest updates to the Payer Directory from bulletins (admin approves).
 
