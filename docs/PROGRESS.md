@@ -21,7 +21,21 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 10.3 is done.** Remaining roadmap: **10.4 Chrome extension sidebar** (marked “later” on the
+**Extra (PO request 2026-10-21, off-roadmap) — floating “Ask Helix” chat button — plan approved, building.**
+Defaults: button for everyone on every page except the Ask Helix page; pulses until opened once per session (no motion
+with reduced-motion); panel shares the conversation with the full page (memory only); 10-question cap stays.
+- Bottom-right 🤖 Ask button → chat panel (full screen on phones), ⤢ Open full page, ✕.
+- Ask Helix upgrade: Helix data first (sources), then labelled “General guidance — check the payer / SOP” RCM know-how;
+  phones / faxes / payer IDs / limits only from Helix data. 📍 “Where to do it” buttons via a new `list_helix_tools`
+  lookup + `show_where_to_do_it` action: Appeal Builder (payer + denial type / code), Claim Note Generator (payer +
+  client), Denial Navigator (code), Filing & appeal deadlines, payer card, SOP, Portal launchpad (client), Client Queries
+  new query, escalation, 🔐 Auth checklist, Payer Updates — prefill payer / client / code / service only, never PHI.
+- PHI-free mode unchanged. No DB change.
+- Files: new `src/components/shared/HelixChat.jsx`, `HelixLauncher.jsx`; changed `AskHelix.jsx` (💬 Ask uses
+  HelixChat), `src/lib/assistant.js`, `App.jsx` (mount), `appeals.js` / `claimNotes.js` (reuse hand-offs; add denial
+  code only if missing).
+
+**Step 10.3 is done.** Remaining roadmap: **10.4 Chrome extension sidebar** (marked “later” on the
 roadmap — needs a decision from the product owner before planning: it is a separate browser extension project, not part
 of this Vite app's deploy) and **9.4 Coding assistant** (on hold: BAA-covered AI, hosting and database + compliance
 sign-off first). Ask the product owner which (if either) to start; otherwise the build list is complete and the next job
