@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 7.3 (client queries) done; next is 7.4._
+_Last updated: 2026-10-21 — step 7.4 (handover & escalations) done; next is 7.5._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 7.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.5.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 7.5 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,31 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**7.4 – Shift handover notes + escalation tracker — plan approved 2026-10-21, building.**
+**None in progress. Step 7.4 is done.** Next: **7.5 – Medicare trackers: ADR tracker, recoupment / credit balance
+tracker, RTP / suspense monitor** (last step of Phase 7) — needs a plan and a “go”. Building blocks: Smart Worklist
+upload + PHI column dropping (6.4, `worklist.js` `detectColumns` / `PHI_HEADER`), medicare calculators (6.2),
+escalations (7.4), client queries (7.3), PHI rules (minimum fields, no BAA).
+
+### Reference: how 7.4 was built (done)
+
+`src/lib/escalations.js`: `ESC_TYPES` (7), `ESC_SEVERITIES` (critical 0 / high 1 / medium 3 / low 3 working days),
+`ESC_STATUSES` (open / in_progress / resolved / closed), `escRef` (E-0042), `targetFor`, `isOpenEsc`, `isOverdueEsc`,
+`escAgeDays`, `canManageEsc` / `isMine` / `canChangeEsc`, `escTextProblem`, `loadEscalations` (null until the migration),
+`loadEscEvents`, `loadEscalatedQueries` (7.3 queries with ⚑, open / waiting), `checkEsc`, `addEscalation` (+ “raised”
+event), shared `change()` behind `editEscalation` / `assignEscalation` / `setEscStatus` (resolved needs resolution; closed
+sets closed_at) / `reopenEscalation`, `addEscNote`, `clearOldEscalations`, `escSummary`. `src/lib/handover.js`:
+`NOTE_FIELDS` (done / watch out / blockers), item statuses open / picked / done, `isEditable` (shift date ≥ yesterday),
+`teamDates` (2), `checkHandover`, `handoverReady`, `loadMyHandover`, `loadHandovers(from, to, empIds)` (submitted only,
++ items + reads), `saveHandover` (items insert / update / removed → inactive), `markRead` (upsert), `pickItem`,
+`doneItem`, `escalateItem` (escalation with `handover_item_id`, item gets `escalation_id`), `clearOldItems`.
+UI: `HandoverEscalations.jsx` (tabs 📝 My handover / 📥 For my team (unread) / ⚑ Escalations (assigned open) / 📊
+Overview for managers; team = `scopePeople` from `qa.js`), `HandoverForm.jsx` (today / yesterday; taken items locked),
+`HandoverInbox.jsx` (✓ Mark as read; items 🙋 I'll take it / ✓ Done / ⚑ Escalate → `EscalationEditor` prefilled; managers see
+“Read by”), `EscalationList.jsx` (views Assigned to me / Raised by me / All; filters; ▶ In progress / ✓ Resolve / Close /
+Reopen / 📝 Note / ✏️ Edit / Goes to select; history; escalated client queries read-only + “Open Client Queries ›”),
+`EscalationEditor.jsx` (`initial` + `create` props; supervisors / managers first), `HandoverOverview.jsx` (person × date
+grid by team, carry-over not taken, open by type, overdue, Excel). `modules.js` + `WorkbenchApp.jsx`: `wb_handover`.
+`access.js`: `escalations_manage`.
 
 Plan as approved (defaults: handover per person; “For my team” = last 2 shift dates; target dates Critical same day /
 High +1 working day / others +3; no sign-in pop-up, unread count on the tab; 7.3 escalated queries shown read-only):
@@ -1020,6 +1044,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 7.1 | QA Audits: scorecards + error categories linked to SOPs, audits, sampling from the Smart Worklist, acknowledge / dispute, results | f61896a |
 | 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | 9c7a3c6 |
 | 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | 06b8177 |
+| 7.4 | Handover & Escalations: per-person shift handover + carry-over items, team inbox with read tracking, escalation tracker (severity targets, history), overview + Excel | (this commit) |
 
 ---
 
@@ -1051,6 +1076,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 22. `supabase/migrations/20261021m_qa_audits.sql` (QA scorecards, error categories, audits, step 7.1)
 23. `supabase/migrations/20261021n_error_library.sql` (error library “Mistakes & fixes”, step 7.2)
 24. `supabase/migrations/20261021o_client_queries.sql` (client query log + history, step 7.3)
+25. `supabase/migrations/20261021p_handover_escalations.sql` (shift handovers, carry-over items, reads, escalations + history, step 7.4)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1085,6 +1111,7 @@ The app hides/disables the related features until each one has been run, so code
 - **QA Audits:** separate from the Daily Report quality % and Quality Monitor (not linked — PO default 2026-10-21); auditors = QA flag + `qa_audit` (supervisors only their team / supervisees; admins, managers, QA everyone; nobody audits themselves); results are a copy of the checkpoints at audit time; critical fail = 0; overturned fails count as passes; comments checked with `phiIssues`; claim # wiped 90 days after closing; Excel has no claim numbers.
 - **Error library:** a tab on QA Audits (everyone); anyone suggests, `mistakes_edit` (admin/manager) or the QA flag edits / publishes; general know-how only — all text checked with `phiIssues`, never tied to a claim; QA link stored as `mistake_id` inside `qa_audits.results`; 180-day re-check; “Seen in QA” = failed, not overturned, last 90 days.
 - **Client Queries:** own sidebar page `wb_queries`; everyone sees all queries and changes their own (owner / creator), `queries_manage` (admin/manager/supervisor) changes anyone’s and reassigns; texts checked with `phiIssues` (dates blocked too); chase due = 3 working days since asked / last chased; claim # wiped 90 days after closing; Excel without claim #.
+- **Handover & Escalations:** own sidebar page `wb_handover`; one handover per person per shift date (editable until the end of the next day); “For my team” = `scopePeople` (same team; supervisors + supervisees; admins / managers / QA everyone) for the last 2 shift dates; escalations visible to raiser / assignee, `escalations_manage` (admin/manager/supervisor) sees all + overview; targets Critical same day / High +1 / others +3 working days; escalated client queries shown read-only; all text via `phiIssues`; claim # wiped 90 days after done / closed.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

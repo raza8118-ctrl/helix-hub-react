@@ -54,6 +54,9 @@ export const FEATURES = [
   { group: 'Tools', key: 'mistakes_edit', label: 'Edit error library', defaultRoles: MANAGERS },
   // Client Queries (7.3): everyone logs and works their own queries; reassigning / acting on anyone's is gated
   { group: 'Tools', key: 'queries_manage', label: 'Manage client queries', defaultRoles: MONITORS },
+  // Handover & Escalations (7.4): everyone writes handovers and raises escalations; seeing all escalations, acting on
+  // anyone's and the overview are gated
+  { group: 'Tools', key: 'escalations_manage', label: 'Manage escalations', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

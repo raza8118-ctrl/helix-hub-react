@@ -65,7 +65,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 7.1 QA Audit module: sampling, scorecards, error categories, agent acknowledgment, link each error to its SOP.
 - [x] 7.2 Error library ("mistakes and fixes").
 - [x] 7.3 Client Query Log with aging.
-- [ ] 7.4 Shift handover notes + escalation tracker.
+- [x] 7.4 Shift handover notes + escalation tracker.
 - [ ] 7.5 Medicare trackers: ADR tracker, recoupment/credit balance tracker, RTP/suspense monitor.
 
 ## Phase 8 – Payer Updates Feed

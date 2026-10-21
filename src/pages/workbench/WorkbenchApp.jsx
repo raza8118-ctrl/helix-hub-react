@@ -11,6 +11,7 @@ const ARTools              = lazy(() => import('./ARTools'));
 const SmartWorklist        = lazy(() => import('./SmartWorklist'));
 const QaAudits             = lazy(() => import('./QaAudits'));
 const ClientQueries        = lazy(() => import('./ClientQueries'));
+const HandoverEscalations  = lazy(() => import('./HandoverEscalations'));
 
 /** Routes Workbench tabs (every role) — built modules get their page, the rest a "Coming soon" page. */
 export default function WorkbenchApp({ activeTab, user }) {
@@ -25,6 +26,7 @@ export default function WorkbenchApp({ activeTab, user }) {
     case 'wb_worklist': return <SmartWorklist user={user} />;
     case 'wb_qa':       return <QaAudits user={user} />;
     case 'wb_queries':  return <ClientQueries user={user} />;
+    case 'wb_handover': return <HandoverEscalations user={user} />;
     default:          return <WorkbenchPlaceholder tabId={activeTab} />;
   }
 }

@@ -103,6 +103,15 @@ export const WORKBENCH_MODULES = [
       'Aging per client and per owner, with Excel export',
     ],
   },
+  {
+    id: 'wb_handover', label: 'Handover & Escalations', icon: '🔁', phase: 7,
+    purpose: 'End-of-shift handover for the next shift, and escalations tracked until they are resolved.',
+    planned: [
+      'My handover: done today, carry-over items, watch out, blockers',
+      'Team inbox with read tracking; take, finish or escalate carry-over items',
+      'Escalation tracker with severity, target dates, history and an overview',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({
