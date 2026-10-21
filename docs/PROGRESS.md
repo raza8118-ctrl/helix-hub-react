@@ -21,9 +21,30 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 6.6 is done — Phase 6 is complete.** Next: **7.1 – QA Audit module** (sampling, scorecards,
-error categories, agent acknowledgment, link each error to its SOP) — needs a plan and a “go”. Building blocks: `users.is_qa`
-(0.3), SOP Library (3.x), audit log, existing Quality Monitor page (don't break it — add beside it).
+**7.1 – QA Audit module — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: QA scores do NOT fill the Daily Report quality %; short comments allowed with the no-PHI
+warning + DOB / member-ID-looking text blocked; supervisors audit their own team; pass mark 95%; critical fail = 0):
+- New Workbench page **✅ QA Audits** (`wb_qa`). Daily Report quality entry + Quality Monitor untouched.
+- **New audit** (QA flag `users.is_qa` + admin/manager + supervisors for own team; `qa_audit`): agent, scorecard, client,
+  payer, claim #, work date; checkpoints ✓ / ✗ / N/A; fail → error category + linked SOP (default from checkpoint);
+  score = passed weight ÷ checked weight, critical fail → 0; draft or Send to agent.
+- **Sampling:** team / person + date range + N claims or N% → random pick of claims they worked in the Smart Worklist →
+  audit queue; manual audits for non-worklist work.
+- **My audits** (everyone): score, errors, 📚 Read the SOP; ✓ Acknowledge or Dispute with a reason; QA / manager resolves
+  Upheld / Overturned (overturned checkpoint → pass, score recalculated).
+- **Results** (managers, supervisors for their team): per person count / average / pass rate / fatal; errors by category;
+  most-linked SOPs; waiting acknowledgement; open disputes; Excel.
+- **Scorecards & categories** (`qa_manage`, admin/manager): scorecards per team (checkpoints: text, weight, critical,
+  default category, SOP; pass mark), error categories; “Add starter scorecards” (AR follow-up, Payment posting, Auth,
+  Charge entry); inactive, never deleted.
+- PHI: minimum fields only; claim # wiped 90 days after the audit is closed.
+- DB: `supabase/migrations/20261021m_qa_audits.sql` → `qa_categories`, `qa_scorecards`, `qa_checkpoints`, `qa_audits`
+  (results jsonb, score, passed, fatal, status draft/sent/acknowledged/disputed/resolved, ack / dispute / resolution,
+  cleared…).
+- Files: new `src/lib/qa.js`, `src/pages/workbench/QaAudits.jsx`, `QaAuditForm.jsx`, `QaSampling.jsx`, `MyQaAudits.jsx`,
+  `QaResults.jsx`, `QaScorecards.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `access.js`, `auditLabels.js`.
+  Audit `qa_audit_add/send/ack/dispute/resolve`, `qa_scorecard_*`, `qa_category_*` (ids only).
 
 ### Reference: how 6.6 was built (done)
 
