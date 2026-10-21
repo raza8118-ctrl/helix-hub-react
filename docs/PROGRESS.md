@@ -1132,7 +1132,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | 06b8177 |
 | 7.4 | Handover & Escalations: per-person shift handover + carry-over items, team inbox with read tracking, escalation tracker (severity targets, history), overview + Excel | 10ce91c |
 | 7.5 | Medicare Trackers: ADR tracker (+ ask client / escalate), overpayments & credit balances (60-day refund, quarter view), RTP / suspense monitor (FISS upload, patient columns dropped, auto-clear), overview + Excel | 3c9c8a4 |
-| 8.1 | Payer Updates: bulletin PDF upload with patient-word scan + confirmation, AI extraction (Claude Opus 5.5, structured output), review / edit rows, private PDF storage, recent updates feed | (this commit) |
+| 8.1 | Payer Updates: bulletin PDF upload with patient-word scan + confirmation, AI extraction (Claude Opus 5.5, structured output), review / edit rows, private PDF storage, recent updates feed | 8d7c08e |
 
 ---
 
