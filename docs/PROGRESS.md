@@ -21,6 +21,13 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
+**Calm navigation follow-up (PO 2026-10-21) — plan approved, building.** PO: “looks small” + “dropdown on hover”.
+- Bigger: sidebar 256px, page names 14.5px, icons 18px, taller rows, group titles 12px.
+- Each group is one row (group icon + name + count + ›). Hovering (or clicking / Enter) shows a fly-out panel to the
+  right with that group's pages (counts, ☆ pins); click to open. Current page still shows under its group. Pinned
+  pages stay as direct links. Icons-only mode shows group icons with the same fly-outs. Phones: tap expands in place.
+- Files: `Sidebar.jsx`, `index.css`, `navGroups.js` (group icons). No DB change.
+
 **Extra (PO request 2026-10-21, off-roadmap) — “Calm navigation” redesign — DONE (awaiting browser testing).** Built as
 planned. Sign out is now the ⏻ button beside the theme toggle; counts show as small pills (sum on a closed group).
 Lint / build could not run here (no Node on this PC) — the Vercel build is the check.
