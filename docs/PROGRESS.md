@@ -21,6 +21,21 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
+**Extra (PO request 2026-10-21, off-roadmap) — “Calm navigation” redesign — plan approved, building.**
+PO: the app looks bulky. Scope = navigation only (pages unchanged); no DB change; nothing removed.
+- Workbench split into foldable groups: **Daily work** (Smart Worklist, Client Queries, Handover & Escalations, Notice
+  Board) · **Claims & denials** (Denial Navigator, Appeal Builder, AR Tools, Medicare Trackers) · **Payers & reference**
+  (Payer Directory, Payer Updates, SOP Library, Training) · **Specialist** (Credentialing, QA Audits, Reports, File
+  Tools). Group with the current page opens itself; open / closed remembered per person (browser storage). Other
+  sections (My Work, Monitoring, Team, Engagement, System) fold the same way.
+- Ask Helix leaves the sidebar list (floating 🤖 button + ⤢ Open full page; still in tabs, search and permissions).
+- ⭐ Pin up to 6 pages to the top (per person, browser storage).
+- Slimmer rows; « collapses the sidebar to icons (name on hover).
+- Phones: ☰ opens the sidebar as a slide-in drawer instead of the sideways strip.
+- Top bar unchanged except warning banners share one thin style.
+- Files: new `src/lib/navGroups.js`; changed `Sidebar.jsx`, `index.css` (added rules), `App.jsx` (☰, drawer state).
+
+**Previous extra:**
 **Extra (PO request 2026-10-21, off-roadmap) — floating “Ask Helix” chat button — DONE (awaiting browser testing).** Built as
 planned below, with two small additive extras: `AuthChecklist.jsx` takes optional `initialPayerId` / `initialService`
 (for the 🔐 📍 button) and App listens for a new `helix:open-page` event (opens a Workbench page and remounts it so it
