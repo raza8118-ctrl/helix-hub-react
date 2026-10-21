@@ -64,6 +64,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'payer_updates_edit', label: 'Manage payer updates', defaultRoles: MANAGERS },
   // Credentialing (9.3): everyone views providers / enrollments / due dates; editing is gated (grant to the Credentialing team)
   { group: 'Tools', key: 'credentialing_edit', label: 'Manage credentialing', defaultRoles: MANAGERS },
+  // Reports (10.2): client-level performance numbers
+  { group: 'Tools', key: 'reports_view', label: 'View reports', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

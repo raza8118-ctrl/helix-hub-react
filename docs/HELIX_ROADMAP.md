@@ -81,7 +81,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 
 ## Phase 10 – Platform
 - [x] 10.1 Global search (Ctrl+K) across all modules.
-- [ ] 10.2 Reports: denial trends by payer/client, weekly client reports.
+- [x] 10.2 Reports: denial trends by payer/client, weekly client reports.
 - [ ] 10.3 Announcements board.
 - [ ] 10.4 Chrome extension sidebar (later).
 

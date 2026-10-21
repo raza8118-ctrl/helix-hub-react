@@ -23,6 +23,8 @@ export const FIELDS = [
   { key: 'balance',      label: 'Balance $',        re: /balance|outstanding|open\s*(amt|amount)|ar\s*(amt|amount)|amount\s*due|expected/i },
   { key: 'aging_days',   label: 'Aging (days)',     re: /aging|days\s*(out|old|outstanding|in ar)|^age$|^days$/i },
   { key: 'denial_date',  label: 'Denial date',      re: /denial\s*date|denied\s*(on|date)|remit\s*date|eob\s*date|era\s*date/i },
+  // 10.2 (optional): CARC / RARC codes are not patient data; saved only when the file has the column
+  { key: 'denial_code',  label: 'Denial code (CARC / RARC)', re: /carc|rarc|reason\s*code|denial\s*code|adj(ustment)?\s*(reason|code)|remark\s*code/i },
   { key: 'last_billed',  label: 'Last billed date', re: /last\s*(billed|bill|submit)|billed\s*date|submission\s*date|submit(ted)?\s*date|claim\s*date/i },
 ];
 
@@ -109,6 +111,7 @@ export function buildItems(rows, map, payers, clientId) {
       claim_number: claim || null, payer_name: payerName || null, payer_id: payer?.id ?? null, client_id: clientId || null,
       dos_from: toDate(get('dos_from')), dos_to: toDate(get('dos_to')), billed: toMoney(get('billed')), balance,
       aging_days: toInt(get('aging_days')), denial_date: toDate(get('denial_date')), last_billed: toDate(get('last_billed')),
+      ...(map.denial_code ? { denial_code: String(get('denial_code') ?? '').trim().toUpperCase().slice(0, 40) || null } : {}),   // 10.2
     });
   }
   return { items, skipped };
@@ -229,8 +232,11 @@ export async function saveWorklist(meta, items, user, onProgress) {
       dos_from: it.dos_from, dos_to: it.dos_to, billed: it.billed, balance: it.balance, aging_days: it.aging_days,
       denial_date: it.denial_date, last_billed: it.last_billed, deadline: it.deadline, deadline_type: it.deadline_type,
       status: 'new', active: true, updated_by: user.emp_id,
+      ...('denial_code' in it ? { denial_code: it.denial_code } : {}),   // 10.2
     }));
-    const r = await S.set('worklist_items', chunk);
+    let r = await S.set('worklist_items', chunk);
+    // 10.2: the denial code column arrives with 20261021w — until then the claims are saved without it
+    if (!r && chunk.some(c => 'denial_code' in c)) r = await S.set('worklist_items', chunk.map(c => { const copy = { ...c }; delete copy.denial_code; return copy; }));
     saved += r?.length ?? 0;
     onProgress?.(`Saving claims… ${saved.toLocaleString()} of ${items.length.toLocaleString()}`);
   }

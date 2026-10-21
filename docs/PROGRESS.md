@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 10.1 (global search) done; 9.4 on hold (BAA + compliance sign-off); next is 10.2._
+_Last updated: 2026-10-21 — step 10.2 (reports) done; 9.4 on hold (BAA + compliance sign-off); next is 10.3._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 10.2.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 10.2 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 10.3.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 10.3 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,8 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**10.2 – Reports — plan approved 2026-10-21, building.** (9.4 Coding assistant stays on hold: BAA-covered AI, hosting
-and database + compliance sign-off needed first — do not plan or build it until the product owner confirms.)
+**None in progress. Step 10.2 is done.** Next: **10.3 – Announcements board** — needs a plan and a “go”. Note the app
+already has Announcements (`admin/AdminFeedback.jsx`, tables `feedback` / `feedback_acks`) and a Team Feed — 10.3 must
+build beside / on top of them, not replace them; check what “board” should add before planning. (9.4 Coding assistant
+stays on hold: BAA-covered AI, hosting and database + compliance sign-off needed first.)
+
+### Reference: how 10.2 was built (done)
+
+`src/lib/worklist.js`: FIELDS entry `denial_code` (CARC / RARC column detection), `buildItems` adds it only when mapped,
+`saveWorklist` retries a chunk without it if the column is missing. `src/lib/reports.js`: `canViewReports`, `RANGES`,
+`OUTCOMES`, `mondayOf`, `lastWeek`, `loadClaims` (paged, with `denial_code` when present), `loadDenials`,
+`denialTrends` (by payer / client / week / code with Denial-library reasons, outcomes), `loadWeekly` (worked, denied,
+recent claims, open reminders, client queries, escalations, ADRs, overpayments, RTP, active payer updates — each null if
+not set up), `weeklySummary`, `weeklyEmail`, `aiWeeklySummary` (numbers only, effort low), `logExport`; audit
+`report_view` / `report_export` / `report_ai_summary`. UI: `Reports.jsx` (tabs; permission message), `DenialTrends.jsx`
+(filters, tiles, 4 `ChartCard`s with chart / table toggle using `BarChart` value mode, outcomes table, Excel),
+`WeeklyClientReport.jsx` (client + any day of the week → Mon–Sun, stats cards, payer changes, email text with optional
+AI summary, print window, Excel). `modules.js` + `WorkbenchApp.jsx`: `wb_reports`. `access.js`: `reports_view`.
 
 Plan as approved (defaults: denial trends = worklist claims with a denial date; “paid after denial” = status now Paid;
 week Mon–Sun, last week by default; AI summary optional, numbers only; no scheduled / emailed reports — no server):
@@ -1337,6 +1352,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 9.2 | Auth assistant: payer card 🔐 Authorization rules, Ask Helix 🔐 Auth checklist (sourced, structured), claim note copy, “Auth decision due” follow-up, `get_auth_rules` lookup | c822a08 |
 | 9.3 | Credentialing: Due soon (CAQH 120 days, revalidations, expirables, stuck enrollments), providers + status checklist, provider × payer enrollment grid + Excel, AI enrollment checklist, `credentialing_edit` | de7a023 |
 | 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | 1a17e26 |
+| 10.2 | Reports: denial trends (payer / client / week / code + outcomes, table views, Excel), weekly client report (claims, denials, queries, escalations, Medicare, payer changes; email text, print, Excel, AI summary from numbers), optional worklist denial code | (this commit) |
 
 ---
 
@@ -1375,6 +1391,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 29. `supabase/migrations/20261021t_payer_suggestions.sql` (suggested Payer Directory changes from bulletins, step 8.3)
 30. `supabase/migrations/20261021u_payer_auth_rules.sql` (authorization rules per payer + service, step 9.2)
 31. `supabase/migrations/20261021v_credentialing.sql` (credentialing providers, payer enrollments, expiring items, step 9.3)
+32. `supabase/migrations/20261021w_worklist_denial_code.sql` (optional denial code on worklist claims, step 10.2)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1418,6 +1435,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Auth assistant:** rules per payer + service (+ optional plan), no client-specific rules, maintained by `payers_edit` in the payer card (90-day re-check like the directory); checklist request = selections only (no patient fields / dates); “unknown” + missing list when no rule; follow-up = today + decision working days (3 when unknown) as a 6.5 reminder `auth_decision`.
 - **Credentialing:** everyone views; `credentialing_edit` (admin/manager, grant to the Credentialing team) edits; no SSN / DOB / home address fields; CAQH due = last attestation + 120 days; warnings 90 / 60 / 30; enrollment stuck = submitted / in process with no follow-up for 30 days; Medicare revalidation suggestion = approval + 5 years (button only, the MAC notice wins); AI checklist sends only payer + provider type + request.
 - **Global search:** in the browser only (not sent, not logged); claims / worklist / follow-up items are never indexed; client queries indexed without claim numbers; index loaded once per session per person (↻ refresh); recent picks (5) in localStorage `hh_search_recent`; records open through `navigate.js` (`setRecord` / `peekRecord` / `clearRecord`) and App remounts the page (`pageVisit` key) so it works even on the same page.
+- **Reports:** `reports_view` (admin/manager/supervisor); denial trends = worklist claims with a denial date, “paid after denial” = status now Paid; denial code is an optional upload column (worklist upload retries without it until migration 32 is run); weekly = Mon–Sun; exports / email / AI summary carry counts and names only, never claim numbers; charts use the existing `BarChart` (single series, value mode) with a table view each.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

@@ -147,6 +147,14 @@ export const WORKBENCH_MODULES = [
       'AI enrollment checklist from Helix Hub data',
     ],
   },
+  {
+    id: 'wb_reports', label: 'Reports', icon: '📈', phase: 10,
+    purpose: 'Denial trends by payer and client, and a weekly report for each client.',
+    planned: [
+      'Denial trends: by payer, client, week and denial code, with outcomes',
+      'Weekly client report: claims, denials, queries, escalations, Medicare, payer changes',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({
