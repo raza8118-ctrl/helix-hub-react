@@ -958,7 +958,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.5 | Follow-up tickler: Follow-ups tab (by date / payer), reminders, snooze, sign-in pop-up, sidebar count, browser notifications | d97fea6 |
 | 6.6 | Portal launchpad: per-client software / payer portal / other links, ⭐ favourites, How-to SOPs, link checks, `portals_edit` | 10eb284 |
 | 7.1 | QA Audits: scorecards + error categories linked to SOPs, audits, sampling from the Smart Worklist, acknowledge / dispute, results | f61896a |
-| 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | (this commit) |
+| 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | 9c7a3c6 |
 
 ---
 
