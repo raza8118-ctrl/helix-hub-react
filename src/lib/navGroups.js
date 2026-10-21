@@ -4,14 +4,17 @@
 
 /** The Workbench section split into smaller groups (tab ids in sidebar order). */
 export const WB_GROUPS = [
-  { key: 'wb_daily', label: 'Daily work', tabs: ['wb_worklist', 'wb_queries', 'wb_handover', 'wb_board'] },
-  { key: 'wb_claims', label: 'Claims & denials', tabs: ['wb_denials', 'wb_appeals', 'wb_artools', 'wb_medicare'] },
-  { key: 'wb_reference', label: 'Payers & reference', tabs: ['wb_payers', 'wb_updates', 'wb_sops', 'wb_training'] },
-  { key: 'wb_specialist', label: 'Specialist', tabs: ['wb_credentialing', 'wb_qa', 'wb_reports', 'wb_files'] },
+  { key: 'wb_daily', icon: '📋', label: 'Daily work', tabs: ['wb_worklist', 'wb_queries', 'wb_handover', 'wb_board'] },
+  { key: 'wb_claims', icon: '🧾', label: 'Claims & denials', tabs: ['wb_denials', 'wb_appeals', 'wb_artools', 'wb_medicare'] },
+  { key: 'wb_reference', icon: '📇', label: 'Payers & reference', tabs: ['wb_payers', 'wb_updates', 'wb_sops', 'wb_training'] },
+  { key: 'wb_specialist', icon: '🧰', label: 'Specialist', tabs: ['wb_credentialing', 'wb_qa', 'wb_reports', 'wb_files'] },
 ];
 
 /** In the tab list (search, permissions, hand-offs) but not shown in the sidebar — the floating 🤖 Ask button opens it. */
 export const HIDDEN_IN_SIDEBAR = ['wb_assistant'];
+
+/** Icons for the other sections' group rows. */
+const SECTION_ICONS = { 'My Work': '🧑‍💻', Monitoring: '📊', Team: '👥', Engagement: '📣', System: '⚙️' };
 export const MAX_PINS = 6;
 
 /**
@@ -27,14 +30,14 @@ export function groupTabs(tabs) {
     if (section === 'Workbench') {
       if (!bySection.Workbench) {
         bySection.Workbench = true;
-        WB_GROUPS.forEach(g => groups.push({ key: g.key, label: g.label, tabs: [] }));
-        groups.push({ key: 'wb_more', label: 'More tools', tabs: [] });
+        WB_GROUPS.forEach(g => groups.push({ key: g.key, icon: g.icon, label: g.label, tabs: [] }));
+        groups.push({ key: 'wb_more', icon: '🧩', label: 'More tools', tabs: [] });
       }
       const g = WB_GROUPS.find(x => x.tabs.includes(t.id));
       groups.find(x => x.key === (g ? g.key : 'wb_more')).tabs.push(t);
     } else {
       if (!bySection[section]) {
-        bySection[section] = { key: section, label: section, tabs: [] };
+        bySection[section] = { key: section, icon: SECTION_ICONS[section] ?? '📁', label: section, tabs: [] };
         groups.push(bySection[section]);
       }
       bySection[section].tabs.push(t);

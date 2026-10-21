@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { THEMES } from '../lib/constants';
 import Starfield from './shared/Starfield';
 import { useCompany } from '../lib/company';
@@ -81,8 +81,31 @@ export default function Sidebar({
     setPrefs(next);
     saveNavPrefs(empId, next);
   }
-  // First visit: only the first group is open. A closed group still shows the current page.
-  const isOpen = (g, i) => prefs.open[g.key] ?? i === 0;
+  // Phones: tapping a group opens it in place (remembered). A closed group still shows the current page.
+  const isOpen = (g, i) => prefs.open[g.key] ?? (i === 0 && !compact);
+
+  // Wide screens: pointing at a group shows its pages in a fly-out to the right (fixed, so the nav's scroll can't clip it)
+  const [fly, setFly] = useState(null);   // { key, top, left }
+  const flyTimer = useRef(null);
+  function showFly(g, el) {
+    clearTimeout(flyTimer.current);
+    const row = el.getBoundingClientRect();
+    const side = el.closest('.sidebar').getBoundingClientRect();
+    const height = 56 + g.tabs.length * 46;
+    setFly({ key: g.key, top: Math.max(8, Math.min(row.top - 8, window.innerHeight - height - 8)), left: side.right - 4 });
+  }
+  const keepFly = () => clearTimeout(flyTimer.current);
+  function hideFlySoon() {
+    clearTimeout(flyTimer.current);
+    flyTimer.current = setTimeout(() => setFly(null), 220);   // time to move the cursor across to the fly-out
+  }
+  useEffect(() => () => clearTimeout(flyTimer.current), []);
+  useEffect(() => {
+    if (!fly) return undefined;
+    const onKey = e => { if (e.key === 'Escape') setFly(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fly]);
   const toggleGroup = (g, i) => update({ open: { ...prefs.open, [g.key]: !isOpen(g, i) } });
   const togglePin = id => update({ pins: pins.includes(id) ? pins.filter(x => x !== id) : [...pins, id].slice(-MAX_PINS) });
 
@@ -91,27 +114,29 @@ export default function Sidebar({
   }
 
   function open(id) {
+    setFly(null);
     onTab(id);
     onCloseMobile?.();
   }
 
-  const link = (tab, { pinnable = true } = {}) => {
+  const link = (tab, { pinnable = true, inFlyout = false } = {}) => {
     const { text, count } = splitCount(tab.label);
     const pinned = pins.includes(tab.id);
+    const iconOnly = compact && !inFlyout;
     return (
       <div key={tab.id} className="sidebar-row">
         <button
-          role="tab"
-          aria-selected={activeTab === tab.id}
+          role={inFlyout ? 'menuitem' : 'tab'}
+          aria-selected={inFlyout ? undefined : activeTab === tab.id}
           onClick={() => open(tab.id)}
           className={`sidebar-link ${activeTab === tab.id ? 'active' : ''}`}
-          title={compact ? `${text}${count ? ` (${count})` : ''}` : undefined}
+          title={iconOnly ? `${text}${count ? ` (${count})` : ''}` : undefined}
         >
           <span className="icon">{tab.icon ?? '•'}</span>
-          {!compact && <span className="sidebar-link-text">{text}</span>}
+          {!iconOnly && <span className="sidebar-link-text">{text}</span>}
           {count > 0 && <span className="nav-count">{count}</span>}
         </button>
-        {!compact && pinnable && (
+        {!iconOnly && pinnable && (
           <button
             className={`nav-pin${pinned ? ' pinned' : ''}`}
             onClick={() => togglePin(tab.id)}
@@ -150,7 +175,7 @@ export default function Sidebar({
         )}
       </div>
 
-      <nav className="sidebar-nav" role="tablist">
+      <nav className="sidebar-nav" role="tablist" onScroll={() => setFly(null)}>
         {pins.length > 0 && (
           <div className="nav-group">
             {!compact && <div className="sidebar-section-label">⭐ Pinned</div>}
@@ -159,26 +184,37 @@ export default function Sidebar({
           </div>
         )}
 
+        {!compact && pins.length > 0 && <div className="sidebar-section-label">Menu</div>}
         {groups.map((g, i) => {
-          if (compact) {
-            return (
-              <div key={g.key} className="nav-group">
-                {g.tabs.map(t => link(t))}
-                {i < groups.length - 1 && <div className="nav-divider" />}
-              </div>
-            );
-          }
-          const opened = isOpen(g, i);
-          const shown = opened ? g.tabs : g.tabs.filter(t => t.id === activeTab);
-          const closedCount = opened ? 0 : g.tabs.reduce((n, t) => n + splitCount(t.label).count, 0);
+          const hasActive = g.tabs.some(t => t.id === activeTab);
+          const total = g.tabs.reduce((n, t) => n + splitCount(t.label).count, 0);
+          const inPlace = isPhone && isOpen(g, i);     // phones: tap opens the group in place
+          const flying = !isPhone && fly?.key === g.key;
+          const below = compact ? [] : inPlace ? g.tabs : g.tabs.filter(t => t.id === activeTab);
           return (
             <div key={g.key} className="nav-group">
-              <button className="sidebar-section-label nav-group-head" onClick={() => toggleGroup(g, i)} aria-expanded={opened}>
-                <span className={`nav-chevron${opened ? ' open' : ''}`} aria-hidden="true">›</span>
-                <span style={{ flex: 1 }}>{g.label}</span>
-                {closedCount > 0 && <span className="nav-count">{closedCount}</span>}
+              <button
+                className={`nav-group-row${hasActive ? ' has-active' : ''}${flying || inPlace ? ' open' : ''}`}
+                aria-haspopup={isPhone ? undefined : 'menu'}
+                aria-expanded={isPhone ? inPlace : flying}
+                title={compact ? g.label : undefined}
+                onMouseEnter={isPhone ? undefined : e => showFly(g, e.currentTarget)}
+                onMouseLeave={isPhone ? undefined : hideFlySoon}
+                onClick={e => (isPhone ? toggleGroup(g, i) : flying ? setFly(null) : showFly(g, e.currentTarget))}
+              >
+                <span className="icon">{g.icon}</span>
+                {!compact && <span className="sidebar-link-text">{g.label}</span>}
+                {total > 0 && <span className="nav-count">{total}</span>}
+                {!compact && <span className={`nav-chevron${inPlace ? ' open' : ''}`} aria-hidden="true">›</span>}
               </button>
-              {shown.map(t => link(t))}
+              {flying && (
+                <div className="nav-flyout" role="menu" aria-label={g.label} style={{ top: fly.top, left: fly.left }}
+                  onMouseEnter={keepFly} onMouseLeave={hideFlySoon}>
+                  <div className="nav-flyout-title">{g.icon} {g.label}</div>
+                  {g.tabs.map(t => link(t, { inFlyout: true }))}
+                </div>
+              )}
+              {below.length > 0 && <div className="nav-sub">{below.map(t => link(t))}</div>}
             </div>
           );
         })}
