@@ -1322,7 +1322,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 9.1 | Ask Helix: AI assistant with browser-run lookups (payers, published SOPs, denial steps, payer updates), PHI-free de-identification, source links, memory-only chat (no DB change) | 544c6a6 |
 | 9.2 | Auth assistant: payer card 🔐 Authorization rules, Ask Helix 🔐 Auth checklist (sourced, structured), claim note copy, “Auth decision due” follow-up, `get_auth_rules` lookup | c822a08 |
 | 9.3 | Credentialing: Due soon (CAQH 120 days, revalidations, expirables, stuck enrollments), providers + status checklist, provider × payer enrollment grid + Excel, AI enrollment checklist, `credentialing_edit` | de7a023 |
-| 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | (this commit) |
+| 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | 1a17e26 |
 
 ---
 
