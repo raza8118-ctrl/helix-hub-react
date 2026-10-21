@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 7.4 (handover & escalations) done; next is 7.5._
+_Last updated: 2026-10-21 — step 7.5 (Medicare trackers) done; Phase 7 complete; next is 8.1._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.5.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 7.5 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 8.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 8.1 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,30 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**7.5 – Medicare trackers — plan approved 2026-10-21, building.** (Last step of Phase 7.)
+**None in progress. Step 7.5 is done — Phase 7 is complete.** Next: **8.1 – Payer Updates Feed: upload a payer bulletin
+PDF → AI extracts rows** (payer, effective date, change, teams affected, action needed; bulletins contain no PHI) —
+needs a plan and a “go”. Building blocks: AI call pattern + Settings key (5.3 `appealAI.js`), PDF text extraction
+(2.4 `pdfExtract.js` / 2.4b OCR), Payer Directory (payer matching `matchPayer`), `users.team`.
+
+### Reference: how 7.5 was built (done)
+
+`src/lib/medicareTrackers.js`: `TRACKERS` config (adr / overpayment / rtp: table, ref prefix ADR / OP / RTP, statusKey,
+closedKey, statuses with `done`, `statusDates` auto-filled on status change, `fields` with type client / payer / claim /
+money / date / select / text and `from` + `days` for auto due dates), `statusOf`, `itemRef`, `isDone` (+ RTP `in_fiss`
+false), `optionLabel`, `daysLeft`, `waitingDays`, `rtpAge` / `rtpBucket`, `quarterEnds`, `canManageMedicare` /
+`canChangeItem`, `noteProblem`, `loadMedicare` (null until the migration), `loadItemEvents`, `checkItem`, `addItem`,
+shared `change()` behind `editItem` / `assignItem` / `setItemStatus`, `addItemNote`, `clearOldMedicare`, RTP upload
+`RTP_FIELDS` / `detectRtpColumns` (worklist `PHI_HEADER`, now exported) / `buildRtpRows` / `applyRtpUpload` (snapshot:
+insert / update / back on list → new; missing → in_fiss false + resolved_at + “cleared_fiss” event).
+UI: `MedicareTrackers.jsx` (tabs Overview / ADRs / Overpayments / RTP with open counts), `MedicareOverview.jsx` (tiles
+open the tab; per client table; Excel without claim #), `MedicareTrackerList.jsx` (shared list — not in the original
+file list: filters, status select, note, edit, owner, history; `badges` / `actions` / `sortKey` / `toolbar` props),
+`MedicareItemEditor.jsx` (fields from config, auto due date until typed), `AdrTracker.jsx` (due / waiting badges, 📨 Ask
+client for records → `addQuery` + status requested, ⚑ Escalate → `EscalationEditor`), `OverpaymentTracker.jsx` (refund
+badges, 🗓 Quarter credit balances: Medicare-looking payers or none, open at quarter end, report due),
+`RtpMonitor.jsx` (age × client table, top reason codes, “New on last upload”, ⬆ Upload FISS list for managers),
+`RtpUpload.jsx` (client, file, column selects without patient columns, preview new / updated / cleared, dropped lists).
+`modules.js` + `WorkbenchApp.jsx`: `wb_medicare`. `access.js`: `medicare_manage`.
 
 Plan as approved (defaults: ADR due = letter + 45 days, warning at 10 days; refund due = identified + 60 days; credit
 balance report due = quarter end + 30 days; RTP claims missing from a new upload auto-cleared; one page with tabs):
@@ -1074,6 +1097,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 7.2 | Error library “Mistakes & fixes”: search / filters, suggest → publish, starters, known mistake on QA fails, 📖 How to fix, seen-in-QA counts | 9c7a3c6 |
 | 7.3 | Client Queries: log with Q-refs, chase every 3 working days (copy message), answer / close / escalate / reassign, history, aging per client + owner, Excel | 06b8177 |
 | 7.4 | Handover & Escalations: per-person shift handover + carry-over items, team inbox with read tracking, escalation tracker (severity targets, history), overview + Excel | 10ce91c |
+| 7.5 | Medicare Trackers: ADR tracker (+ ask client / escalate), overpayments & credit balances (60-day refund, quarter view), RTP / suspense monitor (FISS upload, patient columns dropped, auto-clear), overview + Excel | (this commit) |
 
 ---
 
@@ -1106,6 +1130,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 23. `supabase/migrations/20261021n_error_library.sql` (error library “Mistakes & fixes”, step 7.2)
 24. `supabase/migrations/20261021o_client_queries.sql` (client query log + history, step 7.3)
 25. `supabase/migrations/20261021p_handover_escalations.sql` (shift handovers, carry-over items, reads, escalations + history, step 7.4)
+26. `supabase/migrations/20261021q_medicare_trackers.sql` (ADRs, overpayments / credit balances, RTP / suspense items + uploads, history, step 7.5)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1141,6 +1166,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Error library:** a tab on QA Audits (everyone); anyone suggests, `mistakes_edit` (admin/manager) or the QA flag edits / publishes; general know-how only — all text checked with `phiIssues`, never tied to a claim; QA link stored as `mistake_id` inside `qa_audits.results`; 180-day re-check; “Seen in QA” = failed, not overturned, last 90 days.
 - **Client Queries:** own sidebar page `wb_queries`; everyone sees all queries and changes their own (owner / creator), `queries_manage` (admin/manager/supervisor) changes anyone’s and reassigns; texts checked with `phiIssues` (dates blocked too); chase due = 3 working days since asked / last chased; claim # wiped 90 days after closing; Excel without claim #.
 - **Handover & Escalations:** own sidebar page `wb_handover`; one handover per person per shift date (editable until the end of the next day); “For my team” = `scopePeople` (same team; supervisors + supervisees; admins / managers / QA everyone) for the last 2 shift dates; escalations visible to raiser / assignee, `escalations_manage` (admin/manager/supervisor) sees all + overview; targets Critical same day / High +1 / others +3 working days; escalated client queries shown read-only; all text via `phiIssues`; claim # wiped 90 days after done / closed.
+- **Medicare Trackers:** own sidebar page `wb_medicare`; one config per tracker (`TRACKERS` in `medicareTrackers.js`) drives a shared editor + list; defaults ADR due = letter + 45, refund due = identified + 60, CMS-838 = quarter end + 30 (all labelled “check current rules”); RTP upload snapshot per client, claims missing from the new file → “Cleared from FISS”; `medicare_manage` (admin/manager/supervisor) uploads / assigns / changes all; claim # / DCN wiped 90 days after closed.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

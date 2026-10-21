@@ -57,6 +57,9 @@ export const FEATURES = [
   // Handover & Escalations (7.4): everyone writes handovers and raises escalations; seeing all escalations, acting on
   // anyone's and the overview are gated
   { group: 'Tools', key: 'escalations_manage', label: 'Manage escalations', defaultRoles: MONITORS },
+  // Medicare Trackers (7.5): everyone adds and works their own ADRs / overpayments; RTP uploads, assigning and changing
+  // anyone's items are gated
+  { group: 'Tools', key: 'medicare_manage', label: 'Manage Medicare trackers', defaultRoles: MONITORS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

@@ -66,7 +66,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 7.2 Error library ("mistakes and fixes").
 - [x] 7.3 Client Query Log with aging.
 - [x] 7.4 Shift handover notes + escalation tracker.
-- [ ] 7.5 Medicare trackers: ADR tracker, recoupment/credit balance tracker, RTP/suspense monitor.
+- [x] 7.5 Medicare trackers: ADR tracker, recoupment/credit balance tracker, RTP/suspense monitor.
 
 ## Phase 8 – Payer Updates Feed
 - [ ] 8.1 Upload payer bulletin PDF → AI extracts rows (payer, effective date, change, teams affected, action needed). Bulletins contain no PHI.

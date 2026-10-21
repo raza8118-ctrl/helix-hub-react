@@ -112,6 +112,15 @@ export const WORKBENCH_MODULES = [
       'Escalation tracker with severity, target dates, history and an overview',
     ],
   },
+  {
+    id: 'wb_medicare', label: 'Medicare Trackers', icon: '🏛️', phase: 7,
+    purpose: 'ADRs, overpayments / credit balances and claims stuck in RTP or suspense — with due dates and aging.',
+    planned: [
+      'ADR tracker: due dates, records from the client, submission and decision',
+      'Overpayments and credit balances with the 60-day refund date and quarter view',
+      'RTP / suspense monitor from FISS list uploads (patient columns dropped)',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

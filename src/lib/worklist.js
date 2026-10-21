@@ -27,7 +27,7 @@ export const FIELDS = [
 ];
 
 // Columns that identify the patient — always dropped and listed as such
-const PHI_HEADER = /patient|member|subscriber|insured|beneficiary|\bdob\b|birth|\bmrn\b|medical\s*record|\bssn\b|social|address|street|city|\bzip\b|postal|phone|e-?mail|first\s*name|last\s*name|^name$|full\s*name|\bmbi\b|\bhicn\b|account\s*(#|no|num)/i;
+export const PHI_HEADER = /patient|member|subscriber|insured|beneficiary|\bdob\b|birth|\bmrn\b|medical\s*record|\bssn\b|social|address|street|city|\bzip\b|postal|phone|e-?mail|first\s*name|last\s*name|^name$|full\s*name|\bmbi\b|\bhicn\b|account\s*(#|no|num)/i;
 
 /** Suggested column for each field, plus which headers will be dropped (patient vs other). */
 export function detectColumns(headers) {
