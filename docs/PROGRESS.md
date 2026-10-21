@@ -1382,7 +1382,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 9.3 | Credentialing: Due soon (CAQH 120 days, revalidations, expirables, stuck enrollments), providers + status checklist, provider × payer enrollment grid + Excel, AI enrollment checklist, `credentialing_edit` | de7a023 |
 | 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | 1a17e26 |
 | 10.2 | Reports: denial trends (payer / client / week / code + outcomes, table views, Excel), weekly client report (claims, denials, queries, escalations, Medicare, payer changes; email text, print, Excel, AI summary from numbers), optional worklist denial code | 574176f |
-| 10.3 | Notice Board: notices by category / team / client, pinned, show from-until, must-read with read tracking, SOP / payer / payer-update links, sidebar count, global search group (Announcements unchanged) | (this commit) |
+| 10.3 | Notice Board: notices by category / team / client, pinned, show from-until, must-read with read tracking, SOP / payer / payer-update links, sidebar count, global search group (Announcements unchanged) | 52b0b22 |
 
 ---
 
