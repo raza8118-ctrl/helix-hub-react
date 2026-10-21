@@ -8,6 +8,7 @@ import PayerUpdatesBadge from './components/shared/PayerUpdatesBadge';
 import GlobalSearch from './components/shared/GlobalSearch';
 import BoardBadge from './components/shared/BoardBadge';
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
+import HelixLauncher from './components/shared/HelixLauncher';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
@@ -264,6 +265,19 @@ export default function App() {
     return () => window.removeEventListener('helix:open-tab', onOpen);
   }, []);
 
+  // Ask Helix 📍 buttons / sources: open a Workbench page and remount it so it reads the handed-over record
+  useEffect(() => {
+    const onOpenPage = e => {
+      const tabId = e.detail;
+      if (typeof tabId !== 'string' || !tabId.startsWith('wb_') || !currentUser || !canOpenTab(currentUser, tabId)) return;
+      setPageVisit(v => v + 1);
+      setActiveTab(tabId);
+      sessionStorage.setItem('hh_tab', tabId);
+    };
+    window.addEventListener('helix:open-page', onOpenPage);
+    return () => window.removeEventListener('helix:open-page', onOpenPage);
+  }, [currentUser]);
+
   // ── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin(u) {
     await refreshCompanyProcesses().catch(() => {});
@@ -389,6 +403,7 @@ export default function App() {
       <FollowupNudge user={currentUser} onCount={setFollowupDue} />
       <PayerUpdatesBadge user={currentUser} onCount={setUpdatesNew} />
       <BoardBadge user={currentUser} onCount={setBoardNew} />
+      <HelixLauncher user={currentUser} tabs={tabs} activeTab={activeTab} />
       <Sidebar
         user={currentUser}
         theme={theme}

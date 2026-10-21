@@ -226,8 +226,9 @@ export async function addStarterFormats(list, user) {
 let notePrefill = null;   // { client_id, payer_id }
 
 /** Opens AR Tools → Claim Note Generator with the client and payer already picked. */
-export function startClaimNote({ client_id, payer_id }) {
+export function startClaimNote({ client_id, payer_id, denial_codes }) {
   notePrefill = { client_id: client_id != null ? String(client_id) : '', payer_id: payer_id != null ? String(payer_id) : '' };
+  if (denial_codes) notePrefill.denial_codes = denial_codes;   // Ask Helix 📍 button
   window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: 'wb_artools' }));
 }
 export const peekNotePrefill = () => notePrefill;

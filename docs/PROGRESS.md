@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 10.3 (notice board) done; 9.4 on hold (BAA + compliance sign-off); 10.4 marked “later”._
+_Last updated: 2026-10-21 — extra: floating “Ask Helix” chat button done; 9.4 on hold (BAA + compliance sign-off); 10.4 marked “later”._
 
 ---
 
@@ -21,7 +21,11 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**Extra (PO request 2026-10-21, off-roadmap) — floating “Ask Helix” chat button — plan approved, building.**
+**Extra (PO request 2026-10-21, off-roadmap) — floating “Ask Helix” chat button — DONE (awaiting browser testing).** Built as
+planned below, with two small additive extras: `AuthChecklist.jsx` takes optional `initialPayerId` / `initialService`
+(for the 🔐 📍 button) and App listens for a new `helix:open-page` event (opens a Workbench page and remounts it so it
+reads the hand-off; checks `canOpenTab`). Client Queries / Escalations buttons open the page (no form auto-open).
+`npm run lint` / `npm run build` could not run here (no Node on this PC) — Vercel build is the check.
 Defaults: button for everyone on every page except the Ask Helix page; pulses until opened once per session (no motion
 with reduced-motion); panel shares the conversation with the full page (memory only); 10-question cap stays.
 - Bottom-right 🤖 Ask button → chat panel (full screen on phones), ⤢ Open full page, ✕.
@@ -1397,6 +1401,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 10.1 | Global search (Ctrl+K / 🔍): pages, payers, clients, SOPs, denial codes, payer updates, client queries, escalations, credentialing providers, “Ask Helix: …”; record hand-off to the pages (no DB change) | 1a17e26 |
 | 10.2 | Reports: denial trends (payer / client / week / code + outcomes, table views, Excel), weekly client report (claims, denials, queries, escalations, Medicare, payer changes; email text, print, Excel, AI summary from numbers), optional worklist denial code | 574176f |
 | 10.3 | Notice Board: notices by category / team / client, pinned, show from-until, must-read with read tracking, SOP / payer / payer-update links, sidebar count, global search group (Announcements unchanged) | 52b0b22 |
+| Extra | Floating 🤖 Ask button + panel (shared memory-only conversation), Ask Helix: Helix data first then labelled general guidance, 📍 “Where to do it” buttons (`list_helix_tools` / `show_where_to_do_it`), no DB change | (this commit) |
 
 ---
 

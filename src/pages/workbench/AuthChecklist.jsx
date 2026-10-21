@@ -12,12 +12,12 @@ const fmtDate = d => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { w
  * 🔐 Auth checklist (roadmap 9.2): client + payer + plan + service + request type → a sourced checklist from Helix Hub
  * data (auth rules, auth contact, auth SOP, authorization payer updates). No patient fields and no dates are asked for.
  */
-export default function AuthChecklist({ knowledge, user, lookupLabels, onOpenSource }) {
+export default function AuthChecklist({ knowledge, user, lookupLabels, onOpenSource, initialPayerId = null, initialService = '' }) {
   const [clientId, setClientId] = useState('');
-  const [payer, setPayer] = useState(null);
+  const [payer, setPayer] = useState(() => knowledge.payers.find(p => p.id === initialPayerId) ?? null);   // Ask Helix 📍 button
   const [plans, setPlans] = useState([]);
   const [planId, setPlanId] = useState('');
-  const [service, setService] = useState('hh_soc');
+  const [service, setService] = useState(initialService || 'hh_soc');
   const [requestType, setRequestType] = useState('initial');
   const [busy, setBusy] = useState('');
   const [result, setResult] = useState(null);           // { checklist, sources, req }

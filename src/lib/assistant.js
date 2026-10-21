@@ -98,11 +98,34 @@ export const TOOLS = [
     query: str('Words to search for, or ""'), payer_name: str('Payer name or ""'),
   }),
   tool('list_clients', 'The client (agency) names Helix Hub knows.', {}),
+  // Floating chat extra: 📍 "Where to do it" buttons under an answer
+  tool('list_helix_tools', 'The Helix Hub pages where the user can do the work (write an appeal or claim note, work out a deadline, open a portal, raise a client query or escalation, build an auth checklist…) and what each can fill in.', {}),
+  tool('show_where_to_do_it', 'Adds a 📍 button under your answer that opens a Helix Hub page already filled in. Fill only what fits that page; "" for the rest. Never patient details.', {
+    tool: { type: 'string', enum: ['appeal', 'claim_note', 'denial_navigator', 'deadlines', 'payer_card', 'sop', 'portals', 'client_query', 'escalation', 'auth_checklist', 'payer_updates'], description: 'tool from list_helix_tools' },
+    payer_name: str('Payer name or ""'), client_name: str('Client name or ""'), code: str('Denial code, e.g. "CO-197", or ""'),
+    service: { type: 'string', enum: ['', ...AUTH_SERVICES.map(s => s.value)], description: 'Auth service code (auth checklist only) or ""' },
+    sop_title: str('SOP title from search_sops, or ""'),
+  }),
   // 9.2
   tool('get_auth_rules', 'Authorization rules for one payer: per service whether auth is needed, how to submit, usual decision time, validity, documents, retro window — plus the payer\'s authorization contact and auth notes. service "" = all services.', {
     payer_id: { type: 'integer', description: 'payer_id from search_payers' },
     service: { type: 'string', enum: ['', ...AUTH_SERVICES.map(s => s.value)], description: 'Service code or ""' },
   }),
+];
+
+/** Pages a 📍 button can open (tab = the sidebar page; fills = what the button pre-fills). Ids match the tool enum above. */
+export const HELIX_TOOLS = [
+  { id: 'appeal', icon: '✉️', name: 'Appeal Builder', tab: 'wb_appeals', use: 'Build an appeal / reconsideration letter for a denied claim', fills: 'payer, client, denial code' },
+  { id: 'claim_note', icon: '📝', name: 'Claim Note Generator', tab: 'wb_artools', use: 'Write the claim note after a call, portal check or other action', fills: 'payer, client, denial code' },
+  { id: 'denial_navigator', icon: '🧩', name: 'Denial Navigator', tab: 'wb_denials', use: 'Look up a denial code and the steps to work it', fills: 'denial code' },
+  { id: 'deadlines', icon: '⏰', name: 'Filing & appeal deadlines', tab: 'wb_artools', use: 'Work out a timely-filing or appeal deadline (dates are typed on the page)', fills: 'nothing' },
+  { id: 'payer_card', icon: '📇', name: 'Payer card', tab: 'wb_payers', use: 'Payer contacts, payer IDs, plans, limits and notes', fills: 'payer (needed)' },
+  { id: 'sop', icon: '📚', name: 'SOP Library', tab: 'wb_sops', use: 'Open a step-by-step guide', fills: 'SOP title' },
+  { id: 'portals', icon: '🚀', name: 'Portal launchpad', tab: 'wb_artools', use: 'Open a client’s payer and EMR portals', fills: 'client' },
+  { id: 'client_query', icon: '💬', name: 'Client Queries', tab: 'wb_queries', use: 'Ask the client (agency) for missing information or documents — “New query” on that page', fills: 'nothing' },
+  { id: 'escalation', icon: '🔁', name: 'Escalations', tab: 'wb_handover', use: 'Raise or follow an escalation to a lead or supervisor', fills: 'nothing' },
+  { id: 'auth_checklist', icon: '🔐', name: 'Auth checklist', tab: 'wb_assistant', use: 'Build an authorization checklist for a payer and service', fills: 'payer, service' },
+  { id: 'payer_updates', icon: '📰', name: 'Payer Updates', tab: 'wb_updates', use: 'Recent payer changes from bulletins', fills: 'payer' },
 ];
 
 const words = q => String(q ?? '').toLowerCase().split(/\s+/).filter(w => w.length > 1);
@@ -111,6 +134,31 @@ const findClient = (k, name) => (name?.trim() ? k.clients.find(c => c.name.toLow
   ?? k.clients.find(c => c.name.toLowerCase().includes(name.trim().toLowerCase())) : null);
 const findPayer = (k, name) => (name?.trim() ? searchPayers(k.payers, name, 1)[0] ?? null : null);
 const live = r => (r.error ? [] : (r.data ?? []).filter(x => x.active !== false));
+const findCode = (k, typed) => {
+  const raw = normCode(typed);
+  const code = raw ? k.codes.find(c => normCode(c.code) === raw.replace(/^(CO|PR|OA|PI|CR)[-:]?/, '')) : null;
+  return code ? (DENIAL_CODE.test(raw) ? raw : code.code) : '';   // only codes in the Denial library — never free text
+};
+
+/** What a 📍 button hands to its page: record (read by the page via navigate.js) and/or the appeal / note prefill. */
+function whereTo(id, { payer, client, code, service, sop }) {
+  const ids = { client_id: client ? String(client.id) : '', payer_id: payer ? String(payer.id) : '' };
+  switch (id) {
+    case 'appeal': return { appeal: { codes: code, ...ids } };
+    case 'claim_note': return { record: { tool: 'notes' }, note: { ...ids, denial_codes: code } };
+    case 'denial_navigator': return { record: { query: code } };
+    case 'deadlines': return { record: { tool: 'deadlines' } };
+    case 'payer_card': return { record: { payerId: payer.id } };
+    case 'sop': return { record: { query: sop?.title ?? '' } };
+    case 'portals': return { record: { tool: 'portals', clientId: client?.id ?? null } };
+    case 'client_query': return { record: { tab: 'mine' } };
+    case 'escalation': return { record: { tab: 'esc' } };
+    case 'auth_checklist': return { record: { tab: 'auth', payerId: payer?.id ?? null, service } };
+    case 'payer_updates': return { record: { tab: 'all', query: payer?.name ?? '' } };
+    default: return {};
+  }
+}
+
 const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && !v.length)));
 
 /** Runs one tool. Returns { result (JSON-able), sources: [{ kind, id, label }] }. */
@@ -234,6 +282,26 @@ async function runTool(name, input, k) {
     }
     case 'list_clients':
       return { result: k.clients.map(c => c.name), sources: [] };
+    case 'list_helix_tools':
+      return { result: HELIX_TOOLS.map(t => ({ tool: t.id, page: t.name, use_it_to: t.use, fills_in: t.fills })), sources: [] };
+    case 'show_where_to_do_it': {
+      const t = HELIX_TOOLS.find(x => x.id === input.tool);
+      if (!t) return { result: { error: 'Unknown tool — use list_helix_tools.' }, sources: [] };
+      const payer = findPayer(k, input.payer_name);
+      const client = findClient(k, input.client_name);
+      const code = findCode(k, input.code);
+      const service = AUTH_SERVICES.some(s => s.value === input.service) ? input.service : '';
+      const title = String(input.sop_title ?? '').trim().toLowerCase();
+      const sop = title ? k.sops.find(s => s.title?.toLowerCase() === title) ?? k.sops.find(s => hasAll([s.title], title)) : null;
+      if (t.id === 'payer_card' && !payer) return { result: { error: 'Payer not found — use search_payers first.' }, sources: [] };
+      const fills = {
+        appeal: [payer?.name, client?.name, code], claim_note: [payer?.name, client?.name, code], denial_navigator: [code],
+        payer_card: [payer?.name], sop: [sop?.title], portals: [client?.name], payer_updates: [payer?.name],
+        auth_checklist: [payer?.name, service && labelOf(AUTH_SERVICES, service)],
+      }[t.id] ?? [];
+      const label = [`${t.icon} ${t.name}`, fills.filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
+      return { result: { ok: true, button_added: label }, sources: [], actions: [{ tool: t.id, tab: t.tab, label, ...whereTo(t.id, { payer, client, code, service, sop }) }] };
+    }
     default:
       return { result: { error: `Unknown tool ${name}` }, sources: [] };
   }
@@ -241,20 +309,35 @@ async function runTool(name, input, k) {
 
 // ── The conversation ───────────────────────────────────────────────────────
 
+/** The line that starts the general-know-how part of an answer (shown in its own box). */
+export const GENERAL_LABEL = 'General guidance — check the payer / SOP:';
+
 const SYSTEM = `You are Helix, the assistant inside Helix Hub, the internal platform of 3Gen Consulting's revenue-cycle teams
 (AR, authorization, billing / posting, coding, credentialing) who work claims for home health, hospice and other agencies.
 
-Answer only from what the tools return: the Payer Directory, published SOPs, the Denial Navigator and Payer Updates. Look
-things up before answering — search first, then open the record. If the tools don't have it, say you couldn't find it in
-Helix Hub and name the page where it would belong; never fill gaps from general knowledge for phone or fax numbers,
-payer IDs, addresses or filing limits. Copy numbers, IDs and limits exactly as returned. When a client contract limit
-replaces the standard one, say so.
+1. Helix Hub data first. Look things up before answering — search first, then open the record — in the Payer Directory,
+published SOPs, the Denial Navigator, Payer Updates and auth rules. Name the source (payer card, SOP title, denial code,
+bulletin) for each fact. Copy numbers, IDs and limits exactly as returned. When a client contract limit replaces the
+standard one, say so.
+
+2. Then, when it helps, add general revenue-cycle know-how (how appeals, reconsiderations, claim-status calls, home
+health / hospice billing, authorizations or credentialing usually work). Put it after the Helix Hub part, starting on its
+own line with exactly "${GENERAL_LABEL}". If Helix Hub had nothing, say so in one sentence first.
+
+3. Phone and fax numbers, payer IDs, mailing addresses, portal links and filing / appeal / reconsideration limits come
+ONLY from the tools — never from general knowledge. If the tools don't have them, say they aren't in Helix Hub yet and
+name the page where they belong.
+
+4. When the user needs to do something in Helix Hub (write an appeal or claim note, work out a deadline, open a portal,
+raise a client query or escalation, build an auth checklist, open a payer card or SOP), call show_where_to_do_it for the
+one to three most useful pages (list_helix_tools says what each does). Each adds a 📍 button under your answer — no need
+to describe the buttons. Fill only payer, client, denial code, service or SOP title.
 
 The user's question was de-identified in their browser: [DATE], [NUMBER], [ID], [PHONE] and [EMAIL] stand for removed
 values — work without them and never ask for patient details.
 
-Write for busy staff: lead with the answer in one or two sentences, then short bullet points or numbered steps. Name the
-source (payer card, SOP title, denial code, bulletin) for each fact. No headings.`;
+Write for busy staff: lead with the answer in one or two sentences, then short bullet points or numbered steps. No
+headings.`;
 
 async function callClaude(key, system, messages, format) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -280,13 +363,14 @@ async function callClaude(key, system, messages, format) {
 /**
  * The lookup loop shared by Ask Helix and the Auth checklist (9.2): calls Claude, runs the tools it asks for in the
  * browser, repeats until it answers. messages are appended to, never edited (thinking blocks passed back exactly as
- * returned). format = optional json_schema for the final answer. Returns { text, sources, messages, lookups }.
+ * returned). format = optional json_schema for the final answer. Returns { text, sources, actions, messages, lookups }.
  */
 export async function converse({ system, messages: history, format = null, knowledge, onLookup }) {
   const key = await kv.get('anthropic_key');
   if (!key) throw new Error('NO_KEY');
   const messages = [...history];
   const sources = new Map();
+  const actions = new Map();
   let lookups = 0;
   for (let round = 0; round < MAX_LOOKUPS + 2; round++) {
     const json = await callClaude(key, system, messages, format);
@@ -296,7 +380,7 @@ export async function converse({ system, messages: history, format = null, knowl
     const calls = (json.content ?? []).filter(b => b.type === 'tool_use');
     if (json.stop_reason !== 'tool_use' || !calls.length) {
       const text = (json.content ?? []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
-      return { text, sources: [...sources.values()], messages, lookups };
+      return { text, sources: [...sources.values()], actions: [...actions.values()].slice(0, 4), messages, lookups };
     }
     // Every tool_use gets a tool_result, all in one user message
     const results = await Promise.all(calls.map(async c => {
@@ -306,8 +390,9 @@ export async function converse({ system, messages: history, format = null, knowl
       }
       onLookup?.(c.name);
       try {
-        const { result, sources: found } = await runTool(c.name, c.input ?? {}, knowledge);
+        const { result, sources: found, actions: buttons = [] } = await runTool(c.name, c.input ?? {}, knowledge);
         found.forEach(s => sources.set(`${s.kind}:${s.id}`, s));
+        buttons.forEach(a => actions.set(a.label, a));
         return { type: 'tool_result', tool_use_id: c.id, content: JSON.stringify(result).slice(0, RESULT_LIMIT) };
       } catch {
         return { type: 'tool_result', tool_use_id: c.id, is_error: true, content: 'This lookup failed.' };
@@ -320,7 +405,7 @@ export async function converse({ system, messages: history, format = null, knowl
 
 /**
  * Asks one (already de-identified) question. history = the API messages so far (append-only). onLookup(name) reports
- * progress. Returns { answer, sources, messages (the new history), lookups } or throws Error (NO_KEY when no AI key).
+ * progress. Returns { answer, sources, actions, messages (the new history), lookups } or throws Error (NO_KEY when no AI key).
  */
 export async function ask(question, history, knowledge, user, onLookup) {
   let ok = false;
@@ -331,9 +416,53 @@ export async function ask(question, history, knowledge, user, onLookup) {
     lookups = r.lookups;
     found = r.sources.length;
     ok = true;
-    return { answer: r.text || 'I couldn’t put an answer together — please try rephrasing.', sources: r.sources, messages: r.messages, lookups };
+    return { answer: r.text || 'I couldn’t put an answer together — please try rephrasing.', sources: r.sources, actions: r.actions, messages: r.messages, lookups };
   } finally {
     // Usage record only — never the question or the answer
     logAudit({ actor: user, action: 'assistant_ask', entityType: 'assistant', details: { lookups, sources: found, ok } });
   }
 }
+
+// ── Shared conversation (floating chat + Ask Helix page) — memory only ─────
+
+export const LOOKUP_LABELS = {
+  search_payers: 'Payer Directory', get_payer: 'payer card', search_sops: 'SOP Library', get_sop: 'SOP',
+  search_denial_codes: 'Denial Navigator', get_denial_steps: 'denial steps', search_payer_updates: 'Payer Updates',
+  list_clients: 'client list', get_auth_rules: 'auth rules', list_helix_tools: 'Helix Hub pages', show_where_to_do_it: 'Helix Hub pages',
+};
+
+let convo = { chat: [], history: [], busy: '' };   // chat: [{ role, text, sources?, actions?, error? }]; history: API messages
+let generation = 0;                                // bumped on reset / sign-out so a late answer is dropped
+const listeners = new Set();
+function setConvo(patch) { convo = { ...convo, ...patch }; listeners.forEach(l => l()); }
+
+/** For useSyncExternalStore: the floating panel and the Ask Helix page show the same conversation. */
+export const subscribeConversation = l => { listeners.add(l); return () => listeners.delete(l); };
+export const getConversation = () => convo;
+export function resetConversation() { generation += 1; setConvo({ chat: [], history: [], busy: '' }); }
+
+/** Sends one de-identified question; the answer lands in the shared conversation even if the panel was closed. */
+export async function sendQuestion(question, knowledge, user) {
+  if (convo.busy) return;
+  const gen = generation;
+  setConvo({ chat: [...convo.chat, { role: 'user', text: question }], busy: 'Thinking…' });
+  try {
+    const r = await ask(question, convo.history, knowledge, user, name => {
+      if (gen === generation) setConvo({ busy: `Looking in the ${LOOKUP_LABELS[name] ?? 'records'}…` });
+    });
+    if (gen !== generation) return;
+    setConvo({ history: r.messages, chat: [...convo.chat, { role: 'assistant', text: r.answer, sources: r.sources, actions: r.actions }], busy: '' });
+  } catch (e) {
+    if (gen !== generation) return;
+    setConvo({ busy: '', chat: [...convo.chat, { role: 'assistant', error: true,
+      text: e.message === 'NO_KEY' ? 'No AI key is saved in Settings — an admin can add one. Meanwhile use the Payer Directory, SOP Library or Denial Navigator search.' : e.message }] });
+  }
+}
+
+// Signing out wipes the conversation (App.jsx sends this event)
+if (typeof window !== 'undefined') window.addEventListener('helix:signed-out', resetConversation);
+
+// Pages this user can open (set by the floating launcher from the sidebar list) — 📍 buttons for other pages are hidden
+let helixTabs = null;
+export function setHelixTabs(ids) { helixTabs = ids; }
+export const helixCanOpen = id => !helixTabs || helixTabs.includes(id);
