@@ -129,6 +129,7 @@ export default function App() {
   const [updatesNew, setUpdatesNew] = useState(0);     // 8.2: unread payer changes for my team → count on Payer Updates
   const [pageVisit, setPageVisit] = useState(0);       // 10.1: bumped when search opens a record so the page remounts
   const [boardNew, setBoardNew] = useState(0);         // 10.3: unread must-read notices → count on Notice Board
+  const [navOpen, setNavOpen] = useState(false);       // calm navigation: ☰ drawer on phones
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -413,11 +414,15 @@ export default function App() {
         activeTab={activeTab}
         onTab={handleSetTab}
         tabs={sidebarTabs}
+        mobileOpen={navOpen}
+        onCloseMobile={() => setNavOpen(false)}
       />
+      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
       <div className="content-col">
         <header className="page-topbar topbar-blur">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <button className="nav-menu-btn" onClick={() => setNavOpen(true)} aria-label="Open menu" title="Menu">☰</button>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15.5, color: 'var(--text)' }}>{pageTitle}</span>
             {hasDeficit && (
               <span
@@ -437,7 +442,7 @@ export default function App() {
         {currentUser.isOwner && (
           <div style={{
             background: '#4c1d95', color: '#fff',
-            padding: '8px 18px', fontSize: 13, fontWeight: 600,
+            padding: '5px 16px', fontSize: 12.5, fontWeight: 600,   // calm navigation: thin banner
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <span>👑 Helix Hub owner — viewing {currentUser.viewing} with full admin access</span>
@@ -456,7 +461,7 @@ export default function App() {
         {!isAdmin && !isSupervisor && missedDay && !missedDismissed && (
           <div style={{
             background: '#f59e0b', color: '#1c1917',
-            padding: '9px 18px', fontSize: 13, fontWeight: 600,
+            padding: '5px 16px', fontSize: 12.5, fontWeight: 600,   // calm navigation: thin banner
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
             borderBottom: '1px solid #d97706',
           }}>

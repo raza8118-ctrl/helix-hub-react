@@ -338,6 +338,71 @@ a:hover { text-decoration: underline; }
 
 .sidebar-link .icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
 
+/* ─── Calm navigation: groups, pins, icons-only, phone drawer ─── */
+.sidebar { width: 224px; transition: width 0.18s ease; }
+.sidebar-nav { padding: 10px 10px; gap: 0; }
+.sidebar-brand { padding: 14px 12px 12px 16px; }
+.sidebar-brand .brand-company {
+  font-size: 10px; color: var(--sidebar-text-muted); line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nav-group { display: flex; flex-direction: column; gap: 1px; }
+.nav-group + .nav-group { margin-top: 2px; }
+.nav-group-head {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: transparent; border: none; cursor: pointer; text-align: left;
+  padding: 10px 8px 4px; border-radius: var(--radius-sm);
+}
+.nav-group-head:hover { color: var(--sidebar-text); }
+.nav-group-head:focus-visible, .nav-pin:focus-visible, .nav-icon-btn:focus-visible, .sidebar-link:focus-visible {
+  outline: 2px solid var(--sidebar-active-text); outline-offset: 1px;
+}
+.nav-chevron { display: inline-block; width: 10px; font-size: 13px; line-height: 1; transition: transform 0.15s ease; }
+.nav-chevron.open { transform: rotate(90deg); }
+.sidebar-row { position: relative; display: flex; align-items: center; }
+.sidebar-row .sidebar-link { padding: 7px 30px 7px 10px; gap: 10px; border-radius: var(--radius-sm); }
+.sidebar-link-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nav-count {
+  margin-left: auto; min-width: 18px; padding: 1px 6px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 700; text-align: center; line-height: 16px;
+}
+.nav-pin {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; cursor: pointer; padding: 2px 5px; border-radius: 4px;
+  font-size: 12px; color: var(--sidebar-text-muted); opacity: 0; transition: opacity 0.15s ease;
+}
+.sidebar-row:hover .nav-pin, .nav-pin:focus-visible, .nav-pin.pinned { opacity: 1; }
+.nav-pin.pinned { color: #fbbf24; }
+.nav-pin:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
+.nav-divider { height: 1px; background: var(--sidebar-border); margin: 6px 8px; }
+.nav-icon-btn {
+  background: transparent; border: 1px solid var(--sidebar-border); border-radius: 6px;
+  padding: 4px 7px; cursor: pointer; font-size: 13px; line-height: 1; color: var(--sidebar-text-muted); flex-shrink: 0;
+}
+.nav-icon-btn:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
+.sidebar-footer { padding: 10px 12px; }
+.sidebar-me { display: flex; align-items: center; gap: 6px; }
+
+/* Icons only (« button) */
+.sidebar.compact { width: 64px; }
+.sidebar.compact .sidebar-brand { flex-direction: column; gap: 8px; padding: 12px 0; }
+.sidebar.compact .sidebar-nav { padding: 8px 6px; }
+.sidebar.compact .sidebar-link { justify-content: center; padding: 8px 0; gap: 0; position: relative; border-left-width: 0; }
+.sidebar.compact .sidebar-link .icon { font-size: 17px; width: auto; }
+.sidebar.compact .nav-count { position: absolute; top: 1px; right: 4px; min-width: 15px; padding: 0 4px; font-size: 9.5px; line-height: 14px; }
+.sidebar.compact .sidebar-me { flex-direction: column; }
+
+/* Phone menu button (top bar) — hidden on wide screens */
+.nav-menu-btn {
+  display: none; background: transparent; border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 9px; font-size: 16px; line-height: 1; cursor: pointer; color: var(--text);
+}
+.nav-backdrop { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .nav-chevron { transition: none; }
+}
+
 .sidebar-footer {
   border-top: 1px solid var(--sidebar-border);
   padding: 14px 16px;
@@ -501,16 +566,23 @@ body.stars .stat-card {
 body.stars .tbl-wrap,
 body.stars .table-wrap { background: var(--surface); }
 
+/* Phones: the sidebar is a slide-in drawer opened by ☰ in the top bar */
 @media (max-width: 768px) {
   .app-shell { flex-direction: column; }
   .sidebar {
-    width: 100%; height: auto; flex-direction: row; align-items: center;
-    position: sticky; top: 0; z-index: 101;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 1000;
+    width: min(300px, 86vw); height: 100vh; height: 100dvh;
+    transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: none;
   }
-  .sidebar-brand { border-bottom: none; border-right: 1px solid var(--sidebar-border); }
-  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 8px; }
-  .sidebar-section-label { display: none; }
-  .sidebar-footer { display: none; }
+  .sidebar.open { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,0.45); }
+  .sidebar-row .sidebar-link { padding-top: 10px; padding-bottom: 10px; }   /* bigger tap targets */
+  .nav-pin { opacity: 1; }
+  .nav-menu-btn { display: inline-block; }
+  .nav-backdrop { display: block; position: fixed; inset: 0; z-index: 999; background: rgba(10,9,24,0.5); }
+  .page-topbar { padding: 0 12px; }
+}
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
 }
 
 /* ─── Card ─── */

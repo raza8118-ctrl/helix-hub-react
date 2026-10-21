@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — extra: floating “Ask Helix” chat button done; 9.4 on hold (BAA + compliance sign-off); 10.4 marked “later”._
+_Last updated: 2026-10-21 — extras: floating “Ask Helix” button and calm navigation (grouped sidebar) done; 9.4 on hold; 10.4 “later”._
 
 ---
 
@@ -21,7 +21,9 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**Extra (PO request 2026-10-21, off-roadmap) — “Calm navigation” redesign — plan approved, building.**
+**Extra (PO request 2026-10-21, off-roadmap) — “Calm navigation” redesign — DONE (awaiting browser testing).** Built as
+planned. Sign out is now the ⏻ button beside the theme toggle; counts show as small pills (sum on a closed group).
+Lint / build could not run here (no Node on this PC) — the Vercel build is the check.
 PO: the app looks bulky. Scope = navigation only (pages unchanged); no DB change; nothing removed.
 - Workbench split into foldable groups: **Daily work** (Smart Worklist, Client Queries, Handover & Escalations, Notice
   Board) · **Claims & denials** (Denial Navigator, Appeal Builder, AR Tools, Medicare Trackers) · **Payers & reference**
@@ -1417,6 +1419,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 10.2 | Reports: denial trends (payer / client / week / code + outcomes, table views, Excel), weekly client report (claims, denials, queries, escalations, Medicare, payer changes; email text, print, Excel, AI summary from numbers), optional worklist denial code | 574176f |
 | 10.3 | Notice Board: notices by category / team / client, pinned, show from-until, must-read with read tracking, SOP / payer / payer-update links, sidebar count, global search group (Announcements unchanged) | 52b0b22 |
 | Extra | Floating 🤖 Ask button + panel (shared memory-only conversation), Ask Helix: Helix data first then labelled general guidance, 📍 “Where to do it” buttons (`list_helix_tools` / `show_where_to_do_it`), no DB change | 14b42d1 |
+| Extra | Calm navigation: Workbench split into 4 foldable groups, all sections foldable, ⭐ pins (6), « icons-only, ☰ phone drawer, thinner banners (no DB change) | (this commit) |
 
 ---
 
