@@ -21,9 +21,25 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 7.1 is done.** Next: **7.2 – Error library (“mistakes and fixes”)** — needs a plan and a “go”.
-Building blocks: QA error categories + failed checkpoints with linked SOPs (7.1, `qa_audits.results`), SOP Library,
-`openSopLibrary(query)` hand-off in `sops.js`.
+**7.2 – Error library (“mistakes and fixes”) — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: a tab on QA Audits, not its own sidebar page; everyone can suggest; QA flag can edit;
+180-day re-check):
+- QA Audits tab **📖 Mistakes & fixes** (everyone). Entry: title, team, QA error category, severity Low / Medium / High,
+  What goes wrong, Why it matters, How to fix it now (numbered steps), How to avoid it; optional SOP (📚), client, payer,
+  denial code (→ Denial Navigator); “✓ Checked” date + re-check badge after 180 days; “Seen in QA in the last 90 days: N”.
+- Search + filters: team, category, client, payer, severity.
+- QA link (no DB change — saved in `qa_audits.results`): failed checkpoint → optional “Known mistake” (`mistake_id`);
+  My audits shows 📖 How to fix; Results gains “Most common known mistakes”.
+- Permission `mistakes_edit` “Edit error library” (admin/manager + QA flag, grantable). Everyone can 💡 Suggest →
+  review list → editors publish or turn off. Never deleted. “Add starter entries” (~8, our wording).
+- PHI: every text field checked with `phiIssues`; entries never tied to a specific claim.
+- DB: `supabase/migrations/20261021n_error_library.sql` → `qa_mistakes` (id, title, team, category_id, severity,
+  what_happened, why_it_matters, fix_steps, prevent_steps, sop_id, client_id, payer_id, denial_code, status
+  suggested/published, suggested_by, verified_at/by, active, created/updated).
+- Files: new `src/lib/mistakes.js`, `src/pages/workbench/ErrorLibrary.jsx`, `MistakeEditor.jsx`; changed `QaAudits.jsx`,
+  `QaAuditForm.jsx`, `MyQaAudits.jsx`, `QaResults.jsx`, `access.js`, `auditLabels.js`. Audit
+  `mistake_add/edit/suggest/publish/verify/activate/deactivate` (ids only).
 
 ### Reference: how 7.1 was built (done)
 
