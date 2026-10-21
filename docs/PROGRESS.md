@@ -21,11 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 8.3 is done — Phase 8 is complete.** Next: **9.1 – AI assistant that searches the Payer
-Directory, SOPs, Denial Navigator and Payer Updates (PHI-free mode, de-identify input)** — needs a plan and a “go”.
-Building blocks: `searchPayers` (payers.js), SOP Library (`loadSopLibrary`, `sopText.js`), Denial library
-(`searchCodes` / `loadStepContext` / `loadPayerInfo`), Payer Updates (`loadBulletins`), PHI checker `phiIssues`
-(appealAI.js), browser AI call pattern + Settings key, `openSopLibrary` hand-off.
+**9.1 – Ask Helix (AI assistant over Helix Hub data, PHI-free) — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: everyone, no per-person switch; up to 8 lookups per question; last 10 messages kept in
+memory only; patient words block sending, dates / numbers / IDs / phones / emails replaced):
+- New sidebar page **🤖 Ask Helix** (`wb_assistant`): chat; short answers only from Helix Hub data with source chips
+  (Payer Directory / SOP Library / Denial Navigator / Payer Updates); 📋 Copy answer.
+- Browser-run tools (manual loop, `strict` inputs): `search_payers` / `get_payer` (contacts, IDs, plans, limits incl. a
+  named client's override, notes), `search_sops` / `get_sop` (published versions only), `search_denial_codes` /
+  `get_denial_steps` (client → payer → common), `search_payer_updates`, `list_clients`. Never invents numbers; says when
+  nothing is found.
+- PHI-free mode: local check before sending — dates / long numbers / ID-like codes / phones / emails → `[DATE]`
+  `[NUMBER]` `[ID]` `[PHONE]` `[EMAIL]` (CARC/RARC like CO-16 / N290 kept); patient words (DOB, MRN, member ID, MBI,
+  SSN, patient name) block sending; “This is what will be sent” preview when replaced; permanent no-names note. Only the
+  cleaned question + reference data go to Claude. Conversation in memory only. Audit `assistant_ask` counts only.
+- Claude Opus 5.5, medium effort, `fallbacks: "default"`, browser fetch + Settings key. No key → message + links.
+- No DB change, no new permission. Files: new `src/lib/assistant.js`, `src/pages/workbench/AskHelix.jsx`; changed
+  `modules.js`, `WorkbenchApp.jsx`, `auditLabels.js` (+ small SOP open hand-off in `sops.js` only if needed).
 
 ### Reference: how 8.3 was built (done)
 
