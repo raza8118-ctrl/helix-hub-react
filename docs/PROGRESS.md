@@ -21,8 +21,29 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 7.2 is done.** Next: **7.3 – Client Query Log with aging** — needs a plan and a “go”.
-Building blocks: clients (0.5), payers, audit log, follow-up reminders pattern (6.5), PHI rules (minimum fields, no BAA).
+**7.3 – Client Query Log with aging — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: strict `phiIssues` check on question / answer / notes (dates blocked too); chase every 3
+working days; everyone sees all queries, changes only their own; no sidebar badge):
+- New Workbench page **💬 Client Queries** (`wb_queries`, everyone). New query: client, team, category (Documentation ·
+  Authorization · Demographics / insurance · Coding · Billing hold · Credentialing · Payment / refund · Other), priority
+  Normal / Urgent, payer + claim # (optional), question, asked via (email / portal / call / meeting), asked on, expected
+  answer (+3 working days), owner (me), client contact name. Reference **Q-0042**.
+- **My queries** (chase-due / overdue first): 📨 Chase (copy-ready message, logged), ✓ Answered (summary), Close, Cancel,
+  Reopen, ⚑ Escalate; history timeline.
+- **All queries**: search + filters client / status / category / owner / age; `queries_manage` (admin/manager/supervisor)
+  reassigns and acts on anyone's.
+- **📊 Aging**: per client open by age 0–2 / 3–7 / 8–14 / 15–30 / 30+, overdue, escalated, average days to answer; per
+  owner open / overdue; Excel without claim #.
+- Statuses: open → waiting (on client) → answered → closed, or cancelled; reopen. Chase due = unanswered and 3 working
+  days since asked / last chased.
+- PHI: minimum fields; texts checked with `phiIssues`; claim # wiped 90 days after closing; chase message = reference,
+  client, category, asked date, question.
+- DB: `supabase/migrations/20261021o_client_queries.sql` → `client_queries`, `client_query_events` (query_id, kind,
+  note, emp_id, created_at).
+- Files: new `src/lib/clientQueries.js`, `src/pages/workbench/ClientQueries.jsx`, `QueryEditor.jsx`, `QueryList.jsx`,
+  `QueryAging.jsx`; changed `modules.js`, `WorkbenchApp.jsx`, `access.js`, `auditLabels.js`. Audit
+  `query_add/edit/chase/answer/close/cancel/reopen/escalate/assign` (ids only).
 
 ### Reference: how 7.2 was built (done)
 
