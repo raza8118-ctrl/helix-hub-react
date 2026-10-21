@@ -138,6 +138,15 @@ export const WORKBENCH_MODULES = [
       'Answers only from Helix Hub data, with links to the source records',
     ],
   },
+  {
+    id: 'wb_credentialing', label: 'Credentialing', icon: '🪪', phase: 9,
+    purpose: 'Payer enrollments, CAQH, revalidations and expiring licenses — with what is due next.',
+    planned: [
+      'Due soon: CAQH every 120 days, revalidations, expiring licenses, stuck enrollments',
+      'Provider status checklist and client × payer enrollment grid',
+      'AI enrollment checklist from Helix Hub data',
+    ],
+  },
 ];
 
 export const WORKBENCH_TABS = WORKBENCH_MODULES.map(m => ({

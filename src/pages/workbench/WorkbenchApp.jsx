@@ -15,6 +15,7 @@ const HandoverEscalations  = lazy(() => import('./HandoverEscalations'));
 const MedicareTrackers     = lazy(() => import('./MedicareTrackers'));
 const PayerUpdates         = lazy(() => import('./PayerUpdates'));
 const AskHelix             = lazy(() => import('./AskHelix'));
+const Credentialing        = lazy(() => import('./Credentialing'));
 
 /** Routes Workbench tabs (every role) — built modules get their page, the rest a "Coming soon" page. */
 export default function WorkbenchApp({ activeTab, user }) {
@@ -33,6 +34,7 @@ export default function WorkbenchApp({ activeTab, user }) {
     case 'wb_medicare': return <MedicareTrackers user={user} />;
     case 'wb_updates':  return <PayerUpdates user={user} />;
     case 'wb_assistant': return <AskHelix user={user} />;
+    case 'wb_credentialing': return <Credentialing user={user} />;
     default:          return <WorkbenchPlaceholder tabId={activeTab} />;
   }
 }

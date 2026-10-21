@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 9.2 (auth assistant) done; next is 9.3._
+_Last updated: 2026-10-21 — step 9.3 (credentialing assistant) done; next is 9.4 (needs BAA + compliance sign-off first)._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 9.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.4.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 9.4 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**9.3 – Credentialing assistant — plan approved 2026-10-21, building.**
+**None in progress. Step 9.3 is done.** Next on the roadmap: **9.4 – Coding assistant (MR / OASIS → code suggestions)**
+— the roadmap says it **requires BAA-covered AI, hosting and database + compliance sign-off before starting** (it would
+process medical records = PHI). Do not plan or build it until the product owner confirms those are in place; offer
+Phase 10 (10.1 global search, 10.2 reports, 10.3 announcements board, 10.4 Chrome extension “later”) instead.
+
+### Reference: how 9.3 was built (done)
+
+`src/lib/credentialing.js`: option lists (`KINDS`, `PROVIDER_TYPES`, `ENROLL_STATUSES` with badges, `ITEM_TYPES`,
+`CHECKLIST_REQUESTS`), `CRED_RECORDS` config (provider / enrollment / expirable: table, entity, fields), `checkCred`,
+`saveCred` (extra = parent link), `patchCred`, `setCredActive`, `loadCred` (null until the migration), `BANDS` +
+`bandOf`, `dueItems` (CAQH / reval / expirable / stuck, ≤ 90 days), `statusChecklist` (copy text), `suggestReval`,
+`buildEnrollmentChecklist` (Ask Helix `converse` + json_schema; audit `cred_checklist`). `followups.js`: action
+`credentialing`. UI: `Credentialing.jsx` (tabs, due count, payer card in place for sources, knowledge loaded only for the
+checklist tab), `CredDueSoon.jsx` (bands, ✓ Attested / Followed up today, Update date, ⏰ Add to my follow-ups, Open),
+`CredProviders.jsx` (list + provider page: CAQH, enrollments, licenses, 📋 Copy status checklist, edit / inactive),
+`CredEnrollments.jsx` (provider × payer grid, click to edit / + to add with `preset`, Excel), `CredEditor.jsx`
+(config-driven; Medicare “approval + 5 years” button), `CredChecklist.jsx`. `access.js`: `credentialing_edit`.
 
 Plan as approved (defaults: CAQH every 120 days; warnings 90 / 60 / 30 days; enrollment “stuck” after 30 days without a
 follow-up; Medicare revalidation = suggested approval + 5 years, the MAC notice wins; everyone views, `credentialing_edit`
@@ -1277,6 +1293,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 8.3 | Directory suggestions: AI reads a bulletin for contacts / payer IDs / base limits / notes with evidence, compared with the directory, reviewed + approved by payers_edit (written + verified, payer card history), payer card notice | e094416 |
 | 9.1 | Ask Helix: AI assistant with browser-run lookups (payers, published SOPs, denial steps, payer updates), PHI-free de-identification, source links, memory-only chat (no DB change) | 544c6a6 |
 | 9.2 | Auth assistant: payer card 🔐 Authorization rules, Ask Helix 🔐 Auth checklist (sourced, structured), claim note copy, “Auth decision due” follow-up, `get_auth_rules` lookup | c822a08 |
+| 9.3 | Credentialing: Due soon (CAQH 120 days, revalidations, expirables, stuck enrollments), providers + status checklist, provider × payer enrollment grid + Excel, AI enrollment checklist, `credentialing_edit` | (this commit) |
 
 ---
 
@@ -1314,6 +1331,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 28. `supabase/migrations/20261021s_payer_update_reads.sql` (who read each payer change, step 8.2)
 29. `supabase/migrations/20261021t_payer_suggestions.sql` (suggested Payer Directory changes from bulletins, step 8.3)
 30. `supabase/migrations/20261021u_payer_auth_rules.sql` (authorization rules per payer + service, step 9.2)
+31. `supabase/migrations/20261021v_credentialing.sql` (credentialing providers, payer enrollments, expiring items, step 9.3)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1355,6 +1373,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Directory suggestions:** approval = `payers_edit` (no new permission); AI suggestions run automatically after an AI-extracted bulletin is saved and on “💡 Suggest directory changes”; base rows only (no plan-specific rows, no client contract limits); compared again at approval time (add vs update, identical skipped); approved rows verified today and logged as `add_payer_info` / `edit_payer_info` with `payer_id` (shows in the payer card 🕘 History); rejected kept.
 - **Ask Helix:** PHI-free always on — patient words block sending; dates / long numbers / ID-like codes / phones / emails → placeholders with a “what will be sent” preview (CARC / RARC kept); only the cleaned question + reference data go to Claude; tools run in the browser (manual loop, `strict`, max 8 lookups); history append-only and capped at 10 questions per conversation (thinking blocks passed back unchanged); memory only; audit `assistant_ask` counts only; open to everyone, no new permission.
 - **Auth assistant:** rules per payer + service (+ optional plan), no client-specific rules, maintained by `payers_edit` in the payer card (90-day re-check like the directory); checklist request = selections only (no patient fields / dates); “unknown” + missing list when no rule; follow-up = today + decision working days (3 when unknown) as a 6.5 reminder `auth_decision`.
+- **Credentialing:** everyone views; `credentialing_edit` (admin/manager, grant to the Credentialing team) edits; no SSN / DOB / home address fields; CAQH due = last attestation + 120 days; warnings 90 / 60 / 30; enrollment stuck = submitted / in process with no follow-up for 30 days; Medicare revalidation suggestion = approval + 5 years (button only, the MAC notice wins); AI checklist sends only payer + provider type + request.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

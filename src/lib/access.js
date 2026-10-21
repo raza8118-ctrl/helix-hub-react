@@ -62,6 +62,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'medicare_manage', label: 'Manage Medicare trackers', defaultRoles: MONITORS },
   // Payer Updates (8.1): everyone reads the feed; uploading bulletins (AI extraction) is gated
   { group: 'Tools', key: 'payer_updates_edit', label: 'Manage payer updates', defaultRoles: MANAGERS },
+  // Credentialing (9.3): everyone views providers / enrollments / due dates; editing is gated (grant to the Credentialing team)
+  { group: 'Tools', key: 'credentialing_edit', label: 'Manage credentialing', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,
