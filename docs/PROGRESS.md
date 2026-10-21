@@ -21,10 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 8.2 is done.** Next: **8.3 – Suggest updates to the Payer Directory from bulletins (admin
-approves)** — needs a plan and a “go”. Building blocks: `payer_updates` rows (8.1/8.2) with payer match, Payer Directory
-tables (`payer_contacts`, `payer_ids`, `payer_limits`, `payer_notes`, `payers.aliases`) + editors in `PayerCard.jsx`,
-change history / verified dates (1.6), `payers_edit`, AI call in `payerUpdates.js`.
+**8.3 – Suggested Payer Directory updates from bulletins — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: approval = `payers_edit` (no new permission); suggestions run automatically after an AI
+bulletin is saved (second AI call); base limits only — client overrides stay manual; approved rows marked verified today):
+- **💡 Suggest directory changes** on each bulletin (By bulletin, `payer_updates_edit`) and automatically after an
+  AI-extracted save: Claude re-reads the PDF for directory facts only — Contact (department + phone / fax / email /
+  portal / mailing address / attention line / hours), Payer ID (electronic payer ID, clearinghouse, transaction), Filing
+  / appeal limit (TFL / CCTFL / AFL / RECON, level, days, measured from — base only), Payer note (category + text); each
+  with the quoted evidence + page. In the browser: payer matched like 8.1, compared with the current directory
+  (department / transaction / limit type + level) → Add new or Change with current → suggested; identical → dropped.
+- **🛠 Directory suggestions** tab (pending count) for `payers_edit`: grouped by payer, evidence + Open PDF, edit before
+  approving, pick a payer when unmatched; ✓ Approve → insert or update the directory row, verified today, logged as
+  `add_payer_info` / `edit_payer_info` with payer id + “from bulletin” (shows in payer card 🕘 History); ✕ Reject with
+  optional reason; nothing auto-applied or deleted.
+- Payer card: “💡 N suggested changes from bulletins → Review” line for editors (additive).
+- DB: `supabase/migrations/20261021t_payer_suggestions.sql` → `payer_directory_suggestions` (id, bulletin_id, payer_id,
+  payer_name, section contact/payer_id/limit/note, action add/update, target_row_id, proposed jsonb, current jsonb,
+  evidence, source_page, status pending/approved/rejected, decided_by/at, reason, applied_row_id, created_at).
+- Files: new `src/lib/payerSuggestions.js`, `src/pages/workbench/DirectorySuggestions.jsx`, `SuggestionEditor.jsx`;
+  changed `PayerUpdates.jsx`, `BulletinList.jsx`, `BulletinUpload.jsx`, `PayerCard.jsx` (notice only), `auditLabels.js`.
+  Audit `directory_suggest`, `directory_suggestion_approve/reject`.
 
 ### Reference: how 8.2 was built (done)
 
