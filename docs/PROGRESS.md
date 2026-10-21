@@ -21,10 +21,25 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 6.5 is done.** Next: **6.6 – Portal launchpad per client** (last step of Phase 6) — needs a plan
-and a “go”. Building blocks: SOP Library software with `portal_url` (3.1 + standard software 3.7), payer contacts with
-`portal_url` (Payer Directory), clients (0.5). Never store portal passwords (the SOP software field already says so).
-Any new File Tools PDF output must use the shared save step `PdfSaveOptions.jsx`.
+**6.6 – Portal launchpad per client — plan approved 2026-10-21, building.** (Last step of Phase 6.)
+
+Plan as approved (defaults: portal opens not logged; ⭐ favourites in the browser only; 180-day link re-check; no
+“Open all” because browsers block several pop-ups):
+- AR Tools **🚀 Portal launchpad** (everyone). Pick a client → tiles in 3 groups: **Client software** (from the SOP
+  Library; a client-specific link overrides the standard one), **Payer portals** (payer + Payer Directory portal link or
+  a client-specific one), **Other links** (custom name + URL). “All clients” links show for every client.
+- Tile: Open ↗ (new tab), Copy link, 📚 How-to (linked SOP for that software, opens the SOP Library), plain access note
+  (“ask supervisor; MFA goes to the team phone”). No password field; notes with “password / pwd / pin:” can't be saved.
+- ⭐ per-person favourites first (localStorage); search box; “✓ Link checked” date, “re-check” badge after 180 days.
+- Permission `portals_edit` “Manage portal links” (admin/manager, grantable): tick software, add payers, add custom
+  links, order, turn off (never deleted).
+- Before the migration: read-only list of every SOP software login link + every Payer Directory portal link, with a
+  “not set up yet” note.
+- DB: `supabase/migrations/20261021l_client_portals.sql` → `client_portals` (id, client_id null = all clients, kind
+  software/payer/custom, software_id, payer_id, label, url, access_note, sort_order, verified_at/by, active,
+  created/updated). No credentials, no PHI.
+- Files: new `src/lib/portals.js`, `src/pages/workbench/PortalLaunchpad.jsx`, `PortalEditor.jsx`; changed `ARTools.jsx`,
+  `src/lib/access.js`, `src/lib/auditLabels.js`. Audit `portal_add/edit/verify/activate/deactivate` (ids only).
 
 ### Reference: how 6.5 was built (done)
 
