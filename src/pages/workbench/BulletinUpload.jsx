@@ -60,8 +60,9 @@ export default function BulletinUpload({ ctx, user, onSaved }) {
     const saved = await saveBulletin(file, bulletin, rows, { pages: scan.pages, ai }, user);
     setBusy('');
     if (!saved) return setError('Could not save. Please try again.');
+    const pdf = file;
     pick(null);
-    onSaved(saved);
+    onSaved(saved, ai ? pdf : null);   // 8.3: an AI-read bulletin also gets directory suggestions (PDF still in memory)
   }
 
   return (

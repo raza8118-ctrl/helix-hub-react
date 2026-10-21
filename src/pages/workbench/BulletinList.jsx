@@ -10,7 +10,7 @@ const cell = { padding: '5px 8px', borderBottom: '1px solid var(--border)', text
  * 📋 Recent updates (roadmap 8.1): saved bulletins with their changes, newest first; filter by payer and team;
  * Open PDF (60-second private link). The full searchable list, Excel and notifications come in 8.2.
  */
-export default function BulletinList({ bulletins, ctx, user, canEdit, onChanged }) {
+export default function BulletinList({ bulletins, ctx, user, canEdit, onChanged, onSuggest, suggesting }) {
   const [payer, setPayer] = useState('ALL');          // 'ALL' | payer id | 'name:<text>'
   const [team, setTeam] = useState('ALL');
   const [showOff, setShowOff] = useState(false);
@@ -75,6 +75,11 @@ export default function BulletinList({ bulletins, ctx, user, canEdit, onChanged 
             </div>
             <span className="row" style={{ gap: 4 }}>
               {b.file_path && <button className="btn-sm" onClick={() => openPdf(b)}>Open PDF ↗</button>}
+              {canEdit && onSuggest && b.file_path && b.active !== false && (
+                <button className="btn-sm" disabled={!!suggesting} onClick={() => onSuggest(b)} title="Find Payer Directory changes in this bulletin (8.3)">
+                  {suggesting === b.id ? 'Reading…' : '💡 Suggest directory changes'}
+                </button>
+              )}
               {canEdit && <button className="btn-sm" onClick={() => toggle(b)}>{b.active === false ? 'Turn on' : 'Turn off'}</button>}
             </span>
           </div>

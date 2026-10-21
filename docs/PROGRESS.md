@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — step 8.2 (payer updates feed) done; next is 8.3._
+_Last updated: 2026-10-21 — step 8.3 (directory suggestions) done; Phase 8 complete; next is 9.1._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 8.3.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 8.3 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 9.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 9.1 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,27 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**8.3 – Suggested Payer Directory updates from bulletins — plan approved 2026-10-21, building.**
+**None in progress. Step 8.3 is done — Phase 8 is complete.** Next: **9.1 – AI assistant that searches the Payer
+Directory, SOPs, Denial Navigator and Payer Updates (PHI-free mode, de-identify input)** — needs a plan and a “go”.
+Building blocks: `searchPayers` (payers.js), SOP Library (`loadSopLibrary`, `sopText.js`), Denial library
+(`searchCodes` / `loadStepContext` / `loadPayerInfo`), Payer Updates (`loadBulletins`), PHI checker `phiIssues`
+(appealAI.js), browser AI call pattern + Settings key, `openSopLibrary` hand-off.
+
+### Reference: how 8.3 was built (done)
+
+`src/lib/payerSuggestions.js`: `SUGGESTION_SECTIONS` (contact / payer_id / limit / note → table, entity, payer-card
+section title, match key, fields with payerOptions lists; phones compared by digits), `showValue`, AI `SYSTEM` + flat
+json_schema (all fields strings, enums allow ""), `askClaude` (same fetch shape as 8.1), `cleanValues`,
+`compareWithDirectory` (base rows only; note = exact text; returns add / update (changed fields) / same),
+`suggestFromBulletin` (PDF from memory or downloaded from the private bucket, payer via `matchPayerName`, identical
+dropped, pending duplicates skipped, audit `directory_suggest` counts only), `loadSuggestions` (null until the
+migration), `pendingForPayer`, `approveSuggestion` (re-compares now, update changed fields or insert, verified today,
+`edit_payer_info` / `add_payer_info` with payer_id + source + suggestion_id, then `directory_suggestion_approve`),
+`rejectSuggestion`, `openSuggestions` / `peekOpenSuggestions` hand-off. UI: `DirectorySuggestions.jsx` (status filter,
+grouped by payer, current → suggested, evidence, Open PDF, Reject with reason, Review & approve), `SuggestionEditor.jsx`
+(payer pick, editable fields with “Now in the directory”), `PayerUpdates.jsx` (🛠 tab with pending count for
+`payer_updates_edit` / `payers_edit`, `runSuggest`, auto-run after an AI save via `BulletinUpload` `onSaved(saved, pdf)`),
+`BulletinList.jsx` (💡 button), `PayerCard.jsx` (pending notice + Review › with confirm).
 
 Plan as approved (defaults: approval = `payers_edit` (no new permission); suggestions run automatically after an AI
 bulletin is saved (second AI call); base limits only — client overrides stay manual; approved rows marked verified today):
@@ -1177,6 +1197,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 7.5 | Medicare Trackers: ADR tracker (+ ask client / escalate), overpayments & credit balances (60-day refund, quarter view), RTP / suspense monitor (FISS upload, patient columns dropped, auto-clear), overview + Excel | 3c9c8a4 |
 | 8.1 | Payer Updates: bulletin PDF upload with patient-word scan + confirmation, AI extraction (Claude Opus 5.5, structured output), review / edit rows, private PDF storage, recent updates feed | 8d7c08e |
 | 8.2 | Payer Updates feed: For my team (✓ Got it, read counts, sidebar count), All updates search + effective filters + Excel, edit / retire changes | 548b8d9 |
+| 8.3 | Directory suggestions: AI reads a bulletin for contacts / payer IDs / base limits / notes with evidence, compared with the directory, reviewed + approved by payers_edit (written + verified, payer card history), payer card notice | (this commit) |
 
 ---
 
@@ -1212,6 +1233,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 26. `supabase/migrations/20261021q_medicare_trackers.sql` (ADRs, overpayments / credit balances, RTP / suspense items + uploads, history, step 7.5)
 27. `supabase/migrations/20261021r_payer_updates.sql` (payer bulletins + extracted changes, private `payer-bulletins` bucket, step 8.1)
 28. `supabase/migrations/20261021s_payer_update_reads.sql` (who read each payer change, step 8.2)
+29. `supabase/migrations/20261021t_payer_suggestions.sql` (suggested Payer Directory changes from bulletins, step 8.3)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -1250,6 +1272,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Medicare Trackers:** own sidebar page `wb_medicare`; one config per tracker (`TRACKERS` in `medicareTrackers.js`) drives a shared editor + list; defaults ADR due = letter + 45, refund due = identified + 60, CMS-838 = quarter end + 30 (all labelled “check current rules”); RTP upload snapshot per client, claims missing from the new file → “Cleared from FISS”; `medicare_manage` (admin/manager/supervisor) uploads / assigns / changes all; claim # / DCN wiped 90 days after closed.
 - **Payer Updates AI:** the whole bulletin PDF goes to Claude as a base64 document block (browser `fetch`, Settings key, `claude-opus-5-5`, effort medium, `fallbacks: "default"`, json_schema output); no Anthropic SDK dependency (package-lock can’t be regenerated without Node); uploader must tick “no patient information” every time, plus a second tick when the local pdf.js scan finds patient words; AI rows are suggestions — reviewed before saving; usage logged (pages, rows, ok) never the text; `payer_updates_edit` (admin/manager) uploads.
 - **Payer Updates notices:** in-app only (no email / SMS); “new” = added in the last 30 days, for my team or changes listing no team (no team on the user → all); sidebar “Payer Updates (N)” from `PayerUpdatesBadge` (15 min + `helix:payer-updates-changed`); read counts per team for admins / managers / supervisors; changes retired, never deleted.
+- **Directory suggestions:** approval = `payers_edit` (no new permission); AI suggestions run automatically after an AI-extracted bulletin is saved and on “💡 Suggest directory changes”; base rows only (no plan-specific rows, no client contract limits); compared again at approval time (add vs update, identical skipped); approved rows verified today and logged as `add_payer_info` / `edit_payer_info` with `payer_id` (shows in the payer card 🕘 History); rejected kept.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 

@@ -8,6 +8,7 @@ import { confirmDialog } from '../../components/shared/Dialog';
 import { actionLabel } from '../../lib/auditLabels';
 import PayerForms from './PayerForms';
 import { VerifiedBadge, ReportWrongInfo, OpenReports } from './PayerAccuracy';
+import { pendingForPayer, openSuggestions } from '../../lib/payerSuggestions';
 import {
   LINES_OF_BUSINESS, BLUECARD, CLEARINGHOUSES, TRANSACTIONS, DEPARTMENTS, LIMIT_TYPES,
   MEASURED_FROM, NOTE_CATEGORIES, labelOf, orderOf,
@@ -203,6 +204,7 @@ export default function PayerCard({ payer, user, onClose }) {
   const [names, setNames]       = useState({});                  // emp_id → name, for "verified by"
   const [reports, setReports]   = useState(undefined);           // null = reports table missing
   const [history, setHistory]   = useState(null);                // null = closed
+  const [suggested, setSuggested] = useState(0);                  // 8.3: pending directory suggestions from bulletins
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,6 +219,11 @@ export default function PayerCard({ payer, user, onClose }) {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadReports(); }, [loadReports]);
+  useEffect(() => {
+    let alive = true;
+    if (canEdit) pendingForPayer(payer.id).then(n => { if (alive) setSuggested(n); });
+    return () => { alive = false; };
+  }, [canEdit, payer.id]);
   useEffect(() => {
     db('users').select('emp_id,name').then(({ data: rows }) =>
       setNames(Object.fromEntries((rows ?? []).map(u => [u.emp_id, u.name ?? u.emp_id]))));
@@ -393,6 +400,15 @@ export default function PayerCard({ payer, user, onClose }) {
       </div>
 
       {canEdit && <OpenReports payer={payer} reports={reports} user={user} onChanged={loadReports} />}
+      {canEdit && suggested > 0 && (
+        <div className="row text-sm" style={{ gap: 6, alignItems: 'center', marginBottom: 10 }}>
+          💡 {suggested} suggested {suggested === 1 ? 'change' : 'changes'} from payer bulletins
+          <button className="btn-sm" onClick={async () => {
+            if (!await confirmDialog({ title: 'Review the suggestions?', message: 'This opens Payer Updates → 🛠 Directory suggestions and leaves this page.', confirmText: 'Open' })) return;
+            onClose(); openSuggestions();
+          }}>Review ›</button>
+        </div>
+      )}
 
       {history && (
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 10, marginBottom: 12, maxHeight: 280, overflowY: 'auto' }}>
