@@ -21,10 +21,21 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 8.1 is done.** Next: **8.2 – Payer Updates: searchable list, Excel download, notify affected
-teams** — needs a plan and a “go”. Building blocks: `payer_bulletins` / `payer_updates` (8.1, `payerUpdates.js`
-`loadBulletins`), `BulletinList.jsx` filters, Announcements / Team Feed (existing), `users.team`, sidebar count pattern
-(6.5 `FollowupNudge` / `sidebarTabs` label).
+**8.2 – Payer Updates: searchable list, Excel, notify teams — plan approved 2026-10-21, building.**
+
+Plan as approved (defaults: “new” = last 30 days; “Starts soon” = ≤ 14 days; sidebar count every 15 min; read counts
+for supervisors / managers only; in-app notices only — no email / SMS):
+- **🆕 For my team** (first tab): changes from the last 30 days listing my team (no team → all), newest first, “Starts in
+  N days” ≤ 14; ✓ Got it (read tracked); “(N new)” on the tab and **“Payer Updates (N)”** in the sidebar; supervisors /
+  managers see “Who has read it” per team (e.g. AR: 7 / 9).
+- **🔎 All updates**: one table of every change; filters words / payer / team / category / effective (Next 30 days ·
+  Already in effect · Future · Any) / show retired; sorted by effective date; open source PDF; ⬇ Excel of the filtered
+  rows (payer, effective, category, change, teams, action, bulletin, page, read count); editors ✏️ Edit / Retire.
+- **📋 By bulletin** (8.1 list) and **⬆ Upload** unchanged.
+- DB: `supabase/migrations/20261021s_payer_update_reads.sql` → `payer_update_reads` (update_id, emp_id, read_at; PK both).
+- Files: new `UpdatesForTeam.jsx`, `UpdatesSearch.jsx`, `UpdateEditor.jsx`, `src/components/shared/PayerUpdatesBadge.jsx`;
+  changed `src/lib/payerUpdates.js`, `PayerUpdates.jsx`, `src/App.jsx` (additive: badge + “(N)” label like the Smart
+  Worklist one), `auditLabels.js`. Audit `payer_update_edit/retire/read` (ids only).
 
 ### Reference: how 8.1 was built (done)
 
