@@ -7,6 +7,7 @@ import FollowupNudge from './components/shared/FollowupNudge';
 import PayerUpdatesBadge from './components/shared/PayerUpdatesBadge';
 import GlobalSearch from './components/shared/GlobalSearch';
 import BoardBadge from './components/shared/BoardBadge';
+import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
 import { getOwnerSession, setOwnerSession } from './lib/company';
@@ -477,12 +478,15 @@ export default function App() {
         <main className="main-content">
           <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
             <div key={`${activeTab}|${pageVisit}`} className="page-transition">
-              {isAdmin
-                ? <AdminApp      activeTab={activeTab} user={currentUser} />
-                : isSupervisor
-                ? <SupervisorApp activeTab={activeTab} user={currentUser} />
-                : <EmployeeApp   activeTab={activeTab} user={currentUser} />
-              }
+              {/* A crash in one page shows an error card instead of blanking the whole app (resets on page change) */}
+              <PageErrorBoundary>
+                {isAdmin
+                  ? <AdminApp      activeTab={activeTab} user={currentUser} />
+                  : isSupervisor
+                  ? <SupervisorApp activeTab={activeTab} user={currentUser} />
+                  : <EmployeeApp   activeTab={activeTab} user={currentUser} />
+                }
+              </PageErrorBoundary>
             </div>
           </Suspense>
         </main>
