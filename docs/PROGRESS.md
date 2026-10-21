@@ -11,8 +11,10 @@ _Last updated: 2026-10-21 — extras: floating “Ask Helix” button and calm n
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 10.4.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 10.4 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then continue.”** (Latest: floating Ask Helix button + calm
+   navigation with hover fly-out menus — built and pushed, waiting for browser testing / feedback.)
+3. Claude reads this file, fetches the latest code from GitHub, and picks up from “Current step” (fixes from your testing,
+   then 10.4 Chrome extension or 9.4 only when you decide; otherwise run migrations 1–33).
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
