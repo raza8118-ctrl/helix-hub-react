@@ -196,3 +196,15 @@ export function sopSectionFilled(sop, key) {
   if (key === 'steps') return sopSteps(sop).some(s => s.text.trim());
   return !!sop[key]?.trim();
 }
+
+// ── Opening the library from another page (6.6 Portal launchpad “📚 How-to”) ──
+
+let searchNext = '';
+/** Opens the SOP Library with this search typed in (e.g. a software name → all its tasks and SOPs). */
+export function openSopLibrary(query) {
+  searchNext = query ?? '';
+  window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: 'wb_sops' }));
+}
+/** The waiting search; cleared once the library has shown it. */
+export const peekSopLibrarySearch = () => searchNext;
+export function clearSopLibrarySearch() { searchNext = ''; }

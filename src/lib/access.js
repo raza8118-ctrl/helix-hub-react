@@ -44,6 +44,8 @@ export const FEATURES = [
   // Smart Worklist: everyone works their own claims; uploading / prioritising / assigning is gated
   // (supervisors manage worklists for their own team)
   { group: 'Tools', key: 'worklist_manage', label: 'Manage worklists', defaultRoles: MONITORS },
+  // Portal launchpad: opening links is open to everyone; setting up each client's links is gated (never passwords)
+  { group: 'Tools', key: 'portals_edit', label: 'Manage portal links', defaultRoles: MANAGERS },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,

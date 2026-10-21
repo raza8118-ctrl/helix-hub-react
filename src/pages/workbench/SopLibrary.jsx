@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '../../lib/supabase';
 import { hasAccess } from '../../lib/access';
-import { loadSopLibrary, buildSopTree, countSops, statusOf, STARTER_CATEGORIES, missingStarterSoftware } from '../../lib/sops';
+import { loadSopLibrary, buildSopTree, countSops, statusOf, STARTER_CATEGORIES, missingStarterSoftware, peekSopLibrarySearch, clearSopLibrarySearch } from '../../lib/sops';
 import { loadSopVersionMeta, versionStates, pendingAcknowledgements } from '../../lib/sopVersions';
 import { SopEditModal, StarterSoftwareModal } from './SopEditors';
 import SopPage from './SopPage';
@@ -21,7 +21,7 @@ export default function SopLibrary({ user }) {
   const canEdit = hasAccess(user, 'sops_edit');
   const [lib, setLib]           = useState(undefined);   // undefined = loading, null = tables missing
   const [users, setUsers]       = useState([]);
-  const [query, setQuery]       = useState('');
+  const [query, setQuery]       = useState(peekSopLibrarySearch);   // 6.6: “📚 How-to” on the Portal launchpad
   const [categoryId, setCategoryId] = useState('ALL');
   const [status, setStatus]     = useState('ALL');
   const [showInactive, setShowInactive] = useState(false);
@@ -37,6 +37,7 @@ export default function SopLibrary({ user }) {
   const fetchAll = id => Promise.all([loadSopLibrary(), loadSopVersionMeta({ emp_id: id })]);
   const applyAll = ([l, m]) => { setLib(l ? { ...l, versionsReady: m != null } : l); setMeta(m); };
   const load = () => fetchAll(empId).then(applyAll);
+  useEffect(() => { clearSopLibrarySearch(); }, []);
   useEffect(() => {
     Promise.all([loadSopLibrary(), loadSopVersionMeta({ emp_id: empId })])
       .then(([l, m]) => { setLib(l ? { ...l, versionsReady: m != null } : l); setMeta(m); });

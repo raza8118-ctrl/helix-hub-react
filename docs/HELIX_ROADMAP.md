@@ -59,7 +59,7 @@ How we build: one step at a time → test → git commit → next step. Tick `[x
 - [x] 6.3 Code lookup: CARC/RARC, revenue codes, HIPPS, ICD-10.
 - [x] 6.4 Smart Worklist: upload aging/RTP file → prioritise by deadline, $ and payer → assign to users → auto-update production counts.
 - [x] 6.5 Follow-up tickler (reminders per claim).
-- [ ] 6.6 Portal launchpad per client.
+- [x] 6.6 Portal launchpad per client.
 
 ## Phase 7 – Quality & team
 - [ ] 7.1 QA Audit module: sampling, scorecards, error categories, agent acknowledgment, link each error to its SOP.

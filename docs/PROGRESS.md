@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-20 — step 6.5 (follow-up tickler) done; next is 6.6._
+_Last updated: 2026-10-21 — step 6.6 (portal launchpad) done; Phase 6 complete; next is 7.1._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 6.6.”**
-3. Claude reads this file, fetches the latest code from GitHub, shows the 6.6 plan, and waits for your “go”.
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then plan roadmap step 7.1.”**
+3. Claude reads this file, fetches the latest code from GitHub, shows the 7.1 plan, and waits for your “go”.
 
 Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
 once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
@@ -21,7 +21,23 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**6.6 – Portal launchpad per client — plan approved 2026-10-21, building.** (Last step of Phase 6.)
+**None in progress. Step 6.6 is done — Phase 6 is complete.** Next: **7.1 – QA Audit module** (sampling, scorecards,
+error categories, agent acknowledgment, link each error to its SOP) — needs a plan and a “go”. Building blocks: `users.is_qa`
+(0.3), SOP Library (3.x), audit log, existing Quality Monitor page (don't break it — add beside it).
+
+### Reference: how 6.6 was built (done)
+
+`src/lib/portals.js`: `PORTAL_GROUPS` (software / payer / custom), `cleanUrl` (adds https://, refuses non-http and
+user:password@ links), `mentionsSecret` (password / passwd / passcode / pwd / “pin:” / `?pass=`…), `needsRecheck`
+(180 days), `loadLaunchpad` (`client_portals` = null until the migration; SOP software / tasks / sops; Payer Directory
+contacts with a portal), `directoryPortal` (claims department first), `buildTiles` (managed rows for the client + all-client
+rows; empty url = standard link; fallback = every software login link + one portal per payer), stars in `localStorage`
+`hh_portal_stars_<emp_id>`, `sortTiles` (stars → sort_order → name), `checkPortal`, `addPortal` (marked checked on add) /
+`editPortal` / `verifyPortal` / `setPortalActive` / `movePortal`. UI: `PortalLaunchpad.jsx` (client remembered in
+`hh_portal_client`, search, 3 group cards with tile grid, Open ↗ / Copy link / 📚 How-to (N) / 🔑 access note; managers:
+✏️ Edit, ✓ Link checked, ↑ ↓, Turn off / on, Show turned-off links), `PortalEditor.jsx`. `ARTools.jsx`: 🚀 Portal launchpad
+tool. `sops.js` + `SopLibrary.jsx` (3 lines, additive): `openSopLibrary(query)` / `peekSopLibrarySearch` → the library
+opens with the software name searched. `access.js`: `portals_edit`. Audit `portal_add/edit/verify/activate/deactivate`.
 
 Plan as approved (defaults: portal opens not logged; ⭐ favourites in the browser only; 180-day link re-check; no
 “Open all” because browsers block several pop-ups):
@@ -865,6 +881,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 6.3 | Code lookup: CARC/RARC, revenue (starter + import), HIPPS decoder, ICD-10 (CMS file import), `ref_codes_edit` | c7ed1b5 |
 | 6.4 | Smart Worklist: upload (patient columns dropped), priority bands, assign / auto-split, My worklist, Daily Report suggestion, 90-day clear | e2d9a0c |
 | 6.5 | Follow-up tickler: Follow-ups tab (by date / payer), reminders, snooze, sign-in pop-up, sidebar count, browser notifications | d97fea6 |
+| 6.6 | Portal launchpad: per-client software / payer portal / other links, ⭐ favourites, How-to SOPs, link checks, `portals_edit` | (this commit) |
 
 ---
 
@@ -892,6 +909,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 18. `supabase/migrations/20261021i_ref_codes.sql` (revenue / HIPPS / ICD-10 code lists, step 6.3)
 19. `supabase/migrations/20261021j_worklists.sql` (Smart Worklist: worklists + minimum-field claim items, step 6.4)
 20. `supabase/migrations/20261021k_followups.sql` (follow-up reminders, step 6.5)
+21. `supabase/migrations/20261021l_client_portals.sql` (portal launchpad links per client, step 6.6)
 
 The app hides/disables the related features until each one has been run, so code can deploy first.
 
@@ -922,6 +940,7 @@ The app hides/disables the related features until each one has been run, so code
 - **AI wording:** Claude Opus 5.5 (medium effort, refusal fallback on), browser call with the Settings key; only the placeholder template + non-identifying facts are sent, PHI-like free text blocks sending, user confirms each time; open to everyone (no per-person switch-off).
 - **Claim notes:** built in the browser, never saved / logged (last 5 in memory); formats per client + action with `[ … ]` optional parts; no patient-name placeholder; `note_formats` (admin/manager) manages formats.
 - **Smart Worklist PHI (PO 2026-10-20):** no BAA with Supabase → worklists store minimum claim fields only (no patient name / DOB / member ID / MRN / address); claim # and DOS wiped on close or 90 days after upload; counts flow to the Daily Report only when the user confirms; Work Allocation stays as is.
+- **Portal launchpad:** login pages only — never user names / passwords / PINs (notes and links mentioning them are refused); opening a portal is not logged; ⭐ favourites per browser; links re-checked every 180 days; `portals_edit` (admin/manager) sets each client up; “All clients” links show everywhere.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
 - **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
 
