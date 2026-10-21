@@ -21,10 +21,39 @@ once the build is complete — from the ordered list under “Waiting on the pro
 
 ## ▶ Current step
 
-**None in progress. Step 7.4 is done.** Next: **7.5 – Medicare trackers: ADR tracker, recoupment / credit balance
-tracker, RTP / suspense monitor** (last step of Phase 7) — needs a plan and a “go”. Building blocks: Smart Worklist
-upload + PHI column dropping (6.4, `worklist.js` `detectColumns` / `PHI_HEADER`), medicare calculators (6.2),
-escalations (7.4), client queries (7.3), PHI rules (minimum fields, no BAA).
+**7.5 – Medicare trackers — plan approved 2026-10-21, building.** (Last step of Phase 7.)
+
+Plan as approved (defaults: ADR due = letter + 45 days, warning at 10 days; refund due = identified + 60 days; credit
+balance report due = quarter end + 30 days; RTP claims missing from a new upload auto-cleared; one page with tabs):
+- New Workbench page **🏛️ Medicare Trackers** (`wb_medicare`, everyone), tabs 📊 Overview · 📄 ADR tracker ·
+  💸 Overpayments & credit balances · 🔁 RTP / suspense monitor.
+- **ADR**: client, MAC (payer), claim # optional, $ at risk, ADR letter date, response due (+45, “check current CMS
+  rules”), records requested / received, submitted date + method (esMD / portal / fax / mail), decision + date. Status:
+  ADR received → Records requested → Records received → Submitted → Decision (Approved / Partly / Denied) → Appealed /
+  Closed. Badges due in N days / overdue / waiting on client N days. 📨 Ask client for records → Client Query (7.3,
+  documentation) with the ADR ref; ⚑ Escalate → escalation (7.4).
+- **Overpayments & credit balances**: kind (Payer overpayment / recoupment · Credit balance · Refund request), source
+  (Payer letter · ERA offset WO / FB · Internal review · Credit balance report), client, payer, claim #, amount, reason
+  (Duplicate · Secondary / MSP · Wrong payer · Rate / adjustment · Other), identified date, refund due (+60), refund
+  method (check / offset / immediate recoupment), refunded date + amount. Status: Identified → Validated → Disputed /
+  appealed → Refund requested → Refunded / offset → Closed. Quarter helper: Medicare credit balances open at a quarter end
+  + report due date (CMS-838 prep).
+- **RTP / suspense**: FISS / DDE Excel / CSV upload per client (claim / DCN, status-location e.g. T B9997 / S B6001,
+  reason code, amount, date in status; patient columns dropped in the browser via the worklist `PHI_HEADER` and listed);
+  snapshot → add / update, missing → “Cleared from FISS”; manual add; owner + work status (New · Working · Corrected /
+  released · Cancelled · No action needed); age in status 0–2 / 3–7 / 8–14 / 15–30 / 30+, counts per reason / client,
+  new since last upload.
+- **Overview**: ADRs due ≤ 10 days / overdue + $ at risk; overpayments open $ + past 60 days; RTP by age + new /
+  cleared since last upload; per client; Excel without claim #.
+- Access: everyone views, adds ADRs / overpayments, updates own; `medicare_manage` (admin/manager/supervisor) uploads RTP,
+  assigns, changes anyone's.
+- PHI: minimum fields; notes via `phiIssues`; claim # / DCN wiped 90 days after closed / cleared.
+- DB: `supabase/migrations/20261021q_medicare_trackers.sql` → `medicare_adrs`, `medicare_overpayments`,
+  `medicare_rtp_uploads`, `medicare_rtp_items`, `medicare_events`.
+- Files: new `src/lib/medicareTrackers.js`, `src/pages/workbench/MedicareTrackers.jsx`, `MedicareOverview.jsx`,
+  `AdrTracker.jsx`, `OverpaymentTracker.jsx`, `RtpMonitor.jsx`, `RtpUpload.jsx`, `MedicareItemEditor.jsx`; changed
+  `modules.js`, `WorkbenchApp.jsx`, `access.js`, `auditLabels.js`, `worklist.js` (export `PHI_HEADER` only). Audit
+  `medicare_add/edit/status/assign/note/clear`, `rtp_upload` (ids / counts only).
 
 ### Reference: how 7.4 was built (done)
 
