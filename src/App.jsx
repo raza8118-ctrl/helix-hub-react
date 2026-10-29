@@ -10,8 +10,11 @@ import BoardBadge from './components/shared/BoardBadge';
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import HelixLauncher from './components/shared/HelixLauncher';
 import { THEMES }  from './lib/constants';
-import { S, kv, setActiveCompany, refreshCompanyProcesses } from './lib/supabase';
-import { getOwnerSession, setOwnerSession } from './lib/company';
+import { S, kv, setActiveCompany, getActiveCompany, refreshCompanyProcesses } from './lib/supabase';
+import { getOwnerSession, setOwnerSession, loadCompanyRow, SIGNOUT_MSG_KEY } from './lib/company';
+import { disabledTabs, isFeatureOn, setAiAllowed } from './lib/companyFeatures';
+import { ownerLog, codeOf } from './lib/owner';
+import PlatformBanners from './components/shared/PlatformBanners';
 import { WORKBENCH_TABS } from './pages/workbench/modules';
 import { logAudit } from './lib/audit';
 import { canOpenTab, TAB_FEATURES } from './lib/access';
@@ -98,7 +101,23 @@ const EXTRA_TABS = [
   { id: 'masters',  label: 'Clients & Payers', icon: '🏢', section: 'System' },
   { id: 'auditlog', label: 'Audit Log',        icon: '📜', section: 'System' },
 ];
-const POST_ANNOUNCEMENTS_TAB = { id: 'feedbackadmin', label: 'Post Announcements', icon: '📣', section: 'Engagement' };
+// Owner Console 2.0: the company's session_version when this person signed in (raised = signed out by the owner)
+const SESSION_VERSION_KEY = 'hh_sv';
+
+/** The signed-in added company's code, or null for the home company (which is stored with its code but no prefix). */
+const addedCompanyCode = () => { const c = getActiveCompany(); return c?.prefix ? c.code : null; };
+
+/** Paused / signed out by the owner: clear this tab's session and reload — the login screen shows the message once. */
+function kickOut(message) {
+  window.dispatchEvent(new Event('helix:signed-out'));   // e.g. wipes an in-memory appeal form (patient details)
+  try {
+    sessionStorage.setItem(SIGNOUT_MSG_KEY, message);
+    ['hh_user', 'hh_tab', 'hh_missed_dismissed', SESSION_VERSION_KEY].forEach(k => sessionStorage.removeItem(k));
+  } catch { /* storage unavailable */ }
+  setActiveCompany(null);
+  window.location.reload();
+}
+const POST_ANNOUNCEMENTS_TAB ={ id: 'feedbackadmin', label: 'Post Announcements', icon: '📣', section: 'Engagement' };
 const SECTION_ORDER = ['My Work', 'Monitoring', 'Team', 'Workbench', 'Engagement', 'System'];
 
 function withGrantedTabs(roleTabs, user) {
@@ -132,6 +151,33 @@ export default function App() {
   const [pageVisit, setPageVisit] = useState(0);       // 10.1: bumped when search opens a record so the page remounts
   const [boardNew, setBoardNew] = useState(0);         // 10.3: unread must-read notices → count on Notice Board
   const [navOpen, setNavOpen] = useState(false);       // calm navigation: ☰ drawer on phones
+  const [companyRow, setCompanyRow] = useState(null);  // Owner Console 2.0: this company's pages on / off, banner, pause
+
+  // ── Owner Console 2.0: watch the company's registry row (every 2 min + when the tab regains focus) ──
+  // Added companies only (the home company has no row). The owner viewing a company is never signed out.
+  useEffect(() => {
+    if (!currentUser) return;
+    const code = addedCompanyCode();   // null = home company (no registry row)
+    let alive = true;
+    const check = () => loadCompanyRow(code).then(row => {
+      if (!alive) return;
+      setCompanyRow(row);
+      setAiAllowed(isFeatureOn(row?.features, 'ai'));
+      if (!row || currentUser.isOwner) return;
+      if (row.active === false) {
+        kickOut(`${row.name}'s access to Helix Hub has been paused. ${row.pause_message || 'Please contact your administrator.'}`);
+        return;
+      }
+      const base = Number(sessionStorage.getItem(SESSION_VERSION_KEY));
+      if (!base) sessionStorage.setItem(SESSION_VERSION_KEY, String(row.session_version ?? 1));
+      else if ((row.session_version ?? 1) > base) kickOut('You were signed out by the Helix Hub administrator. Please sign in again.');
+    }, () => {});
+    check();
+    const id = setInterval(check, 2 * 60 * 1000);
+    const onFocus = () => check();
+    window.addEventListener('focus', onFocus);
+    return () => { alive = false; clearInterval(id); window.removeEventListener('focus', onFocus); };
+  }, [currentUser]);
 
   // ── Restore session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -282,12 +328,12 @@ export default function App() {
   }, [currentUser]);
 
   // ── Login ───────────────────────────────────────────────────────────────────
-  async function handleLogin(u) {
+  async function handleLogin(u, startOverride = null) {
     await refreshCompanyProcesses().catch(() => {});
     const isAdmin = u.role === 'admin' || u.role === 'manager';
     const isSupervisor = u.role === 'supervisor';
     setCurrentUser(u);
-    const startTab = (isAdmin || isSupervisor) ? 'today' : 'prodreport';
+    const startTab = startOverride || ((isAdmin || isSupervisor) ? 'today' : 'prodreport');
     setActiveTab(startTab);
     sessionStorage.setItem('hh_user', JSON.stringify(u));
     sessionStorage.setItem('hh_tab', startTab);
@@ -311,15 +357,21 @@ export default function App() {
   }
 
   // ── Helix Hub owner ─────────────────────────────────────────────────────────
-  // Opening a company from the Owner Console signs in to it as a full admin.
-  function openCompanyAsOwner(c) {
+  // Opening a company from the Owner Console signs in to it as a full admin — or, with opts.asUser (Owner Console 2.0
+  // master key), as that person. Either way the purple banner shows and the audit log says "via Helix Hub owner".
+  function openCompanyAsOwner(c, opts = {}) {
     setActiveCompany(c.prefix ? { name: c.name, code: c.code, prefix: c.prefix } : null);
-    const ownerUser = {
-      emp_id: 'HELIX_OWNER', name: owner.name, role: 'admin', access: 'ALL', active: true,
-      isOwner: true, viewing: c.name,
-    };
-    logAudit({ actor: ownerUser, action: 'owner_open_company', details: { owner: owner.username } });
-    handleLogin(ownerUser);
+    const ownerUser = opts.asUser
+      ? { ...opts.asUser, isOwner: true, viewing: c.name, viewingAs: true, ownerUsername: owner.username }
+      : {
+        emp_id: 'HELIX_OWNER', name: owner.name, role: 'admin', access: 'ALL', active: true,
+        isOwner: true, viewing: c.name, ownerUsername: owner.username,
+      };
+    const action = opts.asUser ? 'owner_sign_in_as' : 'owner_open_company';
+    const reason = opts.reason?.trim() || null;
+    logAudit({ actor: ownerUser, action, details: { owner: owner.username, reason } });
+    ownerLog(owner, action, codeOf(c), opts.asUser ? `${opts.asUser.name ?? ''} (${opts.asUser.emp_id})` : null, { reason, start_page: opts.startTab ?? null });
+    handleLogin(ownerUser, opts.startTab);
   }
 
   function handleOwnerSignOut() {
@@ -336,6 +388,9 @@ export default function App() {
     sessionStorage.removeItem('hh_tab');
     setActiveCompany(null);   // next login starts at the company step again
     sessionStorage.removeItem('hh_missed_dismissed');
+    sessionStorage.removeItem(SESSION_VERSION_KEY);
+    setCompanyRow(null);
+    setAiAllowed(true);
     setCurrentUser(null);
     setActiveTab('today');
     setShowProfile(false);
@@ -392,8 +447,12 @@ export default function App() {
   ];
 
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
-  const tabs = withGrantedTabs(roleTabs, currentUser);
-  const pageTitle = tabs.find(t => t.id === activeTab)?.label ?? '';
+  // Owner Console 2.0: pages the owner switched off for this company are hidden for everyone (owner view included,
+  // so the owner sees exactly what the company sees); an open page that was switched off falls back to the first one
+  const offTabs = disabledTabs(companyRow?.features);
+  const tabs = withGrantedTabs(roleTabs, currentUser).filter(t => !offTabs.has(t.id));
+  const shownTab = offTabs.has(activeTab) ? (tabs[0]?.id ?? activeTab) : activeTab;
+  const pageTitle = tabs.find(t => t.id === shownTab)?.label ?? '';
   // Counts on Workbench items: 6.5 follow-ups, 8.2 payer updates, 10.3 notice board
   const tabCounts = { wb_worklist: followupDue, wb_updates: updatesNew, wb_board: boardNew };
   const sidebarTabs = Object.values(tabCounts).some(n => n > 0)
@@ -406,14 +465,14 @@ export default function App() {
       <FollowupNudge user={currentUser} onCount={setFollowupDue} />
       <PayerUpdatesBadge user={currentUser} onCount={setUpdatesNew} />
       <BoardBadge user={currentUser} onCount={setBoardNew} />
-      <HelixLauncher user={currentUser} tabs={tabs} activeTab={activeTab} />
+      <HelixLauncher user={currentUser} tabs={tabs} activeTab={shownTab} />
       <Sidebar
         user={currentUser}
         theme={theme}
         onTheme={handleThemeChange}
         onLogout={handleLogout}
         onOpenProfile={() => setShowProfile(true)}
-        activeTab={activeTab}
+        activeTab={shownTab}
         onTab={handleSetTab}
         tabs={sidebarTabs}
         mobileOpen={navOpen}
@@ -447,7 +506,12 @@ export default function App() {
             padding: '5px 16px', fontSize: 12.5, fontWeight: 600,   // calm navigation: thin banner
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
-            <span>👑 Helix Hub owner — viewing {currentUser.viewing} with full admin access</span>
+            <span>
+              {currentUser.viewingAs
+                ? <>👑 Owner signed in as {currentUser.name ?? currentUser.emp_id} ({currentUser.emp_id}) at {currentUser.viewing} — actions are logged as the owner</>
+                : <>👑 Helix Hub owner — viewing {currentUser.viewing} with full admin access</>}
+              {offTabs.size > 0 && <span style={{ fontWeight: 400, opacity: 0.85 }}> · {offTabs.size} page{offTabs.size === 1 ? '' : 's'} switched off for this company</span>}
+            </span>
             <button
               onClick={handleLogout}
               style={{
@@ -459,6 +523,8 @@ export default function App() {
             </button>
           </div>
         )}
+
+        <PlatformBanners code={addedCompanyCode()} banner={companyRow?.banner} />
 
         {!isAdmin && !isSupervisor && missedDay && !missedDismissed && (
           <div style={{
@@ -499,14 +565,14 @@ export default function App() {
 
         <main className="main-content">
           <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
-            <div key={`${activeTab}|${pageVisit}`} className="page-transition">
+            <div key={`${shownTab}|${pageVisit}`} className="page-transition">
               {/* A crash in one page shows an error card instead of blanking the whole app (resets on page change) */}
               <PageErrorBoundary>
                 {isAdmin
-                  ? <AdminApp      activeTab={activeTab} user={currentUser} />
+                  ? <AdminApp      activeTab={shownTab} user={currentUser} />
                   : isSupervisor
-                  ? <SupervisorApp activeTab={activeTab} user={currentUser} />
-                  : <EmployeeApp   activeTab={activeTab} user={currentUser} />
+                  ? <SupervisorApp activeTab={shownTab} user={currentUser} />
+                  : <EmployeeApp   activeTab={shownTab} user={currentUser} />
                 }
               </PageErrorBoundary>
             </div>

@@ -4,6 +4,7 @@
 // until someone with “Edit Payer Directory” approves it — then it is written like a normal payer-card edit (history).
 import { supabase, db, S, kv } from './supabase';
 import { logAudit } from './audit';
+import { assertAiAllowed } from './companyFeatures';
 import { hasAccess } from './access';
 import { matchPayerName } from './worklist';
 import { DEPARTMENTS, TRANSACTIONS, LIMIT_TYPES, MEASURED_FROM, NOTE_CATEGORIES, labelOf } from './payerOptions';
@@ -109,6 +110,7 @@ const toBase64 = blob => new Promise((resolve, reject) => {
 });
 
 async function askClaude(pdf) {
+  assertAiAllowed();   // Owner Console: AI can be switched off per company
   const key = await kv.get('anthropic_key');
   if (!key) throw new Error('NO_KEY');
   const res = await fetch('https://api.anthropic.com/v1/messages', {

@@ -4,6 +4,7 @@
 // Only the PDF and the fixed instructions below go to the AI (browser call with the Settings key, same as 5.3).
 import { supabase, db, S, kv, getTablePrefix } from './supabase';
 import { logAudit } from './audit';
+import { assertAiAllowed } from './companyFeatures';
 import { hasAccess } from './access';
 import { loadPdfjs } from './pdfjs';
 import { matchPayerName } from './worklist';
@@ -117,6 +118,7 @@ const toBase64 = file => new Promise((resolve, reject) => {
  * to the Payer Directory, or throws Error with a plain-English message (NO_KEY when no AI key is saved in Settings).
  */
 export async function extractBulletin(file, payers, pages, user) {
+  assertAiAllowed();   // Owner Console: AI can be switched off per company
   const key = await kv.get('anthropic_key');
   if (!key) throw new Error('NO_KEY');
   let ok = false;

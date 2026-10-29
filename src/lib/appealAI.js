@@ -3,6 +3,7 @@
 // auth numbers, every date) never leave this computer; real values are filled in locally afterwards.
 // Calls the Claude API from the browser with the company's AI key (same approach as callAI in helpers.js).
 import { kv } from './supabase';
+import { assertAiAllowed } from './companyFeatures';
 import { logAudit } from './audit';
 import { denialTypeOf, levelOf } from './appeals';
 import { TOKEN_GROUPS, checkTemplate } from './appealTemplates';
@@ -129,6 +130,7 @@ export function validateAILetter(templateBody, letter) {
  * (NO_KEY when no AI key is saved in Settings). Only req (placeholders + non-identifier facts) is sent.
  */
 export async function improveWording(req, style, user) {
+  assertAiAllowed();   // Owner Console: AI can be switched off per company
   const key = await kv.get('anthropic_key');
   if (!key) throw new Error('NO_KEY');
   let ok = false;

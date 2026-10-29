@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { S, getTablePrefix, setActiveCompany } from '../lib/supabase';
-import { findCompany, ownerLogin, setOwnerSession } from '../lib/company';
+import { findCompany, findPausedCompany, ownerLogin, setOwnerSession, SIGNOUT_MSG_KEY } from '../lib/company';
 import { logAudit } from '../lib/audit';
 import Starfield from './shared/Starfield';
 
@@ -117,7 +117,9 @@ export default function Login({ onLogin, onOwnerLogin }) {
   const [empId, setEmpId]       = useState('');
   const [password, setPassword] = useState('');
   const [forgotId, setForgotId] = useState('');
-  const [error, setError]       = useState('');
+  // Owner Console: a pause or "sign everyone out" leaves a one-time message for the login screen
+  const [error, setError]       = useState(() => { try { return sessionStorage.getItem(SIGNOUT_MSG_KEY) || ''; } catch { return ''; } });
+  useEffect(() => { try { sessionStorage.removeItem(SIGNOUT_MSG_KEY); } catch { /* storage unavailable */ } }, []);
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotOk, setForgotOk]   = useState(false);
   const [loading, setLoading]     = useState(false);
@@ -133,7 +135,10 @@ export default function Login({ onLogin, onOwnerLogin }) {
     setLoading(true);
     try {
       const c = await findCompany(companyInput);
-      if (!c) {
+      const paused = c ? null : await findPausedCompany(companyInput);
+      if (paused) {
+        setError(`${paused.name}'s access to Helix Hub is paused. ${paused.pause_message || 'Please contact your administrator.'}`);
+      } else if (!c) {
         setError(`We couldn't find a workspace called "${companyInput.trim()}". Check the spelling, or ask your administrator for your company name or code.`);
       } else {
         try { localStorage.setItem(LAST_COMPANY_KEY, companyInput.trim()); } catch { /* storage unavailable */ }
@@ -170,6 +175,11 @@ export default function Login({ onLogin, onOwnerLogin }) {
       const u = rows?.[0];
       if (!u || u.password !== password) {
         setError('Invalid Employee ID or password.');
+        setLoading(false);
+        return;
+      }
+      if (u.active === false) {
+        setError('This account is switched off. Please contact your administrator.');
         setLoading(false);
         return;
       }

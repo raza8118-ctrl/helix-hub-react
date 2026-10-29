@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-29 — 📈 Team Dashboard built and pushed (awaiting PO review); all 33 Supabase migrations run + synced._
+_Last updated: 2026-10-29 — 👑 Owner Console 2.0 built and pushed; migration 34 waiting for the PO (1–33 run). Team Dashboard awaiting review._
 
 ---
 
@@ -12,9 +12,9 @@ _Last updated: 2026-10-29 — 📈 Team Dashboard built and pushed (awaiting PO 
 
 1. Open the project folder `helix-hub` and start Claude Code there.
 2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then continue.”** (Latest: 📈 Team Dashboard — built and
-   pushed, waiting for the PO's review of the page and of the extras listed under “Current step”.)
+   pushed, waiting for review; 👑 Owner Console 2.0 — pushed, PO to run migration 34 then test.)
 3. Claude reads this file, fetches the latest code from GitHub, and picks up from “Current step” (fixes from your testing,
-   then 10.4 Chrome extension or 9.4 only when you decide). Migrations 1–33 are run (2026-10-29).
+   then 10.4 Chrome extension or 9.4 only when you decide). Migrations 1–33 are run (2026-10-29); 34 is not run yet.
 
 Supabase: the product owner ran **all 33 migrations** one by one on 2026-10-29 (list under “Supabase migrations”),
 then **↻ Sync structure**. Any new migration from now on is run when its step is done.
@@ -23,7 +23,19 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Extra (PO request 2026-10-29, off-roadmap) — 👑 Owner Console 2.0 — APPROVED (“go”), building.**
+**Extra (PO request 2026-10-29, off-roadmap) — 👑 Owner Console 2.0 — DONE (awaiting migration 34 + PO testing).**
+Built as planned below. `npm run lint` clean for every touched file (old errors elsewhere unchanged, e.g. `App.jsx`
+missed-day effect, `TeamMgmt.jsx` unused `effectiveTarget`); `npm run build` passes; page on / off + AI switch logic
+checked with test data. Migration 34 could not be run here (no database access) — read it carefully when running.
+Extra fixes made along the way: (1) **deactivated users could still sign in** — Login never checked `active`; now it
+blocks them (“This account is switched off”). (2) The AI on / off switch covers all six places that call the AI
+(helpers.callAI, appealAI, assistant, payerSuggestions, payerUpdates, reports). (3) Home-company users are detected by
+“no table prefix” (the home company is stored with its code), so home-targeted broadcasts reach them.
+Behaviour notes: checks run every 2 minutes and when the tab regains focus (pause / sign-out take ≤ 2 min); features
+are `{ key: false }` = off; home company is never paused / feature-gated / seat-limited; the owner's own view of a
+company hides the same pages the company can't see (banner shows how many are off); an owner can open a paused company.
+Until migration 34 is run the console still works (stats, users, sign in as, rename, pause via the old activate flag,
+delete) and marks the rest “needs migration 34”.
 PO: “the owner should feel like an owner” — decide which pages each company gets, monitor / look after companies, pause
 a company's login, master key into anything. Decisions (PO accepted all recommendations): new companies start with all
 pages ON; Pause also signs out people already signed in (≈5 min); “Sign in as user” allowed for any user incl. company
@@ -1489,13 +1501,14 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | Extra | Floating 🤖 Ask button + panel (shared memory-only conversation), Ask Helix: Helix data first then labelled general guidance, 📍 “Where to do it” buttons (`list_helix_tools` / `show_where_to_do_it`), no DB change | 14b42d1 |
 | Extra | Calm navigation: Workbench split into 4 foldable groups, all sections foldable, ⭐ pins (6), « icons-only, ☰ phone drawer, thinner banners (no DB change) | 3520d8c |
 | Extra | Calm navigation follow-up: bigger sidebar (256px, 14.5px names), one row per group with hover / click fly-out menus, group icons, icons-only uses the same fly-outs (no DB change) | 5141e86 |
-| Extra | 📈 Team Dashboard: productivity, quality, attendance (Keka) and calls for the team or one person, day / week / months; look of the PO's sample kit rebuilt with own CSS / SVG; drill-down pop-ups with Excel; Keka page relabelled “Attendance (Keka)” (no DB change) | (this commit) |
+| Extra | 📈 Team Dashboard: productivity, quality, attendance (Keka) and calls for the team or one person, day / week / months; look of the PO's sample kit rebuilt with own CSS / SVG; drill-down pop-ups with Excel; Keka page relabelled “Attendance (Keka)” (no DB change) | b604d5a |
+| Extra | 👑 Owner Console 2.0: Overview / Companies (Manage: plan, seats, pages on-off, pause, sign everyone out, banner, users + reset password + 🔑 sign in as, activity) / Broadcasts / Owners & security (owner accounts + log) / Platform; AI switch; deactivated users blocked at login (migration 34) | (this commit) |
 
 ---
 
-## ✅ Supabase migrations (all run 2026-10-29)
+## ✅ Supabase migrations (1–33 run 2026-10-29 · 34 NOT RUN YET)
 
-The product owner ran these in **Supabase → SQL Editor**, in this order, on 2026-10-29, then clicked **↻ Sync structure**
+The product owner ran 1–33 in **Supabase → SQL Editor**, in this order, on 2026-10-29, then clicked **↻ Sync structure**
 in the Owner Console. New migrations go at the end of this list, marked “not run yet” until the PO runs them:
 
 1. `supabase/migrations/20261018_add_user_team.sql`
@@ -1531,6 +1544,8 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 31. `supabase/migrations/20261021v_credentialing.sql` (credentialing providers, payer enrollments, expiring items, step 9.3)
 32. `supabase/migrations/20261021w_worklist_denial_code.sql` (optional denial code on worklist claims, step 10.2)
 33. `supabase/migrations/20261021x_notice_board.sql` (notice board notices + reads, step 10.3)
+34. `supabase/migrations/20261029_owner_console.sql` (Owner Console 2.0: company plan / seats / pages / pause / banner,
+    owner-only notes + log, broadcasts, owner RPCs; `_home_tables` skips `helix_*`) — **NOT RUN YET**, then Sync structure
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 

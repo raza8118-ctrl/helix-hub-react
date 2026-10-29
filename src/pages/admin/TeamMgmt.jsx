@@ -5,6 +5,7 @@ import { DEFAULT_SUPERVISOR_PERMS, NO_PERMS, permsFor, subProcessesOf, logAudit,
 import { FEATURES, hasRoleDefault, grantsOf } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
+import { seatLimitProblem } from '../../lib/company';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -247,6 +248,10 @@ export default function TeamMgmt({ user }) {
 
   async function saveUser() {
     if (!form.emp_id.trim() || !form.name.trim()) return;
+    if (!editUser) {   // Owner Console 2.0: the company's seat limit
+      const problem = await seatLimitProblem();
+      if (problem) { await alertDialog({ title: 'User limit reached', message: problem, tone: 'warning' }); return; }
+    }
     if (!await confirmDialog(editUser
       ? { title: 'Save changes?', message: `Update ${form.name.trim()} (${editUser.emp_id}).`, confirmText: 'Save Changes' }
       : { title: 'Create this user?', message: `${form.name.trim()} (${form.emp_id.trim().toUpperCase()}) · ${form.role} · ${form.access}`, confirmText: 'Create User' })) return;
@@ -330,6 +335,10 @@ export default function TeamMgmt({ user }) {
   }
 
   async function toggleActive(u) {
+    if (!u.active) {   // Owner Console 2.0: reactivating counts against the seat limit
+      const problem = await seatLimitProblem();
+      if (problem) { await alertDialog({ title: 'User limit reached', message: problem, tone: 'warning' }); return; }
+    }
     if (!await confirmDialog(u.active
       ? { title: 'Deactivate this user?', message: `${u.name ?? u.emp_id} won't be able to sign in until reactivated. No data is deleted.`, tone: 'danger', confirmText: 'Deactivate' }
       : { title: 'Activate this user?', message: `${u.name ?? u.emp_id} will be able to sign in again.`, confirmText: 'Activate' })) return;

@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT, HOURLY_SLOTS_STD, HOURLY_SLOTS_DST } from './constants.js';
 import { kv } from './supabase.js';
+import { assertAiAllowed } from './companyFeatures.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -372,6 +373,7 @@ export function canViewPost(post, viewerEmpId, requestRows, closeRows) {
 // ── AI helper ─────────────────────────────────────────────────────────────────
 
 export async function callAI(prompt, maxTokens = 1024, apiKey = null) {
+  assertAiAllowed();   // Owner Console: AI can be switched off per company
   const key = apiKey || import.meta.env.VITE_ANTHROPIC_KEY;
   if (!key) throw new Error('NO_KEY');
   const res = await fetch('https://api.anthropic.com/v1/messages', {

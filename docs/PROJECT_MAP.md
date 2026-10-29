@@ -77,7 +77,7 @@ Team Dashboard, Attendance (Keka), Today, Prod Monitor, Hourly, Weekly, Monthly 
 Banners: missed-report reminder (employees), "Below target" badge (admins), purple owner banner.
 
 ### Helix Hub Owner Console (`owner/OwnerConsole.jsx`)
-A separate login. Add, rename, activate/deactivate and delete companies, sync table structure, open any company as admin. Also shows the Changelog (`admin/Changelog.jsx`, used only here).
+A separate login. Owner Console 2.0 (2026-10-29) has 5 tabs: **Overview** (platform totals, a card per company with users / seats, sign-ins, reports, Prod % this week, last activity, structure check, alerts; Open → with a start page), **Companies** (list, add, rename, pause / resume, **Manage** → `owner/CompanyManage.jsx`: plan, seat limit, banner, contact + private notes, pages on / off, users with last sign-in + reset password / switch off / 🔑 sign in as, activity, sign everyone out, delete), **Broadcasts**, **Owners & security** (owner accounts, owner activity log, password) and **Platform** (structure check, sync, Changelog) — the last three in `owner/OwnerTabs.jsx`. Calls in `lib/owner.js` (owner RPCs from migration 34, per-company stats read with the table prefix). Page on / off list + AI switch: `lib/companyFeatures.js` (App hides switched-off tabs; every AI call checks `assertAiAllowed`). App watches the company row every 2 min (pause / sign everyone out → `kickOut`, login shows the message); banners: `components/shared/PlatformBanners.jsx`; seat limit: `company.seatLimitProblem` in TeamMgmt. Audit entries made through the master key read “Name (via Helix Hub owner X)”.
 
 ### Productivity model (core business logic, `lib/helpers.js` + `ProdReport.jsx`)
 Projects → sub-processes (home company: project `PMB` with MCO, MCD, MCR, AUTH). Each process has tasks with daily targets (`DEFAULT_TASKS`, overridable in `task_configs`). Prod % is weighted by target, adjusted for downtime and half-days. There is a frozen "Legacy Auth" formula for AUTH-only users before 2026-06-16. Quality can be skipped per process (`quality_skip_procs`), which auto-locks it to 100%.
@@ -103,7 +103,9 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
 | `audit_log` | Who did what to whom (write-only today) | `logAudit()` in helpers |
 | `call_logs` | Only ever deleted (EmpDetail); nothing writes it | – |
 | `rcm_store` | Key/value store (see below) | `kv` helper |
-| `companies` | Company registry (not copied) | Login, Owner Console |
+| `companies` | Company registry (not copied); since migration 34 also features (pages off), plan, seat_limit, pause_message, banner, session_version | Login, App, Owner Console |
+| `helix_company_private`, `helix_owner_log` | Owner-only: company contact / notes, log of every owner action (no API access — owner RPCs only; never copied) | Owner Console |
+| `helix_broadcasts` | Owner banners for all / chosen companies (readable, written by owner RPC; never copied) | App banners, Owner Console |
 | `helix_owners` | Owner logins (not copied, not readable via API) | `owner_login` RPC only |
 
 **`rcm_store` keys:** `company_profile`, `prefs_<emp_id>` (theme), `anthropic_key`, `shift_dst`, `quality_skip_procs`, `pinned_emp_ids`, `alloc_<allocation id>` (the **full uploaded worklist rows** for each allocation).

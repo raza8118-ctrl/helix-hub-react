@@ -4,6 +4,7 @@
 // emails become placeholders). The reference data holds no patient information. Nothing is saved; usage is logged
 // with counts only. Browser call with the Settings key, same as 5.3 / 8.1.
 import { db, kv } from './supabase';
+import { assertAiAllowed } from './companyFeatures';
 import { logAudit } from './audit';
 import { loadStepContext, loadDenialSteps } from './denialSteps';
 import { loadDenialCodes, normCode, typeOf } from './denials';
@@ -340,6 +341,7 @@ Write for busy staff: lead with the answer in one or two sentences, then short b
 headings.`;
 
 async function callClaude(key, system, messages, format) {
+  assertAiAllowed();   // Owner Console: AI can be switched off per company
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {

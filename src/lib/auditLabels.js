@@ -3,6 +3,8 @@
 const ACTION_LABELS = {
   sign_in:               'Signed in',
   owner_open_company:    'Owner opened company',
+  owner_sign_in_as:      'Helix Hub owner signed in as this user',
+  owner_reset_password:  'Helix Hub owner reset a password',
   create_user:           'Created user',
   edit_user:             'Edited user',
   activate_user:         'Activated user',

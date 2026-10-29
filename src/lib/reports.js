@@ -3,6 +3,7 @@
 // payer updates. Read-only; exports and the optional AI summary carry counts / names only — never claim numbers.
 import { db, kv } from './supabase';
 import { logAudit } from './audit';
+import { assertAiAllowed } from './companyFeatures';
 import { hasAccess } from './access';
 import { addDays, today } from './helpers';
 import { daysBetween } from './deadlines';
@@ -195,6 +196,7 @@ export function weeklyEmail(s, { clientName, from, to }) {
 
 /** ✨ Optional 3–4 sentence summary written by Claude from the numbers only. */
 export async function aiWeeklySummary(s, clientName, user) {
+  assertAiAllowed();   // Owner Console: AI can be switched off per company
   const key = await kv.get('anthropic_key');
   if (!key) throw new Error('NO_KEY');
   let ok = false;

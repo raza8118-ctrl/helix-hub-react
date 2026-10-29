@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, getActiveCompany } from './supabase';
+import { supabase, getActiveCompany, getTablePrefix } from './supabase';
 
 // Companies
 // ─────────
@@ -73,6 +73,36 @@ export async function findCompany(input) {
   if (matchesCompany(input, home)) return home;
   const hit = (await listCompanies() ?? []).find(c => c.active && matchesCompany(input, c));
   return hit ? { name: hit.name, code: hit.code, prefix: hit.prefix } : null;
+}
+
+/** Owner Console: a paused (inactive) company matching what was typed → { name, pause_message } or null. */
+export async function findPausedCompany(input) {
+  const hit = (await listCompanies() ?? []).find(c => !c.active && matchesCompany(input, c));
+  return hit ? { name: hit.name, pause_message: hit.pause_message ?? null } : null;
+}
+
+/** One-time message for the login screen after the owner pauses a company or signs everyone out. */
+export const SIGNOUT_MSG_KEY = 'hh_signout_msg';
+
+/** The signed-in company's registry row (features, banner, pause state…), or null for the home company. */
+export async function loadCompanyRow(code) {
+  if (!code) return null;
+  const { data, error } = await supabase.from('companies').select('*').eq('code', code).maybeSingle();
+  return error ? null : data;
+}
+
+/**
+ * Owner Console 2.0 seat limit: a message when the signed-in company already has as many active users as its plan
+ * allows (adding / reactivating one more is blocked), else null. The home company has no limit.
+ */
+export async function seatLimitProblem() {
+  const active = getActiveCompany();
+  if (!active?.prefix) return null;   // home company
+  const row = await loadCompanyRow(active.code);
+  if (!row?.seat_limit) return null;
+  const { count, error } = await supabase.from(getTablePrefix() + 'users').select('*', { count: 'exact', head: true }).neq('active', false);
+  if (error || count == null || count < row.seat_limit) return null;
+  return `Your Helix Hub plan allows ${row.seat_limit} active users and you already have ${count}. Deactivate someone first, or ask the Helix Hub administrator to raise the limit.`;
 }
 
 // ── Helix Hub owner ──────────────────────────────────────────────────────────
