@@ -23,6 +23,25 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Extra (PO request 2026-10-29, off-roadmap) — 📈 Team Dashboard — APPROVED (“ok go”), building.**
+PO wants one dashboard with everyone's productivity, quality, attendance “everything in details”, using the look of the
+sample kit `helix-ui-kit.zip` (Next.js + Tailwind v4 + framer-motion + recharts + lucide). Kit reviewed: NOT copied —
+Tailwind's reset would restyle every page, its theme provider fights ours, no Node here to add libraries. Rebuilt the
+Helix Hub way: same layout, own CSS scoped under `.hx-dash` (added at the end of `index.css`), hand-made SVG charts,
+no new libraries, no DB change. PO allowed extras (“add something more from your side, I'll review”).
+- Page `📈 Team Dashboard` (id `teamdash`) at the top of Monitoring for admin / manager / supervisor (supervisors: own
+  team via `scopeToSupervisor`). Keka page stays; its sidebar label becomes “Attendance (Keka)” (PO OK'd the rename idea).
+- Header (title, period pills, data-up-to status) · filter strip (Day / Week / Month / Months-quarter picker, process,
+  team, person, active / inactive) · summary card (team or person, Prod % / Qual % / Shrinkage badges, rank for a person,
+  tiles with mini trend + better / worse vs previous period) · dark chart panel (tabs Production / Quality / Attendance /
+  Calls; heat grid by process × week; work mix donut; rankings) · flags by person · team members table (click = person).
+- Click any number → details pop-up (rows behind it, search, per-person grouping, ⬇ Excel; export logged
+  `team_dashboard_export`).
+- Data: `daily_logs` (total, target / adj_target, quality, calls, call_hours, Keka attendance fields), `holidays`,
+  `users`, `processes`, `qa_audits` (audited / fatal, if the 7.1 migration is run). One ranged query per period.
+- Files: new `src/pages/admin/TeamDashboard.jsx`, `src/lib/teamDashboard.js`, `src/components/dash/*`; changed
+  `App.jsx` (tab), `index.css` (scoped rules), docs.
+
 **Calm navigation follow-up (PO 2026-10-21) — DONE (awaiting browser testing).** PO: “looks small” + “dropdown on hover”.
 - Bigger: sidebar 256px, page names 14.5px, icons 18px, taller rows, group titles 12px.
 - Each group is one row (group icon + name + count + ›). Hovering (or clicking / Enter) shows a fly-out panel to the
