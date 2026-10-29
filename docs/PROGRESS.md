@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-21 — extras: floating “Ask Helix” button and calm navigation (grouped sidebar) done; 9.4 on hold; 10.4 “later”._
+_Last updated: 2026-10-29 — all 33 Supabase migrations run by the product owner + ↻ Sync structure done; live testing can start._
 
 ---
 
@@ -14,10 +14,10 @@ _Last updated: 2026-10-21 — extras: floating “Ask Helix” button and calm n
 2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then continue.”** (Latest: floating Ask Helix button + calm
    navigation with hover fly-out menus — built and pushed, waiting for browser testing / feedback.)
 3. Claude reads this file, fetches the latest code from GitHub, and picks up from “Current step” (fixes from your testing,
-   then 10.4 Chrome extension or 9.4 only when you decide; otherwise run migrations 1–33).
+   then 10.4 Chrome extension or 9.4 only when you decide). Migrations 1–33 are run (2026-10-29).
 
-Supabase: the product owner has run **no** migrations yet (decided 2026-10-20) and will run them all, one by one,
-once the build is complete — from the ordered list under “Waiting on the product owner”, then **↻ Sync structure**.
+Supabase: the product owner ran **all 33 migrations** one by one on 2026-10-29 (list under “Supabase migrations”),
+then **↻ Sync structure**. Any new migration from now on is run when its step is done.
 
 ---
 
@@ -68,8 +68,8 @@ with reduced-motion); panel shares the conversation with the full page (memory o
 **Step 10.3 is done.** Remaining roadmap: **10.4 Chrome extension sidebar** (marked “later” on the
 roadmap — needs a decision from the product owner before planning: it is a separate browser extension project, not part
 of this Vite app's deploy) and **9.4 Coding assistant** (on hold: BAA-covered AI, hosting and database + compliance
-sign-off first). Ask the product owner which (if either) to start; otherwise the build list is complete and the next job
-is running migrations 1–33 and testing.
+sign-off first). Ask the product owner which (if either) to start; otherwise the build list is complete. Migrations 1–33
+were run on 2026-10-29, so the next job is browser testing of the database-backed features.
 
 ### Reference: how 10.3 was built (done)
 
@@ -1433,9 +1433,10 @@ Approved approach (product owner chose “option 1”: a real project dependency
 
 ---
 
-## ⚠ Waiting on the product owner (Supabase)
+## ✅ Supabase migrations (all run 2026-10-29)
 
-Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structure** in the Owner Console:
+The product owner ran these in **Supabase → SQL Editor**, in this order, on 2026-10-29, then clicked **↻ Sync structure**
+in the Owner Console. New migrations go at the end of this list, marked “not run yet” until the PO runs them:
 
 1. `supabase/migrations/20261018_add_user_team.sql`
 2. `supabase/migrations/20261018b_audit_log.sql`
@@ -1471,7 +1472,7 @@ Run in **Supabase → SQL Editor**, in this order, then click **↻ Sync structu
 32. `supabase/migrations/20261021w_worklist_denial_code.sql` (optional denial code on worklist claims, step 10.2)
 33. `supabase/migrations/20261021x_notice_board.sql` (notice board notices + reads, step 10.3)
 
-The app hides/disables the related features until each one has been run, so code can deploy first.
+The app hides/disables a feature until its migration has been run, so code can deploy first.
 
 ---
 
@@ -1517,7 +1518,7 @@ The app hides/disables the related features until each one has been run, so code
 - **Notice Board:** beside the existing Announcements (not changed); `board_post` (admin/manager/supervisor) posts — supervisors to their own team, everyone needs admin / manager or Post Announcements; no team = everyone; badge = live must-read notices for my team not yet read (15 min + `helix:board-changed`); text checked with `phiIssues`; archive instead of delete; expired / scheduled / archived notices show under Archive.
 - **Page crashes (fix 2026-10-21, after “Client Queries makes Helix Hub go black”):** `src/components/shared/PageErrorBoundary.jsx` wraps the page area in `App.jsx` — a crash shows an error card with the message + Reload (sidebar keeps working; resets on page change); a stale code file after a new deploy reloads once automatically (max once a minute). Root cause of the Client Queries report not yet confirmed — ask for the error text shown on the card.
 - **Nothing is ever deleted** — rows are made inactive; files/versions are kept.
-- **Supabase migrations:** product owner runs them all at the end, one by one, from the ordered list here. Every feature must show “not set up yet” until its migration is run.
+- **Supabase migrations:** 1–33 were run on 2026-10-29. Any new migration is added to the list and the PO runs it (then Sync structure). Every feature must still show “not set up yet” until its migration is run.
 
 ---
 
