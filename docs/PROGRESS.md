@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-29 — 👑 Owner Console 2.0 built and pushed; migration 34 waiting for the PO (1–33 run). Team Dashboard awaiting review._
+_Last updated: 2026-10-29 — 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -14,7 +14,7 @@ _Last updated: 2026-10-29 — 👑 Owner Console 2.0 built and pushed; migration
 2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then continue.”** (Latest: 📈 Team Dashboard — built and
    pushed, waiting for review; 👑 Owner Console 2.0 — pushed, PO to run migration 34 then test.)
 3. Claude reads this file, fetches the latest code from GitHub, and picks up from “Current step” (fixes from your testing,
-   then 10.4 Chrome extension or 9.4 only when you decide). Migrations 1–33 are run (2026-10-29); 34 is not run yet.
+   then 10.4 Chrome extension or 9.4 only when you decide). Migrations 1–34 are all run (2026-10-29).
 
 Supabase: the product owner ran **all 33 migrations** one by one on 2026-10-29 (list under “Supabase migrations”),
 then **↻ Sync structure**. Any new migration from now on is run when its step is done.
@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Extra (PO request 2026-10-29, off-roadmap) — 👑 Owner Console 2.0 — DONE (awaiting migration 34 + PO testing).**
+**Extra (PO request 2026-10-29, off-roadmap) — 👑 Owner Console 2.0 — DONE (migration 34 run + synced 2026-10-29; awaiting PO testing).**
 Built as planned below. `npm run lint` clean for every touched file (old errors elsewhere unchanged, e.g. `App.jsx`
 missed-day effect, `TeamMgmt.jsx` unused `effectiveTarget`); `npm run build` passes; page on / off + AI switch logic
 checked with test data. Migration 34 could not be run here (no database access) — read it carefully when running.
@@ -1506,7 +1506,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 
 ---
 
-## ✅ Supabase migrations (1–33 run 2026-10-29 · 34 NOT RUN YET)
+## ✅ Supabase migrations (1–34 all run 2026-10-29)
 
 The product owner ran 1–33 in **Supabase → SQL Editor**, in this order, on 2026-10-29, then clicked **↻ Sync structure**
 in the Owner Console. New migrations go at the end of this list, marked “not run yet” until the PO runs them:
@@ -1545,7 +1545,7 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 32. `supabase/migrations/20261021w_worklist_denial_code.sql` (optional denial code on worklist claims, step 10.2)
 33. `supabase/migrations/20261021x_notice_board.sql` (notice board notices + reads, step 10.3)
 34. `supabase/migrations/20261029_owner_console.sql` (Owner Console 2.0: company plan / seats / pages / pause / banner,
-    owner-only notes + log, broadcasts, owner RPCs; `_home_tables` skips `helix_*`) — **NOT RUN YET**, then Sync structure
+    owner-only notes + log, broadcasts, owner RPCs; `_home_tables` skips `helix_*`) — run + synced 2026-10-29
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
