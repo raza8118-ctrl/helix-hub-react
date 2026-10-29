@@ -45,7 +45,8 @@ After that:
    | Variable | Example | Purpose |
    |---|---|---|
    | `VITE_SUPABASE_URL` | `https://xyz.supabase.co` | The company's own database |
-   | `VITE_ANTHROPIC_KEY` | — | Supabase anon key (existing variable name) |
+   | `VITE_SUPABASE_ANON_KEY` | — | The database's anon (public) key |
+   | `VITE_ANTHROPIC_KEY` | — | **Old name** for the same Supabase anon key — still read if `VITE_SUPABASE_ANON_KEY` isn't set; remove once the new name is in place. It is *not* an AI key: the AI key is saved in **Settings** |
    | `VITE_COMPANY_NAME` | `Acme Health` | Company name users type on the first login screen |
    | `VITE_COMPANY_CODE` | `ACME` | Optional short code also accepted on that screen |
 

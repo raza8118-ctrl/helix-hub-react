@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { applyCompanyBuiltins, setCompanyProcessNames } from './constants';
 
+// The Supabase anon key used to live in the misnamed VITE_ANTHROPIC_KEY — still read as a fallback so existing
+// deployments keep working until VITE_SUPABASE_ANON_KEY is set (2026-10-29).
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_ANTHROPIC_KEY,
+  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_ANTHROPIC_KEY,
   { db: { schema: 'rcm' } }
 );
 

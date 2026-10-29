@@ -374,8 +374,9 @@ export function canViewPost(post, viewerEmpId, requestRows, closeRows) {
 
 export async function callAI(prompt, maxTokens = 1024, apiKey = null) {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
-  const key = apiKey || import.meta.env.VITE_ANTHROPIC_KEY;
-  if (!key) throw new Error('NO_KEY');
+  // Only the AI key saved in Settings — never an environment variable (VITE_ANTHROPIC_KEY held the Supabase key)
+  const key = apiKey;
+  if (!key) throw new Error('No AI key is saved in Settings — an admin can add one.');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {

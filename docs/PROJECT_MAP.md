@@ -141,7 +141,7 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
 
 **Inconsistencies**
 9. **CLAUDE.md was wrong about the stack** (now corrected). It said Next.js; this is a Vite SPA with no server. That matters for the HIPAA rules ("runs on our own server", PDF → Excel on server in 2.4, AI calls). There is currently no server to run anything on.
-10. **`VITE_ANTHROPIC_KEY` holds the Supabase anon key.** `callAI()` also falls back to it as an Anthropic key. That fallback can never work, and the naming is misleading.
+10. ~~**`VITE_ANTHROPIC_KEY` holds the Supabase anon key.**~~ Fixed 2026-10-29: the app reads `VITE_SUPABASE_ANON_KEY` (falling back to the old name until the PO renames it in Vercel and `.env`), and `callAI()` only uses the AI key saved in Settings — it no longer sends the Supabase key to Anthropic.
 11. **The AI model is hardcoded** (`claude-opus-4-5`) and called straight from the browser with the admin-saved key (`anthropic-dangerous-direct-browser-access`). Any signed-in user can read the key from `rcm_store`.
 
 **Security / HIPAA concerns to resolve before adding Workbench modules**

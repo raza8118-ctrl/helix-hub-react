@@ -23,6 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Fix (PO request 2026-10-29) — `VITE_ANTHROPIC_KEY` naming — DONE.** That env variable actually held the Supabase anon key.
+`supabase.js` now reads `VITE_SUPABASE_ANON_KEY` and falls back to the old name; `callAI()` uses only the AI key saved in
+Settings (it used to fall back to the env variable — i.e. sent the Supabase key to Anthropic when no AI key was saved).
+README + PROJECT_MAP updated. **PO to do:** add `VITE_SUPABASE_ANON_KEY` (same value as `VITE_ANTHROPIC_KEY`) in Vercel →
+Environment Variables and in the local `.env`, redeploy, then delete `VITE_ANTHROPIC_KEY` from both. **Later clean-up:**
+once the PO confirms, remove the old-name fallback from `src/lib/supabase.js`.
+
 **Extra (PO request 2026-10-29, off-roadmap) — 👑 Owner Console 2.0 — DONE (migration 34 run + synced 2026-10-29; awaiting PO testing).**
 Built as planned below. `npm run lint` clean for every touched file (old errors elsewhere unchanged, e.g. `App.jsx`
 missed-day effect, `TeamMgmt.jsx` unused `effectiveTarget`); `npm run build` passes; page on / off + AI switch logic
