@@ -4,15 +4,15 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-29 — all 33 Supabase migrations run by the product owner + ↻ Sync structure done; live testing can start._
+_Last updated: 2026-10-29 — 📈 Team Dashboard built and pushed (awaiting PO review); all 33 Supabase migrations run + synced._
 
 ---
 
 ## ⏯ How to resume (product owner)
 
 1. Open the project folder `helix-hub` and start Claude Code there.
-2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then continue.”** (Latest: floating Ask Helix button + calm
-   navigation with hover fly-out menus — built and pushed, waiting for browser testing / feedback.)
+2. Paste: **“Read .claude/CLAUDE.md and docs/PROGRESS.md, then continue.”** (Latest: 📈 Team Dashboard — built and
+   pushed, waiting for the PO's review of the page and of the extras listed under “Current step”.)
 3. Claude reads this file, fetches the latest code from GitHub, and picks up from “Current step” (fixes from your testing,
    then 10.4 Chrome extension or 9.4 only when you decide). Migrations 1–33 are run (2026-10-29).
 
@@ -23,7 +23,24 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Extra (PO request 2026-10-29, off-roadmap) — 📈 Team Dashboard — APPROVED (“ok go”), building.**
+**Extra (PO request 2026-10-29, off-roadmap) — 📈 Team Dashboard — DONE (awaiting PO review).** Built as planned below.
+Checks: `npm run lint` clean for every new / changed file (the project's older lint errors in other files are unchanged —
+e.g. `App.jsx:224`, `Dialog.jsx`, `pdfTools.js`); `npm run build` passes. Node / npm ARE now installed on this PC
+(v22 / 10.9) — local `node_modules` was stale, refreshed with `npm ci` (no project file changed). The maths
+(`lib/teamDashboard.js`) was checked against made-up data: periods, holidays, ranks, leave / absent / half-days,
+night-shift hours, shrinkage, previous-period arrows, supervisor scope, team filter — all correct.
+Extras added from Claude's side (PO said they'll review and say what to remove): ⚠️ Needs attention list (Prod < 75%,
+Quality < 95%, 3+ late logins, fatal QA errors, 2+ reports missing) · “Reports missing” tile · QA audits + fatal-error
+tiles (from QA Audits) · quality ranking · process heat grid · “Reports up to / Attendance up to” freshness · sortable
+team table with Excel · Day / Week ◀ ▶ stepping. Definitions: Prod % = average of daily Prod % (same as Weekly /
+Monthly); leave = absent with a leave type (planned / CSL) + the missed half of half-days; absent = absent with no leave
+type; shrinkage = (leave + absent) ÷ (people × days a Keka file covered); hours = logout − login − breaks (night shifts
+handled); short day = full present day under 8:00. Thresholds are constants at the top of `lib/teamDashboard.js`.
+New permission `page_teamdash` “Team Dashboard” (admin / manager / supervisor; grantable). Audit actions
+`team_dashboard_view` (once per page open) and `team_dashboard_export`. Keka page label → “Attendance (Keka)” (id and
+permission key unchanged).
+
+**Plan (approved 2026-10-29):**
 PO wants one dashboard with everyone's productivity, quality, attendance “everything in details”, using the look of the
 sample kit `helix-ui-kit.zip` (Next.js + Tailwind v4 + framer-motion + recharts + lucide). Kit reviewed: NOT copied —
 Tailwind's reset would restyle every page, its theme provider fights ours, no Node here to add libraries. Rebuilt the
@@ -1449,6 +1466,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | Extra | Floating 🤖 Ask button + panel (shared memory-only conversation), Ask Helix: Helix data first then labelled general guidance, 📍 “Where to do it” buttons (`list_helix_tools` / `show_where_to_do_it`), no DB change | 14b42d1 |
 | Extra | Calm navigation: Workbench split into 4 foldable groups, all sections foldable, ⭐ pins (6), « icons-only, ☰ phone drawer, thinner banners (no DB change) | 3520d8c |
 | Extra | Calm navigation follow-up: bigger sidebar (256px, 14.5px names), one row per group with hover / click fly-out menus, group icons, icons-only uses the same fly-outs (no DB change) | 5141e86 |
+| Extra | 📈 Team Dashboard: productivity, quality, attendance (Keka) and calls for the team or one person, day / week / months; look of the PO's sample kit rebuilt with own CSS / SVG; drill-down pop-ups with Excel; Keka page relabelled “Attendance (Keka)” (no DB change) | (this commit) |
 
 ---
 
@@ -1545,7 +1563,7 @@ The app hides/disables a feature until its migration has been run, so code can d
 
 - One roadmap step at a time: plan → product owner says “go” → build → tick `docs/HELIX_ROADMAP.md` → commit + push to `main`.
 - Save points: approved plan is written here and pushed **before** building; long builds push checkpoints to the `wip` branch (never live); finished step goes to `main` and this file is updated.
-- The dev machine has **no Node/npm**, so `npm run lint` / `npm run build` can't run locally — Vercel's deploy is the first build. Read changes carefully.
+- Node 22 / npm 10 are installed on the dev machine (since 2026-10-29) — run `npm run lint` and `npm run build` before finishing. The project has older lint errors in files nobody changed; only new problems in touched files must be fixed. If the build says a package is missing, run `npm ci` (installs exactly the lock file).
 - Always `git fetch` first — GitHub is sometimes ahead.
 - **Commit messages:** Windows PowerShell 5 breaks double quotes passed to git, so write the message to a file and use
   `git commit -F <file>`; and only reset/push `wip` after confirming the `main` commit succeeded.

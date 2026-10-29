@@ -46,7 +46,8 @@ supabase/multi_company_setup.sql   the only SQL in the repo
 ### Admin / Manager (`ADMIN_TABS`)
 | Section | Tab | File | What it does |
 |---|---|---|---|
-| Monitoring | Dashboard | `admin/Dashboard.jsx` | Keka attendance import (column-mapping wizard), attendance detail, recent imports |
+| Monitoring | Team Dashboard (`teamdash`) | `admin/TeamDashboard.jsx` | One page for productivity, quality, attendance (Keka fields) and calls — team or one person, day / week / one or more months; tiles with mini trends + vs previous period, dark chart panel, heat grid, rankings, needs-attention list, team table; click any number for the records (Excel, audit-logged). Maths in `lib/teamDashboard.js`, parts in `components/dash/` (own SVG, `.hx-*` CSS) |
+| | Attendance (Keka) (`dashboard`) | `admin/Dashboard.jsx` | Keka attendance import (column-mapping wizard), attendance detail, recent imports |
 | | Today | `admin/Today.jsx` | Today's submissions, prod/quality averages, holiday marking, CSV export, AI summary email |
 | | Prod Monitor | `admin/ProdMonitor.jsx` | Daily logs per employee; edit counts, deadline bypass, quality bypass, pin employees |
 | | Quality | `admin/QualityMonitor.jsx` | Multi-day quality grid, edit quality % |
@@ -61,7 +62,7 @@ supabase/multi_company_setup.sql   the only SQL in the repo
 | System | Settings | `admin/Settings.jsx` | Anthropic API key, shift timing (DST), task target configuration |
 
 ### Supervisor (`SUPERVISOR_TABS`)
-Dashboard, Today, Prod Monitor, Hourly, Weekly, Monthly (same admin pages, scoped to the supervisor's team), **My Team** (`supervisor/SupervisorTeam.jsx`, team list + reset approvals), Announcements, Team Feed. No Quality, Team, Allocation or Settings tabs.
+Team Dashboard, Attendance (Keka), Today, Prod Monitor, Hourly, Weekly, Monthly (same admin pages, scoped to the supervisor's team), **My Team** (`supervisor/SupervisorTeam.jsx`, team list + reset approvals), Announcements, Team Feed. No Quality, Team, Allocation or Settings tabs.
 
 ### Employee (`empTabs`)
 | Tab | File | What it does |

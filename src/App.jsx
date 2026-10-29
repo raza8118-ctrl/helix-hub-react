@@ -60,7 +60,8 @@ function applyTheme(themeId) {
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const ADMIN_TABS = [
-  { id: 'dashboard',   label: 'Dashboard',     icon: '🧭', section: 'Monitoring' },
+  { id: 'teamdash',    label: 'Team Dashboard', icon: '📈', section: 'Monitoring' },
+  { id: 'dashboard',   label: 'Attendance (Keka)', icon: '🧭', section: 'Monitoring' },
   { id: 'today',       label: 'Today',         icon: '📅', section: 'Monitoring' },
   { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊', section: 'Monitoring' },
   { id: 'qualitymon',  label: 'Quality',       icon: '⭐', section: 'Monitoring' },
@@ -78,7 +79,8 @@ const ADMIN_TABS = [
 ];
 
 const SUPERVISOR_TABS = [
-  { id: 'dashboard',   label: 'Dashboard',     icon: '🧭', section: 'Monitoring' },
+  { id: 'teamdash',    label: 'Team Dashboard', icon: '📈', section: 'Monitoring' },
+  { id: 'dashboard',   label: 'Attendance (Keka)', icon: '🧭', section: 'Monitoring' },
   { id: 'today',       label: 'Today',         icon: '📅', section: 'Monitoring' },
   { id: 'prodmonitor', label: 'Prod Monitor',  icon: '📊', section: 'Monitoring' },
   { id: 'hourlymon',   label: 'Hourly',        icon: '⏱️', section: 'Monitoring' },

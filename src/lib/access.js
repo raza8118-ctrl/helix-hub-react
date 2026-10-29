@@ -7,8 +7,9 @@ const MONITORS = ['admin', 'manager', 'supervisor'];
 const MANAGERS = ['admin', 'manager'];
 
 export const FEATURES = [
-  { group: 'Pages', key: 'page_dashboard',     label: 'Dashboard (attendance)', defaultRoles: MONITORS },
-  { group: 'Pages', key: 'page_today',         label: 'Today',                  defaultRoles: MONITORS },
+  { group: 'Pages', key: 'page_dashboard',     label: 'Attendance (Keka)',      defaultRoles: MONITORS },
+  { group: 'Pages', key: 'page_teamdash',      label: 'Team Dashboard',         defaultRoles: MONITORS },
+  { group: 'Pages', key: 'page_today',         label: 'Today',                 defaultRoles: MONITORS },
   { group: 'Pages', key: 'page_prodmonitor',   label: 'Prod Monitor',           defaultRoles: MONITORS },
   { group: 'Pages', key: 'page_hourly',        label: 'Hourly',                 defaultRoles: MONITORS },
   { group: 'Pages', key: 'page_summary',       label: 'Weekly & Monthly',       defaultRoles: MONITORS },
@@ -73,7 +74,7 @@ export const FEATURES = [
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,
 // whose own 'feedback' tab is the read-only announcements list)
 export const TAB_FEATURES = {
-  dashboard: 'page_dashboard', today: 'page_today', prodmonitor: 'page_prodmonitor',
+  dashboard: 'page_dashboard', teamdash: 'page_teamdash', today: 'page_today', prodmonitor: 'page_prodmonitor',
   hourlymon: 'page_hourly', weekly: 'page_summary', monthly: 'page_summary',
   feedbackadmin: 'page_announcements', qualitymon: 'page_quality',
   allocation: 'page_allocation', allocmon: 'page_allocation', feedmonitor: 'page_feedmonitor',

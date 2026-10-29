@@ -182,6 +182,8 @@ const ACTION_LABELS = {
   report_view:           'Opened a report',
   report_export:         'Exported / printed a report',
   report_ai_summary:     'Wrote a report summary with AI',
+  team_dashboard_view:   'Opened the Team Dashboard',
+  team_dashboard_export: 'Exported Team Dashboard details',
   board_post:            'Posted a notice',
   board_edit:            'Edited a notice',
   board_archive:         'Archived a notice',

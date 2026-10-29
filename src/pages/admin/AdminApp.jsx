@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { isWorkbenchTab } from '../workbench/modules';
 
 const Dashboard      = lazy(() => import('./Dashboard'));
+const TeamDashboard  = lazy(() => import('./TeamDashboard'));
 const Today         = lazy(() => import('./Today'));
 const ProdMonitor    = lazy(() => import('./ProdMonitor'));
 const HourlyMonitor  = lazy(() => import('./HourlyMonitor'));
@@ -20,13 +21,14 @@ const MasterData     = lazy(() => import('./MasterData'));
 
 /**
  * Routes admin tabs to the correct page component.
- * Tab IDs: dashboard | today | prodmonitor | hourlymon | weekly | monthly | feed |
+ * Tab IDs: dashboard (Keka attendance) | teamdash | today | prodmonitor | hourlymon | weekly | monthly | feed |
  *          feedback | team | allocation | allocmon | feedmonitor | settings
  */
 export default function AdminApp({ activeTab, user }) {
   if (isWorkbenchTab(activeTab)) return <WorkbenchApp activeTab={activeTab} user={user} />;
   switch (activeTab) {
     case 'dashboard':   return <Dashboard user={user} />;
+    case 'teamdash':    return <TeamDashboard user={user} />;
     case 'today':       return <Today user={user} />;
     case 'prodmonitor': return <ProdMonitor user={user} />;
     case 'hourlymon':   return <HourlyMonitor user={user} />;
