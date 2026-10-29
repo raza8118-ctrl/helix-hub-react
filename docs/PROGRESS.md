@@ -23,6 +23,29 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Extra (PO request 2026-10-29, off-roadmap) — 👑 Owner Console 2.0 — APPROVED (“go”), building.**
+PO: “the owner should feel like an owner” — decide which pages each company gets, monitor / look after companies, pause
+a company's login, master key into anything. Decisions (PO accepted all recommendations): new companies start with all
+pages ON; Pause also signs out people already signed in (≈5 min); “Sign in as user” allowed for any user incl. company
+admins, always bannered + logged, reason optional; seat limit BLOCKS adding active users above it.
+- Console tabs: 🛰️ Overview (platform totals, card per company: status, users / seats, sign-ins today / 7 days, reports
+  this week, Prod % this week, last activity, structure check, alerts; Open → with start page, Manage, Pause) ·
+  🏢 Companies (Manage: Profile & plan [plan, seat limit, contact, private notes], Access [page / module on-off per
+  company; essentials locked on], Pause / resume with message, Sign everyone out now, company banner, Users [last sign-in,
+  reset password, deactivate / reactivate, 🔑 Sign in as user], Activity [audit log + 30-day sign-ins], Danger zone) ·
+  📣 Broadcasts (banner to all / chosen companies, kind, start / end) · 👑 Owners & security (several owners, owner
+  activity log, change password) · ⚙️ Platform (structure check per company + Sync, version history). Nothing removed.
+- Master key: Open → / Sign in as user always show the purple owner banner; audit entries read “Name (via owner X)”.
+  Owner may open a paused company.
+- DB: migration 34 `supabase/migrations/20261029_owner_console.sql` (additive): `companies` + features, plan,
+  seat_limit, pause_message, banner, session_version, updated_at; owner-only `helix_company_private`,
+  `helix_owner_log`; `helix_broadcasts` (readable, written by RPC); `_home_tables` view also skips `helix_%` tables (so
+  Sync never copies owner data); owner RPCs (each checks `_is_owner`). Home company (3Gen) is not paused / feature-gated.
+- Files: new `src/lib/owner.js`, `src/lib/companyFeatures.js`, owner tab components; changed `OwnerConsole.jsx`,
+  `App.jsx`, `Login.jsx`, `audit.js`, `TeamMgmt.jsx` (seat limit check), docs.
+- Security note given to PO: controls are app-enforced (one public key, no Supabase Auth, plaintext passwords); owner
+  tables / RPCs are DB-protected. Recommended later step: Supabase Auth + RLS + hashed passwords.
+
 **Extra (PO request 2026-10-29, off-roadmap) — 📈 Team Dashboard — DONE (awaiting PO review).** Built as planned below.
 Checks: `npm run lint` clean for every new / changed file (the project's older lint errors in other files are unchanged —
 e.g. `App.jsx:224`, `Dialog.jsx`, `pdfTools.js`); `npm run build` passes. Node / npm ARE now installed on this PC
