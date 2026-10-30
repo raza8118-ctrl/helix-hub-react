@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-30 — 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-30 — 🙈 Hiding unfinished pages in 3Gen + Test Co (plan approved, in progress). Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -22,6 +22,21 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 ---
 
 ## ▶ Current step
+
+**Fix (PO request 2026-10-30) — Hide unfinished pages in 3Gen (home) and Test Co — IN PROGRESS (plan approved).**
+From the module review (`docs/REVIEW.md`). Uses the existing page on/off feature (`lib/companyFeatures.js`); no code,
+tables or data deleted — pages switch back on with one tick in Owner Console → Companies → Manage → Pages.
+- **Hidden for all roles:** Attendance (Keka) · Work Alloc + Alloc Monitor + My Allocation (one switch) · Smart Worklist ·
+  Ask Helix (its floating Ask button and the Search shortcut go with it — they follow the visible tab list).
+- **Kept:** Payer Updates (list, search, by-bulletin and “Add rows by hand” work without AI; only “Extract with AI” and
+  Directory suggestions need a key) and every module the review marks Working, incl. the demo modules Payer Directory,
+  Denial Navigator, Appeal Builder, File Tools. Daily Report stays (PO keep list).
+- **Test Co:** switched off in Owner Console → Manage → Pages (existing feature, no code).
+- **3Gen (home):** the feature skipped the home company. Additive change: new `rcm_store` key `home_features`
+  (same `{ key: false }` format); `lib/company.js` load/save helpers; `App.jsx` passes it to `disabledTabs()` for the home
+  company; `CompanyManage.jsx` shows the Pages section for the home company too (owner-logged). No migration.
+- Side effects (accepted): Reports → Denial trends / weekly claim counts and QA Sampling read Smart Worklist data and stay
+  empty; no Keka import while Attendance is hidden.
 
 **Fix (PO request 2026-10-30) — PDF → Excel “proper format” rebuild (fix to 2.4) — DONE (awaiting PO testing).**
 Built as planned below. Checks: `npm run lint` clean for new code (2 older `preserve-caught-error` errors in `pdfExtract.js` unchanged);
