@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-29 — 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-30 — 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -22,6 +22,27 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 ---
 
 ## ▶ Current step
+
+**Fix (PO request 2026-10-30) — PDF → Excel “proper format” rebuild (fix to 2.4) — IN PROGRESS (plan approved).**
+PO: the output was a raw page dump; it must come out as a proper table (name in a Name column, other details in their own
+columns) that users can review, filter and sort, and a messy report should be sorted out in seconds. Headings differ per
+file, so detection must adapt to each file — not rely on fixed heading names.
+- **Layouts** (auto-chosen per file, one-click switch, “Detected: …” message): **Structured table** (new default) ·
+  **Records (Label: value)** for EOB / remit blocks → one row per record, one column per label found in the file ·
+  **As on page** (today's output, unchanged).
+- **Adaptive detection** (all in the browser): columns from how values line up across many rows (x positions); header
+  row = the row above where regular data starts / repeated at the top of each page; no header → columns named from their
+  content (Date 1, Amount 1, Name…); column types (date / amount / ID / name / text) found from the values; labels = text
+  ending in `:` or `#` followed by a value; RCM words (Patient, Claim, DOS, Paid…) only as a tie-breaker; a part of the
+  file with a different table goes to its own tab.
+- **Auto clean-up:** drops titles, addresses, “Page X of Y”, repeated page headers, blank and subtotal lines (kept on an
+  **Other text** tab); joins wrapped lines back into their row; every page aligned to the same columns.
+- **Review:** “Use this row as header”, rename / remove column — applied to the whole file; **Split names** (Last Name /
+  First Name) **ON by default**; click a column header to sort (kept in the download); quick filter box; re-arranging is
+  instant (no re-read of the PDF).
+- **Excel:** bold header, filter on every column, column widths, amounts as numbers, dates as real dates.
+- Files: new `src/lib/pdfStructure.js`; changed `src/lib/pdfExtract.js` (adds positioned cells per page — additive),
+  `src/pages/workbench/PdfToExcel.jsx`, docs. No database change. No AI, nothing leaves the browser; audit log counts only.
 
 **Fix (PO request 2026-10-29) — `VITE_ANTHROPIC_KEY` naming — DONE.** That env variable actually held the Supabase anon key.
 `supabase.js` now reads `VITE_SUPABASE_ANON_KEY` and falls back to the old name; `callAI()` uses only the AI key saved in
