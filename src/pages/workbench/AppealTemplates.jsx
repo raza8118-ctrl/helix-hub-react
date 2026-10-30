@@ -4,8 +4,8 @@ import {
   TEMPLATE_TYPES, TOKEN_GROUPS, SAMPLE_VALUES, templateTypeLabel, levelLabel, fillTemplate, checkTemplate,
   saveTemplate, reviewTemplate, setTemplateActive, missingStarterTemplates, addStarterTemplates,
 } from '../../lib/appealTemplates';
-import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Modal, Card, Button, Badge, Check, Field, FormActions, Notice, Toolbar, ToolbarSpacer, EmptyState } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
@@ -51,78 +51,75 @@ function TemplateEditor({ template, copyOf, clients, user, onClose, onSaved }) {
 
   return (
     <Modal title={template ? `Edit template — ${template.name}` : 'New letter template'} onClose={onClose} wide>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <p className="text-sm" style={{ marginTop: 0, padding: '6px 10px', borderRadius: 6, background: 'var(--surface-2)' }}>
+      <div>
+        <Notice style={{ marginBottom: 'var(--ui-s3)' }}>
           🔒 Placeholders only — never type a real patient, date or claim number into a template.
           A line starting with <b>?</b> is left out of the letter when any placeholder in it is empty.
-        </p>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <div className="field" style={{ flex: '2 1 240px' }}><label>Name *</label>
+        </Notice>
+        <div className="ui-grid2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <Field label="Name" required>
             <input type="text" value={v.name} onChange={e => set({ name: e.target.value })} placeholder="e.g. Authorization denial appeal" />
-          </div>
-          <div className="field" style={{ flex: '1 1 180px' }}><label>Denial type</label>
+          </Field>
+          <Field label="Denial type">
             <select value={v.denial_type} onChange={e => set({ denial_type: e.target.value })}>
               {TEMPLATE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
-          </div>
-          <div className="field" style={{ flex: '1 1 160px' }}><label>Appeal level</label>
+          </Field>
+          <Field label="Appeal level">
             <select value={v.level} onChange={e => set({ level: e.target.value })}>
               <option value="">Any level</option>
               {APPEAL_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
-          </div>
-          <div className="field" style={{ flex: '1 1 180px' }}><label>Client</label>
+          </Field>
+          <Field label="Client">
             <select value={v.client_id} onChange={e => set({ client_id: e.target.value })}>
               <option value="">All clients</option>
               {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name} only</option>)}
             </select>
-          </div>
+          </Field>
         </div>
 
-        <div className="field">
-          <label>Insert a placeholder</label>
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={group} onChange={e => setGroup(Number(e.target.value))} style={{ maxWidth: 260 }}>
+        <Field label="Insert a placeholder">
+          <div className="ui-row" style={{ gap: 6 }}>
+            <select className="ui-input" value={group} onChange={e => setGroup(Number(e.target.value))} style={{ maxWidth: 260, width: 'auto' }} aria-label="Placeholder group">
               {TOKEN_GROUPS.map((g, i) => <option key={g.label} value={i}>{g.label}</option>)}
             </select>
             {TOKEN_GROUPS[group].tokens.map(t => (
-              <button key={t.token} type="button" className="btn-sm" title={t.label} onClick={() => insert(t.token)}>
+              <Button key={t.token} size="xs" title={t.label} onClick={() => insert(t.token)}>
                 {t.label}{t.id ? ' 🔒' : ''}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Letter text *</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--ui-s3)' }}>
+          <Field label="Letter text" required style={{ marginBottom: 0 }}>
             <textarea ref={bodyRef} rows={18} value={v.body} onChange={e => set({ body: e.target.value })}
               style={{ fontFamily: 'monospace', fontSize: 12 }} />
-          </div>
+          </Field>
           <div>
-            <div className="text-sm bold" style={{ marginBottom: 4 }}>Preview with made-up sample values</div>
-            <div style={{
-              whiteSpace: 'pre-wrap', fontFamily: "'Times New Roman', serif", fontSize: 13, lineHeight: 1.45,
-              border: '1px solid var(--border)', borderRadius: 6, padding: 10, maxHeight: 380, overflowY: 'auto',
-            }}>
-              {preview.text || <span className="text-muted">Nothing yet.</span>}
+            <div className="ui-label" style={{ marginBottom: 5 }}>Preview with made-up sample values</div>
+            <div className="ui-paper small" style={{ maxHeight: 380 }}>
+              {preview.text || <span className="ui-text-muted">Nothing yet.</span>}
             </div>
             {preview.missing.length > 0 && (
-              <div className="text-sm text-muted" style={{ marginTop: 4 }}>No sample value for: {preview.missing.join(', ')}</div>
+              <div className="ui-muted" style={{ marginTop: 4 }}>No sample value for: {preview.missing.join(', ')}</div>
             )}
           </div>
         </div>
 
         {warnings.length > 0 && (
-          <ul className="text-sm" style={{ color: 'var(--warning)', paddingLeft: 18 }}>
-            {warnings.map(w => <li key={w}>⚠ {w}</li>)}
-          </ul>
+          <Notice tone="warn" style={{ marginTop: 'var(--ui-s3)' }}>
+            <ul style={{ paddingLeft: 18, margin: 0 }}>
+              {warnings.map(w => <li key={w}>⚠ {w}</li>)}
+            </ul>
+          </Notice>
         )}
-        {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-        <div className="form-actions">
-          <button className="btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : template ? 'Save Changes' : 'Add'}</button>
-        </div>
+        {error && <Notice tone="bad" style={{ marginTop: 'var(--ui-s3)' }}>{error}</Notice>}
+        <FormActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : template ? 'Save Changes' : 'Add'}</Button>
+        </FormActions>
       </div>
     </Modal>
   );
@@ -155,43 +152,39 @@ export default function AppealTemplates({ templates, clients, user, onChanged })
   }
 
   return (
-    <div>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-        <button className="btn-primary btn-sm" onClick={() => setEditor({})}>+ New template</button>
-        {missing.length > 0 && <button className="btn-sm" onClick={addStarters}>Add starter templates ({missing.length})</button>}
-        <label className="row text-sm text-muted" style={{ gap: 4, cursor: 'pointer', marginLeft: 'auto' }}>
-          <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} /> Show inactive
-        </label>
-      </div>
-      {shown.length === 0 && <div className="card text-muted" style={{ textAlign: 'center' }}>No templates yet.</div>}
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
+      <Toolbar>
+        <Button size="sm" variant="primary" onClick={() => setEditor({})}>+ New template</Button>
+        {missing.length > 0 && <Button size="sm" onClick={addStarters}>Add starter templates ({missing.length})</Button>}
+        <ToolbarSpacer />
+        <Check inline checked={showInactive} onChange={e => setShowInactive(e.target.checked)}>Show inactive</Check>
+      </Toolbar>
+      {shown.length === 0 && <Card><EmptyState icon="📚" title="No templates yet." /></Card>}
       {TEMPLATE_TYPES.map(type => {
         const list = shown.filter(t => t.denial_type === type.value);
         if (!list.length) return null;
         return (
-          <div key={type.value} className="card mb-16">
-            <div className="card-title" style={{ marginBottom: 6 }}>{type.label}</div>
+          <Card key={type.value} title={type.label}>
             {list.map(t => (
-              <div key={t.id} className="row" style={{
-                gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '6px 0', borderTop: '1px solid var(--border)', opacity: t.active === false ? 0.6 : 1,
-              }}>
+              <div key={t.id} className={`ui-listrow${t.active === false ? ' dim' : ''}`}>
                 <span className="bold">{t.name}</span>
-                <span className="badge badge-gray">{levelLabel(t.level)}</span>
-                {t.client_id != null && <span className="badge badge-blue">{clientName(t.client_id)} only</span>}
-                {t.source === 'starter' && !t.reviewed_at && <span className="badge badge-yellow">Starter – please review</span>}
-                {t.reviewed_at && <span className="text-sm text-muted">reviewed {fmtDate(t.reviewed_at)}</span>}
-                {t.active === false && <span className="badge badge-gray">Inactive</span>}
-                <span className="row" style={{ gap: 4, marginLeft: 'auto' }}>
-                  {!t.reviewed_at && t.active !== false && <button className="btn-sm" onClick={() => review(t)}>✓ Reviewed</button>}
-                  {t.active !== false && <button className="btn-sm" title="Edit" onClick={() => setEditor({ template: t })}>✎</button>}
-                  <button className="btn-sm" title="Copy" onClick={() => setEditor({ copyOf: t })}>Copy</button>
-                  <button className="btn-sm" title={t.active === false ? 'Reactivate' : 'Make inactive'} onClick={() => toggle(t)}>{t.active === false ? '↺' : '⊘'}</button>
+                <Badge>{levelLabel(t.level)}</Badge>
+                {t.client_id != null && <Badge tone="info">{clientName(t.client_id)} only</Badge>}
+                {t.source === 'starter' && !t.reviewed_at && <Badge tone="warn">Starter – please review</Badge>}
+                {t.reviewed_at && <span className="ui-small ui-text-good">reviewed {fmtDate(t.reviewed_at)}</span>}
+                {t.active === false && <Badge>Inactive</Badge>}
+                <span className="ui-row" style={{ gap: 4, marginLeft: 'auto' }}>
+                  {!t.reviewed_at && t.active !== false && <Button size="xs" variant="success" onClick={() => review(t)}>✓ Reviewed</Button>}
+                  {t.active !== false && <Button size="xs" title="Edit" aria-label="Edit" onClick={() => setEditor({ template: t })}>✎</Button>}
+                  <Button size="xs" title="Copy" onClick={() => setEditor({ copyOf: t })}>Copy</Button>
+                  <Button size="xs" title={t.active === false ? 'Reactivate' : 'Make inactive'} aria-label={t.active === false ? 'Reactivate' : 'Make inactive'} onClick={() => toggle(t)}>{t.active === false ? '↺' : '⊘'}</Button>
                 </span>
               </div>
             ))}
-          </div>
+          </Card>
         );
       })}
-      <div className="text-sm text-muted">“{templateTypeLabel('any')}” templates are used when no template exists for the appeal’s denial type.</div>
+      <div className="ui-muted">“{templateTypeLabel('any')}” templates are used when no template exists for the appeal’s denial type.</div>
 
       {editor && (
         <TemplateEditor template={editor.template} copyOf={editor.copyOf} clients={clients} user={user}

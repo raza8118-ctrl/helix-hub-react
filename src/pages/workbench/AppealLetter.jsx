@@ -6,6 +6,7 @@ import AppealAIPanel from './AppealAIPanel';
 import AppealPdf from './AppealPdf';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Card, Button, Badge, Check, Notice, Toolbar, EmptyState } from '../../components/ui';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const todayUS = () => { const d = new Date(); return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`; };
@@ -44,10 +45,12 @@ export default function AppealLetter({ form, set, effectiveType, client, payer, 
   if (templates === undefined) return null;
   if (templates === null) {
     return (
-      <div className="card mb-16 text-muted">
-        📝 Letter templates aren’t set up yet. An admin needs to run the appeal templates database update
-        (<code>20261021f_appeal_templates.sql</code>) in Supabase.
-      </div>
+      <Card>
+        <EmptyState icon="📝" title="Letter templates aren’t set up yet.">
+          An admin needs to run the appeal templates database update
+          (<code>20261021f_appeal_templates.sql</code>) in Supabase.
+        </EmptyState>
+      </Card>
     );
   }
 
@@ -79,11 +82,11 @@ export default function AppealLetter({ form, set, effectiveType, client, payer, 
   }
 
   return (
-    <div className="card mb-16">
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
-        <span className="card-title">📝 Letter</span>
+    <Card>
+      <Toolbar style={{ marginBottom: 'var(--ui-s3)' }}>
+        <span className="ui-card-t">📝 Letter</span>
         {live.length > 0 && (
-          <select value={chosen ? String(chosen.id) : ''} onChange={e => set({ template_id: e.target.value, letter_text: null, ai_body: null, ai_notes: '' })} style={{ maxWidth: 320 }}>
+          <select value={chosen ? String(chosen.id) : ''} onChange={e => set({ template_id: e.target.value, letter_text: null, ai_body: null, ai_notes: '' })} aria-label="Letter template" style={{ maxWidth: 320 }}>
             {live.map(t => (
               <option key={t.id} value={String(t.id)}>
                 {t.name}{t.id === best?.id ? ' (best match)' : ''}
@@ -92,84 +95,79 @@ export default function AppealLetter({ form, set, effectiveType, client, payer, 
           </select>
         )}
         {chosen && (
-          <span className="text-sm text-muted">
+          <span className="ui-muted">
             {templateTypeLabel(chosen.denial_type)} · {levelLabel(chosen.level)}{chosen.client_id != null ? ` · ${client?.name ?? 'client'} only` : ''}
           </span>
         )}
+      </Toolbar>
+
+      <div className="ui-stack">
+        {live.length === 0 && <EmptyState compact title="No letter templates yet — someone with “Manage appeal letter templates” can add them in 📚 Templates." />}
+
+        {chosen && (
+          <AppealAIPanel template={chosen} form={form} set={set} effectiveType={effectiveType} user={user}
+            clientName={client?.name} payerName={payer?.name} codesText={codesText} reasonText={reasonText} />
+        )}
+        {chosen && form.ai_body && (
+          <details className="ui-details">
+            <summary>🔀 Show changes (template vs AI wording, placeholders shown)</summary>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--ui-s2)' }}>
+              {[['Template', chosen.body], ['AI wording', form.ai_body]].map(([label, text]) => (
+                <div key={label}>
+                  <div className="ui-kv-l">{label}</div>
+                  <pre className="ui-paper small">{text}</pre>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {chosen && !edited && (
+          <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
+            <div className="ui-row">
+              <Check inline checked={showTokens} onChange={e => setShowTokens(e.target.checked)}>Show placeholders</Check>
+              {filled.missing.length > 0 && (
+                <Badge tone="warn">{filled.missing.length} not filled in yet</Badge>
+              )}
+            </div>
+            <div className="ui-paper">
+              {filled.lines.map((parts, i) => (
+                <div key={i}>
+                  {parts.length === 0 ? ' ' : parts.map((p, j) => p.text !== undefined
+                    ? <span key={j}>{p.text}</span>
+                    : (!p.value || showTokens)
+                      ? <mark key={j} className={`ui-token${p.value ? ' filled' : ''}`} title={p.value ? `Filled: ${p.value}` : 'Not filled in yet'}>{p.token}</mark>
+                      : <span key={j}>{p.value}</span>)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {edited && (
+          <Notice tone="info">
+            <span className="ui-row">✎ You edited the letter text. <Button size="xs" onClick={rebuild}>↺ Rebuild from the template</Button></span>
+          </Notice>
+        )}
+        {(chosen || edited) && (
+          <details className="ui-details" open={edited}>
+            <summary>✎ Edit the letter text</summary>
+            <textarea rows={16} className="ui-input" value={letterText} onChange={e => set({ letter_text: e.target.value })}
+              style={{ fontFamily: "'Times New Roman', serif" }} aria-label="Letter text" />
+          </details>
+        )}
+
+        {letterText && (
+          <div className="ui-row">
+            <CopyButton value={letterText} label="📋 Copy letter" title="Copy the letter" />
+            <Button size="sm" onClick={() => printLetter(letterText)}>🖨 Print</Button>
+            <span className="ui-muted">🔒 Filled in on this computer only — not saved.</span>
+          </div>
+        )}
       </div>
-
-      {live.length === 0 && <div className="text-sm text-muted">No letter templates yet — someone with “Manage appeal letter templates” can add them in 📚 Templates.</div>}
-
-      {chosen && (
-        <AppealAIPanel template={chosen} form={form} set={set} effectiveType={effectiveType} user={user}
-          clientName={client?.name} payerName={payer?.name} codesText={codesText} reasonText={reasonText} />
-      )}
-      {chosen && form.ai_body && (
-        <details style={{ marginBottom: 8 }}>
-          <summary className="text-sm" style={{ cursor: 'pointer' }}>🔀 Show changes (template vs AI wording, placeholders shown)</summary>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 8, marginTop: 6 }}>
-            {[['Template', chosen.body], ['AI wording', form.ai_body]].map(([label, text]) => (
-              <div key={label}>
-                <div className="text-sm bold">{label}</div>
-                <pre style={{ whiteSpace: 'pre-wrap', fontFamily: "'Times New Roman', serif", fontSize: 13, margin: 0,
-                  border: '1px solid var(--border)', borderRadius: 6, padding: 8, maxHeight: 360, overflowY: 'auto' }}>{text}</pre>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-
-      {chosen && !edited && (
-        <>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
-            <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-              <input type="checkbox" checked={showTokens} onChange={e => setShowTokens(e.target.checked)} /> Show placeholders
-            </label>
-            {filled.missing.length > 0 && (
-              <span className="badge badge-yellow">{filled.missing.length} not filled in yet</span>
-            )}
-          </div>
-          <div style={{
-            whiteSpace: 'pre-wrap', fontFamily: "'Times New Roman', serif", fontSize: 15, lineHeight: 1.5,
-            border: '1px solid var(--border)', borderRadius: 6, padding: 14, background: 'var(--surface)',
-          }}>
-            {filled.lines.map((parts, i) => (
-              <div key={i}>
-                {parts.length === 0 ? ' ' : parts.map((p, j) => p.text !== undefined
-                  ? <span key={j}>{p.text}</span>
-                  : (!p.value || showTokens)
-                    ? <mark key={j} title={p.value ? `Filled: ${p.value}` : 'Not filled in yet'}
-                        style={{ background: p.value ? 'var(--surface-2)' : '#fef08a', color: 'inherit', padding: '0 2px', borderRadius: 3 }}>{p.token}</mark>
-                    : <span key={j}>{p.value}</span>)}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {edited && (
-        <div className="text-sm" style={{ marginBottom: 6 }}>
-          ✎ You edited the letter text. <button className="btn-sm" onClick={rebuild}>↺ Rebuild from the template</button>
-        </div>
-      )}
-      {(chosen || edited) && (
-        <details style={{ marginTop: 8 }} open={edited}>
-          <summary className="text-sm" style={{ cursor: 'pointer' }}>✎ Edit the letter text</summary>
-          <textarea rows={16} value={letterText} onChange={e => set({ letter_text: e.target.value })}
-            style={{ width: '100%', marginTop: 6, fontFamily: "'Times New Roman', serif" }} />
-        </details>
-      )}
-
-      {letterText && (
-        <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <CopyButton value={letterText} label="📋 Copy letter" title="Copy the letter" />
-          <button className="btn-sm" onClick={() => printLetter(letterText)}>🖨 Print</button>
-          <span className="text-sm text-muted">🔒 Filled in on this computer only — not saved.</span>
-        </div>
-      )}
 
       <AppealPdf letterText={letterText} values={values} info={payerData} payer={payer} client={client} form={form}
         effectiveType={effectiveType} user={user} onFormsChanged={() => setInfoVersion(v => v + 1)} />
-    </div>
+    </Card>
   );
 }

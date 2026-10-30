@@ -15,6 +15,7 @@ import { loadTemplates } from '../../lib/appealTemplates';
 import SopPage from './SopPage';
 import PayerCard from './PayerCard';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { PageHeader, Card, Button, Tabs, Notice, EmptyState } from '../../components/ui';
 
 /**
  * ✉️ Appeal Builder (roadmap Phase 5). 5.1 = the appeal form + side panel (deadline, where to send, steps, facts);
@@ -85,10 +86,13 @@ export default function AppealBuilder({ user }) {
     const readable = sop && (canEditSops || (sop.active !== false && sop.status === 'published'));
     const back = () => { setSopId(null); setSopCtx(null); };
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        {!sopCtx && <div className="card text-muted">Loading SOP…</div>}
+      <div className="ui-page" style={{ maxWidth: 960 }}>
+        {!sopCtx && <Card><EmptyState compact title="Loading SOP…" /></Card>}
         {sopCtx && !readable && (
-          <div className="card"><button className="btn-sm" onClick={back}>← Back to the appeal</button><p className="text-muted">This SOP isn’t published yet.</p></div>
+          <Card>
+            <Button size="sm" variant="ghost" onClick={back}>← Back to the appeal</Button>
+            <EmptyState icon="📚" title="This SOP isn’t published yet." />
+          </Card>
         )}
         {sopCtx && readable && (
           <SopPage key={sop.id} sop={sop} lib={sopCtx.lib} meta={sopCtx.meta} names={{}} user={user} canEdit={canEditSops}
@@ -99,28 +103,23 @@ export default function AppealBuilder({ user }) {
   }
   if (payerCard) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <button className="btn-sm" style={{ marginBottom: 12 }} onClick={() => setPayerCard(null)}>← Back to the appeal</button>
+      <div className="ui-page" style={{ maxWidth: 960 }}>
+        <div><Button size="sm" variant="ghost" onClick={() => setPayerCard(null)}>← Back to the appeal</Button></div>
         <PayerCard key={payerCard.id} payer={payerCard} user={user} onClose={() => setPayerCard(null)} />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">✉️ Appeal Builder</div>
-          <div className="page-subtitle">Fill in the claim and denial facts — the letter below is built from them.</div>
-        </div>
-        {tab === 'appeal' && <button className="btn-sm" onClick={clearForm}>🗑 Clear form</button>}
-      </div>
+    <div className="ui-page" style={{ maxWidth: 1200 }}>
+      <PageHeader icon="✉️" kicker="Workbench" title="Appeal Builder"
+        subtitle="Fill in the claim and denial facts — the letter below is built from them."
+        actions={tab === 'appeal' && <Button size="sm" variant="danger" onClick={clearForm}>🗑 Clear form</Button>} />
 
       {canManageTemplates && Array.isArray(templates) && (
-        <div className="row" style={{ gap: 6, marginBottom: 12 }}>
-          {[['appeal', '✉️ Appeal'], ['templates', '📚 Templates']].map(([id, label]) => (
-            <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
-          ))}
+        <div>
+          <Tabs value={tab} onChange={setTab} label="Appeal Builder views"
+            options={[{ value: 'appeal', label: '✉️ Appeal' }, { value: 'templates', label: '📚 Templates' }]} />
         </div>
       )}
 
@@ -129,14 +128,14 @@ export default function AppealBuilder({ user }) {
       )}
 
       {tab === 'appeal' && sensitive && (
-        <div className="card mb-16" style={{ border: '2px solid var(--danger)', fontWeight: 600 }}>
-          🔒 Contains patient details — they stay on this computer only (not saved anywhere). Clear the form when you’re done.
-        </div>
+        <Notice tone="bad" icon="🔒">
+          <b>Contains patient details — they stay on this computer only (not saved anywhere). Clear the form when you’re done.</b>
+        </Notice>
       )}
 
       {tab === 'appeal' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--ui-s4)', alignItems: 'start' }}>
             <AppealForm form={form} set={set} ctx={ctx} payer={payer} matched={matched} effectiveType={effectiveType} />
             <AppealSidePanel form={form} effectiveType={effectiveType} client={client} payer={payer} matched={matched}
               steps={steps} ctx={ctx} user={user} onOpenSop={setSopId} onOpenPayer={setPayerCard} />

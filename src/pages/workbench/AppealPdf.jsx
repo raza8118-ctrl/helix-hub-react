@@ -11,6 +11,7 @@ import { applyNaming, DEFAULT_NAMING } from '../../lib/packet';
 import PdfSaveOptions from './PdfSaveOptions';
 import FormFieldMapper from './FormFieldMapper';
 import CopyButton from '../../components/shared/CopyButton';
+import { CardSection, Button, Check, Field, Notice, Toolbar } from '../../components/ui';
 
 const FORM_TYPES = { appeal: 'Appeal form', recon: 'Reconsideration form', corrected_claim: 'Corrected claim form' };
 const SOON = 3;
@@ -113,97 +114,95 @@ export default function AppealPdf({ letterText, values, info, payer, client, for
     setHanding(false);
   }
 
+  const deadlineTone = status === 'late' ? 'bad' : status === 'soon' ? 'warn' : status === 'ok' ? 'good' : 'neutral';
+
   return (
-    <div style={{ borderTop: '1px solid var(--border)', marginTop: 12, paddingTop: 10 }}>
-      <div className="card-title" style={{ marginBottom: 8 }}>📄 Build the PDF</div>
-
-      <div className="row" style={{ gap: 14, flexWrap: 'wrap', marginBottom: 8 }}>
-        <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }} title={contact?.fax ? '' : 'No appeals fax recorded for this payer'}>
-          <input type="checkbox" checked={cover} onChange={e => setCoverOn(e.target.checked)} /> Fax cover sheet
-        </label>
-        <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-          <input type="checkbox" checked={letterOn} disabled={!letterText?.trim()} onChange={e => setLetterOn(e.target.checked)} /> Cover letter
-        </label>
-      </div>
-      {cover && <div className="text-sm text-muted" style={{ marginBottom: 8 }}>The fax cover sheet shows the payer, fax, sender and page count only — no patient details.</div>}
-
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
-        <span className="text-sm">Payer form:</span>
-        <select value={formId} onChange={e => { setFormId(e.target.value); setAcked(false); }} style={{ maxWidth: 320 }}>
-          <option value="">— None —</option>
-          {forms.map(f => <option key={f.id} value={String(f.id)}>{f.title} ({FORM_TYPES[f.form_type] ?? f.form_type})</option>)}
-        </select>
-        {!payer && <span className="text-sm text-muted">Pick a payer to see its forms.</span>}
-        {payer && !forms.length && <span className="text-sm text-muted">No appeal forms recorded for {payer.name}.</span>}
-      </div>
-      {payerForm && !formData && <div className="text-sm text-muted">Loading the form…</div>}
-      {formData?.error && <div className="text-sm" style={{ color: 'var(--danger)' }}>{formData.error}</div>}
-      {formData?.bytes && (
-        <div className="text-sm" style={{ marginBottom: 8 }}>
-          {!fillable && '📝 This form isn’t fillable — it’s added as-is. Fill it in by hand (or print, fill and scan).'}
-          {fillable && mapped && <>✅ Pre-filled from this appeal ({Object.keys(payerForm.field_map).length} mapped fields). </>}
-          {fillable && !mapped && <>This form has {formData.fields.length} fillable fields but no field map yet — it’s added empty. </>}
-          {fillable && !mapReady && <span className="text-muted">(Field maps need the payer form fields database update — <code>20261021g_payer_form_fields.sql</code>.)</span>}
-          {fillable && mapReady && hasAccess(user, 'payers_edit') && (
-            <button className="btn-sm" onClick={() => setMapping(true)}>🧩 {mapped ? 'Edit' : 'Map'} form fields</button>
-          )}
-          {fillable && mapped && (
-            <label className="row" style={{ gap: 4, cursor: 'pointer', marginTop: 4 }}>
-              <input type="checkbox" checked={flatten} onChange={e => setFlatten(e.target.checked)} /> Flatten (filled values can’t be changed in the PDF)
-            </label>
-          )}
+    <CardSection icon="📄" title="Build the PDF">
+      <div className="ui-stack">
+        <div className="ui-row" style={{ gap: 'var(--ui-s4)' }}>
+          <Check inline checked={cover} onChange={e => setCoverOn(e.target.checked)} title={contact?.fax ? '' : 'No appeals fax recorded for this payer'}>Fax cover sheet</Check>
+          <Check inline checked={letterOn} disabled={!letterText?.trim()} onChange={e => setLetterOn(e.target.checked)}>Cover letter</Check>
         </div>
-      )}
+        {cover && <div className="ui-muted">The fax cover sheet shows the payer, fax, sender and page count only — no patient details.</div>}
 
-      {contact && (
-        <div className="text-sm" style={{ marginBottom: 8 }}>
-          <b>Send to:</b> {payer?.name} appeals
-          {contact.fax && <> · Fax {contact.fax} <CopyButton value={contact.fax} /></>}
-          {contact.mailing_address && <> · <CopyButton value={[contact.attention_line, contact.mailing_address].filter(Boolean).join('\n')} label="Copy address" /></>}
-          {contact.portal_url && <> · <a href={contact.portal_url} target="_blank" rel="noopener noreferrer">Portal ↗</a></>}
+        <div>
+          <Toolbar>
+            <span className="ui-label">Payer form:</span>
+            <select value={formId} onChange={e => { setFormId(e.target.value); setAcked(false); }} aria-label="Payer form" style={{ maxWidth: 320 }}>
+              <option value="">— None —</option>
+              {forms.map(f => <option key={f.id} value={String(f.id)}>{f.title} ({FORM_TYPES[f.form_type] ?? f.form_type})</option>)}
+            </select>
+            {!payer && <span className="ui-muted">Pick a payer to see its forms.</span>}
+            {payer && !forms.length && <span className="ui-muted">No appeal forms recorded for {payer.name}.</span>}
+          </Toolbar>
         </div>
-      )}
-
-      <div className="text-sm" style={{
-        padding: '6px 10px', borderRadius: 6, marginBottom: 8,
-        background: status === 'late' ? 'rgba(239,68,68,0.12)' : status === 'soon' ? 'rgba(245,158,11,0.15)' : 'var(--surface-2)',
-      }}>
-        {status === 'unknown' && '⏰ Deadline not checked — no limit recorded for this payer and appeal level, or no denial date entered.'}
-        {status === 'ok' && <>⏰ Deadline {fmtDue(result.due)} — {result.daysLeft} days left.</>}
-        {status === 'soon' && <>🟠 Deadline {fmtDue(result.due)} — {result.daysLeft === 0 ? 'due today' : `only ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'} left`}. Send it today.</>}
-        {status === 'late' && <>🔴 The deadline was {fmtDue(result.due)} — {-result.daysLeft} days ago. Check whether the payer accepts late appeals with good cause before sending.</>}
-        {needsAck && (
-          <label className="row" style={{ gap: 4, cursor: 'pointer', marginTop: 4 }}>
-            <input type="checkbox" checked={acked} onChange={e => setAcked(e.target.checked)} /> I understand — build the PDF anyway
-          </label>
+        {payerForm && !formData && <div className="ui-muted">Loading the form…</div>}
+        {formData?.error && <Notice tone="bad">{formData.error}</Notice>}
+        {formData?.bytes && (
+          <Notice tone={mapped ? 'good' : 'neutral'}>
+            {!fillable && '📝 This form isn’t fillable — it’s added as-is. Fill it in by hand (or print, fill and scan).'}
+            {fillable && mapped && <>✅ Pre-filled from this appeal ({Object.keys(payerForm.field_map).length} mapped fields). </>}
+            {fillable && !mapped && <>This form has {formData.fields.length} fillable fields but no field map yet — it’s added empty. </>}
+            {fillable && !mapReady && <span className="ui-text-muted">(Field maps need the payer form fields database update — <code>20261021g_payer_form_fields.sql</code>.)</span>}
+            {fillable && mapReady && hasAccess(user, 'payers_edit') && (
+              <Button size="xs" onClick={() => setMapping(true)}>🧩 {mapped ? 'Edit' : 'Map'} form fields</Button>
+            )}
+            {fillable && mapped && (
+              <div style={{ marginTop: 6 }}>
+                <Check inline checked={flatten} onChange={e => setFlatten(e.target.checked)}>Flatten (filled values can’t be changed in the PDF)</Check>
+              </div>
+            )}
+          </Notice>
         )}
+
+        {contact && (
+          <div className="ui-small">
+            <b>Send to:</b> {payer?.name} appeals
+            {contact.fax && <> · Fax {contact.fax} <CopyButton value={contact.fax} /></>}
+            {contact.mailing_address && <> · <CopyButton value={[contact.attention_line, contact.mailing_address].filter(Boolean).join('\n')} label="Copy address" /></>}
+            {contact.portal_url && <> · <a href={contact.portal_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Portal ↗</a></>}
+          </div>
+        )}
+
+        <Notice tone={deadlineTone}>
+          <div style={{ color: deadlineTone === 'neutral' ? 'var(--text)' : undefined }}>
+            {status === 'unknown' && '⏰ Deadline not checked — no limit recorded for this payer and appeal level, or no denial date entered.'}
+            {status === 'ok' && <>⏰ Deadline {fmtDue(result.due)} — {result.daysLeft} days left.</>}
+            {status === 'soon' && <>🟠 Deadline {fmtDue(result.due)} — {result.daysLeft === 0 ? 'due today' : `only ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'} left`}. Send it today.</>}
+            {status === 'late' && <>🔴 The deadline was {fmtDue(result.due)} — {-result.daysLeft} days ago. Check whether the payer accepts late appeals with good cause before sending.</>}
+          </div>
+          {needsAck && (
+            <div style={{ marginTop: 6 }}>
+              <Check inline checked={acked} onChange={e => setAcked(e.target.checked)}>I understand — build the PDF anyway</Check>
+            </div>
+          )}
+        </Notice>
+
+        <Field label="File name" style={{ maxWidth: 520, marginBottom: 0 }}>
+          <input type="text" value={fileName} onChange={e => setNameOverride(e.target.value)} />
+          {nameOverride != null && <div><Button size="xs" variant="ghost" onClick={() => setNameOverride(null)}>↺ Use the naming convention</Button></div>}
+        </Field>
+
+        {!anything && <div className="ui-muted">Tick the cover letter or pick a payer form to build a PDF.</div>}
+        {anything && (!needsAck || acked) && (
+          <PdfSaveOptions outputs={[{ name: /\.pdf$/i.test(fileName) ? fileName : `${fileName}.pdf`, build }]} resetKey={resetKey} user={user}
+            auditAction="appeal_pdf_built"
+            auditDetails={{ fax_cover: cover, letter: letterOn && !!letterText?.trim(), form: !!formData?.bytes, prefilled: !!mapped, flatten: !!(mapped && flatten), deadline: status }} />
+        )}
+
+        {anything && (!needsAck || acked) && (
+          <div className="ui-row">
+            <Button size="sm" onClick={addToPacket} disabled={handing}>{handing ? 'Preparing…' : '📦 Add to Appeal Packet'}</Button>
+            <span className="ui-muted">Opens File Tools → Appeal Packet with the letter and form, to add the EOB, auth approval and records.</span>
+          </div>
+        )}
+        {handError && <Notice tone="bad">{handError}</Notice>}
       </div>
-
-      <div className="field" style={{ maxWidth: 520 }}>
-        <label>File name</label>
-        <input type="text" value={fileName} onChange={e => setNameOverride(e.target.value)} />
-        {nameOverride != null && <button type="button" className="btn-sm" style={{ marginTop: 4 }} onClick={() => setNameOverride(null)}>↺ Use the naming convention</button>}
-      </div>
-
-      {!anything && <div className="text-sm text-muted">Tick the cover letter or pick a payer form to build a PDF.</div>}
-      {anything && (!needsAck || acked) && (
-        <PdfSaveOptions outputs={[{ name: /\.pdf$/i.test(fileName) ? fileName : `${fileName}.pdf`, build }]} resetKey={resetKey} user={user}
-          auditAction="appeal_pdf_built"
-          auditDetails={{ fax_cover: cover, letter: letterOn && !!letterText?.trim(), form: !!formData?.bytes, prefilled: !!mapped, flatten: !!(mapped && flatten), deadline: status }} />
-      )}
-
-      {anything && (!needsAck || acked) && (
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
-          <button className="btn-sm" onClick={addToPacket} disabled={handing}>{handing ? 'Preparing…' : '📦 Add to Appeal Packet'}</button>
-          <span className="text-sm text-muted">Opens File Tools → Appeal Packet with the letter and form, to add the EOB, auth approval and records.</span>
-        </div>
-      )}
-      {handError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{handError}</div>}
 
       {mapping && formData?.fields && (
         <FormFieldMapper payerForm={payerForm} bytes={formData.bytes} fields={formData.fields} user={user}
           onClose={() => setMapping(false)} onSaved={() => { setMapping(false); onFormsChanged(); }} />
       )}
-    </div>
+    </CardSection>
   );
 }

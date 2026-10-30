@@ -6,8 +6,7 @@ import { typeOf } from '../../lib/denials';
 import { payerFormLink } from '../../lib/payerForms';
 import DenialLayers from './DenialLayers';
 import CopyButton from '../../components/shared/CopyButton';
-
-const cell = { padding: '3px 6px', borderBottom: '1px solid var(--border)', verticalAlign: 'top' };
+import { Card, Button, Check, Table, EmptyState } from '../../components/ui';
 
 /**
  * Appeal Builder side panel (roadmap 5.1): deadline for the chosen appeal level, where to send it (Payer Directory),
@@ -44,39 +43,35 @@ export default function AppealSidePanel({ form, effectiveType, client, payer, ma
   const shown = showEmpty ? rows : rows.filter(r => r.value);
 
   return (
-    <div>
-      <div className="card mb-16">
-        <div className="card-title" style={{ marginBottom: 6 }}>⏰ Deadline</div>
-        {!payer && <div className="text-sm text-muted">Pick a payer to see the deadline.</div>}
-        {payer && !data && <div className="text-sm text-muted">Loading…</div>}
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
+      <Card title="Deadline" icon="⏰">
+        {!payer && <div className="ui-muted">Pick a payer to see the deadline.</div>}
+        {payer && !data && <div className="ui-muted">Loading…</div>}
         {payer && data && !limit && (
-          <div className="text-sm text-muted">
+          <div className="ui-muted">
             No {levelOf(form.level).label.toLowerCase()} limit recorded for {payer.name}. Use the Deadline helper in the Denial Navigator.
           </div>
         )}
-        {limit && limit.days == null && <div className="text-sm text-muted">The limit has no number of days — check the payer card.</div>}
-        {rule && !result && <div className="text-sm text-muted">Enter the {dateLabel(rule.fromKey)} to work it out.</div>}
+        {limit && limit.days == null && <div className="ui-muted">The limit has no number of days — check the payer card.</div>}
+        {rule && !result && <div className="ui-muted">Enter the {dateLabel(rule.fromKey)} to work it out.</div>}
         {result && (
-          <div className="text-sm">
+          <div className="ui-result ui-small" style={{ borderLeftColor: STATUS_STYLE[result.status].color }}>
             {STATUS_STYLE[result.status].icon} <b>{limitName(limit)} due {fmtDue(result.due)}</b>
-            <div style={{ color: STATUS_STYLE[result.status].color, fontWeight: 600 }}>
+            <div style={{ color: STATUS_STYLE[result.status].color, fontWeight: 700, fontSize: 'var(--ui-fs-base)' }}>
               {result.daysLeft < 0 ? `${-result.daysLeft} days past due` : result.daysLeft === 0 ? 'Due today' : `${result.daysLeft} days left`}
             </div>
-            <div className="text-muted">{limit.days} days from the {dateLabel(rule.fromKey)} · {limit.isOverride ? `${client?.name} contract` : `${payer.name} standard`}</div>
+            <div className="ui-text-muted">{limit.days} days from the {dateLabel(rule.fromKey)} · {limit.isOverride ? `${client?.name} contract` : `${payer.name} standard`}</div>
             {result.weekend && <div>⚠ Falls on a {result.weekend} — send by {fmtDue(result.sendBy)}.</div>}
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className="card mb-16">
-        <div className="row" style={{ gap: 6, alignItems: 'center', marginBottom: 6 }}>
-          <span className="card-title">📮 Where to send it</span>
-          {payer && <button className="btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onOpenPayer(payer)}>Payer card ›</button>}
-        </div>
-        {!payer && <div className="text-sm text-muted">Pick a payer.</div>}
-        {data && !data.contacts.length && !data.forms.length && <div className="text-sm text-muted">No appeals contact or forms recorded for {payer.name}.</div>}
+      <Card title="Where to send it" icon="📮"
+        actions={payer && <Button size="xs" onClick={() => onOpenPayer(payer)}>Payer card ›</Button>}>
+        {!payer && <div className="ui-muted">Pick a payer.</div>}
+        {data && !data.contacts.length && !data.forms.length && <div className="ui-muted">No appeals contact or forms recorded for {payer.name}.</div>}
         {data?.contacts.map(c => (
-          <div key={c.id} className="text-sm" style={{ marginBottom: 6 }}>
+          <div key={c.id} className="ui-small" style={{ marginBottom: 'var(--ui-s2)' }}>
             {c.fax && <div>Fax {c.fax} <CopyButton value={c.fax} /></div>}
             {c.mailing_address && (
               <div style={{ whiteSpace: 'pre-wrap' }}>
@@ -84,59 +79,54 @@ export default function AppealSidePanel({ form, effectiveType, client, payer, ma
                 <CopyButton value={[c.attention_line, c.mailing_address].filter(Boolean).join('\n')} label="Copy address" />
               </div>
             )}
-            {c.portal_url && <a href={c.portal_url} target="_blank" rel="noopener noreferrer">Appeals portal ↗</a>}
+            {c.portal_url && <a href={c.portal_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Appeals portal ↗</a>}
           </div>
         ))}
         {data?.forms.length > 0 && (
-          <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-            {data.forms.map(f => <button key={f.id} className="btn-sm" onClick={() => download(f)}>⬇ {f.title}</button>)}
+          <div className="ui-row" style={{ gap: 4 }}>
+            {data.forms.map(f => <Button key={f.id} size="xs" onClick={() => download(f)}>⬇ {f.title}</Button>)}
           </div>
         )}
-      </div>
+      </Card>
 
       {Array.isArray(steps) && matched.some(m => m.row) && (
-        <div className="card mb-16">
-          <div className="card-title" style={{ marginBottom: 6 }}>🧩 Steps to follow</div>
-          {matched.filter(m => m.row).map(m => (
-            <div key={m.row.id} style={{ marginBottom: 6 }}>
-              <button className={openCode === m.row.id ? 'btn-primary btn-sm' : 'btn-sm'} onClick={() => setOpenCode(openCode === m.row.id ? null : m.row.id)}>
-                {typeOf(m.row.code_type).label} {m.row.code} {openCode === m.row.id ? '▴' : '▾'}
-              </button>
-              {openCode === m.row.id && (
-                <DenialLayers code={m.row} steps={steps} ctx={ctx} client={client} payer={payer} user={user} canEdit={false}
-                  onChanged={() => {}} onOpenSop={onOpenSop} onOpenPayer={onOpenPayer} />
-              )}
-            </div>
-          ))}
-        </div>
+        <Card title="Steps to follow" icon="🧩">
+          <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
+            {matched.filter(m => m.row).map(m => (
+              <div key={m.row.id}>
+                <Button size="sm" variant={openCode === m.row.id ? 'primary' : 'secondary'} aria-expanded={openCode === m.row.id}
+                  onClick={() => setOpenCode(openCode === m.row.id ? null : m.row.id)}>
+                  {typeOf(m.row.code_type).label} {m.row.code} {openCode === m.row.id ? '▴' : '▾'}
+                </Button>
+                {openCode === m.row.id && (
+                  <DenialLayers code={m.row} steps={steps} ctx={ctx} client={client} payer={payer} user={user} canEdit={false}
+                    onChanged={() => {}} onOpenSop={onOpenSop} onOpenPayer={onOpenPayer} />
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
-      <div className="card mb-16">
-        <div className="row" style={{ gap: 6, alignItems: 'center', marginBottom: 6 }}>
-          <span className="card-title">🧾 Facts summary</span>
-          <label className="row text-sm" style={{ gap: 4, cursor: 'pointer', marginLeft: 'auto' }}>
-            <input type="checkbox" checked={showEmpty} onChange={e => setShowEmpty(e.target.checked)} /> Show empty
-          </label>
-        </div>
-        <div className="text-sm text-muted" style={{ marginBottom: 6 }}>
+      <Card title="Facts summary" icon="🧾"
+        actions={<Check inline checked={showEmpty} onChange={e => setShowEmpty(e.target.checked)}>Show empty</Check>}>
+        <div className="ui-muted" style={{ marginBottom: 'var(--ui-s2)' }}>
           Letters (next steps) use these placeholders. 🔒 = identifier: only the placeholder ever leaves this computer.
         </div>
-        {shown.length === 0 && <div className="text-sm text-muted">Nothing filled in yet.</div>}
+        {shown.length === 0 && <EmptyState compact title="Nothing filled in yet." />}
         {shown.length > 0 && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="text-sm" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {shown.map(r => (
-                  <tr key={r.token}>
-                    <td style={{ ...cell, whiteSpace: 'nowrap' }}><code>{r.token}</code>{r.id ? ' 🔒' : ''}</td>
-                    <td style={{ ...cell, overflowWrap: 'anywhere' }}>{r.value || <span className="text-muted">—</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table dense>
+            <tbody>
+              {shown.map(r => (
+                <tr key={r.token}>
+                  <td style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}><code>{r.token}</code>{r.id ? ' 🔒' : ''}</td>
+                  <td style={{ overflowWrap: 'anywhere' }}>{r.value || <span className="ui-text-muted">—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

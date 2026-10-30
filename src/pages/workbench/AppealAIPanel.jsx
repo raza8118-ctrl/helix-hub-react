@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { STYLES, buildAIRequest, improveWording, validateAILetter } from '../../lib/appealAI';
+import { Card, Button, Badge, Tabs, Check, Notice } from '../../components/ui';
 
 /**
  * ✨ Improve wording with AI (roadmap 5.3). Shows exactly what will be sent (the template with placeholders + facts
@@ -39,70 +40,68 @@ export default function AppealAIPanel({ template, form, set, effectiveType, clie
   }
 
   return (
-    <div style={{ border: '1px dashed var(--border)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-      <div className="row" style={{ gap: 8, alignItems: 'center', cursor: 'pointer' }} onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
-        <span>{open ? '▾' : '▸'}</span>
+    <Card variant="soft">
+      <button type="button" className="ui-disclose" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="ui-disclose-arrow" aria-hidden="true">{open ? '▾' : '▸'}</span>
         <span className="bold">✨ Improve wording with AI</span>
-        {form.ai_body && <span className="badge badge-blue">AI wording in use</span>}
-      </div>
+        {form.ai_body && <Badge tone="accent">AI wording in use</Badge>}
+      </button>
 
       {open && (
-        <div style={{ marginTop: 8 }}>
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
-            {STYLES.map(s => (
-              <button key={s.value} type="button" title={s.hint} className={form.ai_style === s.value ? 'btn-primary btn-sm' : 'btn-sm'}
-                aria-pressed={form.ai_style === s.value} onClick={() => set({ ai_style: s.value })}>{s.label}</button>
-            ))}
+        <div className="ui-stack" style={{ marginTop: 'var(--ui-s3)' }}>
+          <div>
+            <Tabs value={form.ai_style} onChange={v => set({ ai_style: v })} label="Letter style"
+              options={STYLES.map(s => ({ value: s.value, label: s.label, title: s.hint }))} />
           </div>
-          <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', marginBottom: 6 }}>
-            <input type="checkbox" checked={form.ai_use_notes} onChange={e => { set({ ai_use_notes: e.target.checked }); setConfirmed(false); }} />
+          <Check checked={form.ai_use_notes} onChange={e => { set({ ai_use_notes: e.target.checked }); setConfirmed(false); }}>
             Use my “Why we disagree” notes as arguments
-          </label>
+          </Check>
 
-          <details style={{ marginBottom: 6 }}>
-            <summary className="text-sm" style={{ cursor: 'pointer' }}>🔍 What AI will see (exactly this, nothing else)</summary>
-            <div className="text-sm" style={{ background: 'var(--surface-2)', borderRadius: 6, padding: 8, marginTop: 4 }}>
+          <details className="ui-details">
+            <summary>🔍 What AI will see (exactly this, nothing else)</summary>
+            <div className="ui-small ui-item">
               <div className="bold">Facts</div>
               {req.facts.map(f => <div key={f.label}>• {f.label}: {f.value}</div>)}
-              <div className="bold" style={{ marginTop: 6 }}>Template “{template.name}” (placeholders only)</div>
+              <div className="bold">Template “{template.name}” (placeholders only)</div>
               <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'monospace', fontSize: 11 }}>{template.body}</pre>
-              <div className="text-muted" style={{ marginTop: 6 }}>
+              <div className="ui-text-muted">
                 Never sent: patient name, date of birth, member ID, claim #, auth #, any dates or other 🔒 fields — only their placeholders.
               </div>
             </div>
           </details>
 
           {blocked && (
-            <div className="text-sm" style={{ color: 'var(--danger)', marginBottom: 6 }}>
+            <Notice tone="bad">
               ⛔ Can’t send — this looks like patient information:
               {req.problems.map(p => <div key={p.label}>• {p.label}: {p.issues.join(', ')}</div>)}
               Remove it (or untick the notes) and try again.
-            </div>
+            </Notice>
           )}
 
-          <label className="row text-sm" style={{ gap: 6, alignItems: 'flex-start', cursor: 'pointer', marginBottom: 6 }}>
-            <input type="checkbox" checked={confirmed} disabled={blocked} onChange={e => setConfirmed(e.target.checked)} style={{ marginTop: 2 }} />
+          <Check checked={confirmed} disabled={blocked} onChange={e => setConfirmed(e.target.checked)}>
             I confirm there is no patient information in what will be sent.
-          </label>
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button className="btn-primary btn-sm" disabled={busy || blocked || !confirmed} onClick={run}>
+          </Check>
+          <div className="ui-row">
+            <Button size="sm" variant="primary" disabled={busy || blocked || !confirmed} onClick={run}>
               {busy ? 'Asking AI…' : form.ai_body ? '✨ Try again' : '✨ Improve wording'}
-            </button>
+            </Button>
             {form.ai_body && (
-              <button className="btn-sm" onClick={() => { set({ ai_body: null, ai_notes: '', letter_text: null }); setCheck(null); }}>
+              <Button size="sm" onClick={() => { set({ ai_body: null, ai_notes: '', letter_text: null }); setCheck(null); }}>
                 ↺ Use the template version instead
-              </button>
+              </Button>
             )}
           </div>
-          {error && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 6 }}>{error}</div>}
-          {form.ai_body && form.ai_notes && <div className="text-sm text-muted" style={{ marginTop: 6 }}>AI: {form.ai_notes}</div>}
+          {error && <Notice tone="bad">{error}</Notice>}
+          {form.ai_body && form.ai_notes && <div className="ui-muted">AI: {form.ai_notes}</div>}
           {check?.warnings.length > 0 && (
-            <ul className="text-sm" style={{ color: 'var(--warning)', paddingLeft: 18, marginBottom: 0 }}>
-              {check.warnings.map(w => <li key={w}>⚠ {w}</li>)}
-            </ul>
+            <Notice tone="warn">
+              <ul style={{ paddingLeft: 18, margin: 0 }}>
+                {check.warnings.map(w => <li key={w}>⚠ {w}</li>)}
+              </ul>
+            </Notice>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

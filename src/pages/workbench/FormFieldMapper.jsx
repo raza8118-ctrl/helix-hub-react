@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { TOKEN_GROUPS, SAMPLE_VALUES } from '../../lib/appealTemplates';
 import { CHECK_RULES, fillForm } from '../../lib/appealPdf';
 import { saveFieldMap } from '../../lib/payerForms';
-import Modal from '../../components/shared/Modal';
+import { Modal } from '../../components/ui';
 
 /**
  * 🧩 Map form fields (roadmap 5.4): for each field of a fillable payer form, choose which appeal value fills it
