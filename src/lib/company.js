@@ -91,6 +91,24 @@ export async function loadCompanyRow(code) {
   return error ? null : data;
 }
 
+// Home company pages on / off (PO request 2026-10-30): the home company has no registry row, so its
+// { featureKey: false } map lives in the home kv store — read/written unprefixed, whichever company is active.
+const HOME_FEATURES_KEY = 'home_features';
+
+/** The home company's switched-off pages ({} = everything on). */
+export async function loadHomeFeatures() {
+  const { data } = await supabase.from('rcm_store').select('value').eq('key', HOME_FEATURES_KEY).maybeSingle();
+  return data?.value ?? {};
+}
+
+/** Saves the home company's switched-off pages. Returns true on success. */
+export async function saveHomeFeatures(features) {
+  const { error } = await supabase.from('rcm_store')
+    .upsert({ key: HOME_FEATURES_KEY, value: features ?? {} }, { onConflict: 'key' });
+  if (error) { console.error('saveHomeFeatures error', error); return false; }
+  return true;
+}
+
 /**
  * Owner Console 2.0 seat limit: a message when the signed-in company already has as many active users as its plan
  * allows (adding / reactivating one more is blocked), else null. The home company has no limit.

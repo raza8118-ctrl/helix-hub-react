@@ -1,7 +1,7 @@
 // Owner Console 2.0: which pages / modules the Helix Hub owner can switch off per company (rcm.companies.features,
 // { featureKey: false } = off, missing = on, so new companies start with everything on). A page that's off is hidden
 // for everyone in that company, its admins included. App-enforced (see the security note in docs/PROGRESS.md).
-// The home company is never feature-gated.
+// The home company has no registry row: its map is kept in the home kv store (`home_features`, lib/company.js).
 import { WORKBENCH_MODULES } from '../pages/workbench/modules';
 
 /** key → tab ids it controls. Essentials (Daily Report, My Reports, Team, My Team, Settings, Clients & Payers,

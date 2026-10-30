@@ -5,6 +5,7 @@ const ACTION_LABELS = {
   owner_open_company:    'Owner opened company',
   owner_sign_in_as:      'Helix Hub owner signed in as this user',
   owner_reset_password:  'Helix Hub owner reset a password',
+  owner_set_pages:       'Helix Hub owner changed which pages are switched on',
   create_user:           'Created user',
   edit_user:             'Edited user',
   activate_user:         'Activated user',

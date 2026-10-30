@@ -8,6 +8,7 @@ import {
   saveCompanySettings, savePrivate, forceSignOut, companyUsers, companyUserForSignIn, setUserPassword, setUserActive,
   companyAudit, companyActivity, ownerLog, tempPassword, codeOf,
 } from '../../lib/owner';
+import { loadHomeFeatures, saveHomeFeatures } from '../../lib/company';
 
 const SECTIONS = [['profile', 'Profile & plan'], ['access', 'Pages'], ['users', 'Users'], ['activity', 'Activity'], ['danger', 'Pause & danger zone']];
 const fmtWhen = iso => (iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'never');
@@ -15,7 +16,7 @@ const fmtWhen = iso => (iso ? new Date(iso).toLocaleString('en-US', { month: 'sh
 /**
  * Owner Console 2.0 — everything about one company: plan, user limit, contact + private notes, banner, which pages it
  * gets, its users (reset password, switch off / on, 🔑 sign in as), activity, pause / sign everyone out / delete.
- * The home company has no plan / pages / pause (it's the platform's own company).
+ * The home company has no plan / pause (it's the platform's own company); its pages on / off are kept in the home kv store.
  */
 export default function CompanyManage({ owner, company: c, stats, priv, ready, onClose, onChanged, onOpen, onTogglePause, onDelete, onNotice }) {
   const isHome = !!c.isHome;
@@ -34,6 +35,12 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
   // Pages on / off ({ key: false } = off)
   const [features, setFeatures] = useState(() => ({ ...(c.features ?? {}) }));
   const offCount = ALL_FEATURES.filter(f => !isFeatureOn(features, f.key)).length;
+  useEffect(() => {   // home company: its pages are in the home kv store, not on a registry row
+    if (!isHome) return;
+    let alive = true;
+    loadHomeFeatures().then(f => { if (alive) setFeatures({ ...f }); });
+    return () => { alive = false; };
+  }, [isHome]);
 
   // Users + activity load when their section opens
   const [users, setUsers] = useState(undefined);
@@ -83,6 +90,17 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
       confirmText: 'Save',
     })) return;
     setBusy(true);
+    if (isHome) {   // the home company has no registry row: its pages live in the home kv store
+      const ok = await saveHomeFeatures(off);
+      setBusy(false);
+      if (!ok) { onNotice(false, 'Could not save the pages. Please try again.'); return; }
+      const offKeys = Object.keys(off);
+      companyAudit(prefix, owner, 'owner_set_pages', {}, { off: offKeys });
+      ownerLog(owner, 'company_settings', code, `Pages: ${offCount} switched off`, { off: offKeys });
+      onNotice(true, `✓ ${c.name}: pages saved (${offCount} switched off).`);
+      onChanged();
+      return;
+    }
     const r = await saveCompanySettings(owner, c.code, { features: off });
     setBusy(false);
     if (r.error) { onNotice(false, r.error === 'NOT_SET_UP' ? 'This needs the Owner Console database update (migration 34) first.' : r.error); return; }
@@ -134,7 +152,7 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
   }
 
   const shownUsers = (users ?? []).filter(u => !q.trim() || `${u.name ?? ''} ${u.emp_id} ${u.role}`.toLowerCase().includes(q.trim().toLowerCase()));
-  const sections = SECTIONS.filter(([id]) => !isHome || !['access'].includes(id));
+  const sections = SECTIONS;   // the home company gets Pages too (PO 2026-10-30); its Pause tab only explains it can't be paused
 
   return (
     <Modal title={`${c.name} — Manage`} onClose={onClose} wide>
@@ -182,7 +200,7 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
         </div>
       )}
 
-      {section === 'access' && !isHome && (
+      {section === 'access' && (
         <div>
           <p className="text-sm text-muted" style={{ marginTop: 0 }}>
             Untick a page or module to hide it for everyone in {c.name}, its admins included. Daily Report, My Reports, Team,

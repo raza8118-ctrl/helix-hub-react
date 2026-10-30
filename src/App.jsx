@@ -11,7 +11,7 @@ import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import HelixLauncher from './components/shared/HelixLauncher';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, getActiveCompany, refreshCompanyProcesses } from './lib/supabase';
-import { getOwnerSession, setOwnerSession, loadCompanyRow, SIGNOUT_MSG_KEY } from './lib/company';
+import { getOwnerSession, setOwnerSession, loadCompanyRow, loadHomeFeatures, SIGNOUT_MSG_KEY } from './lib/company';
 import { disabledTabs, isFeatureOn, setAiAllowed } from './lib/companyFeatures';
 import { ownerLog, codeOf } from './lib/owner';
 import PlatformBanners from './components/shared/PlatformBanners';
@@ -152,6 +152,7 @@ export default function App() {
   const [boardNew, setBoardNew] = useState(0);         // 10.3: unread must-read notices → count on Notice Board
   const [navOpen, setNavOpen] = useState(false);       // calm navigation: ☰ drawer on phones
   const [companyRow, setCompanyRow] = useState(null);  // Owner Console 2.0: this company's pages on / off, banner, pause
+  const [homeFeatures, setHomeFeatures] = useState(null);  // home company's pages on / off (it has no registry row)
 
   // ── Owner Console 2.0: watch the company's registry row (every 2 min + when the tab regains focus) ──
   // Added companies only (the home company has no row). The owner viewing a company is never signed out.
@@ -159,7 +160,13 @@ export default function App() {
     if (!currentUser) return;
     const code = addedCompanyCode();   // null = home company (no registry row)
     let alive = true;
-    const check = () => loadCompanyRow(code).then(row => {
+    // Home company: only its pages on / off (kv `home_features`) — no pause / sign-out / banner
+    const checkHome = () => loadHomeFeatures().then(features => {
+      if (!alive) return;
+      setHomeFeatures(features);
+      setAiAllowed(isFeatureOn(features, 'ai'));
+    }, () => {});
+    const check = () => code == null ? checkHome() : loadCompanyRow(code).then(row => {
       if (!alive) return;
       setCompanyRow(row);
       setAiAllowed(isFeatureOn(row?.features, 'ai'));
@@ -390,6 +397,7 @@ export default function App() {
     sessionStorage.removeItem('hh_missed_dismissed');
     sessionStorage.removeItem(SESSION_VERSION_KEY);
     setCompanyRow(null);
+    setHomeFeatures(null);
     setAiAllowed(true);
     setCurrentUser(null);
     setActiveTab('today');
@@ -449,7 +457,7 @@ export default function App() {
   const roleTabs = isAdmin ? ADMIN_TABS : isSupervisor ? SUPERVISOR_TABS : empTabs;
   // Owner Console 2.0: pages the owner switched off for this company are hidden for everyone (owner view included,
   // so the owner sees exactly what the company sees); an open page that was switched off falls back to the first one
-  const offTabs = disabledTabs(companyRow?.features);
+  const offTabs = disabledTabs(addedCompanyCode() == null ? homeFeatures : companyRow?.features);
   const tabs = withGrantedTabs(roleTabs, currentUser).filter(t => !offTabs.has(t.id));
   const shownTab = offTabs.has(activeTab) ? (tabs[0]?.id ?? activeTab) : activeTab;
   const pageTitle = tabs.find(t => t.id === shownTab)?.label ?? '';

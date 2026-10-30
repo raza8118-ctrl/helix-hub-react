@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-30 — 🙈 Hiding unfinished pages in 3Gen + Test Co (plan approved, in progress). Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-30 — 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,7 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-10-30) — Hide unfinished pages in 3Gen (home) and Test Co — IN PROGRESS (plan approved).**
+**Fix (PO request 2026-10-30) — Hide unfinished pages in 3Gen (home) and Test Co — DONE.**
+Built as planned below. Both companies now have `allocation`, `dashboard`, `wb_worklist`, `wb_assistant` switched off
+(saved through Owner Console → Manage → Pages; owner log + audit log `owner_set_pages` for the home company). Checked in the
+browser: 3Gen admin, Test Co admin and Test Co employee sidebars show none of the hidden pages, the floating Ask button is
+gone, and a saved link to a hidden page opens the first page instead. 3Gen employee view not opened (it would mean signing
+in as a real employee); it uses the same home switch as 3Gen admin. Lint: no new errors; build passes.
+
+⚠ **Work Allocation stores patient data in rcm_store – must be secured before go-live.**
+
 From the module review (`docs/REVIEW.md`). Uses the existing page on/off feature (`lib/companyFeatures.js`); no code,
 tables or data deleted — pages switch back on with one tick in Owner Console → Companies → Manage → Pages.
 - **Hidden for all roles:** Attendance (Keka) · Work Alloc + Alloc Monitor + My Allocation (one switch) · Smart Worklist ·
@@ -1604,6 +1612,11 @@ The app hides/disables a feature until its migration has been run, so code can d
 ---
 
 ## 📌 Decisions (don't re-ask)
+
+- **Hidden until finished (2026-10-30):** Attendance (Keka), Work Alloc + Alloc Monitor + My Allocation, Smart Worklist and
+  Ask Helix are switched off in 3Gen and Test Co (Owner Console → Manage → Pages). Home company switches live in `rcm_store`
+  key `home_features`. Payer Updates stays visible (works without AI except “Extract with AI” / Directory suggestions).
+  Work Allocation stores patient data in rcm_store – must be secured before go-live.
 
 - **Roles:** `users.role` stays the permission level (employee / supervisor / manager / admin). Functional team is `users.team`; QA is `users.is_qa`.
 - **Access model (applies to every module):** each feature has role defaults, and an admin can grant it to any user on the Team page (“Extra access”). Registry: `src/lib/access.js` (`FEATURES`, `TAB_FEATURES`); grants in `users.access_grants`; sidebar via `withGrantedTabs` in `App.jsx`. Only admins can grant.
