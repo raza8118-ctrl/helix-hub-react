@@ -8,6 +8,7 @@ const PayerImport = lazy(() => import('./PayerImport'));
 import PayerSearch from '../../components/shared/PayerSearch';
 import PayerCard from './PayerCard';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { PageHeader, Card, Button, Chip, Toolbar, EmptyState } from '../../components/ui';
 
 // Payer ids with an entry needing re-check (1.6), and open report counts per payer
 async function loadAccuracySummary() {
@@ -77,16 +78,12 @@ export default function PayerDirectory({ user }) {
   }, [browse]);
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📇 Payer Directory</div>
-          <div className="page-subtitle">Find any payer by its name or a short name like “BCBSTX”.</div>
-        </div>
-        {canEdit && !error && payers != null && (
-          <button className="btn-sm" onClick={() => setShowImport(true)}>⬆ Import from Excel</button>
-        )}
-      </div>
+    <div className="ui-page" style={{ maxWidth: 900 }}>
+      <PageHeader icon="📇" kicker="Workbench" title="Payer Directory"
+        subtitle="Find any payer by its name or a short name like “BCBSTX”."
+        actions={canEdit && !error && payers != null && (
+          <Button size="sm" onClick={() => setShowImport(true)}>⬆ Import from Excel</Button>
+        )} />
 
       {showImport && (
         <Suspense fallback={null}>
@@ -94,60 +91,60 @@ export default function PayerDirectory({ user }) {
         </Suspense>
       )}
 
-      <div className="card mb-16">
-        {payers == null && <div className="text-muted" style={{ padding: 8 }}>Loading payers…</div>}
+      <Card>
+        {payers == null && <EmptyState compact title="Loading payers…" />}
         {error && (
-          <div className="text-muted" style={{ padding: 8 }}>
-            The payer list isn’t set up yet. An admin needs to run the Clients &amp; Payers database update.
-          </div>
+          <EmptyState icon="🛠️" title="The payer list isn’t set up yet.">
+            An admin needs to run the Clients &amp; Payers database update.
+          </EmptyState>
         )}
         {payers != null && !error && (
           <PayerSearch payers={payers} onSelect={setSelected} autoFocus />
         )}
-      </div>
+      </Card>
 
       {cardPayer && <PayerCard key={cardPayer.id} payer={cardPayer} user={user} onClose={closeCard} />}
 
       {payers != null && !error && (
-        <div className="card">
-          <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <div className="card-title">All payers ({browse.length})</div>
-            {types.length > 0 && (
-              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ maxWidth: 220 }}>
-                <option value="ALL">All types</option>
-                {types.map(t => <option key={t} value={t}>{t}</option>)}
+        <Card title={`All payers (${browse.length})`}
+          actions={
+            <Toolbar>
+              {types.length > 0 && (
+                <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label="Payer type">
+                  <option value="ALL">All types</option>
+                  {types.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
+              <select value={reviewFilter} onChange={e => setReviewFilter(e.target.value)} aria-label="Review status">
+                <option value="ALL">All payers</option>
+                <option value="STALE">⚠ Needs re-check ({active.filter(p => summary.stale.has(p.id)).length})</option>
+                <option value="REPORTED">🚩 Has open reports ({active.filter(p => summary.reports[p.id] > 0).length})</option>
               </select>
-            )}
-            <select value={reviewFilter} onChange={e => setReviewFilter(e.target.value)} style={{ maxWidth: 220 }}>
-              <option value="ALL">All payers</option>
-              <option value="STALE">⚠ Needs re-check ({active.filter(p => summary.stale.has(p.id)).length})</option>
-              <option value="REPORTED">🚩 Has open reports ({active.filter(p => summary.reports[p.id] > 0).length})</option>
-            </select>
-          </div>
+            </Toolbar>
+          }>
           {browse.length === 0 && (
-            <div className="text-muted" style={{ padding: 16, textAlign: 'center' }}>
-              {active.length ? 'No payers match these filters.' : 'No payers yet. Admins and managers can add them in Clients & Payers.'}
-            </div>
+            <EmptyState icon="📇" title={active.length ? 'No payers match these filters.' : 'No payers yet.'}>
+              {active.length ? null : 'Admins and managers can add them in Clients & Payers.'}
+            </EmptyState>
           )}
           {byLetter.map(([letter, list]) => (
-            <div key={letter} style={{ marginBottom: 12 }}>
-              <div className="text-sm bold text-muted" style={{ margin: '6px 0 4px' }}>{letter}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div key={letter}>
+              <div className="ui-letter">{letter}</div>
+              <div className="ui-chips">
                 {list.map(p => (
-                  <button key={p.id} className="btn-sm" onClick={() => setSelected(p)}
-                    style={selected?.id === p.id ? { background: 'var(--accent)', color: '#fff', border: 'none' } : undefined}
+                  <Chip key={p.id} on={selected?.id === p.id} onClick={() => setSelected(p)}
                     title={[(p.aliases ?? []).join(', '),
                       summary.stale.has(p.id) && 'Some details need re-checking',
                       summary.reports[p.id] > 0 && `${summary.reports[p.id]} open report(s)`].filter(Boolean).join(' · ')}>
                     {p.name}
-                    {summary.stale.has(p.id) && <span style={{ marginLeft: 4 }} aria-label="needs re-check">⚠</span>}
-                    {summary.reports[p.id] > 0 && <span style={{ marginLeft: 4 }} aria-label="open reports">🚩</span>}
-                  </button>
+                    {summary.stale.has(p.id) && <span aria-label="needs re-check">⚠</span>}
+                    {summary.reports[p.id] > 0 && <span aria-label="open reports">🚩</span>}
+                  </Chip>
                 ))}
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

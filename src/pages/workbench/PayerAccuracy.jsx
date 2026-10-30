@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { needsRecheck, VERIFY_DAYS } from '../../lib/payers';
-import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Button, Field, FormActions, Notice, Modal } from '../../components/ui';
 
 const fmtDay = ts => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -12,13 +12,13 @@ export function VerifiedBadge({ row, names }) {
   const who = row.verified_by ? (names[row.verified_by] ?? row.verified_by) : null;
   if (!needsRecheck(row.verified_at)) {
     return (
-      <span className="text-sm" style={{ color: 'var(--success)' }}>
+      <span className="ui-small ui-text-good">
         ✓ Verified {fmtDay(row.verified_at)}{who ? ` by ${who}` : ''}
       </span>
     );
   }
   return (
-    <span className="text-sm" style={{ color: 'var(--warning)' }}
+    <span className="ui-small ui-text-warn"
       title={`Entries should be re-checked at least every ${VERIFY_DAYS} days`}>
       ⚠ Needs re-check · {row.verified_at ? `last verified ${fmtDay(row.verified_at)}${who ? ` by ${who}` : ''}` : 'never verified'}
     </span>
@@ -52,26 +52,24 @@ export function ReportWrongInfo({ payer, section, table, entityId, entityTitle, 
 
   return (
     <>
-      <button type="button" className="btn-sm" title="Report wrong or outdated info"
-        onClick={() => setOpen(true)} style={{ padding: '2px 8px', fontSize: 11 }}>
+      <Button size="xs" title="Report wrong or outdated info" onClick={() => setOpen(true)}>
         🚩 Report
-      </button>
+      </Button>
       {open && (
         <Modal title={`Report wrong info — ${payer.name}`} onClose={() => setOpen(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <p className="text-sm text-muted" style={{ marginBottom: 10 }}>
+          <div>
+            <p className="ui-muted" style={{ margin: '0 0 var(--ui-s3)' }}>
               {section}{entityTitle ? ` → ${entityTitle}` : ''}. Editors of the Payer Directory will see your report and fix it.
             </p>
-            <div className="field">
-              <label>What’s wrong? (no patient information)</label>
+            <Field label="What’s wrong? (no patient information)">
               <textarea rows={3} value={message} autoFocus onChange={e => { setMessage(e.target.value); setError(''); }}
                 placeholder="e.g. Appeals fax is now 800-555-0100 per rep on 10/18" />
-            </div>
-            {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-            <div className="form-actions">
-              <button className="btn-sm" onClick={() => setOpen(false)}>Cancel</button>
-              <button className="btn-primary" onClick={send} disabled={saving}>{saving ? 'Sending…' : 'Send Report'}</button>
-            </div>
+            </Field>
+            {error && <Notice tone="bad">{error}</Notice>}
+            <FormActions>
+              <Button onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="primary" onClick={send} disabled={saving}>{saving ? 'Sending…' : 'Send Report'}</Button>
+            </FormActions>
           </div>
         </Modal>
       )}
@@ -103,23 +101,20 @@ export function OpenReports({ payer, reports, user, onChanged }) {
   }
 
   return (
-    <div style={{
-      border: '1px solid var(--warning)', borderRadius: 'var(--radius)', padding: 10, marginBottom: 12,
-      background: 'rgba(245,158,11,0.08)',
-    }}>
+    <Notice tone="warn">
       <div style={{ fontWeight: 700, marginBottom: 6 }}>🚩 Open reports ({open.length})</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="ui-stack" style={{ gap: 8 }}>
         {open.map(r => (
-          <div key={r.id} className="row" style={{ gap: 8, justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="text-sm bold">{[r.section, r.entity_title].filter(Boolean).join(' → ')}</div>
-              <div className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{r.message}</div>
-              <div className="text-sm text-muted">{r.reported_by_name ?? r.reported_by} · {fmtDay(r.created_at)}</div>
+          <div key={r.id} className="ui-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0, flex: 1, color: 'var(--text)' }}>
+              <div className="bold">{[r.section, r.entity_title].filter(Boolean).join(' → ')}</div>
+              <div style={{ whiteSpace: 'pre-wrap' }}>{r.message}</div>
+              <div className="ui-text-muted">{r.reported_by_name ?? r.reported_by} · {fmtDay(r.created_at)}</div>
             </div>
-            <button className="btn-sm" onClick={() => resolve(r)}>✓ Resolve</button>
+            <Button size="xs" onClick={() => resolve(r)}>✓ Resolve</Button>
           </div>
         ))}
       </div>
-    </div>
+    </Notice>
   );
 }

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { S, db } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { hasAccess } from '../../lib/access';
-import Modal from '../../components/shared/Modal';
 import CopyButton from '../../components/shared/CopyButton';
+import { Card, CardSection, Item, Button, Badge, Notice, Check, Field, FormActions, Toolbar, EmptyState, Modal } from '../../components/ui';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { actionLabel } from '../../lib/auditLabels';
 import PayerForms from './PayerForms';
@@ -203,9 +203,9 @@ function toDb(section, values) {
 function Value({ item }) {
   return (
     <div style={{ minWidth: 0 }}>
-      {item.label && <div className="text-sm text-muted">{item.label}</div>}
-      <div className="row" style={{ gap: 6, alignItems: 'flex-start' }}>
-        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: item.big ? 16 : 14, fontWeight: item.big ? 700 : 400 }}>
+      {item.label && <div className="ui-kv-l">{item.label}</div>}
+      <div className="ui-row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap', gap: 6 }}>
+        <div className={`ui-kv-v${item.big ? ' big' : ''}`}>
           {item.href
             ? <a href={item.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{item.value} ↗</a>
             : item.value}
@@ -369,10 +369,7 @@ export default function PayerCard({ payer, user, onClose }) {
     const v = form.values[f.key];
     if (f.type === 'checkbox') {
       return (
-        <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', marginBottom: 12 }}>
-          <input type="checkbox" checked={!!v} onChange={e => setV({ [f.key]: e.target.checked })} />
-          {f.label}
-        </label>
+        <Check key={f.key} checked={!!v} onChange={e => setV({ [f.key]: e.target.checked })}>{f.label}</Check>
       );
     }
     let input;
@@ -399,136 +396,131 @@ export default function PayerCard({ payer, user, onClose }) {
       );
     }
     return (
-      <div key={f.key} className="field">
-        <label>{f.label}{f.required ? ' *' : ''}</label>
+      <Field key={f.key} label={f.label} required={f.required}>
         {input}
-      </div>
+      </Field>
     );
   }
 
   return (
-    <div className="card mb-16" style={{ borderLeft: '4px solid var(--accent)' }}>
+    <Card variant="accent">
       {/* Header */}
-      <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-        <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span className="card-title" style={{ fontSize: 18 }}>{payer.name}</span>
+      <div className="ui-card-h">
+        <div className="ui-row" style={{ gap: 8 }}>
+          <span className="ui-card-t" style={{ fontSize: 'var(--ui-fs-lg)' }}>{payer.name}</span>
           <CopyButton value={payer.name} />
-          {payer.payer_type && <span className="badge badge-blue">{payer.payer_type}</span>}
+          {payer.payer_type && <Badge tone="info">{payer.payer_type}</Badge>}
         </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        <div className="ui-card-a">
           {canEdit && (
-            <label className="row text-sm text-muted" style={{ gap: 4, cursor: 'pointer' }}>
-              <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} /> Show inactive
-            </label>
+            <Check inline checked={showInactive} onChange={e => setShowInactive(e.target.checked)}>Show inactive</Check>
           )}
-          {canEdit && <button className="btn-sm" onClick={toggleHistory}>{history ? 'Hide history' : '🕘 History'}</button>}
+          {canEdit && <Button size="sm" onClick={toggleHistory}>{history ? 'Hide history' : '🕘 History'}</Button>}
           {reports != null && (
             <ReportWrongInfo payer={payer} section="Payer (general)" table="payers" entityId={payer.id}
               user={user} onReported={loadReports} />
           )}
-          <button className="btn-sm" onClick={onClose}>✕ Close</button>
+          <Button size="sm" variant="ghost" onClick={onClose}>✕ Close</Button>
         </div>
       </div>
 
-      {canEdit && <OpenReports payer={payer} reports={reports} user={user} onChanged={loadReports} />}
-      {canEdit && suggested > 0 && (
-        <div className="row text-sm" style={{ gap: 6, alignItems: 'center', marginBottom: 10 }}>
-          💡 {suggested} suggested {suggested === 1 ? 'change' : 'changes'} from payer bulletins
-          <button className="btn-sm" onClick={async () => {
-            if (!await confirmDialog({ title: 'Review the suggestions?', message: 'This opens Payer Updates → 🛠 Directory suggestions and leaves this page.', confirmText: 'Open' })) return;
-            onClose(); openSuggestions();
-          }}>Review ›</button>
-        </div>
-      )}
-
-      {history && (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 10, marginBottom: 12, maxHeight: 280, overflowY: 'auto' }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>🕘 Change history</div>
-          {history.loading && <div className="text-sm text-muted">Loading…</div>}
-          {!history.loading && history.error && <div className="text-sm text-muted">History isn’t available yet (audit log update not run).</div>}
-          {!history.loading && !history.error && history.rows.length === 0 && <div className="text-sm text-muted">No changes recorded yet.</div>}
-          {history.rows.map(h => (
-            <div key={h.id} className="text-sm" style={{ padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-              <span className="text-muted">{new Date(h.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-              {' · '}<strong>{h.actor_name ?? h.actor_emp_id}</strong>{' · '}{actionLabel(h.action)}
-              {h.details?.section ? ` — ${h.details.section}` : ''}{h.details?.title ? `: ${h.details.title}` : ''}
+      <div className="ui-stack" style={{ gap: 'var(--ui-s3)' }}>
+        {canEdit && <OpenReports payer={payer} reports={reports} user={user} onChanged={loadReports} />}
+        {canEdit && suggested > 0 && (
+          <Notice tone="info" icon="💡">
+            <div className="ui-row" style={{ justifyContent: 'space-between' }}>
+              <span>{suggested} suggested {suggested === 1 ? 'change' : 'changes'} from payer bulletins</span>
+              <Button size="xs" onClick={async () => {
+                if (!await confirmDialog({ title: 'Review the suggestions?', message: 'This opens Payer Updates → 🛠 Directory suggestions and leaves this page.', confirmText: 'Open' })) return;
+                onClose(); openSuggestions();
+              }}>Review ›</Button>
             </div>
-          ))}
-        </div>
-      )}
+          </Notice>
+        )}
 
-      {(payer.aliases ?? []).length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div className="text-sm text-muted" style={{ marginBottom: 4 }}>Also known as</div>
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-            {payer.aliases.map(a => (
-              <span key={a} className="row" style={{ gap: 4, alignItems: 'center' }}>
-                <span className="badge badge-gray">{a}</span>
-                <CopyButton value={a} />
-              </span>
-            ))}
+        {history && (
+          <Card variant="soft" title="Change history" icon="🕘">
+            <div className="ui-scroll">
+              {history.loading && <EmptyState compact title="Loading…" />}
+              {!history.loading && history.error && <EmptyState compact title="History isn’t available yet (audit log update not run)." />}
+              {!history.loading && !history.error && history.rows.length === 0 && <EmptyState compact title="No changes recorded yet." />}
+              {history.rows.map(h => (
+                <div key={h.id} className="ui-log-row">
+                  <span className="ui-text-muted">{new Date(h.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  {' · '}<strong>{h.actor_name ?? h.actor_emp_id}</strong>{' · '}{actionLabel(h.action)}
+                  {h.details?.section ? ` — ${h.details.section}` : ''}{h.details?.title ? `: ${h.details.title}` : ''}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {(payer.aliases ?? []).length > 0 && (
+          <div>
+            <div className="ui-kv-l">Also known as</div>
+            <div className="ui-row" style={{ gap: 6 }}>
+              {payer.aliases.map(a => (
+                <span key={a} className="ui-row" style={{ gap: 2, flexWrap: 'nowrap' }}>
+                  <Badge>{a}</Badge>
+                  <CopyButton value={a} />
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-      {payer.notes && <div className="text-sm" style={{ marginBottom: 12 }}>{payer.notes}</div>}
+        )}
+        {payer.notes && <div className="ui-kv-v">{payer.notes}</div>}
 
-      {clients.length > 0 && !tablesMissing && (
-        <label className="row text-sm" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-          <span className="text-muted">Showing limits for:</span>
-          <select value={activeClientId} onChange={e => pickClient(e.target.value)} style={{ maxWidth: 260 }}>
-            <option value="">Standard (all clients)</option>
-            {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-          </select>
-        </label>
-      )}
+        {clients.length > 0 && !tablesMissing && (
+          <Toolbar>
+            <span className="ui-muted">Showing limits for:</span>
+            <select value={activeClientId} onChange={e => pickClient(e.target.value)} aria-label="Showing limits for">
+              <option value="">Standard (all clients)</option>
+              {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+            </select>
+          </Toolbar>
+        )}
 
-      {loading && <div className="text-muted" style={{ padding: 12 }}>Loading payer details…</div>}
-      {tablesMissing && (
-        <div className="text-muted" style={{ padding: 12 }}>
-          Payer details aren’t set up yet. An admin needs to run the Payer Directory database update
-          (supabase/migrations/20261019_payer_directory.sql), then “Sync structure”.
-        </div>
-      )}
+        {loading && <EmptyState compact title="Loading payer details…" />}
+        {tablesMissing && (
+          <EmptyState icon="🛠️" title="Payer details aren’t set up yet.">
+            An admin needs to run the Payer Directory database update
+            (supabase/migrations/20261019_payer_directory.sql), then “Sync structure”.
+          </EmptyState>
+        )}
+      </div>
 
       {/* Sections */}
       {!loading && !tablesMissing && SECTIONS.map(section => {
         const all  = (data[section.key] ?? []).filter(r => !section.filter || section.filter(r, ctx));
         const rows = all.filter(r => showInactive || r.active !== false).sort(section.sort);
         return (
-          <div key={section.key} style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>{section.icon} {section.title}</div>
-              {canEdit && data[section.key] != null && (
-                <button className="btn-sm" onClick={() => openAdd(section)}>+ Add {section.one}</button>
-              )}
-            </div>
-            {data[section.key] == null && <div className="text-sm text-muted">Not set up yet.</div>}
+          <CardSection key={section.key} icon={section.icon} title={section.title}
+            actions={canEdit && data[section.key] != null && (
+              <Button size="sm" onClick={() => openAdd(section)}>+ Add {section.one}</Button>
+            )}>
+            {data[section.key] == null && <EmptyState compact title="Not set up yet." />}
             {data[section.key] != null && rows.length === 0 && (
-              <div className="text-sm text-muted">Nothing recorded yet{canEdit ? ` — click “+ Add ${section.one}”.` : '.'}</div>
+              <EmptyState compact title={`Nothing recorded yet${canEdit ? ` — click “+ Add ${section.one}”.` : '.'}`} />
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+            <div className="ui-grid">
               {rows.map(r => {
                 const view = section.show(r, ctx);
                 return (
-                  <div key={r.id} style={{
-                    border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 12,
-                    background: 'var(--surface-2)', opacity: r.active === false ? 0.55 : 1,
-                    display: 'flex', flexDirection: 'column', gap: 8,
-                  }}>
+                  <Item key={r.id} dim={r.active === false}>
                     <div>
-                      <div style={{ fontWeight: 700 }}>
-                        {view.title}{r.active === false && <span className="badge badge-red" style={{ marginLeft: 6 }}>Inactive</span>}
+                      <div className="ui-item-t">
+                        {view.title}{r.active === false && <Badge tone="bad" style={{ marginLeft: 6 }}>Inactive</Badge>}
                       </div>
-                      {view.tag && <span className="badge badge-purple" style={{ marginTop: 4, display: 'inline-block' }}>{view.tag}</span>}
-                      {view.sub && <div className="text-sm text-muted">{view.sub}</div>}
+                      {view.tag && <div style={{ marginTop: 4 }}><Badge tone="accent">{view.tag}</Badge></div>}
+                      {view.sub && <div className="ui-muted">{view.sub}</div>}
                     </div>
                     {view.items.filter(Boolean).map((item, i) => <Value key={i} item={item} />)}
-                    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="ui-item-foot">
                       <VerifiedBadge row={r} names={names} />
                       {openReportsFor(section.table, r.id) > 0 && (
-                        <span className="badge badge-yellow" style={{ alignSelf: 'flex-start' }}>
+                        <span><Badge tone="warn">
                           🚩 {openReportsFor(section.table, r.id)} open report{openReportsFor(section.table, r.id) > 1 ? 's' : ''}
-                        </span>
+                        </Badge></span>
                       )}
                       {reports != null && (
                         <div>
@@ -538,20 +530,19 @@ export default function PayerCard({ payer, user, onClose }) {
                       )}
                     </div>
                     {canEdit && (
-                      <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-                        <button className="btn-sm" onClick={() => markVerified(section, r, view.title)}>✓ Mark verified</button>
-                        <button className="btn-sm" onClick={() => openEdit(section, r)}>Edit</button>
-                        <button className="btn-sm" style={{ color: r.active !== false ? 'var(--danger)' : 'var(--success)' }}
-                          onClick={() => toggleActive(section, r)}>
+                      <div className="ui-row" style={{ gap: 4 }}>
+                        <Button size="xs" onClick={() => markVerified(section, r, view.title)}>✓ Mark verified</Button>
+                        <Button size="xs" onClick={() => openEdit(section, r)}>Edit</Button>
+                        <Button size="xs" variant={r.active !== false ? 'danger' : 'success'} onClick={() => toggleActive(section, r)}>
                           {r.active !== false ? 'Make Inactive' : 'Reactivate'}
-                        </button>
+                        </Button>
                       </div>
                     )}
-                  </div>
+                  </Item>
                 );
               })}
             </div>
-          </div>
+          </CardSection>
         );
       })}
 
@@ -562,24 +553,23 @@ export default function PayerCard({ payer, user, onClose }) {
 
       {form && (
         <Modal title={`${form.id != null ? 'Edit' : 'Add'} ${form.section.one} — ${payer.name}`} onClose={() => setForm(null)} wide>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div>
             {form.section.fields
               .filter(f => !(f.key === 'delegated_group' && !form.values.is_delegated))
               .map(renderField)}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', marginBottom: 12 }}>
-              <input type="checkbox" checked={!!form.verify} onChange={e => setForm(f => ({ ...f, verify: e.target.checked }))} />
+            <Check checked={!!form.verify} onChange={e => setForm(f => ({ ...f, verify: e.target.checked }))}>
               I confirmed this with the payer or a current document — mark it verified today
-            </label>
-            {form.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{form.error}</p>}
-            <div className="form-actions">
-              <button className="btn-sm" onClick={() => setForm(null)}>Cancel</button>
-              <button className="btn-primary" onClick={save} disabled={saving}>
+            </Check>
+            {form.error && <Notice tone="bad">{form.error}</Notice>}
+            <FormActions>
+              <Button onClick={() => setForm(null)}>Cancel</Button>
+              <Button variant="primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : form.id != null ? 'Save Changes' : 'Add'}
-              </button>
-            </div>
+              </Button>
+            </FormActions>
           </div>
         </Modal>
       )}
-    </div>
+    </Card>
   );
 }

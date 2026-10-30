@@ -3,8 +3,8 @@ import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { SHEETS, downloadTemplate, readWorkbook, planImport } from '../../lib/payerImport';
 import { DEPARTMENTS, LIMIT_TYPES, labelOf } from '../../lib/payerOptions';
-import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Card, Button, Badge, Notice, Check, FormActions, Table, Toolbar, ToolbarSpacer, Modal } from '../../components/ui';
 
 const CHUNK = 200;
 const n = s => (s ?? '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
@@ -186,162 +186,155 @@ export default function PayerImport({ user, onClose, onImported }) {
   return (
     <Modal title="Import payers from Excel" onClose={busy ? () => {} : onClose} wide>
       {step === 'choose' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p className="text-sm">
+        <div className="ui-stack">
+          <p className="ui-kv-v" style={{ margin: 0 }}>
             1. Download the template and fill in the tabs you need (Payers, Plans, Payer IDs, Contacts, Limits, Notes).<br />
             2. Upload it here. You’ll see a preview — nothing is saved until you confirm.
           </p>
-          <div className="text-sm" style={{ color: 'var(--warning)' }}>
+          <Notice tone="warn">
             ⚠ Payer information only — never put patient names, member IDs or claim details in the file.
-          </div>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button className="btn-sm" onClick={downloadTemplate}>⬇ Download template</button>
-            <label className="btn-primary" style={{ cursor: busy ? 'wait' : 'pointer' }}>
+          </Notice>
+          <div className="ui-row">
+            <Button onClick={downloadTemplate}>⬇ Download template</Button>
+            <label className="ui-btn primary" style={{ cursor: busy ? 'wait' : 'pointer' }}>
               {busy ? 'Reading…' : '⬆ Choose filled-in file'}
               <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} disabled={busy}
                 onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; pickFile(f); }} />
             </label>
           </div>
-          {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
+          {error && <Notice tone="bad">{error}</Notice>}
         </div>
       )}
 
       {step === 'preview' && plan && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Tab</th><th className="right">New</th><th className="right">Already exist</th><th className="right">Problems</th></tr>
-              </thead>
-              <tbody>
-                {SHEETS.map(s => (
-                  <tr key={s.key}>
-                    <td>{s.label}</td>
-                    <td className="right">{plan[s.key].newRows.length}</td>
-                    <td className="right">{plan[s.key].matches.length}</td>
-                    <td className="right" style={{ color: plan[s.key].errors.length ? 'var(--danger)' : undefined }}>{plan[s.key].errors.length}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="ui-stack">
+          <Table dense>
+            <thead>
+              <tr><th>Tab</th><th className="num">New</th><th className="num">Already exist</th><th className="num">Problems</th></tr>
+            </thead>
+            <tbody>
+              {SHEETS.map(s => (
+                <tr key={s.key}>
+                  <td>{s.label}</td>
+                  <td className="num">{plan[s.key].newRows.length}</td>
+                  <td className="num">{plan[s.key].matches.length}</td>
+                  <td className={`num${plan[s.key].errors.length ? ' ui-text-bad' : ''}`}>{plan[s.key].errors.length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
 
           {totals.errors > 0 && (
             <details>
-              <summary className="text-sm" style={{ cursor: 'pointer', color: 'var(--danger)' }}>
+              <summary className="ui-small ui-text-bad" style={{ cursor: 'pointer' }}>
                 {totals.errors} row{totals.errors === 1 ? '' : 's'} with problems will be skipped — show details
               </summary>
               <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 6 }}>
                 {SHEETS.flatMap(s => plan[s.key].errors.map(e => (
-                  <div key={`${s.key}:${e.rowNum}`} className="text-sm">{s.label} tab, row {e.rowNum}: {e.message}</div>
+                  <div key={`${s.key}:${e.rowNum}`} className="ui-log-row">{s.label} tab, row {e.rowNum}: {e.message}</div>
                 )))}
               </div>
             </details>
           )}
 
           {totals.matches > 0 && (
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>{totals.matches} entr{totals.matches === 1 ? 'y is' : 'ies are'} already in Helix Hub. What should happen to them?</label>
-              <label className="row text-sm" style={{ gap: 6, cursor: 'pointer' }}>
-                <input type="radio" name="matchMode" checked={matchMode === 'skip'} onChange={() => setMatchMode('skip')} />
+            <div>
+              <div className="ui-label" style={{ marginBottom: 6 }}>{totals.matches} entr{totals.matches === 1 ? 'y is' : 'ies are'} already in Helix Hub. What should happen to them?</div>
+              <Check type="radio" name="matchMode" checked={matchMode === 'skip'} onChange={() => setMatchMode('skip')}>
                 Skip them — keep the existing entries exactly as they are
-              </label>
-              <label className="row text-sm" style={{ gap: 6, cursor: 'pointer' }}>
-                <input type="radio" name="matchMode" checked={matchMode === 'review'} onChange={() => setMatchMode('review')} />
+              </Check>
+              <Check type="radio" name="matchMode" checked={matchMode === 'review'} onChange={() => setMatchMode('review')}>
                 Show me each existing entry next to the file’s version so I can choose
-              </label>
+              </Check>
             </div>
           )}
 
           {matchMode === 'review' && totals.matches > 0 && (
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 10 }}>
-              <div className="row" style={{ gap: 8, justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                <span className="text-sm text-muted">Blank cells in the file never erase existing values. Changed values are highlighted.</span>
-                <div className="row" style={{ gap: 6 }}>
-                  <button className="btn-sm" onClick={() => setAll('keep')}>Keep all existing</button>
-                  <button className="btn-sm" onClick={() => setAll('replace')}>Replace all</button>
-                </div>
-              </div>
-              <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Card variant="soft">
+              <Toolbar style={{ marginBottom: 'var(--ui-s3)' }}>
+                <span className="ui-muted">Blank cells in the file never erase existing values. Changed values are highlighted.</span>
+                <ToolbarSpacer />
+                <Button size="sm" onClick={() => setAll('keep')}>Keep all existing</Button>
+                <Button size="sm" onClick={() => setAll('replace')}>Replace all</Button>
+              </Toolbar>
+              <div className="ui-stack" style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {SHEETS.flatMap(s => plan[s.key].matches.map(m => {
                   const k = keyOf(s.key, m);
                   const fields = Object.keys(m.data).filter(f => m.data[f] !== undefined);
                   const changed = fields.filter(f => show(m.data[f]) !== show(m.existing[f]));
                   return (
-                    <div key={k} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-                      <div className="row" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <div className="text-sm">
+                    <div key={k} className="ui-stack" style={{ gap: 6, borderBottom: '1px solid var(--border)', paddingBottom: 'var(--ui-s3)' }}>
+                      <Toolbar>
+                        <div className="ui-muted" style={{ color: 'var(--text)' }}>
                           <strong>{titleOf(s.key, m.data, m.existing)}</strong>
-                          <span className="text-muted"> · {s.label} tab, row {m.rowNum}{s.key !== 'payers' ? ` · ${m.payerRef.name}` : ''}</span>
-                          {changed.length === 0 && <span className="badge badge-green" style={{ marginLeft: 6 }}>Identical</span>}
+                          <span className="ui-text-muted"> · {s.label} tab, row {m.rowNum}{s.key !== 'payers' ? ` · ${m.payerRef.name}` : ''}</span>
+                          {changed.length === 0 && <Badge tone="good" style={{ marginLeft: 6 }}>Identical</Badge>}
                         </div>
-                        <select value={choices[k] ?? 'keep'} onChange={e => setChoices(c => ({ ...c, [k]: e.target.value }))} style={{ maxWidth: 220 }}>
+                        <ToolbarSpacer />
+                        <select value={choices[k] ?? 'keep'} onChange={e => setChoices(c => ({ ...c, [k]: e.target.value }))} aria-label="Keep or replace">
                           <option value="keep">Keep existing</option>
                           <option value="replace">Replace with file values</option>
                         </select>
-                      </div>
+                      </Toolbar>
                       {changed.length > 0 && (
-                        <table style={{ marginTop: 4, fontSize: 12 }}>
+                        <Table dense>
                           <thead><tr><th>Field</th><th>In Helix Hub now</th><th>In the file</th></tr></thead>
                           <tbody>
                             {changed.map(f => (
                               <tr key={f}>
-                                <td className="text-muted">{s.columns.find(c => c.key === f)?.header ?? f}</td>
+                                <td className="muted">{s.columns.find(c => c.key === f)?.header ?? f}</td>
                                 <td>{show(m.existing[f])}</td>
-                                <td style={{ background: 'rgba(245,158,11,0.15)', fontWeight: 600 }}>{show(m.data[f])}</td>
+                                <td className="mark">{show(m.data[f])}</td>
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </Table>
                       )}
                     </div>
                   );
                 }))}
               </div>
-            </div>
+            </Card>
           )}
 
-          <label className="row text-sm" style={{ gap: 6, cursor: 'pointer' }}>
-            <input type="checkbox" checked={markVerified} onChange={e => setMarkVerified(e.target.checked)} />
+          <Check checked={markVerified} onChange={e => setMarkVerified(e.target.checked)}>
             This data was checked recently — mark imported and replaced entries as verified today
-          </label>
+          </Check>
 
-          {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-          <div className="form-actions">
-            <button className="btn-sm" onClick={() => { setStep('choose'); setPlan(null); }} disabled={busy}>← Choose another file</button>
-            <button className="btn-primary" onClick={runImport} disabled={busy || (totals.add === 0 && totals.replace === 0)}>
+          {error && <Notice tone="bad">{error}</Notice>}
+          <FormActions split>
+            <Button onClick={() => { setStep('choose'); setPlan(null); }} disabled={busy}>← Choose another file</Button>
+            <Button variant="primary" onClick={runImport} disabled={busy || (totals.add === 0 && totals.replace === 0)}>
               {busy ? 'Importing…' : `Import ${totals.add} new${totals.replace ? ` + replace ${totals.replace}` : ''}`}
-            </button>
-          </div>
+            </Button>
+          </FormActions>
         </div>
       )}
 
       {step === 'done' && result && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="ui-stack">
           {result.failedAt
-            ? <p className="text-sm" style={{ color: 'var(--danger)' }}>
+            ? <Notice tone="bad">
                 The import stopped while saving the {result.failedAt} tab. Everything listed below was saved; fix the problem and import the rest again — existing entries will be recognised.
-              </p>
-            : <p className="text-sm" style={{ color: 'var(--success)' }}>✓ Import finished.</p>}
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Tab</th><th className="right">Added</th><th className="right">Replaced</th><th className="right">Unchanged</th><th className="right">Skipped (problems)</th></tr></thead>
-              <tbody>
-                {SHEETS.map(s => (
-                  <tr key={s.key}>
-                    <td>{s.label}</td>
-                    <td className="right">{result.counts[s.key].added}</td>
-                    <td className="right">{result.counts[s.key].replaced}</td>
-                    <td className="right">{result.counts[s.key].unchanged}</td>
-                    <td className="right">{result.counts[s.key].problems}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="form-actions">
-            <button className="btn-primary" onClick={onClose}>Close</button>
-          </div>
+              </Notice>
+            : <Notice tone="good">✓ Import finished.</Notice>}
+          <Table dense>
+            <thead><tr><th>Tab</th><th className="num">Added</th><th className="num">Replaced</th><th className="num">Unchanged</th><th className="num">Skipped (problems)</th></tr></thead>
+            <tbody>
+              {SHEETS.map(s => (
+                <tr key={s.key}>
+                  <td>{s.label}</td>
+                  <td className="num">{result.counts[s.key].added}</td>
+                  <td className="num">{result.counts[s.key].replaced}</td>
+                  <td className="num">{result.counts[s.key].unchanged}</td>
+                  <td className="num">{result.counts[s.key].problems}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+          <FormActions>
+            <Button variant="primary" onClick={onClose}>Close</Button>
+          </FormActions>
         </div>
       )}
     </Modal>

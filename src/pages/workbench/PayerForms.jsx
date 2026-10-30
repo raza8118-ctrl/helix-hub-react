@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { checkFormFile, uploadPayerForm, payerFormLink, FORM_EXTENSIONS } from '../../lib/payerForms';
-import Modal from '../../components/shared/Modal';
 import { alertDialog, confirmDialog } from '../../components/shared/Dialog';
+import { CardSection, Item, Button, LinkButton, Badge, Notice, Field, FormActions, EmptyState, Modal } from '../../components/ui';
 import { VerifiedBadge, ReportWrongInfo } from './PayerAccuracy';
 
 const FORM_TYPES = [
@@ -188,50 +188,43 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans, 
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>📄 Forms</div>
-        {canEdit && rows != null && <button className="btn-sm" onClick={() => openUpload()}>⬆ Upload Form</button>}
-      </div>
-
-      {rows === undefined && <div className="text-sm text-muted">Loading forms…</div>}
-      {rows === null && <div className="text-sm text-muted">Not set up yet.</div>}
+    <CardSection icon="📄" title="Forms"
+      actions={canEdit && rows != null && <Button size="sm" onClick={() => openUpload()}>⬆ Upload Form</Button>}>
+      {rows === undefined && <EmptyState compact title="Loading forms…" />}
+      {rows === null && <EmptyState compact title="Not set up yet." />}
       {rows != null && families.length === 0 && (
-        <div className="text-sm text-muted">No forms yet{canEdit ? ' — click “⬆ Upload Form”.' : '.'}</div>
+        <EmptyState compact title={`No forms yet${canEdit ? ' — click “⬆ Upload Form”.' : '.'}`} />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+      <div className="ui-grid">
         {families.map(({ id, latest, older }) => (
-          <div key={id} style={{
-            border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 12,
-            background: 'var(--surface-2)', opacity: latest.active === false ? 0.55 : 1,
-            display: 'flex', flexDirection: 'column', gap: 6,
-          }}>
+          <Item key={id} dim={latest.active === false}>
             <div>
-              <div style={{ fontWeight: 700 }}>
-                {latest.title}{latest.active === false && <span className="badge badge-red" style={{ marginLeft: 6 }}>Inactive</span>}
+              <div className="ui-item-t">
+                {latest.title}{latest.active === false && <Badge tone="bad" style={{ marginLeft: 6 }}>Inactive</Badge>}
               </div>
-              <div className="text-sm text-muted">
+              <div className="ui-muted">
                 {[typeLabel(latest.form_type), `Version ${fmtDate(latest.version_date)}`, planName(latest.plan_id)].filter(Boolean).join(' · ')}
               </div>
             </div>
-            {latest.notes && <div className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{latest.notes}</div>}
-            <button className="btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => download(latest)} disabled={!latest.file_path}>
-              ⬇ Download
-            </button>
+            {latest.notes && <div className="ui-kv-v">{latest.notes}</div>}
+            <div>
+              <Button variant="primary" size="sm" onClick={() => download(latest)} disabled={!latest.file_path}>
+                ⬇ Download
+              </Button>
+            </div>
 
             {older.length > 0 && (
               <div>
-                <button className="btn-link" style={{ width: 'auto', padding: 0 }}
-                  onClick={() => setOpen(o => ({ ...o, [id]: !o[id] }))}>
+                <LinkButton onClick={() => setOpen(o => ({ ...o, [id]: !o[id] }))}>
                   {open[id] ? '▾' : '▸'} Older versions ({older.length})
-                </button>
+                </LinkButton>
                 {open[id] && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                  <div className="ui-stack" style={{ gap: 4, marginTop: 4 }}>
                     {older.map(v => (
-                      <div key={v.id} className="row text-sm" style={{ gap: 6, justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="text-muted">Version {fmtDate(v.version_date)}</span>
-                        <button className="btn-sm" onClick={() => download(v)} disabled={!v.file_path}>⬇</button>
+                      <div key={v.id} className="ui-row" style={{ justifyContent: 'space-between' }}>
+                        <span className="ui-muted">Version {fmtDate(v.version_date)}</span>
+                        <Button size="xs" onClick={() => download(v)} disabled={!v.file_path} aria-label="Download this version">⬇</Button>
                       </div>
                     ))}
                   </div>
@@ -239,12 +232,12 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans, 
               </div>
             )}
 
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="ui-item-foot">
               <VerifiedBadge row={latest} names={names} />
               {openReportsFor(latest.id) > 0 && (
-                <span className="badge badge-yellow" style={{ alignSelf: 'flex-start' }}>
+                <span><Badge tone="warn">
                   🚩 {openReportsFor(latest.id)} open report{openReportsFor(latest.id) > 1 ? 's' : ''}
-                </span>
+                </Badge></span>
               )}
               {reports != null && (
                 <div>
@@ -255,17 +248,16 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans, 
             </div>
 
             {canEdit && (
-              <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-                <button className="btn-sm" onClick={() => markVerified(latest)}>✓ Mark verified</button>
-                <button className="btn-sm" onClick={() => openUpload({ latest })}>⬆ New Version</button>
-                <button className="btn-sm" onClick={() => openEditDetails(latest)}>Edit</button>
-                <button className="btn-sm" style={{ color: latest.active !== false ? 'var(--danger)' : 'var(--success)' }}
-                  onClick={() => toggleActive(latest)}>
+              <div className="ui-row" style={{ gap: 4 }}>
+                <Button size="xs" onClick={() => markVerified(latest)}>✓ Mark verified</Button>
+                <Button size="xs" onClick={() => openUpload({ latest })}>⬆ New Version</Button>
+                <Button size="xs" onClick={() => openEditDetails(latest)}>Edit</Button>
+                <Button size="xs" variant={latest.active !== false ? 'danger' : 'success'} onClick={() => toggleActive(latest)}>
                   {latest.active !== false ? 'Make Inactive' : 'Reactivate'}
-                </button>
+                </Button>
               </div>
             )}
-          </div>
+          </Item>
         ))}
       </div>
 
@@ -274,54 +266,46 @@ export default function PayerForms({ payer, user, canEdit, showInactive, plans, 
           title={form.mode === 'edit' ? `Edit form — ${payer.name}` : form.mode === 'version' ? `New version — ${form.title}` : `Upload form — ${payer.name}`}
           onClose={() => setForm(null)}
         >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="field">
-              <label>Form type</label>
+          <div>
+            <Field label="Form type">
               <select value={form.form_type} disabled={form.mode === 'version'} onChange={e => setF({ form_type: e.target.value })}>
                 {FORM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-            </div>
-            <div className="field">
-              <label>Title *</label>
+            </Field>
+            <Field label="Title" required>
               <input type="text" value={form.title} disabled={form.mode === 'version'} placeholder="e.g. Provider appeal form"
                 onChange={e => setF({ title: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>Applies to</label>
+            </Field>
+            <Field label="Applies to">
               <select value={form.plan_id} onChange={e => setF({ plan_id: e.target.value })}>
                 <option value="">Whole payer (all plans)</option>
                 {plans.map(p => <option key={p.id} value={String(p.id)}>{p.plan_name}</option>)}
               </select>
-            </div>
-            <div className="field">
-              <label>Version date (date printed on the form or when it was published)</label>
+            </Field>
+            <Field label="Version date (date printed on the form or when it was published)">
               <input type="date" value={form.version_date} onChange={e => setF({ version_date: e.target.value })} />
-            </div>
+            </Field>
             {form.mode !== 'edit' && (
-              <div className="field">
-                <label>File * (PDF, Word or Excel, up to 10 MB)</label>
+              <Field label="File * (PDF, Word or Excel, up to 10 MB)">
                 <input type="file" accept={FORM_EXTENSIONS.map(x => `.${x}`).join(',')}
                   onChange={e => setF({ file: e.target.files?.[0] ?? null })} />
-                <div className="text-sm" style={{ color: 'var(--warning)', marginTop: 4 }}>
-                  ⚠ Blank forms only — never upload a form that contains patient information.
-                </div>
-              </div>
+                <Notice tone="warn">⚠ Blank forms only — never upload a form that contains patient information.</Notice>
+              </Field>
             )}
-            <div className="field">
-              <label>Notes (optional)</label>
+            <Field label="Notes (optional)">
               <textarea rows={2} value={form.notes} onChange={e => setF({ notes: e.target.value })}
                 placeholder="e.g. Must be faxed with the EOB attached" />
-            </div>
-            {form.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{form.error}</p>}
-            <div className="form-actions">
-              <button className="btn-sm" onClick={() => setForm(null)}>Cancel</button>
-              <button className="btn-primary" onClick={save} disabled={saving}>
+            </Field>
+            {form.error && <Notice tone="bad">{form.error}</Notice>}
+            <FormActions>
+              <Button onClick={() => setForm(null)}>Cancel</Button>
+              <Button variant="primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : form.mode === 'edit' ? 'Save Changes' : 'Upload'}
-              </button>
-            </div>
+              </Button>
+            </FormActions>
           </div>
         </Modal>
       )}
-    </div>
+    </CardSection>
   );
 }
