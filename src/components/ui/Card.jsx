@@ -2,11 +2,11 @@
  * Card — the basic surface. variant: 'default' | 'accent' (the thing being worked on) | 'soft' (secondary panel).
  * Title / subtitle / actions render a header row; leave them out for a plain box.
  */
-export default function Card({ title, icon, subtitle, actions, variant = 'default', flush = false, dim = false, className = '', style, children }) {
+export default function Card({ title, icon, subtitle, actions, variant = 'default', flush = false, dim = false, className = '', style, id, children }) {
   const cls = ['ui-card', variant !== 'default' && variant, flush && 'flush', dim && 'dim', className].filter(Boolean).join(' ');
   const hasHead = title || subtitle || actions;
   return (
-    <section className={cls} style={style}>
+    <section className={cls} style={style} id={id}>
       {hasHead && (
         <div className="ui-card-h">
           <div style={{ minWidth: 0 }}>

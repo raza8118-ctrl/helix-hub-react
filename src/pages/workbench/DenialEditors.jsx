@@ -3,8 +3,8 @@ import {
   CODE_TYPES, CATEGORIES, typeOf, saveCode, readImportFile, compareImport, applyImport,
   missingStarterCodes, addStarterCodes,
 } from '../../lib/denials';
-import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Modal, Card, Field, Check, FormActions, Button, Badge, Notice, EmptyState } from '../../components/ui';
 
 /** Add / edit one denial code (roadmap 4.1). */
 export function DenialCodeModal({ codes, row, presetCode, user, onClose, onSaved }) {
@@ -36,52 +36,45 @@ export function DenialCodeModal({ codes, row, presetCode, user, onClose, onSaved
 
   return (
     <Modal title={row ? `Edit ${typeOf(row.code_type).label} ${row.code}` : 'Add denial code'} onClose={onClose} wide>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <div className="field" style={{ flex: '1 1 160px' }}>
-            <label>Type</label>
+      <div>
+        <div className="ui-grid2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+          <Field label="Type">
             <select value={v.code_type} onChange={e => set({ code_type: e.target.value })}>
               {CODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label} — {t.long}</option>)}
             </select>
-          </div>
-          <div className="field" style={{ flex: '1 1 120px' }}>
-            <label>Code *</label>
+          </Field>
+          <Field label="Code" required>
             <input type="text" value={v.code} placeholder="e.g. 16, N290, CO" onChange={e => set({ code: e.target.value })} />
-          </div>
-          <div className="field" style={{ flex: '1 1 180px' }}>
-            <label>Category</label>
+          </Field>
+          <Field label="Category">
             <select value={v.category} onChange={e => set({ category: e.target.value })}>
               <option value="">— Choose —</option>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-          </div>
+          </Field>
         </div>
-        <div className="field">
-          <label>Plain-English reason *</label>
+        <Field label="Plain-English reason" required>
           <textarea rows={3} value={v.plain_reason} onChange={e => set({ plain_reason: e.target.value })}
             placeholder="What it means for the AR caller, in simple words, and what to check first" />
-        </div>
-        <div className="field">
-          <label>Official description (X12)</label>
+        </Field>
+        <Field label="Official description (X12)">
           <textarea rows={2} value={v.official_text} onChange={e => set({ official_text: e.target.value })}
             placeholder="Usually filled by importing the official list" />
-        </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <div className="field" style={{ flex: '2 1 260px' }}>
-            <label>Notes</label>
+        </Field>
+        <div className="ui-grid2" style={{ gridTemplateColumns: 'minmax(0, 2fr) minmax(150px, 1fr)' }}>
+          <Field label="Notes">
             <input type="text" value={v.notes} onChange={e => set({ notes: e.target.value })} placeholder="Optional" />
-          </div>
-          <div className="field" style={{ flex: '1 1 160px' }}>
-            <label>No longer used after</label>
+          </Field>
+          <Field label="No longer used after">
             <input type="date" value={v.stopped_on} onChange={e => set({ stopped_on: e.target.value })} />
-          </div>
+          </Field>
         </div>
-        <p className="text-sm text-muted" style={{ marginTop: 0 }}>🔒 No patient information here.</p>
-        {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-        <div className="form-actions">
-          <button className="btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : row ? 'Save Changes' : 'Add'}</button>
-        </div>
+        <p className="ui-muted" style={{ margin: '0 0 var(--ui-s3)' }}>🔒 No patient information here.</p>
+        {error && <Notice tone="bad">{error}</Notice>}
+        <FormActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : row ? 'Save Changes' : 'Add'}</Button>
+        </FormActions>
       </div>
     </Modal>
   );
@@ -126,57 +119,58 @@ export function DenialImportModal({ codes, user, onClose, onSaved }) {
 
   return (
     <Modal title="Import official code list" onClose={done ? onSaved : onClose} wide>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <p className="text-sm text-muted" style={{ marginTop: 0 }}>
+      <div className="ui-stack">
+        <p className="ui-muted" style={{ margin: 0 }}>
           Download the official CARC or RARC list from <b>x12.org</b> (Codes → Claim Adjustment Reason Codes / Remittance
           Advice Remark Codes), save it as Excel or CSV with a <b>Code</b> and a <b>Description</b> column, and pick it here.
           Only the official wording and retired dates are updated — your plain-English reasons are never changed.
         </p>
         {!done && (
           <>
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={e => pick(e.target.files?.[0] ?? null)} />
-            {busy && <div className="text-sm text-muted" style={{ marginTop: 8 }}>Working…</div>}
-            {read?.error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{read.error}</p>}
+            <Field style={{ marginBottom: 0 }}>
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={e => pick(e.target.files?.[0] ?? null)} aria-label="Code list file" />
+            </Field>
+            {busy && <EmptyState compact title="Working…" />}
+            {read?.error && <Notice tone="bad">{read.error}</Notice>}
             {read?.rows && !read.hasType && (
-              <div className="field" style={{ marginTop: 10 }}>
-                <label>What list is this?</label>
-                <select value={defaultType} onChange={e => setDefaultType(e.target.value)} style={{ maxWidth: 320 }}>
+              <Field label="What list is this?" style={{ marginBottom: 0, maxWidth: 360 }}>
+                <select value={defaultType} onChange={e => setDefaultType(e.target.value)}>
                   {CODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label} — {t.long}</option>)}
                 </select>
-              </div>
+              </Field>
             )}
             {diff && (
-              <div className="card" style={{ marginTop: 10, background: 'var(--surface-2)' }}>
+              <Card variant="soft">
                 <div className="bold">{file?.name}: {read.rows.length} rows</div>
-                <div className="text-sm" style={{ marginTop: 4 }}>
-                  <span className="badge badge-green">{diff.added.length} new</span>{' '}
-                  <span className="badge badge-blue">{diff.changed.length} changed</span>{' '}
-                  <span className="badge badge-gray">{diff.same} unchanged</span>
-                  {diff.skipped > 0 && <> <span className="badge badge-orange">{diff.skipped} skipped (repeated / no type)</span></>}
+                <div className="ui-row" style={{ gap: 6, marginTop: 6 }}>
+                  <Badge tone="good">{diff.added.length} new</Badge>
+                  <Badge tone="info">{diff.changed.length} changed</Badge>
+                  <Badge>{diff.same} unchanged</Badge>
+                  {diff.skipped > 0 && <Badge tone="warn">{diff.skipped} skipped (repeated / no type)</Badge>}
                 </div>
                 {[...diff.added.slice(0, 5).map(r => ({ r, k: 'New' })), ...diff.changed.slice(0, 5).map(c => ({ r: c.row, k: 'Changed' }))].map(({ r, k }) => (
-                  <div key={`${k}-${r.code_type}-${r.code}`} className="text-sm" style={{ marginTop: 4 }}>
-                    <b>{k}</b> · {typeOf(r.code_type).label} {r.code}: <span className="text-muted">{(r.official_text ?? '').slice(0, 120)}</span>
+                  <div key={`${k}-${r.code_type}-${r.code}`} className="ui-small" style={{ marginTop: 6 }}>
+                    <b>{k}</b> · {typeOf(r.code_type).label} {r.code}: <span className="ui-text-muted">{(r.official_text ?? '').slice(0, 120)}</span>
                   </div>
                 ))}
-              </div>
+              </Card>
             )}
           </>
         )}
         {done && (
-          <p className="text-sm">✓ Imported: {done.added} new, {done.updated} updated.</p>
+          <Notice tone="good">✓ Imported: {done.added} new, {done.updated} updated.</Notice>
         )}
-        <div className="form-actions">
+        <FormActions>
           {done
-            ? <button className="btn-primary" onClick={onSaved}>Done</button>
+            ? <Button variant="primary" onClick={onSaved}>Done</Button>
             : (
               <>
-                <button className="btn-sm" onClick={onClose}>Cancel</button>
-                <button className="btn-primary" onClick={save}
-                  disabled={busy || !diff || (diff.added.length + diff.changed.length === 0)}>Import</button>
+                <Button onClick={onClose}>Cancel</Button>
+                <Button variant="primary" onClick={save}
+                  disabled={busy || !diff || (diff.added.length + diff.changed.length === 0)}>Import</Button>
               </>
             )}
-        </div>
+        </FormActions>
       </div>
     </Modal>
   );
@@ -206,36 +200,35 @@ export function DenialStarterModal({ codes, user, onClose, onSaved }) {
 
   return (
     <Modal title="Add starter denial codes" onClose={onClose} wide>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <p className="text-sm text-muted" style={{ marginTop: 0 }}>
+      <div className="ui-stack">
+        <p className="ui-muted" style={{ margin: 0 }}>
           Common home health, hospice and AR denial codes with plain-English reasons written for our teams.
           They show <b>“Starter – please verify”</b> until someone checks each one and clicks ✓ Verified.
         </p>
-        <div style={{ maxHeight: 380, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 6, padding: 6 }}>
+        <Card variant="soft" style={{ maxHeight: 380, overflowY: 'auto', padding: 'var(--ui-s3)' }}>
           {CODE_TYPES.map(t => {
             const list = missing.filter(s => s.t === t.value);
             if (!list.length) return null;
             return (
-              <div key={t.value} style={{ marginBottom: 8 }}>
-                <div className="bold text-sm" style={{ marginBottom: 2 }}>{t.label} — {t.long}</div>
+              <div key={t.value} style={{ marginBottom: 'var(--ui-s2)' }}>
+                <div className="ui-letter" style={{ marginTop: 0 }}>{t.label} — {t.long}</div>
                 {list.map(s => {
                   const key = `${s.t}|${s.c}`;
                   return (
-                    <label key={key} className="row text-sm" style={{ gap: 8, padding: '3px 0', cursor: 'pointer', alignItems: 'flex-start' }}>
-                      <input type="checkbox" checked={picked.has(key)} onChange={() => { toggle(key); setError(''); }} style={{ marginTop: 3 }} />
-                      <span><b>{s.c}</b> · <span className="text-muted">{s.cat}</span><br />{s.r}</span>
-                    </label>
+                    <Check key={key} checked={picked.has(key)} onChange={() => { toggle(key); setError(''); }} className="ui-small" >
+                      <b>{s.c}</b> · <span className="ui-text-muted">{s.cat}</span><br />{s.r}
+                    </Check>
                   );
                 })}
               </div>
             );
           })}
-        </div>
-        {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-        <div className="form-actions">
-          <button className="btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving || !picked.size}>{saving ? 'Adding…' : `Add ${picked.size} codes`}</button>
-        </div>
+        </Card>
+        {error && <Notice tone="bad">{error}</Notice>}
+        <FormActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} disabled={saving || !picked.size}>{saving ? 'Adding…' : `Add ${picked.size} codes`}</Button>
+        </FormActions>
       </div>
     </Modal>
   );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { typeOf } from '../../lib/denials';
 import { scopeOf, saveSteps } from '../../lib/denialSteps';
-import Modal from '../../components/shared/Modal';
+import { Modal, Field, FormActions, Button, Notice } from '../../components/ui';
 
 /**
  * Add / edit the steps for one denial code in one layer (roadmap 4.2).
@@ -36,17 +36,13 @@ export default function DenialStepsModal({ code, scope, target, existing, allSte
   const s = scopeOf(scope);
   return (
     <Modal title={`${s.icon} ${s.label}${target ? ` — ${target.name}` : ''} · ${typeOf(code.code_type).label} ${code.code}`} onClose={onClose} wide>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div className="field">
-          <label>Steps *</label>
+      <div>
+        <Field label="Steps" required
+          hint={<>Formatting: <b>1.</b> numbered step · <b>-</b> bullet · <b>**bold**</b> · <b>!</b> at the start = ⚠ important line.</>}>
           <textarea rows={8} value={steps} onChange={e => { setSteps(e.target.value); setError(''); }}
             placeholder={'One step per line, e.g.\n1. Check the remark code on the ERA\n2. Correct the rendering NPI in the claim\n3. Resubmit as a corrected claim (TOB xx7)\n! Don’t send an appeal for this one'} />
-          <div className="text-sm text-muted" style={{ marginTop: 4 }}>
-            Formatting: <b>1.</b> numbered step · <b>-</b> bullet · <b>**bold**</b> · <b>!</b> at the start = ⚠ important line.
-          </div>
-        </div>
-        <div className="field">
-          <label>Linked SOP (optional)</label>
+        </Field>
+        <Field label="Linked SOP (optional)">
           <select value={sopId} onChange={e => setSopId(e.target.value)}>
             <option value="">— None —</option>
             {sopChoices.map(sop => (
@@ -55,17 +51,16 @@ export default function DenialStepsModal({ code, scope, target, existing, allSte
               </option>
             ))}
           </select>
-        </div>
-        <div className="field">
-          <label>Notes</label>
+        </Field>
+        <Field label="Notes">
           <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional, e.g. who to ask" />
-        </div>
-        <p className="text-sm text-muted" style={{ marginTop: 0 }}>🔒 No patient information — describe what to do, not a specific claim.</p>
-        {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-        <div className="form-actions">
-          <button className="btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : existing ? 'Save Changes' : 'Add'}</button>
-        </div>
+        </Field>
+        <p className="ui-muted" style={{ margin: '0 0 var(--ui-s3)' }}>🔒 No patient information — describe what to do, not a specific claim.</p>
+        {error && <Notice tone="bad">{error}</Notice>}
+        <FormActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : existing ? 'Save Changes' : 'Add'}</Button>
+        </FormActions>
       </div>
     </Modal>
   );

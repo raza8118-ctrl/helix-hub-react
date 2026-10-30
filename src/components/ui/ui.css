@@ -136,7 +136,8 @@ label.ui-btn.primary { color: #fff; }
 /* ── Tabs (= .hx-seg) ─────────────────────────────────────────────────────────────────────────────────────────── */
 .ui-tabs { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: var(--ui-r-pill); background: var(--surface-2); border: 1px solid var(--border); max-width: 100%; }
 .ui-tabs button { border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: var(--ui-fs-sm); font-weight: 600; padding: 6px 14px; border-radius: var(--ui-r-pill); cursor: pointer; white-space: nowrap; }
-.ui-tabs button:hover { color: var(--text); }
+.ui-tabs button:hover:not(:disabled) { color: var(--text); }
+.ui-tabs button:disabled { opacity: .45; cursor: not-allowed; }
 .ui-tabs button.on { background: var(--ui-grad); color: #fff; box-shadow: 0 4px 12px -4px var(--accent); }
 
 /* ── Form fields ──────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -159,6 +160,8 @@ label.ui-btn.primary { color: #fff; }
 .ui-check.inline { display: inline-flex !important; margin: 0; font-size: var(--ui-fs-sm); color: var(--text-muted); align-items: center; }
 .ui-check input { width: 16px !important; height: 16px; min-height: 0; flex: none; margin: 2px 0 0; padding: 0; accent-color: var(--accent); box-shadow: none; }
 .ui-check.inline input { margin: 0; }
+/* A bare checkbox (table tick column) */
+.ui-tick { width: 16px !important; height: 16px; min-height: 0; padding: 0; margin: 0; accent-color: var(--accent); box-shadow: none; vertical-align: middle; }
 
 /* Footer row of a form */
 .ui-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--ui-s2); margin-top: var(--ui-s4); padding-top: var(--ui-s3); border-top: 1px solid var(--border); }
@@ -225,6 +228,17 @@ label.ui-btn.primary { color: #fff; }
 .ui-modal-b { padding: var(--ui-s5); }
 @keyframes uiFade { from { opacity: 0; } }
 @keyframes uiPop { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+
+/* ── Collapsible card header + result rows ────────────────────────────────────────────────────────────────────── */
+.ui-disclose { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-s2); width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ui-disclose:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.ui-disclose-arrow { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: var(--ui-accent-bg); color: var(--accent); font-size: 11px; }
+.ui-layer { padding: var(--ui-s3); border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); }
+.ui-layer.hl { border: 2px solid color-mix(in srgb, var(--ui-warn) 65%, transparent); background: var(--ui-warn-bg); }
+.ui-layer-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: var(--ui-s2); }
+.ui-layer-t { font-weight: 700; color: var(--text); }
+.ui-layer-sub { margin-top: var(--ui-s3); padding-top: var(--ui-s2); border-top: 1px dashed var(--border); font-size: var(--ui-fs-sm); }
+.ui-result { padding: var(--ui-s2) var(--ui-s3); border-radius: var(--ui-r-sm); background: var(--surface-2); border-left: 4px solid var(--border); }
 
 /* ── Small helpers ────────────────────────────────────────────────────────────────────────────────────────────── */
 .ui-stack { display: flex; flex-direction: column; gap: var(--ui-s3); }

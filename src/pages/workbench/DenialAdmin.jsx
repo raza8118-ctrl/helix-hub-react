@@ -5,10 +5,10 @@ import { exportSteps } from '../../lib/denialStepsImport';
 import { CodeStepsModal, CopyStepsModal, StepsImportModal } from './DenialAdminTools';
 import PayerSearch from '../../components/shared/PayerSearch';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
+import { Card, Button, LinkButton, Badge, Tabs, Check, Table, Toolbar, ToolbarSpacer, EmptyState } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const PAGE = 100;
-const cell = { padding: '5px 6px', borderBottom: '1px solid var(--border)', verticalAlign: 'top' };
 
 /**
  * 🛠 Manage steps (roadmap 4.3, editors only): coverage of common / client / payer steps per code, copy to a client,
@@ -96,97 +96,93 @@ export default function DenialAdmin({ codes, steps, ctx, user, onChanged }) {
   ];
 
   return (
-    <div>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
-        {tabs.map(t => (
-          <button key={t.id} className={view === t.id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={view === t.id} onClick={() => setView(t.id)}>{t.label}</button>
-        ))}
-        <span className="row" style={{ gap: 6, marginLeft: 'auto', flexWrap: 'wrap' }}>
-          <button className="btn-sm" onClick={() => setModal({ kind: 'import' })}>⬆ Import from Excel</button>
-          <button className="btn-sm" onClick={() => exportSteps({ codes, steps, ...ctx })} disabled={!live.length}>⬇ Export all steps</button>
-        </span>
-      </div>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
+      <Toolbar>
+        <Tabs value={view} onChange={setView} label="Manage steps views" options={tabs.map(t => ({ value: t.id, label: t.label }))} />
+        <ToolbarSpacer />
+        <Button size="sm" onClick={() => setModal({ kind: 'import' })}>⬆ Import from Excel</Button>
+        <Button size="sm" onClick={() => exportSteps({ codes, steps, ...ctx })} disabled={!live.length}>⬇ Export all steps</Button>
+      </Toolbar>
 
       {view === 'coverage' && (
         <>
-          <div className="card mb-16">
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input type="search" value={query} onChange={e => { setQuery(e.target.value); setLimit(PAGE); }} placeholder="Code or words"
-                style={{ flex: '1 1 160px', minWidth: 0 }} />
-              <select value={type} onChange={e => setType(e.target.value)} style={{ maxWidth: 140 }}>
+          <Card>
+            <Toolbar>
+              <input type="search" className="ui-input" value={query} onChange={e => { setQuery(e.target.value); setLimit(PAGE); }} placeholder="Code or words"
+                style={{ flex: '1 1 180px', width: 'auto', minWidth: 0 }} aria-label="Code or words" />
+              <select value={type} onChange={e => setType(e.target.value)} aria-label="Code type">
                 <option value="ALL">All types</option>
                 {CODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-              <select value={category} onChange={e => setCategory(e.target.value)} style={{ maxWidth: 200 }}>
+              <select value={category} onChange={e => setCategory(e.target.value)} aria-label="Category">
                 <option value="ALL">All categories</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-                <input type="checkbox" checked={missingCommon} onChange={e => setMissingCommon(e.target.checked)} /> Missing common steps
-              </label>
-            </div>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-              <span className="text-sm">Check coverage for:</span>
-              <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ maxWidth: 220 }}>
+              <Check inline checked={missingCommon} onChange={e => setMissingCommon(e.target.checked)}>Missing common steps</Check>
+            </Toolbar>
+            <Toolbar style={{ marginTop: 'var(--ui-s3)' }}>
+              <span className="ui-label">Check coverage for:</span>
+              <select value={clientId} onChange={e => setClientId(e.target.value)} aria-label="Client">
                 <option value="">— client —</option>
                 {ctx.clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
               </select>
               {payer
-                ? <span className="row" style={{ gap: 4 }}><span className="badge badge-blue">Payer: {payer.name}</span><button className="btn-sm" onClick={() => setPayer(null)}>✕</button></span>
+                ? <span className="ui-row" style={{ gap: 4 }}><Badge tone="info">Payer: {payer.name}</Badge><Button size="xs" variant="ghost" aria-label="Clear payer" onClick={() => setPayer(null)}>✕</Button></span>
                 : <div style={{ flex: '1 1 200px', minWidth: 0 }}><PayerSearch payers={ctx.payers} onSelect={setPayer} placeholder="— payer —" /></div>}
               {(client || payer) && (
-                <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={onlyMissingTarget} onChange={e => setOnlyMissingTarget(e.target.checked)} /> Only missing
-                </label>
+                <Check inline checked={onlyMissingTarget} onChange={e => setOnlyMissingTarget(e.target.checked)}>Only missing</Check>
               )}
-            </div>
-          </div>
+            </Toolbar>
+          </Card>
 
-          <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-            <span className="text-sm text-muted">{rows.length} codes · {picked.size} ticked</span>
-            <button className="btn-sm" disabled={!picked.size || !ctx.clients.length} onClick={() => setModal({ kind: 'copy' })}>📋 Copy steps to a client…</button>
-            {picked.size > 0 && <button className="btn-sm" onClick={() => setPicked(new Set())}>Clear ticks</button>}
-          </div>
+          <Toolbar>
+            <span className="ui-count">{rows.length} codes · {picked.size} ticked</span>
+            <Button size="sm" disabled={!picked.size || !ctx.clients.length} onClick={() => setModal({ kind: 'copy' })}>📋 Copy steps to a client…</Button>
+            {picked.size > 0 && <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>Clear ticks</Button>}
+          </Toolbar>
 
-          {codes.length === 0 && <div className="card text-muted">Add codes in 🔎 Look up first (starter codes or import).</div>}
+          {codes.length === 0 && <Card><EmptyState icon="🧩" title="Add codes in 🔎 Look up first (starter codes or import)." /></Card>}
           {rows.length > 0 && (
-            <div className="card" style={{ overflowX: 'auto' }}>
-              <table className="text-sm" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
+              <Table dense>
                 <thead>
-                  <tr style={{ textAlign: 'left' }}>
-                    <th style={cell}>
-                      <input type="checkbox" aria-label="Tick all shown" checked={allShownPicked}
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" className="ui-tick" aria-label="Tick all shown" checked={allShownPicked}
                         onChange={() => setPicked(p => {
                           const n = new Set(p);
                           rows.slice(0, limit).forEach(r => { if (allShownPicked) n.delete(r.code.id); else n.add(r.code.id); });
                           return n;
                         })} />
                     </th>
-                    <th style={cell}>Code</th><th style={cell}>Common</th><th style={cell}>Clients</th><th style={cell}>Payers</th>
-                    <th style={cell}>Re-check</th>
-                    {client && <th style={cell}>{client.name}</th>}
-                    {payer && <th style={cell}>{payer.name}</th>}
+                    <th>Code</th><th>Common</th><th className="num">Clients</th><th className="num">Payers</th>
+                    <th>Re-check</th>
+                    {client && <th>{client.name}</th>}
+                    {payer && <th>{payer.name}</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.slice(0, limit).map(r => (
                     <tr key={r.code.id}>
-                      <td style={cell}><input type="checkbox" checked={picked.has(r.code.id)} onChange={() => togglePick(r.code.id)} aria-label={`Tick ${r.code.code}`} /></td>
-                      <td style={{ ...cell, cursor: 'pointer' }} onClick={() => setModal({ kind: 'code', code: r.code })} title={r.code.plain_reason ?? ''}>
-                        <span className="badge badge-gray">{typeOf(r.code.code_type).label}</span> <b style={{ color: 'var(--accent)' }}>{r.code.code} ›</b>
+                      <td><input type="checkbox" className="ui-tick" checked={picked.has(r.code.id)} onChange={() => togglePick(r.code.id)} aria-label={`Tick ${r.code.code}`} /></td>
+                      <td title={r.code.plain_reason ?? ''}>
+                        <span className="ui-row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                          <Badge>{typeOf(r.code.code_type).label}</Badge>
+                          <LinkButton onClick={() => setModal({ kind: 'code', code: r.code })} style={{ fontSize: 'var(--ui-fs-base)' }}>{r.code.code} ›</LinkButton>
+                        </span>
                       </td>
-                      <td style={cell}>{r.common ? '✓' : <span className="text-muted">—</span>}</td>
-                      <td style={cell} title={r.clients.map(s => clientName(s.client_id)).join(', ')}>{r.clients.length || ''}</td>
-                      <td style={cell} title={r.payers.map(s => payerName(s.payer_id)).join(', ')}>{r.payers.length || ''}</td>
-                      <td style={cell}>{r.recheck ? <span className="badge badge-orange">{r.recheck}</span> : ''}</td>
-                      {client && <td style={cell}>{r.clientEntry ? '✓' : <span className="badge badge-yellow">missing</span>}</td>}
-                      {payer && <td style={cell}>{r.payerEntry ? '✓' : <span className="badge badge-yellow">missing</span>}</td>}
+                      <td>{r.common ? <span className="ui-text-good">✓</span> : <span className="ui-text-muted">—</span>}</td>
+                      <td className="num" title={r.clients.map(s => clientName(s.client_id)).join(', ')}>{r.clients.length || ''}</td>
+                      <td className="num" title={r.payers.map(s => payerName(s.payer_id)).join(', ')}>{r.payers.length || ''}</td>
+                      <td>{r.recheck ? <Badge tone="warn">{r.recheck}</Badge> : ''}</td>
+                      {client && <td>{r.clientEntry ? <span className="ui-text-good">✓</span> : <Badge tone="warn">missing</Badge>}</td>}
+                      {payer && <td>{r.payerEntry ? <span className="ui-text-good">✓</span> : <Badge tone="warn">missing</Badge>}</td>}
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </Table>
               {rows.length > limit && (
-                <button className="btn-sm" style={{ marginTop: 8 }} onClick={() => setLimit(l => l + PAGE)}>Show more ({rows.length - limit} left)</button>
+                <div><Button size="sm" onClick={() => setLimit(l => l + PAGE)}>Show more ({rows.length - limit} left)</Button></div>
               )}
             </div>
           )}
@@ -195,44 +191,44 @@ export default function DenialAdmin({ codes, steps, ctx, user, onChanged }) {
 
       {view === 'review' && (
         <>
-          <div className="row" style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
-            <select value={reviewLayer} onChange={e => setReviewLayer(e.target.value)} style={{ maxWidth: 200 }}>
+          <Toolbar>
+            <select value={reviewLayer} onChange={e => setReviewLayer(e.target.value)} aria-label="Layer">
               <option value="ALL">All layers</option>
               <option value="common">Common</option>
               <option value="client">Client</option>
               <option value="payer">Payer</option>
             </select>
-            <span className="text-sm text-muted">Never verified first, then the oldest checks.</span>
-          </div>
-          {review.length === 0 && <div className="card text-muted" style={{ textAlign: 'center' }}>Nothing to review. 🎉</div>}
+            <span className="ui-muted">Never verified first, then the oldest checks.</span>
+          </Toolbar>
+          {review.length === 0 && <Card><EmptyState icon="✅" title="Nothing to review. 🎉" /></Card>}
           {review.map(s => (
-            <div key={s.id} className="card mb-16">
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Card key={s.id}>
+              <div className="ui-row">
                 <span className="bold">{label(s)}</span>
-                <span className="badge badge-orange">{s.verified_at ? `Last verified ${fmtDate(s.verified_at)}` : 'Never verified'}</span>
-                <span className="row" style={{ gap: 4, marginLeft: 'auto' }}>
-                  <button className="btn-sm" onClick={() => verify(s)}>✓ Verified</button>
-                  {codeOf(s.code_id) && <button className="btn-sm" onClick={() => setModal({ kind: 'code', code: codeOf(s.code_id) })}>Open</button>}
+                <Badge tone="warn">{s.verified_at ? `Last verified ${fmtDate(s.verified_at)}` : 'Never verified'}</Badge>
+                <span className="ui-row" style={{ gap: 4, marginLeft: 'auto' }}>
+                  <Button size="xs" variant="success" onClick={() => verify(s)}>✓ Verified</Button>
+                  {codeOf(s.code_id) && <Button size="xs" onClick={() => setModal({ kind: 'code', code: codeOf(s.code_id) })}>Open</Button>}
                 </span>
               </div>
-              <div className="text-sm text-muted" style={{ marginTop: 4, whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden' }}>{s.steps}</div>
-            </div>
+              <div className="ui-muted" style={{ marginTop: 6, whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden' }}>{s.steps}</div>
+            </Card>
           ))}
         </>
       )}
 
       {view === 'inactive' && (
         <>
-          {inactive.length === 0 && <div className="card text-muted" style={{ textAlign: 'center' }}>No inactive steps.</div>}
+          {inactive.length === 0 && <Card><EmptyState icon="⊘" title="No inactive steps." /></Card>}
           {inactive.map(s => (
-            <div key={s.id} className="card mb-16" style={{ opacity: 0.8 }}>
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Card key={s.id} dim>
+              <div className="ui-row">
                 <span className="bold">{label(s)}</span>
-                <span className="text-sm text-muted">changed {fmtDate(s.updated_at)}</span>
-                <button className="btn-sm" style={{ marginLeft: 'auto' }} onClick={() => reactivate(s)}>↺ Reactivate</button>
+                <span className="ui-muted">changed {fmtDate(s.updated_at)}</span>
+                <Button size="xs" variant="success" style={{ marginLeft: 'auto' }} onClick={() => reactivate(s)}>↺ Reactivate</Button>
               </div>
-              <div className="text-sm text-muted" style={{ marginTop: 4, whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>{s.steps}</div>
-            </div>
+              <div className="ui-muted" style={{ marginTop: 6, whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>{s.steps}</div>
+            </Card>
           ))}
         </>
       )}

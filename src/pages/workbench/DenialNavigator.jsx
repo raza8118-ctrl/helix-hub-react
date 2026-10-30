@@ -18,6 +18,7 @@ import { loadSopVersionMeta } from '../../lib/sopVersions';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -28,44 +29,44 @@ const PAGE = 60;
 function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, onStartAppeal, children }) {
   const t = typeOf(row.code_type);
   return (
-    <div className="card mb-16" style={row.active === false ? { opacity: 0.6 } : undefined}>
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span className="badge badge-blue" title={t.long}>{t.label}</span>
-        <span className="bold" style={{ fontSize: 18 }}>{group ? `${group}-` : ''}{row.code}</span>
+    <Card dim={row.active === false} variant={stepsOpen ? 'accent' : 'default'}>
+      <div className="ui-row">
+        <Badge tone="info" title={t.long}>{t.label}</Badge>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--ui-fs-lg)', fontWeight: 800 }}>{group ? `${group}-` : ''}{row.code}</span>
         <CopyButton value={row.code} label="Copy" />
-        {row.category && <span className="badge badge-gray">{row.category}</span>}
-        {isRetired(row) && <span className="badge badge-orange" title={`No longer used after ${fmtDay(row.stopped_on)}`}>Retired {fmtDay(row.stopped_on)}</span>}
-        {!row.verified_at && row.source === 'starter' && <span className="badge badge-yellow">Starter – please verify</span>}
-        {row.active === false && <span className="badge badge-gray">Inactive</span>}
+        {row.category && <Badge>{row.category}</Badge>}
+        {isRetired(row) && <Badge tone="warn" title={`No longer used after ${fmtDay(row.stopped_on)}`}>Retired {fmtDay(row.stopped_on)}</Badge>}
+        {!row.verified_at && row.source === 'starter' && <Badge tone="warn">Starter – please verify</Badge>}
+        {row.active === false && <Badge>Inactive</Badge>}
         {canEdit && (
-          <span className="row" style={{ gap: 4, marginLeft: 'auto' }}>
-            {!row.verified_at && <button className="btn-sm" onClick={() => onVerify(row)}>✓ Verified</button>}
-            <button className="btn-sm" title="Edit" onClick={() => onEdit(row)}>✎</button>
-            <button className="btn-sm" title={row.active === false ? 'Reactivate' : 'Make inactive'} onClick={() => onToggle(row)}>
+          <span className="ui-row" style={{ gap: 4, marginLeft: 'auto' }}>
+            {!row.verified_at && <Button size="xs" variant="success" onClick={() => onVerify(row)}>✓ Verified</Button>}
+            <Button size="xs" title="Edit" aria-label="Edit" onClick={() => onEdit(row)}>✎</Button>
+            <Button size="xs" title={row.active === false ? 'Reactivate' : 'Make inactive'} aria-label={row.active === false ? 'Reactivate' : 'Make inactive'} onClick={() => onToggle(row)}>
               {row.active === false ? '↺' : '⊘'}
-            </button>
+            </Button>
           </span>
         )}
       </div>
-      <div style={{ marginTop: 6, lineHeight: 1.5 }}>
-        {row.plain_reason || <span className="text-muted">No plain-English reason yet.</span>}
+      <div className="ui-kv-v" style={{ marginTop: 'var(--ui-s2)', lineHeight: 1.5 }}>
+        {row.plain_reason || <span className="ui-text-muted">No plain-English reason yet.</span>}
       </div>
       {row.official_text && (
-        <div className="text-sm text-muted" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>Official: {row.official_text}</div>
+        <div className="ui-muted" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>Official: {row.official_text}</div>
       )}
-      {row.notes && <div className="text-sm" style={{ marginTop: 4 }}>📝 {row.notes}</div>}
-      {row.verified_at && <div className="text-sm text-muted" style={{ marginTop: 4 }}>Verified {fmtDate(row.verified_at)}</div>}
-      <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+      {row.notes && <div className="ui-small" style={{ marginTop: 4 }}>📝 {row.notes}</div>}
+      {row.verified_at && <div className="ui-small ui-text-good" style={{ marginTop: 4 }}>Verified {fmtDate(row.verified_at)}</div>}
+      <div className="ui-row" style={{ marginTop: 'var(--ui-s3)' }}>
         {stepsReady && (
-          <button className={stepsOpen ? 'btn-primary btn-sm' : 'btn-sm'} aria-expanded={stepsOpen}
+          <Button size="sm" variant={stepsOpen ? 'primary' : 'secondary'} aria-expanded={stepsOpen}
             onClick={() => onToggleSteps(row.id)}>
             {stepsOpen ? 'What to do ▴' : 'What to do ▾'}
-          </button>
+          </Button>
         )}
-        {row.active !== false && <button className="btn-sm" onClick={() => onStartAppeal(row, group)}>✉️ Start an appeal</button>}
+        {row.active !== false && <Button size="sm" variant="ghost" onClick={() => onStartAppeal(row, group)}>✉️ Start an appeal</Button>}
       </div>
       {stepsOpen && children}
-    </div>
+    </Card>
   );
 }
 
@@ -177,13 +178,13 @@ export default function DenialNavigator({ user }) {
     const readable = sop && (canEditSops || (sop.active !== false && sop.status === 'published'));
     const back = () => { setSopId(null); setSopCtx(null); };
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        {!sopCtx && <div className="card text-muted">Loading SOP…</div>}
+      <div className="ui-page" style={{ maxWidth: 960 }}>
+        {!sopCtx && <Card><EmptyState compact title="Loading SOP…" /></Card>}
         {sopCtx && !readable && (
-          <div className="card">
-            <button className="btn-sm" onClick={back}>← Back to Denial Navigator</button>
-            <p className="text-muted">This SOP isn’t published yet.</p>
-          </div>
+          <Card>
+            <Button size="sm" variant="ghost" onClick={back}>← Back to Denial Navigator</Button>
+            <EmptyState icon="📚" title="This SOP isn’t published yet." />
+          </Card>
         )}
         {sopCtx && readable && (
           <SopPage key={sop.id} sop={sop} lib={sopCtx.lib} meta={sopCtx.meta} names={{}} user={user} canEdit={canEditSops}
@@ -198,8 +199,8 @@ export default function DenialNavigator({ user }) {
 
   if (payerCard) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <button className="btn-sm" style={{ marginBottom: 12 }} onClick={() => setPayerCard(null)}>← Back to Denial Navigator</button>
+      <div className="ui-page" style={{ maxWidth: 960 }}>
+        <div><Button size="sm" variant="ghost" onClick={() => setPayerCard(null)}>← Back to Denial Navigator</Button></div>
         <PayerCard key={payerCard.id} payer={payerCard} user={user} onClose={() => setPayerCard(null)} />
       </div>
     );
@@ -208,21 +209,16 @@ export default function DenialNavigator({ user }) {
   // 🔎 Look up · 🛠 Manage steps (4.3, editors only, once the steps table exists)
   const canManage = canEdit && codes && Array.isArray(steps);
   const tabBar = canManage && (
-    <div className="row" style={{ gap: 6, marginBottom: 12 }}>
-      {[['lookup', '🔎 Look up'], ['manage', '🛠 Manage steps']].map(([id, label]) => (
-        <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
-      ))}
+    <div>
+      <Tabs value={tab} onChange={setTab} label="Denial Navigator views"
+        options={[{ value: 'lookup', label: '🔎 Look up' }, { value: 'manage', label: '🛠 Manage steps' }]} />
     </div>
   );
   if (canManage && tab === 'manage') {
     return (
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div className="page-header">
-          <div>
-            <div className="page-title">🧩 Denial Navigator</div>
-            <div className="page-subtitle">Manage the steps: which codes have common, client and payer steps, and what needs checking.</div>
-          </div>
-        </div>
+      <div className="ui-page" style={{ maxWidth: 1100 }}>
+        <PageHeader icon="🧩" kicker="Workbench" title="Denial Navigator"
+          subtitle="Manage the steps: which codes have common, client and payer steps, and what needs checking." />
         {tabBar}
         <DenialAdmin codes={codes} steps={steps} ctx={ctx} user={user} onChanged={reloadSteps} />
       </div>
@@ -230,120 +226,116 @@ export default function DenialNavigator({ user }) {
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">🧩 Denial Navigator</div>
-          <div className="page-subtitle">Look up a denial or remark code — or paste the codes from an ERA / EOB line.</div>
-        </div>
-        {canEdit && codes && (
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-            {starterCount > 0 && <button className="btn-sm" onClick={() => setModal({ kind: 'starter' })}>Add starter codes ({starterCount})</button>}
-            <button className="btn-sm" onClick={() => setModal({ kind: 'import' })}>⬆ Import official list</button>
-            <button className="btn-sm" onClick={() => setModal({ kind: 'code' })}>+ Add code</button>
-          </div>
-        )}
-      </div>
+    <div className="ui-page" style={{ maxWidth: 960 }}>
+      <PageHeader icon="🧩" kicker="Workbench" title="Denial Navigator"
+        subtitle="Look up a denial or remark code — or paste the codes from an ERA / EOB line."
+        actions={canEdit && codes && (
+          <>
+            {starterCount > 0 && <Button size="sm" onClick={() => setModal({ kind: 'starter' })}>Add starter codes ({starterCount})</Button>}
+            <Button size="sm" onClick={() => setModal({ kind: 'import' })}>⬆ Import official list</Button>
+            <Button size="sm" variant="primary" onClick={() => setModal({ kind: 'code' })}>+ Add code</Button>
+          </>
+        )} />
       {tabBar}
 
-      {codes === undefined && <div className="card text-muted">Loading…</div>}
+      {codes === undefined && <Card><EmptyState compact title="Loading…" /></Card>}
       {codes === null && (
-        <div className="card text-muted">
-          The Denial library isn’t set up yet. An admin needs to run the denial codes database update
-          (<code>20261021d_denial_codes.sql</code>) in Supabase.
-        </div>
+        <Card>
+          <EmptyState icon="🛠️" title="The Denial library isn’t set up yet.">
+            An admin needs to run the denial codes database update
+            (<code>20261021d_denial_codes.sql</code>) in Supabase.
+          </EmptyState>
+        </Card>
       )}
 
       {codes && Array.isArray(steps) && (
-        <div className="card mb-16">
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span className="text-sm bold">Working on:</span>
-            <select value={clientId} onChange={e => pickClient(e.target.value)} style={{ maxWidth: 240 }} aria-label="Client">
+        <Card>
+          <Toolbar>
+            <span className="ui-label">Working on:</span>
+            <select value={clientId} onChange={e => pickClient(e.target.value)} aria-label="Client">
               <option value="">Any client</option>
               {ctx.clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
             </select>
             {payer ? (
-              <span className="row" style={{ gap: 4, alignItems: 'center' }}>
-                <span className="badge badge-blue">Payer: {payer.name}</span>
-                <button className="btn-sm" title="Clear payer" onClick={() => pickPayer('')}>✕</button>
+              <span className="ui-row" style={{ gap: 4 }}>
+                <Badge tone="info">Payer: {payer.name}</Badge>
+                <Button size="xs" variant="ghost" title="Clear payer" aria-label="Clear payer" onClick={() => pickPayer('')}>✕</Button>
               </span>
             ) : (
               <div style={{ flex: '1 1 240px', minWidth: 0 }}>
                 <PayerSearch payers={ctx.payers} onSelect={p => pickPayer(String(p.id))} placeholder="Payer (optional) — name or alias" />
               </div>
             )}
-          </div>
-          <div className="text-sm text-muted" style={{ marginTop: 4 }}>
+          </Toolbar>
+          <div className="ui-muted" style={{ marginTop: 'var(--ui-s2)' }}>
             Open “What to do” on a code to see the client’s steps first, then the payer’s rule, then the common steps.
           </div>
-        </div>
+        </Card>
       )}
 
       {codes && <DeadlineHelper payer={payer} client={client} open={deadlineOpen} onToggle={() => setDeadlineOpen(o => !o)} />}
 
       {codes && (
         <>
-          <div className="card mb-16">
-            <input type="search" value={query} autoFocus onChange={e => { setQuery(e.target.value); setLimit(PAGE); }}
+          <Card>
+            <input type="search" className="ui-input" value={query} autoFocus onChange={e => { setQuery(e.target.value); setLimit(PAGE); }}
               placeholder="e.g. CO-16 N290  ·  197  ·  “prior auth”  ·  timely filing"
-              style={{ width: '100%', fontSize: 16 }} />
+              style={{ fontSize: 'var(--ui-fs-md)', minHeight: 44 }} aria-label="Code or words" />
             {!parsed && (
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
-                <select value={type} onChange={e => setType(e.target.value)} style={{ maxWidth: 160 }}>
+              <Toolbar style={{ marginTop: 'var(--ui-s3)' }}>
+                <select value={type} onChange={e => setType(e.target.value)} aria-label="Code type">
                   <option value="ALL">All types</option>
                   {CODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
-                <select value={category} onChange={e => setCategory(e.target.value)} style={{ maxWidth: 220 }}>
+                <select value={category} onChange={e => setCategory(e.target.value)} aria-label="Category">
                   <option value="ALL">All categories</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showRetired} onChange={e => setShowRetired(e.target.checked)} /> Show retired
-                </label>
+                <Check inline checked={showRetired} onChange={e => setShowRetired(e.target.checked)}>Show retired</Check>
                 {canEdit && (
                   <>
-                    <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={onlyUnverified} onChange={e => setOnlyUnverified(e.target.checked)} /> Not verified only
-                    </label>
-                    <label className="row text-sm" style={{ gap: 4, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} /> Show inactive
-                    </label>
+                    <Check inline checked={onlyUnverified} onChange={e => setOnlyUnverified(e.target.checked)}>Not verified only</Check>
+                    <Check inline checked={showInactive} onChange={e => setShowInactive(e.target.checked)}>Show inactive</Check>
                   </>
                 )}
-              </div>
+              </Toolbar>
             )}
-            <div className="text-sm text-muted" style={{ marginTop: 6 }}>🔒 What you type here is never saved. Paste codes only — no patient details.</div>
-          </div>
+            <div className="ui-muted" style={{ marginTop: 'var(--ui-s2)' }}>🔒 What you type here is never saved. Paste codes only — no patient details.</div>
+          </Card>
 
           {codes.length === 0 && (
-            <div className="card text-muted" style={{ textAlign: 'center' }}>
-              The library is empty.{canEdit ? ' Use “Add starter codes” or “Import official list” to fill it.' : ''}
-            </div>
+            <Card>
+              <EmptyState icon="🧩" title="The library is empty.">
+                {canEdit ? 'Use “Add starter codes” or “Import official list” to fill it.' : null}
+              </EmptyState>
+            </Card>
           )}
 
           {parsed && (
             <>
-              <div className="text-sm text-muted mb-16">{parsed.length} code{parsed.length > 1 ? 's' : ''} found in what you typed:</div>
+              <div className="ui-count">{parsed.length} code{parsed.length > 1 ? 's' : ''} found in what you typed:</div>
               {parsed.map((p, i) => {
                 if (p.type === 'group') {
                   const row = findCode(codes, p);
                   return row ? <CodeCard key={i} row={row} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
-                    <div key={i} className="card mb-16"><span className="badge badge-blue">Group</span> <b>{p.code}</b> — {GROUP_CODES[p.code]}</div>
+                    <Card key={i}><div className="ui-row"><Badge tone="info">Group</Badge> <b>{p.code}</b> — {GROUP_CODES[p.code]}</div></Card>
                   );
                 }
                 const row = findCode(codes, p);
                 return (
-                  <div key={i}>
+                  <div key={i} className="ui-stack" style={{ gap: 6 }}>
                     {p.group && (
-                      <div className="text-sm" style={{ margin: '0 0 4px 4px' }}>
+                      <div className="ui-small" style={{ paddingLeft: 4 }}>
                         <b>{p.group}</b> = {GROUP_CODES[p.group]}
                       </div>
                     )}
                     {row ? <CodeCard row={row} group={p.group} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
-                      <div className="card mb-16 text-muted">
-                        <span className="badge badge-gray">{typeOf(p.type).label}</span> <b>{p.code}</b> isn’t in the library yet.
-                        {canEdit && <button className="btn-sm" style={{ marginLeft: 8 }} onClick={() => setModal({ kind: 'code', presetCode: p })}>+ Add it</button>}
-                      </div>
+                      <Card>
+                        <div className="ui-row ui-text-muted">
+                          <Badge>{typeOf(p.type).label}</Badge> <b style={{ color: 'var(--text)' }}>{p.code}</b> isn’t in the library yet.
+                          {canEdit && <Button size="xs" onClick={() => setModal({ kind: 'code', presetCode: p })}>+ Add it</Button>}
+                        </div>
+                      </Card>
                     )}
                   </div>
                 );
@@ -353,13 +345,15 @@ export default function DenialNavigator({ user }) {
 
           {!parsed && codes.length > 0 && (
             <>
-              <div className="text-sm text-muted mb-16">{results.length} code{results.length === 1 ? '' : 's'}</div>
-              {results.length === 0 && <div className="card text-muted" style={{ textAlign: 'center' }}>Nothing matches.</div>}
+              <div className="ui-count">{results.length} code{results.length === 1 ? '' : 's'}</div>
+              {results.length === 0 && <Card><EmptyState icon="🔎" title="Nothing matches." /></Card>}
               {results.slice(0, limit).map(row => <CodeCard key={row.id} row={row} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard>)}
               {results.length > limit && (
-                <button className="btn-sm" style={{ marginBottom: 16 }} onClick={() => setLimit(l => l + PAGE)}>
-                  Show more ({results.length - limit} left)
-                </button>
+                <div>
+                  <Button size="sm" onClick={() => setLimit(l => l + PAGE)}>
+                    Show more ({results.length - limit} left)
+                  </Button>
+                </div>
               )}
             </>
           )}

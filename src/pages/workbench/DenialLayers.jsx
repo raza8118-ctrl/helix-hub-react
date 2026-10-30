@@ -6,6 +6,7 @@ import DenialStepsModal from './DenialStepsModal';
 import SopText from './SopText';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Button, Badge } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const FORM_LABELS = { appeal: 'Appeal form', recon: 'Reconsideration form', corrected_claim: 'Corrected claim form' };
@@ -15,26 +16,25 @@ function LayerBox({ scope, title, entry, emptyText, highlight, sops, canEdit, on
   const s = scopeOf(scope);
   const sop = entry?.sop_id ? sops.find(x => x.id === entry.sop_id) : null;
   return (
-    <div style={{
-      border: `${highlight ? 2 : 1}px solid ${highlight ? 'var(--warning)' : 'var(--border)'}`, borderRadius: 8,
-      padding: 10, marginTop: 8, background: highlight ? 'var(--surface-2)' : undefined,
-    }}>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
-        <span className="bold">{s.icon} {title}</span>
-        {entry && stepsNeedRecheck(entry) && <span className="badge badge-orange">{entry.verified_at ? 'Needs re-check' : 'Not verified'}</span>}
-        {entry?.verified_at && !stepsNeedRecheck(entry) && <span className="text-sm text-muted">verified {fmtDate(entry.verified_at)}</span>}
+    <div className={`ui-layer${highlight ? ' hl' : ''}`}>
+      <div className="ui-layer-h">
+        <span className="ui-layer-t">{s.icon} {title}</span>
+        {entry && stepsNeedRecheck(entry) && <Badge tone="warn">{entry.verified_at ? 'Needs re-check' : 'Not verified'}</Badge>}
+        {entry?.verified_at && !stepsNeedRecheck(entry) && <span className="ui-small ui-text-good">verified {fmtDate(entry.verified_at)}</span>}
         {canEdit && (
-          <span className="row" style={{ gap: 4, marginLeft: 'auto' }}>
-            {entry && <button className="btn-sm" onClick={onVerify}>✓ Verified</button>}
-            <button className="btn-sm" onClick={onEdit}>{entry ? '✎ Edit steps' : '+ Add steps'}</button>
-            {entry && <button className="btn-sm" title="Make inactive" onClick={onToggle}>⊘</button>}
+          <span className="ui-row" style={{ gap: 4, marginLeft: 'auto' }}>
+            {entry && <Button size="xs" variant="success" onClick={onVerify}>✓ Verified</Button>}
+            <Button size="xs" onClick={onEdit}>{entry ? '✎ Edit steps' : '+ Add steps'}</Button>
+            {entry && <Button size="xs" title="Make inactive" aria-label="Make inactive" onClick={onToggle}>⊘</Button>}
           </span>
         )}
       </div>
-      {entry ? <SopText text={entry.steps} /> : <div className="text-sm text-muted">{emptyText}</div>}
-      {entry?.notes && <div className="text-sm" style={{ marginTop: 4 }}>📝 {entry.notes}</div>}
+      {entry ? <SopText text={entry.steps} /> : <div className="ui-muted">{emptyText}</div>}
+      {entry?.notes && <div className="ui-small" style={{ marginTop: 4 }}>📝 {entry.notes}</div>}
       {sop && (
-        <button className="btn-sm" style={{ marginTop: 6 }} onClick={() => onOpenSop(sop.id)}>📄 Open SOP: {sop.title} ›</button>
+        <div style={{ marginTop: 'var(--ui-s2)' }}>
+          <Button size="sm" variant="ghost" onClick={() => onOpenSop(sop.id)}>📄 Open SOP: {sop.title} ›</Button>
+        </div>
       )}
       {children}
     </div>
@@ -58,15 +58,16 @@ function PayerDirectoryInfo({ payer, client, onOpenPayer, onDeadline }) {
   }
 
   return (
-    <div className="text-sm" style={{ marginTop: 8, borderTop: '1px dashed var(--border)', paddingTop: 6 }}>
-      <div className="row" style={{ gap: 6, alignItems: 'center', marginBottom: 4 }}>
-        <span className="text-muted">From the Payer Directory</span>
-        {onDeadline && <button className="btn-sm" style={{ marginLeft: 'auto' }} onClick={onDeadline}>⏰ Work out the deadline</button>}
-        <button className="btn-sm" style={onDeadline ? undefined : { marginLeft: 'auto' }} onClick={() => onOpenPayer(payer)}>Open payer card ›</button>
+    <div className="ui-layer-sub">
+      <div className="ui-row" style={{ marginBottom: 6 }}>
+        <span className="ui-kv-l" style={{ margin: 0 }}>From the Payer Directory</span>
+        <span className="ui-toolbar-sp" />
+        {onDeadline && <Button size="xs" onClick={onDeadline}>⏰ Work out the deadline</Button>}
+        <Button size="xs" onClick={() => onOpenPayer(payer)}>Open payer card ›</Button>
       </div>
-      {!data && <div className="text-muted">Loading…</div>}
+      {!data && <div className="ui-text-muted">Loading…</div>}
       {data && !data.contacts.length && !data.limits.length && !data.forms.length && !data.notes.length && (
-        <div className="text-muted">No appeals contacts, limits or forms recorded for {payer.name} yet.</div>
+        <div className="ui-text-muted">No appeals contacts, limits or forms recorded for {payer.name} yet.</div>
       )}
       {data?.contacts.map(c => (
         <div key={c.id} style={{ marginBottom: 4 }}>
@@ -79,7 +80,7 @@ function PayerDirectoryInfo({ payer, client, onOpenPayer, onDeadline }) {
               <CopyButton value={[c.attention_line, c.mailing_address].filter(Boolean).join('\n')} label="Copy address" />
             </div>
           )}
-          {c.portal_url && <div><a href={c.portal_url} target="_blank" rel="noopener noreferrer">Appeals portal ↗</a></div>}
+          {c.portal_url && <div><a href={c.portal_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Appeals portal ↗</a></div>}
         </div>
       ))}
       {data?.limits.length > 0 && (
@@ -88,17 +89,17 @@ function PayerDirectoryInfo({ payer, client, onOpenPayer, onDeadline }) {
             <div key={l.id}>
               ⏱ <b>{labelOf(LIMIT_TYPES, l.limit_type)}{l.level ? ` (level ${l.level})` : ''}</b>: {l.days ?? '?'} days
               {l.measured_from ? ` from ${String(l.measured_from).toLowerCase()}` : ''}
-              {l.isOverride && <span className="badge badge-blue" style={{ marginLeft: 6 }}>{client?.name} contract</span>}
-              {l.plan_id && <span className="text-muted"> (specific plan)</span>}
-              {l.notes && <span className="text-muted"> — {l.notes}</span>}
+              {l.isOverride && <Badge tone="accent" style={{ marginLeft: 6 }}>{client?.name} contract</Badge>}
+              {l.plan_id && <span className="ui-text-muted"> (specific plan)</span>}
+              {l.notes && <span className="ui-text-muted"> — {l.notes}</span>}
             </div>
           ))}
         </div>
       )}
       {data?.forms.length > 0 && (
-        <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+        <div className="ui-row" style={{ gap: 6, marginBottom: 4 }}>
           {data.forms.map(f => (
-            <button key={f.id} className="btn-sm" onClick={() => download(f)} title={FORM_LABELS[f.form_type]}>⬇ {f.title}</button>
+            <Button key={f.id} size="xs" onClick={() => download(f)} title={FORM_LABELS[f.form_type]}>⬇ {f.title}</Button>
           ))}
         </div>
       )}
@@ -133,9 +134,9 @@ export default function DenialLayers({ code, steps, ctx, client, payer, user, ca
   });
 
   return (
-    <div style={{ marginTop: 8 }}>
+    <div className="ui-stack" style={{ marginTop: 'var(--ui-s3)', gap: 'var(--ui-s2)' }}>
       {!client && !payer && (
-        <div className="text-sm text-muted">Pick a client and/or payer at the top to see their special steps too.</div>
+        <div className="ui-muted">Pick a client and/or payer at the top to see their special steps too.</div>
       )}
       {client && (
         <LayerBox {...box('client', client, clientEntry)} title={`Client steps — ${client.name}`} highlight={!!clientEntry}
