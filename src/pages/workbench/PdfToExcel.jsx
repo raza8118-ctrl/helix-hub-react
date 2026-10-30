@@ -2,7 +2,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { readPdf, parsePageList } from '../../lib/pdfTools';
 import {
   EXTRACT_METHODS, loadMethodConfig, saveMethodConfig, methodReady, extractTables, arrangeSheets, downloadXlsx,
+  downloadStructuredXlsx,
 } from '../../lib/pdfExtract';
+import { structure, buildView } from '../../lib/pdfStructure';
 import { logAudit } from '../../lib/audit';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
@@ -99,6 +101,168 @@ function MethodSetup({ method, config, user, onClose, onSaved }) {
   );
 }
 
+const KIND_LABELS = { date: 'Date', amount: 'Amount', number: 'Number', id: 'ID', text: 'Text' };
+
+/**
+ * Proper-format review (fix to 2.4): the tables found by pdfStructure.js. Header, rename, remove, split names
+ * and sort apply to every row of the file; the filter box narrows the preview and the download.
+ */
+function StructuredPreview({ tables, other, edits, setTableEdit, splitNames, setSplitNames, filter, setFilter, tab, setTab, outName, setOutName }) {
+  const [renaming, setRenaming] = useState(null);   // { key, draft }
+  const views = useMemo(
+    () => tables.map((t, i) => buildView(t, { ...edits[i], splitNames, filter })),
+    [tables, edits, splitNames, filter],
+  );
+  const otherTab = tables.length;
+  const t = Math.min(tab, otherTab);
+  const view = views[t];
+  const ed = edits[t] ?? {};
+  const removedCount = ed.removed?.size ?? 0;
+
+  function sortBy(key) {
+    const s = ed.sort;
+    setTableEdit(t, { sort: s?.key !== key ? { key, dir: 1 } : s.dir === 1 ? { key, dir: -1 } : null });
+  }
+  function remove(key) {
+    setTableEdit(t, { removed: new Set([...(ed.removed ?? []), key]), sort: ed.sort?.key === key ? null : ed.sort });
+  }
+  function saveRename() {
+    if (renaming) setTableEdit(t, { renames: { ...ed.renames, [renaming.key]: renaming.draft.trim() } });
+    setRenaming(null);
+  }
+  function download() {
+    const sheets = views.map((v, i) => ({ name: tables[i].name, columns: v.columns, rows: v.rows.map(r => r.cells) }));
+    if (other.length) {
+      sheets.push({
+        name: 'Other text',
+        columns: [{ name: 'Page', kind: 'number' }, { name: 'Text', kind: 'text' }],
+        rows: other.map(o => [String(o.page), o.text]),
+      });
+    }
+    downloadStructuredXlsx(sheets, outName.trim() || 'extracted.xlsx');
+  }
+  const shownRows = views.reduce((s, v) => s + v.rows.length, 0);
+
+  return (
+    <>
+      <div className="row" style={{ gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+        <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
+          <input type="checkbox" checked={splitNames} onChange={e => setSplitNames(e.target.checked)} /> Split names into Last Name / First Name
+        </label>
+        <input type="search" value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Filter rows…" style={{ maxWidth: 220 }} />
+        {filter.trim() && <span className="text-sm text-muted">{shownRows.toLocaleString()} matching row{shownRows === 1 ? '' : 's'}</span>}
+      </div>
+
+      {(tables.length > 1 || other.length > 0) && (
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {tables.map((tb, i) => (
+            <button key={tb.name} className={i === t ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(i)}>
+              {tb.name} ({views[i].rows.length.toLocaleString()})
+            </button>
+          ))}
+          {other.length > 0 && (
+            <button className={t === otherTab ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(otherTab)}
+              title="Titles, addresses, page numbers and totals that aren't part of the table — kept so nothing is lost">
+              Other text ({other.length.toLocaleString()})
+            </button>
+          )}
+        </div>
+      )}
+
+      {t === otherTab ? (
+        <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
+          <table style={{ fontSize: 12 }}>
+            <thead><tr><th>Page</th><th>Text</th></tr></thead>
+            <tbody>
+              {other.slice(0, PREVIEW_ROWS).map((o, i) => <tr key={i}><td>{o.page}</td><td>{o.text}</td></tr>)}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <>
+          <div className="row text-sm text-muted" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+            <span>Click a column name to sort · ✎ rename · ✕ remove · ⤒ on a row uses it as the header. Changes apply to the whole file.</span>
+            {ed.headerRow != null && (
+              <button className="btn-sm" onClick={() => setTableEdit(t, { headerRow: null, renames: {}, removed: new Set(), sort: null })}>↺ Use the detected header</button>
+            )}
+            {removedCount > 0 && (
+              <button className="btn-sm" onClick={() => setTableEdit(t, { removed: new Set() })}>↺ Show {removedCount} removed column{removedCount === 1 ? '' : 's'}</button>
+            )}
+          </div>
+          {!view.rows.length
+            ? <div className="text-muted" style={{ padding: 12 }}>{filter.trim() ? 'No rows match the filter.' : 'No rows.'}</div>
+            : (
+              <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th aria-label="Row actions" />
+                      {view.columns.map(c => (
+                        <th key={c.key} style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+                          {renaming?.key === c.key ? (
+                            <input type="text" autoFocus value={renaming.draft} style={{ minWidth: 110, fontSize: 12 }}
+                              onChange={e => setRenaming({ key: c.key, draft: e.target.value })}
+                              onKeyDown={e => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setRenaming(null); }}
+                              onBlur={saveRename} />
+                          ) : (
+                            <>
+                              <button className="btn-link" onClick={() => sortBy(c.key)} title="Sort by this column"
+                                style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 600, color: 'inherit', cursor: 'pointer' }}>
+                                {c.name}{ed.sort?.key === c.key ? (ed.sort.dir === 1 ? ' ▲' : ' ▼') : ''}
+                              </button>
+                              {' '}
+                              <button className="btn-sm" style={{ padding: '0 4px' }} title="Rename this column" onClick={() => setRenaming({ key: c.key, draft: c.name })}>✎</button>
+                              <button className="btn-sm" style={{ padding: '0 4px' }} title="Remove this column" onClick={() => remove(c.key)}>✕</button>
+                              <div className="text-muted" style={{ fontWeight: 400, fontSize: 11 }}>{KIND_LABELS[c.kind]}</div>
+                            </>
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {view.rows.slice(0, PREVIEW_ROWS).map(r => (
+                      <tr key={r.index}>
+                        <td>
+                          <button className="btn-sm" style={{ padding: '0 4px' }} title="Use this row as the header (for the whole file)"
+                            onClick={() => setTableEdit(t, { headerRow: r.index, renames: {}, removed: new Set(), sort: null })}>⤒</button>
+                        </td>
+                        {r.cells.map((v, c) => {
+                          const doubt = r.low?.has(c);
+                          return (
+                            <td key={c} title={doubt ? 'OCR was unsure of this — please check' : undefined}
+                              style={{ whiteSpace: 'nowrap', ...(doubt ? { background: 'rgba(245,158,11,0.25)' } : {}) }}>
+                              {v}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {view.rows.length > PREVIEW_ROWS && (
+                  <div className="text-sm text-muted" style={{ padding: 6 }}>Showing the first {PREVIEW_ROWS} of {view.rows.length.toLocaleString()} rows — the download has them all.</div>
+                )}
+              </div>
+            )}
+        </>
+      )}
+
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
+        <label className="text-sm text-muted" htmlFor="xlsx-name-structured">File name</label>
+        <input id="xlsx-name-structured" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 240 }} />
+        <button className="btn-primary" disabled={!shownRows} onClick={download}>
+          ⬇ Download Excel{filter.trim() ? ` (${shownRows.toLocaleString()} filtered rows)` : ''}
+        </button>
+      </div>
+      <div className="text-sm text-muted" style={{ marginTop: 6 }}>
+        The Excel file has a filter on every column, a frozen header row, real dates and amounts
+        {other.length > 0 ? ', and an “Other text” tab with everything that wasn’t part of the table' : ''}.
+      </div>
+    </>
+  );
+}
+
 /**
  * PDF → Excel (roadmap 2.4): choose a method, extract, preview, download .xlsx.
  * “In this browser” always works; service methods appear once an admin sets them up with a BAA.
@@ -114,7 +278,11 @@ export default function PdfToExcel({ user }) {
   const [problem, setProblem] = useState('');
   const [pagesMode, setPagesMode] = useState('all');
   const [pagesText, setPagesText] = useState('');
-  const [result, setResult]   = useState(null);    // { key, pages, method }
+  const [result, setResult]   = useState(null);    // { key, pages, method, structured }
+  const [layout, setLayout]   = useState(null);    // null = the one detected; 'table' | 'records' | 'raw'
+  const [splitNames, setSplitNames] = useState(true);
+  const [edits, setEdits]     = useState({});      // per layout + table: { headerRow, renames, removed, sort }
+  const [filter, setFilter]   = useState('');
   const [combine, setCombine] = useState(true);
   const [skipHeaders, setSkipHeaders] = useState(true);
   const [asNumbers, setAsNumbers] = useState(true);
@@ -164,11 +332,14 @@ export default function PdfToExcel({ user }) {
           ? `Reading page ${p} of ${total} with OCR — a few seconds per page…`
           : `Reading page ${p} of ${total}…`),
       });
-      setResult({ key: runKey, pages: out.pages, method });
+      let structured = null;
+      try { structured = structure(out.pages); } catch { /* “As on page” still works */ }
+      setResult({ key: runKey, pages: out.pages, method, structured });
+      setLayout(null); setEdits({}); setFilter('');
       logAudit({
         actor: user, action: 'pdf_to_excel', entityType: 'file_tool',
         details: {
-          method: chosen.label, pages: out.pages.length,
+          method: chosen.label, pages: out.pages.length, layout_detected: structured?.auto ?? 'raw',
           rows: out.pages.reduce((s, p) => s + p.rows.length, 0),
           ocr_pages: out.pages.filter(p => p.ocr).length,
           scanned_pages: out.pages.filter(p => p.scanned).length,
@@ -205,6 +376,24 @@ export default function PdfToExcel({ user }) {
   const width = sheet ? sheet.rows.reduce((m, r) => Math.max(m, r.length), 0) : 0;
   const totalRows = sheets.reduce((s, x) => s + x.rows.length, 0);
   const doubtful = sheets.reduce((s, x) => s + (x.lows ?? []).reduce((n, set) => n + (set?.size ?? 0), 0), 0);
+
+  // Proper format: the layout detected for this file unless the user picked another
+  const st = current?.structured;
+  const layoutNow = layout ?? st?.auto ?? 'raw';
+  const structTables = layoutNow === 'table' ? st?.table ?? [] : layoutNow === 'records' ? st?.records ?? [] : [];
+  const structOther = layoutNow === 'table' ? st?.tableOther ?? [] : st?.recordsOther ?? [];
+  const detected = !st ? null
+    : st.auto === 'table' ? `a table — ${st.summary.columns} columns, ${st.summary.tableRows.toLocaleString()} rows${st.summary.tables > 1 ? ` (+ ${st.summary.tables - 1} more table${st.summary.tables > 2 ? 's' : ''})` : ''}`
+    : st.auto === 'records' ? `records (Label: value) — ${st.summary.recordRows.toLocaleString()} records, ${st.summary.recordColumns} fields`
+    : 'no clear table — showing it as on the page';
+  const layoutKey = `${layoutNow}`;
+  const tableEdits = edits[layoutKey] ?? {};
+  const setTableEdit = (i, patch) => setEdits(e => ({ ...e, [layoutKey]: { ...e[layoutKey], [i]: { ...e[layoutKey]?.[i], ...patch } } }));
+  const LAYOUTS = [
+    { id: 'table', label: 'Structured table', hint: 'Aging, denial and claim reports', ok: !!st?.table.length },
+    { id: 'records', label: 'Records (Label: value)', hint: 'EOBs, remits, letters — one row per claim / patient', ok: !!st?.records.length },
+    { id: 'raw', label: 'As on page', hint: 'Every line exactly as printed', ok: true },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -294,7 +483,23 @@ export default function PdfToExcel({ user }) {
       {current && (
         <div className="card">
           <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <div className="card-title">Preview ({totalRows.toLocaleString()} rows)</div>
+            <div className="card-title">Preview</div>
+          </div>
+
+          {detected && (
+            <div className="text-sm" style={{ marginBottom: 8 }}>
+              ✨ <strong>Detected:</strong> {detected}. Titles, page numbers and totals were moved out, wrapped lines joined
+              and every page lined up under the same columns.
+            </div>
+          )}
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+            <span className="text-sm text-muted">Layout:</span>
+            {LAYOUTS.map(l => (
+              <button key={l.id} className={layoutNow === l.id ? 'btn-primary' : 'btn-sm'} disabled={!l.ok} title={l.hint}
+                onClick={() => { setLayout(l.id); setTab(0); }}>
+                {l.label}{st?.auto === l.id ? ' (detected)' : ''}
+              </button>
+            ))}
           </div>
 
           {scannedPages.length > 0 && (
@@ -314,67 +519,75 @@ export default function PdfToExcel({ user }) {
             </div>
           )}
 
-          <div className="row" style={{ gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-            <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-              <select value={combine ? 'one' : 'per'} onChange={e => { setCombine(e.target.value === 'one'); setTab(0); }} style={{ maxWidth: 220 }}>
-                <option value="one">All pages in one Excel tab</option>
-                <option value="per">One Excel tab per page</option>
-              </select>
-            </label>
-            <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-              <input type="checkbox" checked={skipHeaders} onChange={e => setSkipHeaders(e.target.checked)} /> Skip repeated header rows
-            </label>
-            <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-              <input type="checkbox" checked={asNumbers} onChange={e => setAsNumbers(e.target.checked)} /> Treat amounts as numbers
-            </label>
-          </div>
-
-          {sheets.length > 1 && (
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-              {sheets.map((s, i) => (
-                <button key={s.name} className={i === tab ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(i)}>{s.name}</button>
-              ))}
-            </div>
-          )}
-
-          {!sheet || sheet.rows.length === 0
-            ? <div className="text-muted" style={{ padding: 12 }}>No table text found{scannedPages.length ? ' — the selected pages look scanned' : ''}.</div>
-            : (
-              <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
-                <table style={{ fontSize: 12 }}>
-                  <tbody>
-                    {sheet.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
-                      <tr key={i}>
-                        {Array.from({ length: width }, (_, c) => {
-                          const doubt = sheet.lows?.[i]?.has(c);
-                          return (
-                            <td key={c} title={doubt ? 'OCR was unsure of this — please check' : undefined}
-                              style={{ whiteSpace: 'nowrap', ...(doubt ? { background: 'rgba(245,158,11,0.25)' } : {}) }}>
-                              {r[c] ?? ''}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {sheet.rows.length > PREVIEW_ROWS && (
-                  <div className="text-sm text-muted" style={{ padding: 6 }}>Showing the first {PREVIEW_ROWS} of {sheet.rows.length.toLocaleString()} rows — the download has them all.</div>
-                )}
+          {layoutNow === 'raw' ? (
+            <>
+              <div className="row" style={{ gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+                <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
+                  <select value={combine ? 'one' : 'per'} onChange={e => { setCombine(e.target.value === 'one'); setTab(0); }} style={{ maxWidth: 220 }}>
+                    <option value="one">All pages in one Excel tab</option>
+                    <option value="per">One Excel tab per page</option>
+                  </select>
+                </label>
+                <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
+                  <input type="checkbox" checked={skipHeaders} onChange={e => setSkipHeaders(e.target.checked)} /> Skip repeated header rows
+                </label>
+                <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
+                  <input type="checkbox" checked={asNumbers} onChange={e => setAsNumbers(e.target.checked)} /> Treat amounts as numbers
+                </label>
               </div>
-            )}
 
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
-            <label className="text-sm text-muted" htmlFor="xlsx-name">File name</label>
-            <input id="xlsx-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 240 }} />
-            <button className="btn-primary" disabled={!totalRows}
-              onClick={() => downloadXlsx(sheets, outName.trim() || 'extracted.xlsx', { numbersAsNumbers: asNumbers })}>
-              ⬇ Download Excel
-            </button>
-          </div>
-          <div className="text-sm text-muted" style={{ marginTop: 6 }}>
-            Tables with merged cells or text wrapped onto several lines may need a little tidying in Excel.
-          </div>
+              {sheets.length > 1 && (
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {sheets.map((s, i) => (
+                    <button key={s.name} className={i === tab ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(i)}>{s.name}</button>
+                  ))}
+                </div>
+              )}
+
+              {!sheet || sheet.rows.length === 0
+                ? <div className="text-muted" style={{ padding: 12 }}>No table text found{scannedPages.length ? ' — the selected pages look scanned' : ''}.</div>
+                : (
+                  <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
+                    <table style={{ fontSize: 12 }}>
+                      <tbody>
+                        {sheet.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
+                          <tr key={i}>
+                            {Array.from({ length: width }, (_, c) => {
+                              const doubt = sheet.lows?.[i]?.has(c);
+                              return (
+                                <td key={c} title={doubt ? 'OCR was unsure of this — please check' : undefined}
+                                  style={{ whiteSpace: 'nowrap', ...(doubt ? { background: 'rgba(245,158,11,0.25)' } : {}) }}>
+                                  {r[c] ?? ''}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {sheet.rows.length > PREVIEW_ROWS && (
+                      <div className="text-sm text-muted" style={{ padding: 6 }}>Showing the first {PREVIEW_ROWS} of {sheet.rows.length.toLocaleString()} rows — the download has them all.</div>
+                    )}
+                  </div>
+                )}
+
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
+                <label className="text-sm text-muted" htmlFor="xlsx-name">File name</label>
+                <input id="xlsx-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 240 }} />
+                <button className="btn-primary" disabled={!totalRows}
+                  onClick={() => downloadXlsx(sheets, outName.trim() || 'extracted.xlsx', { numbersAsNumbers: asNumbers })}>
+                  ⬇ Download Excel
+                </button>
+              </div>
+              <div className="text-sm text-muted" style={{ marginTop: 6 }}>
+                Tables with merged cells or text wrapped onto several lines may need a little tidying in Excel.
+              </div>
+            </>
+          ) : (
+            <StructuredPreview tables={structTables} other={structOther} edits={tableEdits} setTableEdit={setTableEdit}
+              splitNames={splitNames} setSplitNames={setSplitNames} filter={filter} setFilter={setFilter}
+              tab={tab} setTab={setTab} outName={outName} setOutName={setOutName} />
+          )}
         </div>
       )}
 

@@ -23,7 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-10-30) — PDF → Excel “proper format” rebuild (fix to 2.4) — IN PROGRESS (plan approved).**
+**Fix (PO request 2026-10-30) — PDF → Excel “proper format” rebuild (fix to 2.4) — DONE (awaiting PO testing).**
+Built as planned below. Checks: `npm run lint` clean for new code (2 older `preserve-caught-error` errors in `pdfExtract.js` unchanged);
+`npm run build` passes; engine tested in Node with made-up reports (multi-page aging with title / address / wrapped name /
+total / page footer / shifted continuation page, repeated headers + a second different table, EOB label blocks with a
+per-page Check #, ALL-CAPS labels, fixed-width text reports, service-method rows) and end-to-end on a generated 2-page PDF read
+by pdf.js (70 rows, 60 ms). Excel checked: real dates (mm/dd/yyyy), numbers incl. negatives, long claim # / leading-zero IDs
+kept as text, filter, bold frozen header. Layout component lives in `PdfToExcel.jsx` (`StructuredPreview`). Known limits:
+one table region per page; in Records layout, service-line tables inside a record go to “Other text”; “DOE JOHN” (capitals,
+no comma) is read as last name first, “John Doe” as first name first. The PO had no sample headings — tune on real files.
 PO: the output was a raw page dump; it must come out as a proper table (name in a Name column, other details in their own
 columns) that users can review, filter and sort, and a messy report should be sorted out in seconds. Headings differ per
 file, so detection must adapt to each file — not rely on fixed heading names.
@@ -1489,6 +1497,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 | 2.3 | Images → PDF (incl. multi-page TIFF) and Excel / CSV → PDF | f72b66e |
 | 2.4 | PDF → Excel: in-browser extraction + method selector (B/C/D need admin setup + BAA) | cfb5f06 |
 | 2.4b | OCR for scanned PDFs in the browser (Tesseract, bundled, yellow doubt highlights, Cancel) | 5b5c901 |
+| 2.4 fix | PDF → Excel proper format: adaptive Structured table / Records / As on page, name split, sort / filter / rename, formatted Excel | (this commit) |
 | 2.5 | Appeal Packet builder: sections, payer forms, cover sheet, page numbers, naming convention | b8abcef |
 | 3.1 | SOP Library structure: Category → Software → Task → SOP, `sops_edit` | d8b2e16 |
 | 3.2 | SOP page template: sections, numbered steps, edit content, verify, re-check badge, print | 0586f95 |
@@ -1592,6 +1601,7 @@ The app hides/disables a feature until its migration has been run, so code can d
 - **PDF library:** pdf-lib as a real dependency (option 1), not a CDN. pdf.js (pdfjs-dist) added the same way for compression.
 - **File Tools save step:** every output offers Original or Compress; levels are QUALITY (High = original quality, Medium = portal-friendly, Low = smallest readable) with an optional size limit.
 - **PDF → Excel methods:** in-browser always available; Vercel / Supabase / own-server methods appear in a selector and only an admin can switch one on, with a “BAA signed” confirmation (audited). Config in kv `pdf_extract_engines` per company.
+- **PDF → Excel layouts (2026-10-30):** detection adapts to each file (positions + value kinds; heading words only break ties); Split names ON by default; header / rename / remove / sort apply to the whole file; the filter narrows preview and download; “As on page” = the original output, unchanged.
 - **Appeal Packet:** cover sheet on by default; page numbers “Page X of Y” bottom right (optional prefix); company file-name convention set by `packet_settings` holders; `{PatientLast}` allowed but not default.
 - **SOP Library:** viewing open to all (Published only); `sops_edit` (admins + managers, grantable) edits and sees Drafts. Categories are editable.
 - **SOP page:** fixed template sections; SOPs need re-checking every 180 days (“Mark as verified today” by editors); “Who uses it” = team chips + free text.

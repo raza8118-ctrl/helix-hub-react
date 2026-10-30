@@ -55,3 +55,10 @@ HTTP 200 with JSON:
 
 - **Python** (B on Vercel, or D): `pdfplumber` or `camelot` for digital PDFs; `ocrmypdf` / Tesseract for scanned PDFs.
 - **JavaScript / Deno** (C): `pdfjs-dist` text positions (the same approach Helix Hub uses in the browser — see `src/lib/pdfExtract.js`).
+
+## Layouts (proper format)
+
+Whatever method is used, Helix Hub turns the result into a proper table in the browser (`src/lib/pdfStructure.js`):
+Structured table, Records (Label: value) or As on page. Browser methods also keep each word's position, which lines
+columns up best. A service only returns `rows`, so Helix Hub lines its cells up by column number. **Return one cell per
+column** (not a whole line in one cell) for the best result.

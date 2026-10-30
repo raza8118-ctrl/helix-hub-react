@@ -1,5 +1,6 @@
 // PDF → Excel (roadmap 2.4 / 2.4b). Every method returns the same shape:
-//   { pages: [{ page: <1-based number>, rows: string[][], low?: [row, col][], scanned?: boolean, ocr?: boolean }] }
+//   { pages: [{ page: <1-based number>, rows: string[][], low?: [row, col][], pieces?, scanned?: boolean, ocr?: boolean }] }
+// `pieces` (browser methods only) = positioned text { x, y, w, h, str, low? } used by pdfStructure.js.
 // `low` marks cells containing words OCR was unsure of; `scanned` = image page nothing could be read from.
 // Methods A (text) and OCR run in the browser. B / C / D send the PDF to a service an admin has set up
 // and confirmed is covered by a signed BAA — contract in docs/PDF_EXTRACTION_SERVER.md.
@@ -162,7 +163,8 @@ async function extractInBrowser(bytes, pageNumbers, onProgress, { ocr = false, c
       onProgress?.(n, doc.numPages, false);
       const page = await doc.getPage(n);
       const text = await page.getTextContent();
-      let result = pageToRows(textItemsToPieces(text.items));
+      let pieces = textItemsToPieces(text.items);
+      let result = pageToRows(pieces);
       let scanned = false;
       let usedOcr = false;
       if (!result.rows.length) {
@@ -192,12 +194,14 @@ async function extractInBrowser(bytes, pageNumbers, onProgress, { ocr = false, c
             if (control?.cancelled) throw new Error('cancelled');
             throw err;
           }
-          result = pageToRows(ocrWordsToPieces(words, scale, canvas.height));
+          pieces = ocrWordsToPieces(words, scale, canvas.height);
+          result = pageToRows(pieces);
           usedOcr = true;
           scanned = !result.rows.length;   // still nothing readable
         }
       }
-      pages.push({ page: n, rows: result.rows, low: result.low, scanned, ocr: usedOcr });
+      // pieces (positioned text) let pdfStructure.js line columns up across pages
+      pages.push({ page: n, rows: result.rows, low: result.low, pieces, scanned, ocr: usedOcr });
       page.cleanup();
     }
   } finally {
@@ -269,7 +273,7 @@ const norm = row => row.map(c => c.trim().toLowerCase()).join('|');
 
 // "$1,234.56" → 1234.56, "(12.00)" → -12, "45%" stays text. Dates, IDs with leading zeros and long
 // numbers like claim numbers (13+ digits, which Excel would round) stay text.
-function toNumber(s) {
+export function toNumber(s) {
   const t = s.trim();
   if (!t || /^0\d/.test(t.replace(/^\$/, ''))) return null;
   if (!t.includes('.') && t.replace(/\D/g, '').length > 12) return null;
@@ -333,4 +337,78 @@ export async function downloadXlsx(sheets, fileName, { numbersAsNumbers = true }
   }
   const out = /\.xlsx$/i.test(fileName) ? fileName : `${fileName || 'extracted'}.xlsx`;
   XLSX.writeFile(wb, out);
+}
+
+// Header row bold + frozen. SheetJS (community) can't write either, so the finished file is opened and its
+// XML patched; if anything doesn't match, the plain file (still with filters) is used.
+function styleHeaderRows(XLSX, data, sheetCount) {
+  const zip = XLSX.CFB.read(new Uint8Array(data), { type: 'array' });
+  const read = path => XLSX.CFB.find(zip, path);
+  const text = entry => new TextDecoder().decode(entry.content);
+  const write = (entry, s) => { entry.content = new TextEncoder().encode(s); entry.size = entry.content.length; };
+
+  const sty = read('/xl/styles.xml');
+  let styles = text(sty);
+  const fonts = styles.match(/<fonts count="(\d+)">([\s\S]*?)<\/fonts>/);
+  const xfs = styles.match(/<cellXfs count="(\d+)">([\s\S]*?)<\/cellXfs>/);
+  if (!fonts || !xfs) return data;
+  const fontId = +fonts[1];
+  const xfId = +xfs[1];
+  const bold = fonts[2].match(/<font>[\s\S]*?<\/font>/)[0].replace('<font>', '<font><b/>');
+  styles = styles
+    .replace(fonts[0], `<fonts count="${fontId + 1}">${fonts[2]}${bold}</fonts>`)
+    .replace(xfs[0], `<cellXfs count="${xfId + 1}">${xfs[2]}<xf numFmtId="0" fontId="${fontId}" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>`);
+  write(sty, styles);
+
+  for (let i = 1; i <= sheetCount; i++) {
+    const ws = read(`/xl/worksheets/sheet${i}.xml`);
+    if (!ws) continue;
+    let xml = text(ws);
+    xml = xml.replace(/<row r="1"([^>]*)>([\s\S]*?)<\/row>/, (_, attrs, cells) =>
+      `<row r="1"${attrs}>${cells.replace(/<c r="([A-Z]+1)"(?: s="\d+")?/g, `<c r="$1" s="${xfId}"`)}</row>`);
+    xml = xml.replace(/<sheetView ([^>]*?)\/>/,
+      '<sheetView $1><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView>');
+    write(ws, xml);
+  }
+  return XLSX.CFB.write(zip, { fileType: 'zip', type: 'array' });
+}
+
+/**
+ * Proper-format download (pdfStructure.js). sheets: [{ name, columns: [{ name, kind }], rows: string[][] }].
+ * Dates become real Excel dates, amounts / numbers real numbers (long IDs stay text); filter on every column,
+ * bold frozen header, sensible column widths.
+ */
+export async function downloadStructuredXlsx(sheets, fileName) {
+  const XLSX = await import('xlsx');
+  const { parseDate } = await import('./pdfStructure');
+  const wb = XLSX.utils.book_new();
+  const used = new Set();
+  for (const s of sheets) {
+    const aoa = [s.columns.map(c => c.name), ...s.rows.map(r => r.map((v, i) => {
+      const kind = s.columns[i]?.kind;
+      if (!v) return '';
+      if (kind === 'date') return parseDate(v) ?? v;
+      if (kind === 'amount' || kind === 'number') { const n = toNumber(v); return n === null ? v : n; }
+      return v;
+    }))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa, { dateNF: 'mm/dd/yyyy' });
+    if (s.columns.length) {
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(aoa.length - 1, 1), c: s.columns.length - 1 } }) };
+      ws['!cols'] = s.columns.map((c, i) => ({
+        wch: Math.min(50, Math.max(8, c.name.length + 3, ...s.rows.slice(0, 500).map(r => (r[i] ?? '').length + 1))),
+      }));
+    }
+    let name = (s.name.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31)) || 'Sheet';
+    for (let i = 2; used.has(name); i++) name = `${s.name.slice(0, 27)} (${i})`;
+    used.add(name);
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  }
+  let data = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  try { data = styleHeaderRows(XLSX, data, sheets.length); } catch { /* keep the plain file */ }
+  const out = /\.xlsx$/i.test(fileName) ? fileName : `${fileName || 'extracted'}.xlsx`;
+  const url = URL.createObjectURL(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = out;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
