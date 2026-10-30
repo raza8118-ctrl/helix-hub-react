@@ -23,6 +23,21 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Design system + restyle of the 4 demo modules (PO request 2026-10-30) — IN PROGRESS (plan approved).**
+One design system based on the Team Dashboard (`.hx-*`) look: `docs/DESIGN.md` + shared components in `src/components/ui/`
+(`ui.css` with a `.ui-` prefix built on the existing theme variables, so light / mist / dark / dusk all work; PageHeader,
+Card, Button, Tabs, Field, Table, Badge, Toolbar, EmptyState, Modal (portal — fixes the clipped modal on these pages), index).
+Restyle — appearance only, no change to state, handlers, saves, wording or PDF / Excel output — in 4 stages, each linted,
+built, screenshotted (light / dark / phone), re-tested (add / save / reload in Test Co) and checkpointed to `wip`:
+1. Payer Directory (`PayerDirectory`, `PayerCard`, `PayerForms`, `PayerImport`) → **PO reviews the look before stage 2**
+2. Denial Navigator (`DenialNavigator`, `DenialLayers`, `DenialEditors`, `DenialStepsModal`, `DenialAdmin`, `DenialAdminTools`, `DeadlineHelper`)
+3. Appeal Builder (`AppealBuilder`, `AppealForm`, `AppealSidePanel`, `AppealLetter`, `AppealPdf`, `AppealAIPanel`, `AppealTemplates`)
+4. File Tools (`FileTools`, `ConvertTools`, `PdfToExcel`, `PdfSaveOptions`, `AppealPacket`)
+Decisions: shared pieces `PayerCard` (also in Credentialing / Ask Helix) and `DeadlineHelper` (also in AR Tools) get the new
+look everywhere they appear; `components/shared/*` (PayerSearch, CopyButton, Dialog), `shared/UI.jsx`, `index.css` rules and
+the Team Dashboard are not edited. Fixed on the way (review UI items on these pages): save-option radios, wrapping checkbox
+labels, unreadable letter placeholders in dark mode, clipped modals.
+
 **Fix (PO request 2026-10-30) — Hide unfinished pages in 3Gen (home) and Test Co — DONE.**
 Built as planned below. Both companies now have `allocation`, `dashboard`, `wb_worklist`, `wb_assistant` switched off
 (saved through Owner Console → Manage → Pages; owner log + audit log `owner_set_pages` for the home company). Checked in the
