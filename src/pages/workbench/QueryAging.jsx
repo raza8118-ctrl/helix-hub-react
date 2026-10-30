@@ -1,7 +1,4 @@
-  const byClient = useMemo(() => {
-    const nameOf = id => ctx.clients.find(c => c.id === id)?.name ?? '';
-    return agingBy(queries, 'client_id').sort((a, b) => b.open - a.open || nameOf(a.key).localeCompare(nameOf(b.key)));
-  }, [queries, ctx.clients]);import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { AGE_BUCKETS, agingBy, categoryLabel, statusOf, queryRef, ageDays, isOverdue } from '../../lib/clientQueries';
 
 const cell = { padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'left' };
