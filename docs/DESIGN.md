@@ -16,7 +16,14 @@ import { PageHeader, Card, CardSection, Item, Button, Tabs, Field, Check, FormAc
   Inline styles are fine for one-off layout (a `maxWidth`, a grid column count).
 - Restyling a page changes **markup and classes only**: never state, handlers, saves, wording or file output.
 
-Pages using it today: **Payer Directory** (incl. the payer card in Credentialing). Next: Denial Navigator, Appeal Builder, File Tools.
+Pages using it today: **Payer Directory**, **Denial Navigator**, **Appeal Builder** and **File Tools** — plus the pieces they
+share with other pages (the payer card in Credentialing / Ask Helix, the deadline helper in AR Tools). Every other page still uses
+the older `.card` / `.btn-*` styles; move them over with the checklist in section 8.
+
+Extra building blocks added while restyling (all in `ui.css`): `.ui-disclose` (collapsible card header), `.ui-layer` / `.hl`
+(steps layers), `.ui-result` (status row with a coloured left edge), `.ui-paper` + `.ui-token` (letter preview and placeholder
+highlight), `.ui-details`, `.ui-listrow`, `.ui-tick` (bare table checkbox), `.ui-drop` (file drop zone), `.ui-file-letter`,
+`.ui-page-tile`. `Tabs` options can be `disabled`; `Card` takes an `id`.
 
 ---
 

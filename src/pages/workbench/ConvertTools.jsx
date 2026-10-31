@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { readImageFile, buildImagesPdf, IMAGE_EXTENSIONS } from '../../lib/imageToPdf';
 import { readSheets, buildSheetsPdf, SHEET_EXTENSIONS, BIG_SHEET_ROWS } from '../../lib/excelToPdf';
 import PdfSaveOptions from './PdfSaveOptions';
+import { Card, Button, Check, Field, Notice, EmptyState } from '../../components/ui';
 
 const pdfName = (name, fallback) => { const n = (name ?? '').trim() || fallback; return /\.pdf$/i.test(n) ? n : `${n}.pdf`; };
 
@@ -12,15 +13,14 @@ function DropZone({ icon, text, accept, multiple, busy, onFiles, children }) {
   const [over, setOver] = useState(false);
   return (
     <div
-      className="card"
+      className={`ui-drop${over ? ' over' : ''}`}
       onDragOver={e => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={e => { e.preventDefault(); setOver(false); onFiles(e.dataTransfer.files); }}
-      style={{ border: `2px dashed ${over ? 'var(--accent)' : 'var(--border)'}`, textAlign: 'center', padding: 24 }}
     >
-      <div style={{ fontSize: 28 }}>{icon}</div>
-      <div style={{ margin: '6px 0 10px' }}>{text}</div>
-      <label className="btn-primary" style={{ cursor: busy ? 'wait' : 'pointer', display: 'inline-block' }}>
+      <div className="ui-drop-ico" aria-hidden="true">{icon}</div>
+      <div>{text}</div>
+      <label className="ui-btn primary" style={{ cursor: busy ? 'wait' : 'pointer' }}>
         {busy ? 'Reading…' : multiple ? '+ Choose files' : '+ Choose a file'}
         <input type="file" accept={accept} multiple={multiple} style={{ display: 'none' }} disabled={busy}
           onChange={e => { const l = e.target.files; onFiles(l); e.target.value = ''; }} />
@@ -32,34 +32,36 @@ function DropZone({ icon, text, accept, multiple, busy, onFiles, children }) {
 
 // ── Images → PDF ──────────────────────────────────────────────────────────────
 
+const tileBtn = { border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: 'var(--text)' };
+
 function ImageTile({ item, position, onRemove, onRotate }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.key });
   return (
     <div
       ref={setNodeRef}
+      className="ui-page-tile"
       title={item.label}
       style={{
         transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 2 : undefined,
-        width: 110, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow)',
-        padding: 6, display: 'flex', flexDirection: 'column', gap: 4, cursor: 'grab', touchAction: 'none', userSelect: 'none',
+        width: 110, height: 'auto', padding: 6, justifyContent: 'flex-start', alignItems: 'stretch', border: '1px solid var(--border)',
       }}
       {...attributes}
       {...listeners}
     >
-      <div style={{ height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--surface-2)', borderRadius: 4 }}>
+      <div style={{ height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--surface-2)', borderRadius: 8 }}>
         <img src={item.url} alt="" draggable={false}
           style={{ maxWidth: '100%', maxHeight: '100%', transform: `rotate(${item.rotation}deg)`, transition: 'transform 0.15s' }} />
       </div>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="text-sm bold">{position}</span>
+      <div className="ui-row" style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+        <span className="ui-small bold">{position}</span>
         <span>
           <button type="button" onPointerDown={e => e.stopPropagation()} onClick={() => onRotate(item.key)} aria-label={`Rotate image ${position}`}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14 }}>↻</button>
+            style={tileBtn}>↻</button>
           <button type="button" onPointerDown={e => e.stopPropagation()} onClick={() => onRemove(item.key)} aria-label={`Remove image ${position}`}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: 'var(--danger)' }}>✕</button>
+            style={{ ...tileBtn, color: 'var(--ui-bad)' }}>✕</button>
         </span>
       </div>
-      <div className="text-sm text-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</div>
+      <div className="ui-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</div>
     </div>
   );
 }
@@ -136,24 +138,20 @@ export function ImagesToPdf({ user }) {
     : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
       <DropZone icon="🖼️" text="Drag images here (JPG, PNG, WEBP, BMP, GIF, TIFF — multi-page fax TIFFs too), or"
         accept={IMAGE_EXTENSIONS.map(x => `.${x}`).join(',')} multiple busy={busy} onFiles={addFiles}>
         {problems.length > 0 && (
-          <div style={{ marginTop: 10, textAlign: 'left' }}>
-            {problems.map(p => <div key={p} className="text-sm" style={{ color: 'var(--danger)' }}>⚠ {p}</div>)}
-          </div>
+          <Notice tone="bad" style={{ alignSelf: 'stretch', textAlign: 'left' }}>
+            {problems.map(p => <div key={p}>⚠ {p}</div>)}
+          </Notice>
         )}
       </DropZone>
 
       {items.length > 0 && (
         <>
-          <div className="card">
-            <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-              <div className="card-title">Pages ({items.length})</div>
-              <button className="btn-sm" onClick={startOver}>Start over</button>
-            </div>
-            <div className="text-sm text-muted" style={{ marginBottom: 10 }}>
+          <Card title={`Pages (${items.length})`} actions={<Button size="sm" variant="ghost" onClick={startOver}>Start over</Button>}>
+            <div className="ui-muted" style={{ marginBottom: 'var(--ui-s3)' }}>
               One image per page. Drag to reorder (press and hold on a phone), ↻ rotates, ✕ removes.
             </div>
             <DndContext sensors={sensors} onDragEnd={onDragEnd}>
@@ -163,31 +161,28 @@ export function ImagesToPdf({ user }) {
                 </div>
               </SortableContext>
             </DndContext>
-          </div>
+          </Card>
 
-          <div className="card" style={{ paddingBottom: 12 }}>
-            <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-                Page size
-                <select value={pageSize} onChange={e => setPageSize(e.target.value)} style={{ maxWidth: 160 }}>
+          <Card>
+            <div className="ui-grid2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+              <Field label="Page size" style={{ marginBottom: 0 }}>
+                <select value={pageSize} onChange={e => setPageSize(e.target.value)}>
                   <option value="fit">Fit to image</option>
                   <option value="letter">Letter</option>
                   <option value="a4">A4</option>
                 </select>
-              </label>
-              <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-                Margin
-                <select value={margin} onChange={e => setMargin(e.target.value)} style={{ maxWidth: 120 }}>
+              </Field>
+              <Field label="Margin" style={{ marginBottom: 0 }}>
+                <select value={margin} onChange={e => setMargin(e.target.value)}>
                   <option value="none">None</option>
                   <option value="small">Small</option>
                 </select>
-              </label>
-              <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-                File name
-                <input type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 220 }} />
-              </label>
+              </Field>
+              <Field label="File name" style={{ marginBottom: 0 }}>
+                <input type="text" value={outName} onChange={e => setOutName(e.target.value)} />
+              </Field>
             </div>
-          </div>
+          </Card>
           <PdfSaveOptions
             outputs={outputs}
             resetKey={`${name}|${pageSize}|${margin}|${items.map(i => `${i.key}:${i.rotation}`).join(',')}`}
@@ -253,66 +248,54 @@ export function ExcelToPdf({ user }) {
     : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
       {!file ? (
         <DropZone icon="📊" text="Drag an Excel or CSV file here, or" accept=".xlsx,.xls,.csv" busy={busy} onFiles={pick}>
-          {problem && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 10 }}>⚠ {problem}</div>}
+          {problem && <Notice tone="bad" style={{ alignSelf: 'stretch', textAlign: 'left' }}>⚠ {problem}</Notice>}
         </DropZone>
       ) : (
         <>
-          <div className="card">
-            <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-              <div className="card-title" style={{ wordBreak: 'break-all' }}>📊 {file.name}</div>
-              <button className="btn-sm" onClick={reset}>Choose another</button>
-            </div>
-            <div className="text-sm text-muted" style={{ marginBottom: 6 }}>Sheets to include</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+          <Card title={<span style={{ wordBreak: 'break-all' }}>📊 {file.name}</span>}
+            actions={<Button size="sm" onClick={reset}>Choose another</Button>}>
+            <div className="ui-label" style={{ marginBottom: 'var(--ui-s2)' }}>Sheets to include</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 var(--ui-s4)' }}>
               {sheets.map(s => (
-                <label key={s.name} className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-                  <input type="checkbox" checked={chosen.includes(s.name)} onChange={() => toggle(s.name)} />
-                  {s.name} <span className="text-muted">({s.rows.length.toLocaleString()} rows)</span>
-                </label>
+                <Check key={s.name} checked={chosen.includes(s.name)} onChange={() => toggle(s.name)}>
+                  {s.name} <span className="ui-text-muted">({s.rows.length.toLocaleString()} rows)</span>
+                </Check>
               ))}
             </div>
             {totalRows > BIG_SHEET_ROWS && (
-              <div className="text-sm" style={{ color: 'var(--warning)', marginTop: 8 }}>
+              <Notice tone="warn">
                 {totalRows.toLocaleString()} rows — this may take a while and make a very long PDF.
-              </div>
+              </Notice>
             )}
-          </div>
+          </Card>
 
-          <div className="card" style={{ paddingBottom: 12 }}>
-            <div className="row" style={{ gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-                Orientation
-                <select value={orientation} onChange={e => setOrientation(e.target.value)} style={{ maxWidth: 140 }}>
+          <Card>
+            <div className="ui-grid2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              <Field label="Orientation">
+                <select value={orientation} onChange={e => setOrientation(e.target.value)}>
                   <option value="landscape">Landscape</option>
                   <option value="portrait">Portrait</option>
                 </select>
-              </label>
-              <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-                <input type="checkbox" checked={fitWidth} onChange={e => setFitWidth(e.target.checked)} />
-                Fit all columns on one page width
-              </label>
-              <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-                <input type="checkbox" checked={header} onChange={e => setHeader(e.target.checked)} />
-                First row is a header (repeat on every page)
-              </label>
-              <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-                File name
-                <input type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 220 }} />
-              </label>
+              </Field>
+              <Field label="File name">
+                <input type="text" value={outName} onChange={e => setOutName(e.target.value)} />
+              </Field>
             </div>
-            <div className="text-sm text-muted" style={{ marginTop: 8 }}>
+            <Check checked={fitWidth} onChange={e => setFitWidth(e.target.checked)}>Fit all columns on one page width</Check>
+            <Check checked={header} onChange={e => setHeader(e.target.checked)}>First row is a header (repeat on every page)</Check>
+            <div className="ui-muted">
               Values and layout are copied as Excel shows them. Colours, fonts, charts and pictures are not.
             </div>
             {warnings && (warnings.replaced > 0 || warnings.truncated > 0) && (
-              <div className="text-sm" style={{ color: 'var(--warning)', marginTop: 6 }}>
+              <Notice tone="warn" style={{ marginTop: 'var(--ui-s2)' }}>
                 {warnings.replaced > 0 && <div>⚠ {warnings.replaced} character{warnings.replaced === 1 ? '' : 's'} couldn’t be shown in the PDF font and appear as “?”.</div>}
                 {warnings.truncated > 0 && <div>⚠ {warnings.truncated} cell{warnings.truncated === 1 ? ' was' : 's were'} cut short to fit (shown with “…”). Try Landscape, or turn off “Fit all columns”.</div>}
-              </div>
+              </Notice>
             )}
-          </div>
+          </Card>
 
           {selected.length > 0
             ? (
@@ -324,7 +307,7 @@ export function ExcelToPdf({ user }) {
                 auditDetails={{ sheets: selected.length, rows: totalRows }}
               />
             )
-            : <div className="text-sm text-muted">Tick at least one sheet.</div>}
+            : <EmptyState compact title="Tick at least one sheet." />}
         </>
       )}
     </div>

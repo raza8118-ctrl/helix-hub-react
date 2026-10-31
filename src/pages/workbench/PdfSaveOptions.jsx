@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { downloadPdf } from '../../lib/pdfTools';
 import { finalizePdf, QUALITY_LEVELS, levelLabel, fmtMb } from '../../lib/pdfCompress';
 import { logAudit } from '../../lib/audit';
+import { Card, Button, Tabs, Check, Notice, Item } from '../../components/ui';
 
 /**
  * Save step for every File Tools result (roadmap 2.2): keep original size & quality, or
@@ -61,74 +62,68 @@ export default function PdfSaveOptions({ outputs, resetKey, user, auditAction, a
   }
 
   const radio = (value, label) => (
-    <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-      <input type="radio" name={`save-mode-${auditAction}`} checked={mode === value} onChange={() => setMode(value)} />
+    <Check type="radio" name={`save-mode-${auditAction}`} checked={mode === value} onChange={() => setMode(value)}>
       {label}
-    </label>
+    </Check>
   );
 
   return (
-    <div className="card">
-      <div className="card-title" style={{ marginBottom: 10 }}>Save</div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {radio('original', <span><strong>Keep original size &amp; quality</strong></span>)}
-        {radio('compress', <span><strong>Compress</strong> — choose a quality</span>)}
+    <Card title="Save">
+      <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
+        <div>
+          {radio('original', <span><strong>Keep original size &amp; quality</strong></span>)}
+          {radio('compress', <span><strong>Compress</strong> — choose a quality</span>)}
+        </div>
 
         {mode === 'compress' && (
-          <div style={{ marginLeft: 22, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-              {QUALITY_LEVELS.map(l => (
-                <button key={l.id} type="button" onClick={() => setLevel(l.id)}
-                  className={level === l.id ? 'btn-primary' : 'btn-sm'} title={l.hint}>
-                  {l.label}
-                </button>
-              ))}
+          <div className="ui-stack" style={{ marginLeft: 24, gap: 'var(--ui-s2)', marginBottom: 'var(--ui-s2)' }}>
+            <div>
+              <Tabs value={level} onChange={setLevel} label="Quality"
+                options={QUALITY_LEVELS.map(l => ({ value: l.id, label: l.label, title: l.hint }))} />
             </div>
-            <div className="text-sm text-muted">{QUALITY_LEVELS.find(l => l.id === level)?.hint}. Pages with typed text are never changed — only scanned pages get smaller.</div>
-            <label className="row text-sm" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="checkbox" checked={limitOn} onChange={e => setLimitOn(e.target.checked)} />
-              Must be under
-              <input type="number" min="1" step="0.5" value={maxMb} disabled={!limitOn}
-                onChange={e => setMaxMb(e.target.value)} style={{ width: 70 }} />
-              MB (portal upload limit)
-            </label>
+            <div className="ui-muted">{QUALITY_LEVELS.find(l => l.id === level)?.hint}. Pages with typed text are never changed — only scanned pages get smaller.</div>
+            <div className="ui-row">
+              <Check inline checked={limitOn} onChange={e => setLimitOn(e.target.checked)}>Must be under</Check>
+              <input type="number" className="ui-input" min="1" step="0.5" value={maxMb} disabled={!limitOn}
+                onChange={e => setMaxMb(e.target.value)} style={{ width: 80 }} aria-label="Size limit in MB" />
+              <span className="ui-small">MB (portal upload limit)</span>
+            </div>
           </div>
         )}
 
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button className="btn-primary" onClick={prepare} disabled={busy || !outputs.length}>
+        <div className="ui-row">
+          <Button variant="primary" onClick={prepare} disabled={busy || !outputs.length} loading={busy}>
             {busy ? 'Preparing…' : outputs.length > 1 ? `Prepare ${outputs.length} files` : 'Prepare file'}
-          </button>
-          {busy && progress && <span className="text-sm text-muted">{progress}</span>}
+          </Button>
+          {busy && progress && <span className="ui-muted">{progress}</span>}
         </div>
-        {error && <div className="text-sm" style={{ color: 'var(--danger)' }}>{error}</div>}
+        {error && <Notice tone="bad">{error}</Notice>}
       </div>
 
       {results && (
-        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="ui-stack" style={{ marginTop: 'var(--ui-s4)', gap: 'var(--ui-s2)' }}>
           {results.map(r => (
-            <div key={r.name} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 10 }}>
-              <div className="row" style={{ gap: 8, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Item key={r.name}>
+              <div className="ui-row" style={{ justifyContent: 'space-between' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 600, wordBreak: 'break-all' }}>{r.name}</div>
-                  <div className="text-sm text-muted">
+                  <div className="ui-muted">
                     {r.level === 'original'
                       ? `${fmtMb(r.finalSize)} · original quality`
                       : `${fmtMb(r.originalSize)} → ${fmtMb(r.finalSize)} · ${levelLabel(r.level)} quality`
                         + (r.compressedPages ? ` · ${r.compressedPages} scanned page${r.compressedPages === 1 ? '' : 's'} compressed` : '')}
                   </div>
                 </div>
-                <button className="btn-primary" onClick={() => downloadPdf(r.bytes, r.name)}>⬇ Download</button>
+                <Button variant="primary" size="sm" onClick={() => downloadPdf(r.bytes, r.name)}>⬇ Download</Button>
               </div>
-              {r.note && <div className="text-sm" style={{ color: 'var(--warning)', marginTop: 6 }}>{r.note}</div>}
-            </div>
+              {r.note && <Notice tone="warn">{r.note}</Notice>}
+            </Item>
           ))}
           {results.length > 1 && (
-            <button className="btn-sm" style={{ alignSelf: 'flex-start' }} onClick={downloadAll}>⬇ Download all ({results.length})</button>
+            <div><Button size="sm" onClick={downloadAll}>⬇ Download all ({results.length})</Button></div>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

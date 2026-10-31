@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-30 — 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-31 — 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Design system + restyle of the 4 demo modules (PO request 2026-10-30) — IN PROGRESS (plan approved).**
+**Design system + restyle of the 4 demo modules (PO request 2026-10-30) — DONE (2026-10-31, awaiting PO review).**
+All 4 stages built as planned below, checkpointed on `wip` (d9d972a, 8c9040e, 4bdd980, then File Tools) and merged to `main`.
+Each stage: no new lint errors (30 older ones unchanged), build passes, checked in Test Co in light, dark and at 375 px, and a
+save re-tested after reload (filing limit, client denial steps, copied letter template; merge → prepare and PDF → Excel extraction
+in File Tools). Also fixed on these pages: clipped modals, squeezed checkbox / radio labels (incl. the PDF save options),
+missing client-contract badge colour, unreadable dark-mode letter placeholders and OCR highlights. `FormFieldMapper` also moved
+to the new Modal. Not restyled (other pages): everything outside these 4 modules.
 One design system based on the Team Dashboard (`.hx-*`) look: `docs/DESIGN.md` + shared components in `src/components/ui/`
 (`ui.css` with a `.ui-` prefix built on the existing theme variables, so light / mist / dark / dusk all work; PageHeader,
 Card, Button, Tabs, Field, Table, Badge, Toolbar, EmptyState, Modal (portal — fixes the clipped modal on these pages), index).

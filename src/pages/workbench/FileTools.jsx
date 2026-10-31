@@ -8,6 +8,7 @@ import { ImagesToPdf, ExcelToPdf } from './ConvertTools';
 import PdfToExcel from './PdfToExcel';
 import AppealPacket from './AppealPacket';
 import { peekPacketHandoff } from '../../lib/packetHandoff';
+import { PageHeader, Card, Button, Tabs, Field, Notice, Toolbar, EmptyState } from '../../components/ui';
 
 // Colour + letter per file so its pages are easy to spot
 const FILE_COLORS = ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0d9488'];
@@ -20,25 +21,23 @@ function PageTile({ page, position, file, fileIdx, onRemove }) {
   return (
     <div
       ref={setNodeRef}
+      className="ui-page-tile"
       title={`${file.name} — page ${page.index + 1}`}
       style={{
         transform: CSS.Transform.toString(transform), transition,
         opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 2 : undefined,
-        width: 92, height: 118, borderRadius: 8, position: 'relative',
-        border: `2px solid ${color}`, background: 'var(--surface)', boxShadow: 'var(--shadow)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-        cursor: 'grab', touchAction: 'none', userSelect: 'none',
+        border: `2px solid ${color}`,
       }}
       {...attributes}
       {...listeners}
     >
-      <span style={{ position: 'absolute', top: 4, left: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>{position}</span>
+      <span className="ui-page-tile-n">{position}</span>
       <button
         type="button"
+        className="ui-page-tile-x"
         onPointerDown={e => e.stopPropagation()}
         onClick={() => onRemove(page.key)}
         aria-label={`Remove page ${position}`}
-        style={{ position: 'absolute', top: 2, right: 4, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--danger)', fontSize: 14 }}
       >✕</button>
       <span style={{ fontSize: 22, fontWeight: 800, color }}>{letterOf(fileIdx)}</span>
       <span style={{ fontSize: 12, color: 'var(--text)' }}>p{page.index + 1}</span>
@@ -134,78 +133,69 @@ function MergePdfs({ user }) {
     : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
       {/* Add files */}
       <div
-        className="card"
+        className={`ui-drop${dragOver ? ' over' : ''}`}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
-        style={{ border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`, textAlign: 'center', padding: 24 }}
       >
-        <div style={{ fontSize: 28 }}>📄</div>
-        <div style={{ margin: '6px 0 10px' }}>Drag PDFs here, or</div>
-        <label className="btn-primary" style={{ cursor: busy ? 'wait' : 'pointer', display: 'inline-block' }}>
+        <div className="ui-drop-ico" aria-hidden="true">📄</div>
+        <div>Drag PDFs here, or</div>
+        <label className="ui-btn primary" style={{ cursor: busy ? 'wait' : 'pointer' }}>
           {busy ? 'Working…' : '+ Choose PDFs'}
           <input type="file" accept="application/pdf,.pdf" multiple style={{ display: 'none' }} disabled={busy}
             onChange={e => { const l = e.target.files; addFiles(l); e.target.value = ''; }} />
         </label>
         {problems.length > 0 && (
-          <div style={{ marginTop: 10, textAlign: 'left' }}>
-            {problems.map(p => <div key={p} className="text-sm" style={{ color: 'var(--danger)' }}>⚠ {p}</div>)}
-          </div>
+          <Notice tone="bad" style={{ alignSelf: 'stretch', textAlign: 'left' }}>
+            {problems.map(p => <div key={p}>⚠ {p}</div>)}
+          </Notice>
         )}
         {totalBytes > BIG_TOTAL_BYTES && (
-          <div className="text-sm" style={{ color: 'var(--warning)', marginTop: 8 }}>
+          <Notice tone="warn" style={{ alignSelf: 'stretch', textAlign: 'left' }}>
             These files are large ({Math.round(totalBytes / 1048576)} MB). Merging may be slow on this computer.
-          </div>
+          </Notice>
         )}
       </div>
 
       {files.length > 0 && (
         <>
           {/* Files */}
-          <div className="card">
-            <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-              <div className="card-title">Files ({files.length})</div>
-              <button className="btn-sm" onClick={startOver}>Start over</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Card title={`Files (${files.length})`} actions={<Button size="sm" variant="ghost" onClick={startOver}>Start over</Button>}>
+            <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
               {files.map((f, i) => (
-                <div key={f.id} className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{
-                    width: 26, height: 26, borderRadius: 6, color: '#fff', fontWeight: 800, flexShrink: 0,
-                    background: FILE_COLORS[i % FILE_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>{letterOf(i)}</span>
+                <div key={f.id} className="ui-row">
+                  <span className="ui-file-letter" style={{ background: FILE_COLORS[i % FILE_COLORS.length] }}>{letterOf(i)}</span>
                   <span style={{ flex: 1, minWidth: 140, wordBreak: 'break-all' }}>{f.name}</span>
-                  <span className="text-sm text-muted">
+                  <span className="ui-muted">
                     {pages.filter(p => p.fileId === f.id).length} of {f.pageCount} page{f.pageCount === 1 ? '' : 's'}
                   </span>
-                  <button className="btn-sm" onClick={() => moveFile(f.id, -1)} disabled={i === 0} aria-label="Move file up">▲</button>
-                  <button className="btn-sm" onClick={() => moveFile(f.id, 1)} disabled={i === files.length - 1} aria-label="Move file down">▼</button>
-                  <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeFile(f.id)}>Remove</button>
+                  <Button size="xs" onClick={() => moveFile(f.id, -1)} disabled={i === 0} aria-label="Move file up">▲</Button>
+                  <Button size="xs" onClick={() => moveFile(f.id, 1)} disabled={i === files.length - 1} aria-label="Move file down">▼</Button>
+                  <Button size="xs" variant="danger" onClick={() => removeFile(f.id)}>Remove</Button>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
 
           {/* Pages */}
-          <div className="card">
-            <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-              <div className="card-title">Pages in the new PDF ({pages.length})</div>
-              <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input type="text" value={removeText} placeholder="Remove pages, e.g. 2, 5-7" style={{ maxWidth: 190 }}
+          <Card title={`Pages in the new PDF (${pages.length})`}
+            actions={
+              <Toolbar>
+                <input type="text" value={removeText} placeholder="Remove pages, e.g. 2, 5-7" aria-label="Pages to remove"
                   onChange={e => { setRemoveText(e.target.value); setRemoveError(''); }}
-                  onKeyDown={e => { if (e.key === 'Enter') removeListed(); }} />
-                <button className="btn-sm" onClick={removeListed} disabled={!removeText.trim()}>Remove</button>
-              </div>
-            </div>
-            {removeError && <div className="text-sm" style={{ color: 'var(--danger)', marginBottom: 8 }}>{removeError}</div>}
-            <div className="text-sm text-muted" style={{ marginBottom: 10 }}>
+                  onKeyDown={e => { if (e.key === 'Enter') removeListed(); }} style={{ maxWidth: 200 }} />
+                <Button size="sm" onClick={removeListed} disabled={!removeText.trim()}>Remove</Button>
+              </Toolbar>
+            }>
+            {removeError && <Notice tone="bad" style={{ marginBottom: 'var(--ui-s2)' }}>{removeError}</Notice>}
+            <div className="ui-muted" style={{ marginBottom: 'var(--ui-s3)' }}>
               Drag pages to change the order (press and hold on a phone). ✕ removes a page. The small number is the page’s position in the new PDF.
             </div>
             {pages.length === 0
-              ? <div className="text-muted" style={{ padding: 12 }}>All pages removed — add files or start over.</div>
+              ? <EmptyState compact title="All pages removed — add files or start over." />
               : (
                 <DndContext sensors={sensors} onDragEnd={onDragEnd}>
                   <SortableContext items={pages.map(p => p.key)} strategy={rectSortingStrategy}>
@@ -218,15 +208,14 @@ function MergePdfs({ user }) {
                   </SortableContext>
                 </DndContext>
               )}
-          </div>
+          </Card>
 
           {/* Save */}
-          <div className="card" style={{ paddingBottom: 12 }}>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <label className="text-sm text-muted" htmlFor="merge-name">File name</label>
-              <input id="merge-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 260 }} />
-            </div>
-          </div>
+          <Card>
+            <Field label="File name" style={{ marginBottom: 0, maxWidth: 360 }}>
+              <input id="merge-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} />
+            </Field>
+          </Card>
           <PdfSaveOptions
             outputs={outputs}
             resetKey={`${pdfName}|${pages.map(p => p.key).join(',')}`}
@@ -298,66 +287,61 @@ function SplitPdf({ user }) {
   }));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
       <div
-        className="card"
+        className={`ui-drop${dragOver ? ' over' : ''}`}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files); }}
-        style={{ border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`, textAlign: 'center', padding: 24 }}
       >
         {file ? (
-          <div className="row" style={{ gap: 8, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="ui-row" style={{ justifyContent: 'center' }}>
             <span style={{ fontWeight: 600, wordBreak: 'break-all' }}>📄 {file.name}</span>
-            <span className="text-sm text-muted">{file.pageCount} page{file.pageCount === 1 ? '' : 's'}</span>
-            <button className="btn-sm" onClick={() => { setFile(null); setProblem(''); }}>Choose another</button>
+            <span className="ui-muted">{file.pageCount} page{file.pageCount === 1 ? '' : 's'}</span>
+            <Button size="sm" onClick={() => { setFile(null); setProblem(''); }}>Choose another</Button>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 28 }}>✂️</div>
-            <div style={{ margin: '6px 0 10px' }}>Drag one PDF here, or</div>
-            <label className="btn-primary" style={{ cursor: busy ? 'wait' : 'pointer', display: 'inline-block' }}>
+            <div className="ui-drop-ico" aria-hidden="true">✂️</div>
+            <div>Drag one PDF here, or</div>
+            <label className="ui-btn primary" style={{ cursor: busy ? 'wait' : 'pointer' }}>
               {busy ? 'Reading…' : '+ Choose a PDF'}
               <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} disabled={busy}
                 onChange={e => { const l = e.target.files; pick(l); e.target.value = ''; }} />
             </label>
           </>
         )}
-        {problem && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 10 }}>⚠ {problem}</div>}
+        {problem && <Notice tone="bad" style={{ alignSelf: 'stretch', textAlign: 'left' }}>⚠ {problem}</Notice>}
       </div>
 
       {file && (
         <>
-          <div className="card">
-            <div className="card-title" style={{ marginBottom: 10 }}>How to split</div>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-              {SPLIT_MODES.map(m => (
-                <button key={m.id} className={mode === m.id ? 'btn-primary' : 'btn-sm'} onClick={() => setMode(m.id)}>{m.label}</button>
-              ))}
+          <Card title="How to split">
+            <div style={{ marginBottom: 'var(--ui-s3)' }}>
+              <Tabs value={mode} onChange={setMode} label="How to split" options={SPLIT_MODES.map(m => ({ value: m.id, label: m.label }))} />
             </div>
             {mode === 'ranges' && (
-              <div className="field" style={{ marginBottom: 8 }}>
-                <label>Page ranges — each comma makes a new file</label>
+              <Field label="Page ranges — each comma makes a new file">
                 <input type="text" value={ranges} onChange={e => setRanges(e.target.value)} placeholder="e.g. 1-3, 4-10, 11" />
-              </div>
+              </Field>
             )}
             {mode === 'every' && (
-              <label className="row text-sm" style={{ gap: 6, alignItems: 'center', marginBottom: 8 }}>
-                A new file every
-                <input type="number" min="1" value={every} onChange={e => setEvery(e.target.value)} style={{ width: 70 }} />
-                pages
-              </label>
+              <div className="ui-row" style={{ marginBottom: 'var(--ui-s3)' }}>
+                <span className="ui-small">A new file every</span>
+                <input type="number" className="ui-input" min="1" value={every} onChange={e => setEvery(e.target.value)} style={{ width: 80 }} aria-label="Pages per file" />
+                <span className="ui-small">pages</span>
+              </div>
             )}
             {splitError
-              ? <div className="text-sm" style={{ color: 'var(--danger)' }}>{splitError}</div>
+              ? <Notice tone="bad">{splitError}</Notice>
               : (
-                <div className="text-sm text-muted">
+                <div className="ui-muted">
                   {groups.length} file{groups.length === 1 ? '' : 's'}:{' '}
                   {groups.slice(0, 12).map((g, i) => `Part ${i + 1} (${rangeText(g)})`).join(' · ')}
                   {groups.length > 12 ? ` · …and ${groups.length - 12} more` : ''}
                 </div>
               )}
-          </div>
+          </Card>
 
           {groups.length > 0 && (
             <PdfSaveOptions
@@ -388,25 +372,18 @@ export default function FileTools({ user }) {
   // 5.5: open straight on the Appeal Packet when the Appeal Builder has handed an appeal over
   const [tool, setTool] = useState(() => (peekPacketHandoff() ? 'packet' : 'merge'));
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📎 File Tools</div>
-          <div className="page-subtitle">Merge, split, reorder and compress PDFs.</div>
-        </div>
-      </div>
+    <div className="ui-page" style={{ maxWidth: 1000 }}>
+      <PageHeader icon="📎" kicker="Workbench" title="File Tools" subtitle="Merge, split, reorder and compress PDFs." />
 
-      <div className="card mb-16" style={{ borderLeft: '4px solid var(--success)', padding: '10px 14px' }}>
-        <span className="text-sm">
-          🔒 <strong>Files stay on this computer — nothing is uploaded.</strong> Safe for documents with patient information.
-          {' '}<span className="text-muted">(Only exception: PDF → Excel, if you pick a server method your admin has set up under a BAA — it says so on screen.)</span>
+      <Notice tone="good" icon="🔒">
+        <span style={{ color: 'var(--text)' }}>
+          <strong>Files stay on this computer — nothing is uploaded.</strong> Safe for documents with patient information.
+          {' '}<span className="ui-text-muted">(Only exception: PDF → Excel, if you pick a server method your admin has set up under a BAA — it says so on screen.)</span>
         </span>
-      </div>
+      </Notice>
 
-      <div className="row mb-16" style={{ gap: 8, flexWrap: 'wrap' }}>
-        {TOOLS.map(t => (
-          <button key={t.id} className={tool === t.id ? 'btn-primary' : 'btn-sm'} onClick={() => setTool(t.id)}>{t.label}</button>
-        ))}
+      <div>
+        <Tabs value={tool} onChange={setTool} label="File tools" options={TOOLS.map(t => ({ value: t.id, label: t.label }))} />
       </div>
 
       {/* All tools stay mounted so switching between them doesn't lose work in progress */}

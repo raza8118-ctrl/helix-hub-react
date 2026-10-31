@@ -248,6 +248,15 @@ label.ui-btn.primary { color: #fff; }
 details.ui-details > summary { cursor: pointer; font-size: var(--ui-fs-sm); font-weight: 600; color: var(--accent); }
 details.ui-details[open] > summary { margin-bottom: var(--ui-s2); }
 
+/* ── File drop zone + file letter chips (File Tools) ──────────────────────────────────────────────────────────── */
+.ui-drop { display: flex; flex-direction: column; align-items: center; gap: var(--ui-s2); padding: var(--ui-s6) var(--ui-s4); text-align: center; border: 2px dashed var(--border); border-radius: var(--ui-r); background: var(--surface); transition: border-color .15s, background .15s; }
+.ui-drop.over { border-color: var(--accent); background: var(--ui-accent-bg); }
+.ui-drop-ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; font-size: 26px; background: var(--ui-accent-bg); }
+.ui-file-letter { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px; color: #fff; font-weight: 800; font-size: 13px; }
+.ui-page-tile { position: relative; width: 92px; height: 118px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); cursor: grab; touch-action: none; user-select: none; }
+.ui-page-tile-n { position: absolute; top: 5px; left: 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.ui-page-tile-x { position: absolute; top: 2px; right: 4px; border: 0; background: transparent; cursor: pointer; color: var(--ui-bad); font-size: 14px; }
+
 /* ── Small helpers ────────────────────────────────────────────────────────────────────────────────────────────── */
 .ui-stack { display: flex; flex-direction: column; gap: var(--ui-s3); }
 .ui-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-s2); }

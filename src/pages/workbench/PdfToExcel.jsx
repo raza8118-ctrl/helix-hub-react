@@ -6,8 +6,8 @@ import {
 } from '../../lib/pdfExtract';
 import { structure, buildView } from '../../lib/pdfStructure';
 import { logAudit } from '../../lib/audit';
-import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Modal, Card, Button, Badge, Tabs, Check, Field, FormActions, Notice, Table, Toolbar, EmptyState } from '../../components/ui';
 
 const PREVIEW_ROWS = 100;
 
@@ -58,50 +58,43 @@ function MethodSetup({ method, config, user, onClose, onSaved }) {
 
   return (
     <Modal title={`Set up — ${method.label}`} onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <p className="text-sm text-muted" style={{ marginBottom: 10 }}>
+      <div>
+        <p className="ui-muted" style={{ margin: '0 0 var(--ui-s3)' }}>
           {method.hint} What the service must accept and return is described in <code>docs/PDF_EXTRACTION_SERVER.md</code>.
         </p>
         {method.kind === 'supabase' ? (
-          <div className="field">
-            <label>Edge Function name</label>
+          <Field label="Edge Function name">
             <input type="text" value={fn} onChange={e => { setFn(e.target.value); setError(''); }} placeholder="e.g. pdf-to-excel" />
-          </div>
+          </Field>
         ) : (
-          <div className="field">
-            <label>Service address</label>
+          <Field label="Service address">
             <input type="text" value={url} onChange={e => { setUrl(e.target.value); setError(''); }}
               placeholder={method.id === 'vercel' ? '/api/pdf-to-excel' : 'https://extract.yourcompany.com/pdf-to-excel'} />
-          </div>
+          </Field>
         )}
         {method.kind === 'url' && (
-          <div className="field">
-            <label>Access key (optional)</label>
+          <Field label="Access key (optional)" hint="Use a key that only works for this service — signed-in users of this company can read it.">
             <input type="password" value={key} onChange={e => setKey(e.target.value)} autoComplete="off" />
-            <div className="text-sm text-muted" style={{ marginTop: 4 }}>
-              Use a key that only works for this service — signed-in users of this company can read it.
-            </div>
-          </div>
+          </Field>
         )}
-        <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'flex-start', marginBottom: 10 }}>
-          <input type="checkbox" checked={baa} onChange={e => { setBaa(e.target.checked); setError(''); }} style={{ marginTop: 2 }} />
-          <span>We have a <strong>signed BAA</strong> with this provider that covers patient files sent to this service.</span>
-        </label>
-        <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center', marginBottom: 10 }}>
-          <input type="checkbox" checked={enabled} onChange={e => { setEnabled(e.target.checked); setError(''); }} />
+        <Check checked={baa} onChange={e => { setBaa(e.target.checked); setError(''); }}>
+          We have a <strong>signed BAA</strong> with this provider that covers patient files sent to this service.
+        </Check>
+        <Check checked={enabled} onChange={e => { setEnabled(e.target.checked); setError(''); }}>
           Switch this method on for everyone in this company
-        </label>
-        {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
-        <div className="form-actions">
-          <button className="btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-        </div>
+        </Check>
+        {error && <Notice tone="bad">{error}</Notice>}
+        <FormActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+        </FormActions>
       </div>
     </Modal>
   );
 }
 
 const KIND_LABELS = { date: 'Date', amount: 'Amount', number: 'Number', id: 'ID', text: 'Text' };
+const thBtn = { background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 700, color: 'inherit', cursor: 'pointer', letterSpacing: 'inherit', textTransform: 'inherit' };
 
 /**
  * Proper-format review (fix to 2.4): the tables found by pdfStructure.js. Header, rename, remove, split names
@@ -144,76 +137,64 @@ function StructuredPreview({ tables, other, edits, setTableEdit, splitNames, set
   const shownRows = views.reduce((s, v) => s + v.rows.length, 0);
 
   return (
-    <>
-      <div className="row" style={{ gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-          <input type="checkbox" checked={splitNames} onChange={e => setSplitNames(e.target.checked)} /> Split names into Last Name / First Name
-        </label>
-        <input type="search" value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Filter rows…" style={{ maxWidth: 220 }} />
-        {filter.trim() && <span className="text-sm text-muted">{shownRows.toLocaleString()} matching row{shownRows === 1 ? '' : 's'}</span>}
-      </div>
+    <div className="ui-stack">
+      <Toolbar>
+        <Check inline checked={splitNames} onChange={e => setSplitNames(e.target.checked)}>Split names into Last Name / First Name</Check>
+        <input type="search" value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Filter rows…" aria-label="Filter rows" />
+        {filter.trim() && <span className="ui-count">{shownRows.toLocaleString()} matching row{shownRows === 1 ? '' : 's'}</span>}
+      </Toolbar>
 
       {(tables.length > 1 || other.length > 0) && (
-        <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          {tables.map((tb, i) => (
-            <button key={tb.name} className={i === t ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(i)}>
-              {tb.name} ({views[i].rows.length.toLocaleString()})
-            </button>
-          ))}
-          {other.length > 0 && (
-            <button className={t === otherTab ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(otherTab)}
-              title="Titles, addresses, page numbers and totals that aren't part of the table — kept so nothing is lost">
-              Other text ({other.length.toLocaleString()})
-            </button>
-          )}
+        <div>
+          <Tabs value={t} onChange={setTab} label="Tables" options={[
+            ...tables.map((tb, i) => ({ value: i, label: `${tb.name} (${views[i].rows.length.toLocaleString()})` })),
+            other.length > 0 && { value: otherTab, label: `Other text (${other.length.toLocaleString()})`, title: 'Titles, addresses, page numbers and totals that aren\'t part of the table — kept so nothing is lost' },
+          ]} />
         </div>
       )}
 
       {t === otherTab ? (
-        <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
-          <table style={{ fontSize: 12 }}>
-            <thead><tr><th>Page</th><th>Text</th></tr></thead>
-            <tbody>
-              {other.slice(0, PREVIEW_ROWS).map((o, i) => <tr key={i}><td>{o.page}</td><td>{o.text}</td></tr>)}
-            </tbody>
-          </table>
-        </div>
+        <Table dense maxHeight={420}>
+          <thead><tr><th>Page</th><th>Text</th></tr></thead>
+          <tbody>
+            {other.slice(0, PREVIEW_ROWS).map((o, i) => <tr key={i}><td>{o.page}</td><td>{o.text}</td></tr>)}
+          </tbody>
+        </Table>
       ) : (
         <>
-          <div className="row text-sm text-muted" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <div className="ui-row ui-muted" style={{ gap: 10 }}>
             <span>Click a column name to sort · ✎ rename · ✕ remove · ⤒ on a row uses it as the header. Changes apply to the whole file.</span>
             {ed.headerRow != null && (
-              <button className="btn-sm" onClick={() => setTableEdit(t, { headerRow: null, renames: {}, removed: new Set(), sort: null })}>↺ Use the detected header</button>
+              <Button size="xs" onClick={() => setTableEdit(t, { headerRow: null, renames: {}, removed: new Set(), sort: null })}>↺ Use the detected header</Button>
             )}
             {removedCount > 0 && (
-              <button className="btn-sm" onClick={() => setTableEdit(t, { removed: new Set() })}>↺ Show {removedCount} removed column{removedCount === 1 ? '' : 's'}</button>
+              <Button size="xs" onClick={() => setTableEdit(t, { removed: new Set() })}>↺ Show {removedCount} removed column{removedCount === 1 ? '' : 's'}</Button>
             )}
           </div>
           {!view.rows.length
-            ? <div className="text-muted" style={{ padding: 12 }}>{filter.trim() ? 'No rows match the filter.' : 'No rows.'}</div>
+            ? <EmptyState compact title={filter.trim() ? 'No rows match the filter.' : 'No rows.'} />
             : (
-              <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
-                <table style={{ fontSize: 12 }}>
+              <div className="ui-stack" style={{ gap: 6 }}>
+                <Table dense maxHeight={420}>
                   <thead>
                     <tr>
                       <th aria-label="Row actions" />
                       {view.columns.map(c => (
                         <th key={c.key} style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
                           {renaming?.key === c.key ? (
-                            <input type="text" autoFocus value={renaming.draft} style={{ minWidth: 110, fontSize: 12 }}
+                            <input type="text" className="ui-input" autoFocus value={renaming.draft} style={{ minWidth: 110, fontSize: 12, minHeight: 28, padding: '3px 8px' }}
                               onChange={e => setRenaming({ key: c.key, draft: e.target.value })}
                               onKeyDown={e => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setRenaming(null); }}
-                              onBlur={saveRename} />
+                              onBlur={saveRename} aria-label="Column name" />
                           ) : (
                             <>
-                              <button className="btn-link" onClick={() => sortBy(c.key)} title="Sort by this column"
-                                style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 600, color: 'inherit', cursor: 'pointer' }}>
+                              <button type="button" onClick={() => sortBy(c.key)} title="Sort by this column" style={thBtn}>
                                 {c.name}{ed.sort?.key === c.key ? (ed.sort.dir === 1 ? ' ▲' : ' ▼') : ''}
                               </button>
                               {' '}
-                              <button className="btn-sm" style={{ padding: '0 4px' }} title="Rename this column" onClick={() => setRenaming({ key: c.key, draft: c.name })}>✎</button>
-                              <button className="btn-sm" style={{ padding: '0 4px' }} title="Remove this column" onClick={() => remove(c.key)}>✕</button>
-                              <div className="text-muted" style={{ fontWeight: 400, fontSize: 11 }}>{KIND_LABELS[c.kind]}</div>
+                              <Button size="xs" variant="ghost" title="Rename this column" aria-label="Rename this column" onClick={() => setRenaming({ key: c.key, draft: c.name })}>✎</Button>
+                              <Button size="xs" variant="ghost" title="Remove this column" aria-label="Remove this column" onClick={() => remove(c.key)}>✕</Button>
+                              <div style={{ fontWeight: 400, fontSize: 11, textTransform: 'none', letterSpacing: 0 }}>{KIND_LABELS[c.kind]}</div>
                             </>
                           )}
                         </th>
@@ -224,14 +205,14 @@ function StructuredPreview({ tables, other, edits, setTableEdit, splitNames, set
                     {view.rows.slice(0, PREVIEW_ROWS).map(r => (
                       <tr key={r.index}>
                         <td>
-                          <button className="btn-sm" style={{ padding: '0 4px' }} title="Use this row as the header (for the whole file)"
-                            onClick={() => setTableEdit(t, { headerRow: r.index, renames: {}, removed: new Set(), sort: null })}>⤒</button>
+                          <Button size="xs" variant="ghost" title="Use this row as the header (for the whole file)" aria-label="Use this row as the header"
+                            onClick={() => setTableEdit(t, { headerRow: r.index, renames: {}, removed: new Set(), sort: null })}>⤒</Button>
                         </td>
                         {r.cells.map((v, c) => {
                           const doubt = r.low?.has(c);
                           return (
-                            <td key={c} title={doubt ? 'OCR was unsure of this — please check' : undefined}
-                              style={{ whiteSpace: 'nowrap', ...(doubt ? { background: 'rgba(245,158,11,0.25)' } : {}) }}>
+                            <td key={c} className={doubt ? 'mark' : undefined} title={doubt ? 'OCR was unsure of this — please check' : undefined}
+                              style={{ whiteSpace: 'nowrap' }}>
                               {v}
                             </td>
                           );
@@ -239,27 +220,27 @@ function StructuredPreview({ tables, other, edits, setTableEdit, splitNames, set
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </Table>
                 {view.rows.length > PREVIEW_ROWS && (
-                  <div className="text-sm text-muted" style={{ padding: 6 }}>Showing the first {PREVIEW_ROWS} of {view.rows.length.toLocaleString()} rows — the download has them all.</div>
+                  <div className="ui-muted">Showing the first {PREVIEW_ROWS} of {view.rows.length.toLocaleString()} rows — the download has them all.</div>
                 )}
               </div>
             )}
         </>
       )}
 
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
-        <label className="text-sm text-muted" htmlFor="xlsx-name-structured">File name</label>
-        <input id="xlsx-name-structured" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 240 }} />
-        <button className="btn-primary" disabled={!shownRows} onClick={download}>
+      <Toolbar>
+        <label className="ui-label" htmlFor="xlsx-name-structured">File name</label>
+        <input id="xlsx-name-structured" type="text" value={outName} onChange={e => setOutName(e.target.value)} />
+        <Button variant="primary" disabled={!shownRows} onClick={download}>
           ⬇ Download Excel{filter.trim() ? ` (${shownRows.toLocaleString()} filtered rows)` : ''}
-        </button>
-      </div>
-      <div className="text-sm text-muted" style={{ marginTop: 6 }}>
+        </Button>
+      </Toolbar>
+      <div className="ui-muted">
         The Excel file has a filter on every column, a frozen header row, real dates and amounts
         {other.length > 0 ? ', and an “Other text” tab with everything that wasn’t part of the table' : ''}.
       </div>
-    </>
+    </div>
   );
 }
 
@@ -396,55 +377,56 @@ export default function PdfToExcel({ user }) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
       {/* Method */}
-      <div className="card">
-        <div className="card-title" style={{ marginBottom: 8 }}>How should the PDF be read?</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <Card title="How should the PDF be read?">
+        <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
           {EXTRACT_METHODS.map(m => {
             const ready = methodReady(m, config);
             const status = m.kind === 'browser' ? 'Ready' : m.kind === 'soon' ? 'Coming soon' : ready ? 'Ready (BAA confirmed)' : 'Needs setup';
             return (
-              <div key={m.id} className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <label className="row text-sm" style={{ gap: 6, alignItems: 'center', cursor: ready ? 'pointer' : 'not-allowed', opacity: ready ? 1 : 0.6 }}>
-                  <input type="radio" name="extract-method" checked={method === m.id} disabled={!ready} onChange={() => setMethod(m.id)} />
-                  <strong>{m.label}</strong>
-                </label>
-                <span className={`badge ${ready ? 'badge-green' : m.kind === 'soon' ? 'badge-gray' : 'badge-yellow'}`}>{status}</span>
-                {isAdmin && (m.kind === 'url' || m.kind === 'supabase') && (
-                  <button className="btn-sm" onClick={() => setSetupFor(m)}>⚙ Set up</button>
-                )}
-                <span className="text-sm text-muted" style={{ flexBasis: '100%', marginLeft: 22 }}>{m.hint}</span>
+              <div key={m.id}>
+                <div className="ui-row">
+                  <span style={{ opacity: ready ? 1 : 0.6 }}>
+                    <Check type="radio" inline name="extract-method" checked={method === m.id} disabled={!ready} onChange={() => setMethod(m.id)}>
+                      <strong style={{ color: 'var(--text)' }}>{m.label}</strong>
+                    </Check>
+                  </span>
+                  <Badge tone={ready ? 'good' : m.kind === 'soon' ? 'neutral' : 'warn'}>{status}</Badge>
+                  {isAdmin && (m.kind === 'url' || m.kind === 'supabase') && (
+                    <Button size="xs" onClick={() => setSetupFor(m)}>⚙ Set up</Button>
+                  )}
+                </div>
+                <div className="ui-muted" style={{ marginLeft: 24 }}>{m.hint}</div>
               </div>
             );
           })}
         </div>
         {chosen && chosen.kind !== 'browser' && chosenReady && (
-          <div className="text-sm" style={{ color: 'var(--warning)', marginTop: 8 }}>
+          <Notice tone="warn" style={{ marginTop: 'var(--ui-s3)' }}>
             ⚠ With this method the PDF is sent to the service your admin set up (BAA confirmed).
-          </div>
+          </Notice>
         )}
-      </div>
+      </Card>
 
       {/* File */}
       <div
-        className="card"
+        className={`ui-drop${dragOver ? ' over' : ''}`}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files); }}
-        style={{ border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`, textAlign: 'center', padding: 24 }}
       >
         {file ? (
-          <div className="row" style={{ gap: 8, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="ui-row" style={{ justifyContent: 'center' }}>
             <span style={{ fontWeight: 600, wordBreak: 'break-all' }}>📄 {file.name}</span>
-            <span className="text-sm text-muted">{file.pageCount} page{file.pageCount === 1 ? '' : 's'}</span>
-            <button className="btn-sm" onClick={() => { setFile(null); setResult(null); setProblem(''); }}>Choose another</button>
+            <span className="ui-muted">{file.pageCount} page{file.pageCount === 1 ? '' : 's'}</span>
+            <Button size="sm" onClick={() => { setFile(null); setResult(null); setProblem(''); }}>Choose another</Button>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 28 }}>📑</div>
-            <div style={{ margin: '6px 0 10px' }}>Drag a PDF here (EOB, remit, aging or payer report), or</div>
-            <label className="btn-primary" style={{ cursor: busy ? 'wait' : 'pointer', display: 'inline-block' }}>
+            <div className="ui-drop-ico" aria-hidden="true">📑</div>
+            <div>Drag a PDF here (EOB, remit, aging or payer report), or</div>
+            <label className="ui-btn primary" style={{ cursor: busy ? 'wait' : 'pointer' }}>
               {busy ? 'Reading…' : '+ Choose a PDF'}
               <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} disabled={busy}
                 onChange={e => { const l = e.target.files; pick(l); e.target.value = ''; }} />
@@ -454,141 +436,125 @@ export default function PdfToExcel({ user }) {
       </div>
 
       {file && (
-        <div className="card">
-          <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label className="row text-sm" style={{ gap: 6, alignItems: 'center', cursor: 'pointer' }}>
-              <input type="radio" name="extract-pages" checked={pagesMode === 'all'} onChange={() => setPagesMode('all')} /> All pages
-            </label>
-            <label className="row text-sm" style={{ gap: 6, alignItems: 'center', cursor: 'pointer' }}>
-              <input type="radio" name="extract-pages" checked={pagesMode === 'some'} onChange={() => setPagesMode('some')} /> Only pages
-              <input type="text" value={pagesText} placeholder="e.g. 2-5, 8" disabled={pagesMode !== 'some'}
-                onChange={e => { setPagesText(e.target.value); setProblem(''); }} style={{ maxWidth: 140 }} />
-            </label>
-            <button className="btn-primary" onClick={extract} disabled={busy || !chosenReady}>
+        <Card>
+          <Toolbar>
+            <Check type="radio" inline name="extract-pages" checked={pagesMode === 'all'} onChange={() => setPagesMode('all')}>All pages</Check>
+            <Check type="radio" inline name="extract-pages" checked={pagesMode === 'some'} onChange={() => setPagesMode('some')}>Only pages</Check>
+            <input type="text" value={pagesText} placeholder="e.g. 2-5, 8" disabled={pagesMode !== 'some'}
+              onChange={e => { setPagesText(e.target.value); setProblem(''); }} style={{ maxWidth: 140 }} aria-label="Pages to extract" />
+            <Button variant="primary" onClick={extract} disabled={busy || !chosenReady} loading={busy}>
               {busy ? 'Working…' : 'Extract tables'}
-            </button>
-            {busy && <button className="btn-sm" onClick={cancel}>Cancel</button>}
-            {busy && progress && <span className="text-sm text-muted">{progress}</span>}
-          </div>
+            </Button>
+            {busy && <Button size="sm" variant="ghost" onClick={cancel}>Cancel</Button>}
+            {busy && progress && <span className="ui-muted">{progress}</span>}
+          </Toolbar>
           {chosen?.ocr && !busy && (
-            <div className="text-sm text-muted" style={{ marginTop: 8 }}>
+            <div className="ui-muted" style={{ marginTop: 'var(--ui-s2)' }}>
               The first time OCR is used on this computer it downloads its reading files (about 7 MB) from Helix Hub itself — after that it starts quickly.
             </div>
           )}
-        </div>
+        </Card>
       )}
 
-      {problem && <div className="text-sm" style={{ color: 'var(--danger)' }}>⚠ {problem}</div>}
+      {problem && <Notice tone="bad">⚠ {problem}</Notice>}
 
       {current && (
-        <div className="card">
-          <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <div className="card-title">Preview</div>
-          </div>
+        <Card title="Preview">
+          <div className="ui-stack">
+            {detected && (
+              <Notice tone="info">
+                <span style={{ color: 'var(--text)' }}>
+                  ✨ <strong>Detected:</strong> {detected}. Titles, page numbers and totals were moved out, wrapped lines joined
+                  and every page lined up under the same columns.
+                </span>
+              </Notice>
+            )}
+            <Toolbar>
+              <span className="ui-label">Layout:</span>
+              <Tabs value={layoutNow} onChange={id => { setLayout(id); setTab(0); }} label="Layout"
+                options={LAYOUTS.map(l => ({ value: l.id, label: `${l.label}${st?.auto === l.id ? ' (detected)' : ''}`, title: l.hint, disabled: !l.ok }))} />
+            </Toolbar>
 
-          {detected && (
-            <div className="text-sm" style={{ marginBottom: 8 }}>
-              ✨ <strong>Detected:</strong> {detected}. Titles, page numbers and totals were moved out, wrapped lines joined
-              and every page lined up under the same columns.
-            </div>
-          )}
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-            <span className="text-sm text-muted">Layout:</span>
-            {LAYOUTS.map(l => (
-              <button key={l.id} className={layoutNow === l.id ? 'btn-primary' : 'btn-sm'} disabled={!l.ok} title={l.hint}
-                onClick={() => { setLayout(l.id); setTab(0); }}>
-                {l.label}{st?.auto === l.id ? ' (detected)' : ''}
-              </button>
-            ))}
-          </div>
+            {scannedPages.length > 0 && (
+              <Notice tone="warn">
+                ⚠ Page{scannedPages.length === 1 ? '' : 's'} {scannedPages.join(', ')} look{scannedPages.length === 1 ? 's' : ''} scanned (a picture of paper)
+                {usedOcr
+                  ? ' and couldn’t be read even with OCR — the scan may be too faint, blurry or handwritten.'
+                  : <>, so no text could be read. Choose <strong>“In this browser with OCR (scanned PDFs)”</strong> above and extract again.</>}
+              </Notice>
+            )}
+            {ocrPages > 0 && (
+              <Notice tone={doubtful ? 'warn' : 'neutral'}>
+                {ocrPages} scanned page{ocrPages === 1 ? ' was' : 's were'} read with OCR.
+                {doubtful > 0
+                  ? <> <strong>{doubtful} cell{doubtful === 1 ? '' : 's'}</strong> contain words OCR was unsure of — highlighted in yellow. Please check them (especially amounts) before using the file.</>
+                  : ' OCR was confident about every word, but please still spot-check amounts.'}
+              </Notice>
+            )}
 
-          {scannedPages.length > 0 && (
-            <div className="text-sm" style={{ color: 'var(--warning)', marginBottom: 8 }}>
-              ⚠ Page{scannedPages.length === 1 ? '' : 's'} {scannedPages.join(', ')} look{scannedPages.length === 1 ? 's' : ''} scanned (a picture of paper)
-              {usedOcr
-                ? ' and couldn’t be read even with OCR — the scan may be too faint, blurry or handwritten.'
-                : <>, so no text could be read. Choose <strong>“In this browser with OCR (scanned PDFs)”</strong> above and extract again.</>}
-            </div>
-          )}
-          {ocrPages > 0 && (
-            <div className="text-sm" style={{ color: doubtful ? 'var(--warning)' : 'var(--text-muted)', marginBottom: 8 }}>
-              {ocrPages} scanned page{ocrPages === 1 ? ' was' : 's were'} read with OCR.
-              {doubtful > 0
-                ? <> <strong>{doubtful} cell{doubtful === 1 ? '' : 's'}</strong> contain words OCR was unsure of — highlighted in yellow. Please check them (especially amounts) before using the file.</>
-                : ' OCR was confident about every word, but please still spot-check amounts.'}
-            </div>
-          )}
-
-          {layoutNow === 'raw' ? (
-            <>
-              <div className="row" style={{ gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-                <label className="row text-sm" style={{ gap: 6, alignItems: 'center' }}>
-                  <select value={combine ? 'one' : 'per'} onChange={e => { setCombine(e.target.value === 'one'); setTab(0); }} style={{ maxWidth: 220 }}>
+            {layoutNow === 'raw' ? (
+              <div className="ui-stack">
+                <Toolbar>
+                  <select value={combine ? 'one' : 'per'} onChange={e => { setCombine(e.target.value === 'one'); setTab(0); }} aria-label="Excel tabs">
                     <option value="one">All pages in one Excel tab</option>
                     <option value="per">One Excel tab per page</option>
                   </select>
-                </label>
-                <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-                  <input type="checkbox" checked={skipHeaders} onChange={e => setSkipHeaders(e.target.checked)} /> Skip repeated header rows
-                </label>
-                <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-                  <input type="checkbox" checked={asNumbers} onChange={e => setAsNumbers(e.target.checked)} /> Treat amounts as numbers
-                </label>
-              </div>
+                  <Check inline checked={skipHeaders} onChange={e => setSkipHeaders(e.target.checked)}>Skip repeated header rows</Check>
+                  <Check inline checked={asNumbers} onChange={e => setAsNumbers(e.target.checked)}>Treat amounts as numbers</Check>
+                </Toolbar>
 
-              {sheets.length > 1 && (
-                <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {sheets.map((s, i) => (
-                    <button key={s.name} className={i === tab ? 'btn-primary' : 'btn-sm'} onClick={() => setTab(i)}>{s.name}</button>
-                  ))}
-                </div>
-              )}
-
-              {!sheet || sheet.rows.length === 0
-                ? <div className="text-muted" style={{ padding: 12 }}>No table text found{scannedPages.length ? ' — the selected pages look scanned' : ''}.</div>
-                : (
-                  <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}>
-                    <table style={{ fontSize: 12 }}>
-                      <tbody>
-                        {sheet.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
-                          <tr key={i}>
-                            {Array.from({ length: width }, (_, c) => {
-                              const doubt = sheet.lows?.[i]?.has(c);
-                              return (
-                                <td key={c} title={doubt ? 'OCR was unsure of this — please check' : undefined}
-                                  style={{ whiteSpace: 'nowrap', ...(doubt ? { background: 'rgba(245,158,11,0.25)' } : {}) }}>
-                                  {r[c] ?? ''}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {sheet.rows.length > PREVIEW_ROWS && (
-                      <div className="text-sm text-muted" style={{ padding: 6 }}>Showing the first {PREVIEW_ROWS} of {sheet.rows.length.toLocaleString()} rows — the download has them all.</div>
-                    )}
+                {sheets.length > 1 && (
+                  <div>
+                    <Tabs value={Math.min(tab, sheets.length - 1)} onChange={setTab} label="Sheets" options={sheets.map((s, i) => ({ value: i, label: s.name }))} />
                   </div>
                 )}
 
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
-                <label className="text-sm text-muted" htmlFor="xlsx-name">File name</label>
-                <input id="xlsx-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} style={{ maxWidth: 240 }} />
-                <button className="btn-primary" disabled={!totalRows}
-                  onClick={() => downloadXlsx(sheets, outName.trim() || 'extracted.xlsx', { numbersAsNumbers: asNumbers })}>
-                  ⬇ Download Excel
-                </button>
+                {!sheet || sheet.rows.length === 0
+                  ? <EmptyState compact title={`No table text found${scannedPages.length ? ' — the selected pages look scanned' : ''}.`} />
+                  : (
+                    <div className="ui-stack" style={{ gap: 6 }}>
+                      <Table dense maxHeight={420}>
+                        <tbody>
+                          {sheet.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
+                            <tr key={i}>
+                              {Array.from({ length: width }, (_, c) => {
+                                const doubt = sheet.lows?.[i]?.has(c);
+                                return (
+                                  <td key={c} className={doubt ? 'mark' : undefined} title={doubt ? 'OCR was unsure of this — please check' : undefined}
+                                    style={{ whiteSpace: 'nowrap' }}>
+                                    {r[c] ?? ''}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                      {sheet.rows.length > PREVIEW_ROWS && (
+                        <div className="ui-muted">Showing the first {PREVIEW_ROWS} of {sheet.rows.length.toLocaleString()} rows — the download has them all.</div>
+                      )}
+                    </div>
+                  )}
+
+                <Toolbar>
+                  <label className="ui-label" htmlFor="xlsx-name">File name</label>
+                  <input id="xlsx-name" type="text" value={outName} onChange={e => setOutName(e.target.value)} />
+                  <Button variant="primary" disabled={!totalRows}
+                    onClick={() => downloadXlsx(sheets, outName.trim() || 'extracted.xlsx', { numbersAsNumbers: asNumbers })}>
+                    ⬇ Download Excel
+                  </Button>
+                </Toolbar>
+                <div className="ui-muted">
+                  Tables with merged cells or text wrapped onto several lines may need a little tidying in Excel.
+                </div>
               </div>
-              <div className="text-sm text-muted" style={{ marginTop: 6 }}>
-                Tables with merged cells or text wrapped onto several lines may need a little tidying in Excel.
-              </div>
-            </>
-          ) : (
-            <StructuredPreview tables={structTables} other={structOther} edits={tableEdits} setTableEdit={setTableEdit}
-              splitNames={splitNames} setSplitNames={setSplitNames} filter={filter} setFilter={setFilter}
-              tab={tab} setTab={setTab} outName={outName} setOutName={setOutName} />
-          )}
-        </div>
+            ) : (
+              <StructuredPreview tables={structTables} other={structOther} edits={tableEdits} setTableEdit={setTableEdit}
+                splitNames={splitNames} setSplitNames={setSplitNames} filter={filter} setFilter={setFilter}
+                tab={tab} setTab={setTab} outName={outName} setOutName={setOutName} />
+            )}
+          </div>
+        </Card>
       )}
 
       {setupFor && (

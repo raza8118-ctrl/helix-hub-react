@@ -9,8 +9,8 @@ import {
   PACKET_SECTIONS, PACKET_TYPES, NAMING_TOKENS, DEFAULT_NAMING, fileToPdf, applyNaming, assemblePacket,
 } from '../../lib/packet';
 import PayerSearch from '../../components/shared/PayerSearch';
-import Modal from '../../components/shared/Modal';
 import PdfSaveOptions from './PdfSaveOptions';
+import { Modal, Card, Item, Button, Check, Field, FormActions, Notice, Toolbar, EmptyState } from '../../components/ui';
 
 const NAMING_KEY = 'packet_naming';
 const ACCEPT = ['.pdf', ...IMAGE_EXTENSIONS.map(x => `.${x}`)].join(',');
@@ -46,32 +46,31 @@ function NamingSettings({ current, user, onClose, onSaved }) {
 
   return (
     <Modal title="Appeal Packet file names" onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Naming convention for this company</label>
+      <div className="ui-stack">
+        <Field label="Naming convention for this company" style={{ marginBottom: 0 }}>
           <input type="text" value={template} onChange={e => setTemplate(e.target.value)} />
-        </div>
-        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+        </Field>
+        <div className="ui-row" style={{ gap: 6 }}>
           {NAMING_TOKENS.map(t => (
-            <button key={t.token} type="button" className="btn-sm" title={t.label}
+            <Button key={t.token} size="xs" title={t.label}
               onClick={() => setTemplate(v => `${v}${v && !/[_\-. ]$/.test(v) ? '_' : ''}${t.token}`)}>
               + {t.label}
-            </button>
+            </Button>
           ))}
         </div>
-        <div className="text-sm">Example: <strong>{sample}</strong></div>
+        <div className="ui-small">Example: <strong>{sample}</strong></div>
         {/\{PatientLast\}/.test(template) && (
-          <div className="text-sm" style={{ color: 'var(--warning)' }}>
+          <Notice tone="warn">
             ⚠ Patient names in file names show up in email subjects, portal upload logs and download folders. Only use it if your clients require it.
-          </div>
+          </Notice>
         )}
-        <div className="form-actions" style={{ justifyContent: 'space-between' }}>
-          <button className="btn-sm" onClick={() => setTemplate(DEFAULT_NAMING)}>Reset to default</button>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn-sm" onClick={onClose}>Cancel</button>
-            <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+        <FormActions split>
+          <Button variant="ghost" onClick={() => setTemplate(DEFAULT_NAMING)}>Reset to default</Button>
+          <div className="ui-row">
+            <Button onClick={onClose}>Cancel</Button>
+            <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
           </div>
-        </div>
+        </FormActions>
       </div>
     </Modal>
   );
@@ -219,97 +218,87 @@ export default function AppealPacket({ user }) {
   ]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="ui-stack" style={{ gap: 'var(--ui-s4)' }}>
       {/* Details */}
-      <div className="card">
-        <div className="card-title" style={{ marginBottom: 10 }}>Packet details</div>
+      <Card title="Packet details">
         {handoff && (
-          <div className="text-sm" style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 6, background: 'var(--surface-2)' }}>
+          <Notice tone="info" style={{ marginBottom: 'var(--ui-s3)' }}>
             ✉️ Started from the Appeal Builder — the cover letter and payer form are in their sections. Add the EOB, auth approval and records below.
-          </div>
+          </Notice>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Packet type</label>
+        <div className="ui-grid2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          <Field label="Packet type">
             <select value={type} onChange={e => setType(e.target.value)}>
               {PACKET_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+          </Field>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Field label="Payer">
+              {payer
+                ? (
+                  <div className="ui-row" style={{ minHeight: 36 }}>
+                    <strong>{payer.name}</strong>
+                    <Button size="xs" onClick={clearPayer}>Change</Button>
+                  </div>
+                )
+                : <PayerSearch onSelect={pickPayer} placeholder="Search payer (fills fax / address on the cover sheet)…" />}
+            </Field>
           </div>
-          <div className="field" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
-            <label>Payer</label>
-            {payer
-              ? (
-                <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <strong>{payer.name}</strong>
-                  <button className="btn-sm" onClick={clearPayer}>Change</button>
-                </div>
-              )
-              : <PayerSearch onSelect={pickPayer} placeholder="Search payer (fills fax / address on the cover sheet)…" />}
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Client</label>
+          <Field label="Client">
             <select value={clientId} onChange={e => setClientId(e.target.value)}>
               <option value="">— Not set —</option>
               {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
             </select>
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Claim #</label>
+          </Field>
+          <Field label="Claim #">
             <input type="text" value={claimNo} onChange={e => setClaimNo(e.target.value)} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Date(s) of service</label>
+          </Field>
+          <Field label="Date(s) of service">
             <input type="text" value={dos} onChange={e => setDos(e.target.value)} placeholder="e.g. 01/05/2026–01/31/2026" />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Patient name (cover sheet only)</label>
+          </Field>
+          <Field label="Patient name (cover sheet only)">
             <input type="text" value={patient} onChange={e => setPatient(e.target.value)} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Member ID (cover sheet only)</label>
+          </Field>
+          <Field label="Member ID (cover sheet only)">
             <input type="text" value={memberId} onChange={e => setMemberId(e.target.value)} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Sent by</label>
+          </Field>
+          <Field label="Sent by">
             <input type="text" value={sentBy} onChange={e => setSentBy(e.target.value)} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Note on cover (optional)</label>
+          </Field>
+          <Field label="Note on cover (optional)">
             <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. Second-level appeal" />
-          </div>
+          </Field>
         </div>
-        <div className="text-sm text-muted" style={{ marginTop: 8 }}>
+        <div className="ui-muted">
           🔒 These details are only used to build the PDF on this computer — they aren’t saved or sent anywhere.
         </div>
         {payer && (
-          <div className="text-sm" style={{ marginTop: 6 }}>
-            {appeals
-              ? <>Cover sheet will use the payer’s <strong>{appeals.department === 'appeals' ? 'Appeals' : 'Claims'}</strong> contact{appeals.fax ? ` · fax ${appeals.fax}` : ''}.</>
-              : <span style={{ color: 'var(--warning)' }}>No Appeals or Claims contact is recorded for this payer — the cover sheet won’t have a fax or address.</span>}
-          </div>
+          appeals
+            ? <div className="ui-small" style={{ marginTop: 'var(--ui-s2)' }}>Cover sheet will use the payer’s <strong>{appeals.department === 'appeals' ? 'Appeals' : 'Claims'}</strong> contact{appeals.fax ? ` · fax ${appeals.fax}` : ''}.</div>
+            : <Notice tone="warn" style={{ marginTop: 'var(--ui-s2)' }}>No Appeals or Claims contact is recorded for this payer — the cover sheet won’t have a fax or address.</Notice>
         )}
-      </div>
+      </Card>
 
       {/* Sections */}
-      <div className="card">
-        <div className="card-title" style={{ marginBottom: 6 }}>Documents, in packet order</div>
-        <div className="text-sm text-muted" style={{ marginBottom: 10 }}>
-          PDFs and images (JPG, PNG, TIFF fax…). Empty sections are skipped. Use ▲▼ to change the order.
-        </div>
-        {problems.length > 0 && problems.map(p => <div key={p} className="text-sm" style={{ color: 'var(--danger)', marginBottom: 6 }}>⚠ {p}</div>)}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <Card title="Documents, in packet order" subtitle="PDFs and images (JPG, PNG, TIFF fax…). Empty sections are skipped. Use ▲▼ to change the order.">
+        {problems.length > 0 && (
+          <Notice tone="bad" style={{ marginBottom: 'var(--ui-s3)' }}>
+            {problems.map(p => <div key={p}>⚠ {p}</div>)}
+          </Notice>
+        )}
+        <div className="ui-stack" style={{ gap: 'var(--ui-s2)' }}>
           {sections.map((s, i) => (
-            <div key={s.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 10 }}>
-              <div className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                <div className="row" style={{ gap: 6, alignItems: 'center' }}>
-                  <button className="btn-sm" onClick={() => moveSection(i, -1)} disabled={i === 0} aria-label={`Move ${s.label} up`}>▲</button>
-                  <button className="btn-sm" onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} aria-label={`Move ${s.label} down`}>▼</button>
+            <Item key={s.id}>
+              <div className="ui-row" style={{ justifyContent: 'space-between' }}>
+                <div className="ui-row" style={{ gap: 6 }}>
+                  <Button size="xs" onClick={() => moveSection(i, -1)} disabled={i === 0} aria-label={`Move ${s.label} up`}>▲</Button>
+                  <Button size="xs" onClick={() => moveSection(i, 1)} disabled={i === sections.length - 1} aria-label={`Move ${s.label} down`}>▼</Button>
                   <strong>{i + 1}. {s.label}</strong>
-                  <span className="text-sm text-muted">
+                  <span className="ui-muted">
                     {s.files.length ? `${s.files.reduce((a, f) => a + f.pageCount, 0)} page(s)` : 'empty'}
                   </span>
                 </div>
-                <label className="btn-sm" style={{ cursor: busySection ? 'wait' : 'pointer' }}>
+                <label className="ui-btn secondary sm" style={{ cursor: busySection ? 'wait' : 'pointer' }}>
                   {busySection === s.id ? 'Adding…' : '+ Add files'}
                   <input type="file" accept={ACCEPT} multiple style={{ display: 'none' }} disabled={!!busySection}
                     onChange={e => { const l = e.target.files; addFiles(s.id, l); e.target.value = ''; }} />
@@ -317,60 +306,59 @@ export default function AppealPacket({ user }) {
               </div>
 
               {s.id === 'form' && payer && forms.length > 0 && (
-                <div className="row text-sm" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                  <span className="text-muted">From the Payer Directory:</span>
+                <div className="ui-row" style={{ gap: 6 }}>
+                  <span className="ui-muted">From the Payer Directory:</span>
                   {forms.map(f => {
                     const isPdf = /\.pdf$/i.test(f.file_name ?? '');
                     return (
-                      <button key={f.id} className="btn-sm" disabled={!isPdf || !!busySection} onClick={() => addPayerForm(f)}
+                      <Button key={f.id} size="xs" disabled={!isPdf || !!busySection} onClick={() => addPayerForm(f)}
                         title={isPdf ? 'Add this form' : 'Word/Excel form — download it from the payer card, fill it in and save as PDF first'}>
                         + {f.title}{isPdf ? '' : ' (not PDF)'}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
               )}
 
               {s.files.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+                <div className="ui-stack" style={{ gap: 4 }}>
                   {s.files.map((f, fi) => (
-                    <div key={f.key} className="row text-sm" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div key={f.key} className="ui-row ui-small" style={{ gap: 6 }}>
                       <span style={{ flex: 1, minWidth: 140, wordBreak: 'break-all' }}>📄 {f.name}</span>
-                      <span className="text-muted">{f.pageCount} p</span>
-                      <button className="btn-sm" onClick={() => moveFile(s.id, fi, -1)} disabled={fi === 0} aria-label="Move file up">▲</button>
-                      <button className="btn-sm" onClick={() => moveFile(s.id, fi, 1)} disabled={fi === s.files.length - 1} aria-label="Move file down">▼</button>
-                      <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeFile(s.id, f.key)}>Remove</button>
+                      <span className="ui-text-muted">{f.pageCount} p</span>
+                      <Button size="xs" onClick={() => moveFile(s.id, fi, -1)} disabled={fi === 0} aria-label="Move file up">▲</Button>
+                      <Button size="xs" onClick={() => moveFile(s.id, fi, 1)} disabled={fi === s.files.length - 1} aria-label="Move file down">▼</Button>
+                      <Button size="xs" variant="danger" onClick={() => removeFile(s.id, f.key)}>Remove</Button>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </Item>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Options */}
-      <div className="card">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label className="row text-sm" style={{ gap: 6, cursor: 'pointer', alignItems: 'center' }}>
-            <input type="checkbox" checked={cover} onChange={e => setCover(e.target.checked)} />
-            Add a cover sheet with payer fax/address and a contents list with page numbers
-          </label>
-          <label className="row text-sm" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input type="checkbox" checked={numbers} onChange={e => setNumbers(e.target.checked)} />
-            Number every page (“Page 7 of {Math.max(totalPages, 1)}”, bottom right) — prefix
-            <input type="text" value={prefix} disabled={!numbers} onChange={e => setPrefix(e.target.value)} placeholder="optional, e.g. claim #" style={{ maxWidth: 160 }} />
-            {claimNo && numbers && <button className="btn-sm" onClick={() => setPrefix(claimNo)}>Use claim #</button>}
-          </label>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label className="text-sm text-muted" htmlFor="packet-name">File name</label>
-            <input id="packet-name" type="text" value={customName ?? autoName} onChange={e => setCustomName(e.target.value)} style={{ minWidth: 260, flex: 1, maxWidth: 420 }} />
-            {customName !== null && <button className="btn-sm" onClick={() => setCustomName(null)}>Use convention</button>}
-            {canEditNaming && <button className="btn-sm" onClick={() => setShowNaming(true)}>⚙ Naming convention</button>}
-          </div>
-          <div className="text-sm text-muted">Convention: <code>{naming}</code></div>
+      <Card>
+        <Check checked={cover} onChange={e => setCover(e.target.checked)}>
+          Add a cover sheet with payer fax/address and a contents list with page numbers
+        </Check>
+        <Check checked={numbers} onChange={e => setNumbers(e.target.checked)}>
+          Number every page (“Page 7 of {Math.max(totalPages, 1)}”, bottom right) — prefix
+        </Check>
+        <div className="ui-row" style={{ marginLeft: 24, marginBottom: 'var(--ui-s3)' }}>
+          <input type="text" className="ui-input" value={prefix} disabled={!numbers} onChange={e => setPrefix(e.target.value)} placeholder="optional, e.g. claim #" style={{ maxWidth: 200 }} aria-label="Page number prefix" />
+          {claimNo && numbers && <Button size="xs" onClick={() => setPrefix(claimNo)}>Use claim #</Button>}
         </div>
-      </div>
+        <Field label="File name" style={{ marginBottom: 'var(--ui-s2)' }}>
+          <Toolbar>
+            <input id="packet-name" type="text" className="ui-input" value={customName ?? autoName} onChange={e => setCustomName(e.target.value)} style={{ flex: '1 1 260px', width: 'auto', maxWidth: 420 }} />
+            {customName !== null && <Button size="sm" variant="ghost" onClick={() => setCustomName(null)}>Use convention</Button>}
+            {canEditNaming && <Button size="sm" onClick={() => setShowNaming(true)}>⚙ Naming convention</Button>}
+          </Toolbar>
+        </Field>
+        <div className="ui-muted">Convention: <code>{naming}</code></div>
+      </Card>
 
       {totalFiles > 0
         ? (
@@ -385,7 +373,7 @@ export default function AppealPacket({ user }) {
             }}
           />
         )
-        : <div className="text-sm text-muted">Add at least one document to build the packet.</div>}
+        : <EmptyState compact title="Add at least one document to build the packet." />}
 
       {showNaming && (
         <NamingSettings current={naming} user={user} onClose={() => setShowNaming(false)}
