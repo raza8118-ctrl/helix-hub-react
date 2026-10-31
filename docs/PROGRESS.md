@@ -1643,7 +1643,7 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 34. `supabase/migrations/20261029_owner_console.sql` (Owner Console 2.0: company plan / seats / pages / pause / banner,
     owner-only notes + log, broadcasts, owner RPCs; `_home_tables` skips `helix_*`) — run + synced 2026-10-29
 35. `supabase/migrations/20261031_worklist_auto_clear.sql` (pg_cron + `rcm.clear_old_worklists()`: nightly 90-day clearing of
-    Smart Worklist claim # / DOS for home + every company, audit-logged) — run 2026-10-31 (no Sync structure needed)
+    Smart Worklist claim # / DOS for home + every company, audit-logged) — run 2026-10-31 (no Sync structure needed); verified same day: job present, test worklist cleared + audit entry "Helix Hub (automatic)"
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
