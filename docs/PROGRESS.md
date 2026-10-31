@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-10-31) — Finish Smart Worklist (from docs/REVIEW.md) — IN PROGRESS (plan approved).**
+**Fix (PO request 2026-10-31) — Finish Smart Worklist (from docs/REVIEW.md) — DONE (awaiting PO: run migration 35, test, unhide).**
+Built as planned below. Tested in Test Co (Chicago time, page switched on for the test and off again afterwards): CSV ISO + US
+dates and an .xlsx date saved exactly, claim # `00777` kept, patient column dropped, columns auto-mapped, assign → status →
+follow-up → reload → ✓ Done all persisted. Lint: no new errors (30 older unchanged); build passes. The SQL function couldn't be
+run from here (needs the PO's Supabase SQL Editor).
 - **Dates one day early (US time zones):** CSV ISO dates (`2026-08-01`) were read as UTC midnight, then turned into a date with
   local time. Fix: `readWorklistFile` reads `.csv` / `.txt` as plain text (`raw: true`) so `toDate()` parses every format the same
   way (also keeps leading zeros in claim #). `.xlsx` unchanged. Existing rows are not changed (re-upload to correct).
@@ -1638,6 +1642,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 33. `supabase/migrations/20261021x_notice_board.sql` (notice board notices + reads, step 10.3)
 34. `supabase/migrations/20261029_owner_console.sql` (Owner Console 2.0: company plan / seats / pages / pause / banner,
     owner-only notes + log, broadcasts, owner RPCs; `_home_tables` skips `helix_*`) — run + synced 2026-10-29
+35. `supabase/migrations/20261031_worklist_auto_clear.sql` (pg_cron + `rcm.clear_old_worklists()`: nightly 90-day clearing of
+    Smart Worklist claim # / DOS for home + every company, audit-logged) — ⏳ **PO to run** (enable pg_cron if Supabase asks);
+    no Sync structure needed
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 

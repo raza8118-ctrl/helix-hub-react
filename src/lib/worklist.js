@@ -73,7 +73,10 @@ const toInt = v => { const n = parseInt(String(v ?? '').replace(/[^0-9-]/g, ''),
 /** Reads the first sheet. Returns { headers, rows } (rows are raw objects — kept in memory only until upload). */
 export async function readWorklistFile(file) {
   const XLSX = await import('xlsx');
-  const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+  // CSV / text: keep every cell as typed (raw). Otherwise "2026-08-01" becomes UTC midnight and lands a day early in US
+  // time zones, and claim numbers lose leading zeros; toDate / toMoney / toInt read the text. Excel files unchanged.
+  const isText = /\.(csv|txt|tsv)$/i.test(file.name ?? '');
+  const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true, raw: isText });
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
   if (!rows.length) return { error: 'The file is empty.' };
   return { headers: Object.keys(rows[0]), rows };
