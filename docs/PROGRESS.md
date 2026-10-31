@@ -23,6 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Fix (PO request 2026-10-31) — Finish Daily Report (from docs/REVIEW.md) — IN PROGRESS (plan approved).**
+- Bug: `ProdReport.jsx` falls back to `MCO` when a user's process is "ALL" / not set. In an added company MCO doesn't exist →
+  empty task list, nothing can be reported, and "MCO" is saved as the process.
+- Fix: for "ALL" / no process — **home company unchanged (MCO)**; **added company → all its own active processes** (the list App
+  loads at sign-in), tasks merged like multi-process users. Users with specific processes unchanged. If the processes have no
+  tasks yet, show "No tasks are set up for … yet — an admin can add them in Settings → Productivity Tasks".
+- No database change. Old reports unchanged. Not in scope: same "ALL = home processes" assumption in `helpers.getProcs`
+  (Team Dashboard process filter, supervisor scoping); older lint warnings in ProdReport.
+
 **Fix (PO request 2026-10-31) — Finish Smart Worklist (from docs/REVIEW.md) — DONE (migration 35 run 2026-10-31; awaiting PO test, then unhide).**
 Built as planned below. Tested in Test Co (Chicago time, page switched on for the test and off again afterwards): CSV ISO + US
 dates and an .xlsx date saved exactly, claim # `00777` kept, patient column dropped, columns auto-mapped, assign → status →
