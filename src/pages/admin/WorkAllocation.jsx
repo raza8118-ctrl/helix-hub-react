@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { S, kv } from '../../lib/supabase';
 import { parseExcelFile, logAudit } from '../../lib/helpers';
+import { PHI_HEADER } from '../../lib/worklist';
 
 // ── Column filter dropdown ────────────────────────────────────────────────────
 function ColFilter({ col, values, selected, onToggle, onSelectAll, onClear, sortDir, onSort, onClose }) {
@@ -207,6 +208,10 @@ export default function WorkAllocation({ user }) {
 
   const activeFilters = Object.entries(filters).filter(([, s]) => s.size > 0);
 
+  // Patient columns (name, DOB, member ID, address, phone, account #…) are never saved — same rule as Smart Worklist
+  const savedHeaders   = useMemo(() => (parsed?.headers ?? []).filter(h => !PHI_HEADER.test(String(h).trim())), [parsed]);
+  const droppedHeaders = useMemo(() => (parsed?.headers ?? []).filter(h => PHI_HEADER.test(String(h).trim())), [parsed]);
+
   async function allocate() {
     if (!empId || !parsed || filteredRows.length === 0) return;
     setAllocating(true); setError(''); setSuccess('');
@@ -220,13 +225,13 @@ export default function WorkAllocation({ user }) {
         allocated_at: new Date().toISOString(),
         file_name: file.name,
         records_count: filteredRows.length,
-        headers: parsed.headers,
+        headers: savedHeaders,
         note: note.trim() || null,
         status: 'pending',
       };
       const result = await S.set('allocations', payload);
       if (result?.[0]?.id) {
-        await kv.set(`alloc_${result[0].id}`, filteredRows);
+        await kv.set(`alloc_${result[0].id}`, filteredRows.map(r => Object.fromEntries(savedHeaders.map(h => [h, r[h]]))));
         // Count only — the rows and file name may contain patient data
         logAudit({
           actor: user, action: 'create_allocation', targetEmpId: empId, targetName: emp?.name ?? empId,
@@ -514,6 +519,12 @@ export default function WorkAllocation({ user }) {
                 </div>
               )}
 
+              {droppedHeaders.length > 0 && (
+                <div className="text-sm" style={{ marginBottom: 16, padding: '8px 12px', borderRadius: 'var(--radius)', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                  🔒 Patient columns are not saved or sent to the employee: <strong>{droppedHeaders.join(', ')}</strong>
+                </div>
+              )}
+
               {/* Data preview table */}
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
                 DATA PREVIEW — showing {Math.min(filteredRows.length, 50).toLocaleString()} of {filteredRows.length.toLocaleString()} records
@@ -523,7 +534,7 @@ export default function WorkAllocation({ user }) {
                   <thead>
                     <tr>
                       <th style={{ minWidth: 40, color: 'var(--text-muted)', fontWeight: 600 }}>#</th>
-                      {parsed.headers.map(h => (
+                      {savedHeaders.map(h => (
                         <th key={h} style={{ minWidth: 120, whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -532,7 +543,7 @@ export default function WorkAllocation({ user }) {
                     {filteredRows.slice(0, 50).map((row, i) => (
                       <tr key={i}>
                         <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
-                        {parsed.headers.map(h => (
+                        {savedHeaders.map(h => (
                           <td key={h} style={{ whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {String(row[h] ?? '')}
                           </td>

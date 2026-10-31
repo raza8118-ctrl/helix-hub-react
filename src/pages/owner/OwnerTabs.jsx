@@ -139,11 +139,11 @@ export function OwnerBroadcasts({ owner, rows, ready }) {
 
 // ── 👑 Owners & security ──────────────────────────────────────────────────────
 
-export function OwnerSecurity({ owner, rows, ready, onOwnerUpdate }) {
+export function OwnerSecurity({ owner, rows, ready }) {
   const [owners, setOwners] = useState(undefined);
   const [log, setLog] = useState(undefined);
   const [nw, setNw] = useState({ username: '', name: '', password: '' });
-  const [pw, setPw] = useState({ next: '', confirm: '' });
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [msg, setMsg] = useState(null);
   const [pwMsg, setPwMsg] = useState(null);
   const [q, setQ] = useState('');
@@ -182,11 +182,10 @@ export function OwnerSecurity({ owner, rows, ready, onOwnerUpdate }) {
     setPwMsg(null);
     if (pw.next !== pw.confirm) { setPwMsg({ ok: false, text: 'New passwords do not match.' }); return; }
     if (!await confirmDialog({ title: 'Change your owner password?', message: 'Use the new password the next time you sign in.', tone: 'warning', confirmText: 'Change Password' })) return;
-    const { error } = await ownerChangePassword(owner, pw.next);
+    const { error } = await ownerChangePassword(owner, pw.current, pw.next);
     if (error) { setPwMsg({ ok: false, text: error }); return; }
-    onOwnerUpdate({ ...owner, password: pw.next });
-    ownerLog({ ...owner, password: pw.next }, 'owner_password_change', null);
-    setPw({ next: '', confirm: '' });
+    ownerLog(owner, 'owner_password_change', null);
+    setPw({ current: '', next: '', confirm: '' });
     setPwMsg({ ok: true, text: '✓ Password changed.' });
   }
 
@@ -226,6 +225,8 @@ export function OwnerSecurity({ owner, rows, ready, onOwnerUpdate }) {
 
         <form className="card" style={{ margin: 0 }} onSubmit={changePassword}>
           <div className="card-title" style={{ marginBottom: 8 }}>My owner password</div>
+          <div className="field"><label htmlFor="ow-pw0">Current password</label>
+            <input id="ow-pw0" type="password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} required autoComplete="current-password" /></div>
           <div className="field"><label htmlFor="ow-pw">New password (min 8 characters)</label>
             <input id="ow-pw" type="password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} required minLength={8} autoComplete="new-password" /></div>
           <div className="field"><label htmlFor="ow-pw2">Confirm new password</label>

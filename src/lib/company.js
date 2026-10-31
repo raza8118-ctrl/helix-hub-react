@@ -128,8 +128,13 @@ export async function seatLimitProblem() {
 // are the only ones who can manage companies. Kept per browser tab.
 const OWNER_SESSION_KEY = 'hh_owner';
 
+// Holds { username, name, token } — a 12-hour session key from the database, never the password (security stage 1).
+// A session saved before that (with no key) is ignored, so the owner simply signs in again.
 export function getOwnerSession() {
-  try { return JSON.parse(sessionStorage.getItem(OWNER_SESSION_KEY)); } catch { return null; }
+  try {
+    const o = JSON.parse(sessionStorage.getItem(OWNER_SESSION_KEY));
+    return o?.token ? o : null;
+  } catch { return null; }
 }
 
 export function setOwnerSession(owner) {
@@ -139,7 +144,7 @@ export function setOwnerSession(owner) {
   } catch { /* storage unavailable */ }
 }
 
-// → { data: { username, name, password }, error }
+// → { data: { username, name, token }, error }
 export async function ownerLogin(username, password) {
   const { data, error } = await supabase.rpc('owner_login', { p_username: username, p_password: password });
   if (error) {
@@ -151,18 +156,26 @@ export async function ownerLogin(username, password) {
         : 'Invalid owner username or password.',
     };
   }
-  return { data: { ...data, password }, error: null };
+  // TEMPORARY until migration 36 is run (remove in security stage 2): the old database accepts only the password
+  if (!data?.token) return { data: { ...data, token: password }, error: null };
+  return { data, error: null };
 }
 
-export async function ownerChangePassword(owner, newPassword) {
+/** Ends the owner's session key in the database. Fire-and-forget. */
+export function ownerLogout(owner) {
+  if (owner?.token) supabase.rpc('owner_logout', { p_username: owner.username, p_token: owner.token }).then(() => {}, () => {});
+}
+
+// Needs the current password typed again — the session key alone can't change it
+export async function ownerChangePassword(owner, currentPassword, newPassword) {
   const { error } = await supabase.rpc('owner_change_password', {
-    p_username: owner.username, p_password: owner.password, p_new_password: newPassword,
+    p_username: owner.username, p_password: currentPassword, p_new_password: newPassword,
   });
-  return { error: error?.message ?? null };
+  return { error: error?.message?.replace(/^.*?: /, '') ?? null };
 }
 
 // Owner actions (verified again server-side against rcm.helix_owners)
-const byOwner = owner => ({ p_by_user: owner.username, p_by_password: owner.password });
+const byOwner = owner => ({ p_by_user: owner.username, p_by_password: owner.token });
 
 export async function createCompany(owner, { name, code, adminId, adminName, adminPassword }) {
   const { data, error } = await supabase.rpc('create_company', {

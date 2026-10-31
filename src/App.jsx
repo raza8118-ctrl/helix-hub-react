@@ -11,7 +11,7 @@ import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import HelixLauncher from './components/shared/HelixLauncher';
 import { THEMES }  from './lib/constants';
 import { S, kv, setActiveCompany, getActiveCompany, refreshCompanyProcesses } from './lib/supabase';
-import { getOwnerSession, setOwnerSession, loadCompanyRow, loadHomeFeatures, SIGNOUT_MSG_KEY } from './lib/company';
+import { getOwnerSession, setOwnerSession, ownerLogout, loadCompanyRow, loadHomeFeatures, SIGNOUT_MSG_KEY } from './lib/company';
 import { disabledTabs, isFeatureOn, setAiAllowed } from './lib/companyFeatures';
 import { ownerLog, codeOf } from './lib/owner';
 import PlatformBanners from './components/shared/PlatformBanners';
@@ -335,7 +335,9 @@ export default function App() {
   }, [currentUser]);
 
   // ── Login ───────────────────────────────────────────────────────────────────
-  async function handleLogin(u, startOverride = null) {
+  async function handleLogin(signedIn, startOverride = null) {
+    const u = { ...signedIn };
+    delete u.password;   // never kept in the browser (security stage 1)
     await refreshCompanyProcesses().catch(() => {});
     const isAdmin = u.role === 'admin' || u.role === 'manager';
     const isSupervisor = u.role === 'supervisor';
@@ -382,6 +384,7 @@ export default function App() {
   }
 
   function handleOwnerSignOut() {
+    ownerLogout(owner);
     setOwnerSession(null);
     setOwner(null);
   }

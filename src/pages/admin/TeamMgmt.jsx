@@ -6,6 +6,7 @@ import { FEATURES, hasRoleDefault, grantsOf } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 import { seatLimitProblem } from '../../lib/company';
+import { tempPassword } from '../../lib/owner';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -225,7 +226,7 @@ export default function TeamMgmt({ user }) {
     setEditUser(u);
     setForm({
       emp_id: u.emp_id, name: u.name ?? '',
-      password: u.password ?? '', access: u.access || u.process || 'MCO',
+      password: '', access: u.access || u.process || 'MCO',   // passwords are never shown — blank keeps the current one
       role: u.role ?? 'employee', target: u.target ?? '',
       processes: u.processes ?? [u.access || u.process || 'MCO'],
       supervisor_ids: u.supervisor_ids ?? [],
@@ -248,6 +249,10 @@ export default function TeamMgmt({ user }) {
 
   async function saveUser() {
     if (!form.emp_id.trim() || !form.name.trim()) return;
+    if (!editUser && !form.password.trim()) {
+      await alertDialog({ title: 'Password needed', message: 'Set a password for the new user.', tone: 'warning' });
+      return;
+    }
     if (!editUser) {   // Owner Console 2.0: the company's seat limit
       const problem = await seatLimitProblem();
       if (problem) { await alertDialog({ title: 'User limit reached', message: problem, tone: 'warning' }); return; }
@@ -260,7 +265,7 @@ export default function TeamMgmt({ user }) {
     const payload = {
       emp_id: empId,
       name: form.name.trim(),
-      password: form.password,
+      ...(form.password.trim() ? { password: form.password.trim() } : {}),   // the database scrambles it
       access: form.access,
       role: form.role,
       target: form.target !== '' ? parseInt(form.target) : null,
@@ -352,9 +357,9 @@ export default function TeamMgmt({ user }) {
 
   async function approveReset(rr) {
     if (!await confirmDialog({ title: 'Reset password?', message: `A temporary password will be created for ${rr.emp_name ?? rr.emp_id}.`, tone: 'warning', confirmText: 'Reset Password' })) return;
-    const temp = `Temp@${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const temp = tempPassword();
     await S.update('users', { password: temp }, { emp_id: rr.emp_id });
-    await S.update('reset_requests', { status: 'approved', temp_password: temp }, { id: rr.id });
+    await S.update('reset_requests', { status: 'approved' }, { id: rr.id });   // shown once below, never saved
     logAudit({ actor: user, action: 'reset_password', targetEmpId: rr.emp_id, targetName: rr.emp_name });
     await alertDialog({ title: 'Password reset', message: `Employee: ${rr.emp_name ?? rr.emp_id}\nTemporary password: ${temp}\n\nShare it securely.`, tone: 'success' });
     await load();
@@ -740,8 +745,8 @@ export default function TeamMgmt({ user }) {
                 <input type="text" value={f.name} onChange={e => setF({ name: e.target.value })} placeholder="Full name" />
               </div>
               <div className="field">
-                <label>Password</label>
-                <input type="text" value={f.password} onChange={e => setF({ password: e.target.value })} placeholder="Set password" />
+                <label>{editUser ? 'New password' : 'Password'}</label>
+                <input type="password" autoComplete="new-password" value={f.password} onChange={e => setF({ password: e.target.value })} placeholder={editUser ? 'Leave blank to keep the current one' : 'Set password'} />
               </div>
               <div className="field">
                 <label>Role</label>

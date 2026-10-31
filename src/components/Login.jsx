@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { S, getTablePrefix, setActiveCompany } from '../lib/supabase';
+import { S, supabase, getTablePrefix, setActiveCompany } from '../lib/supabase';
 import { findCompany, findPausedCompany, ownerLogin, setOwnerSession, SIGNOUT_MSG_KEY } from '../lib/company';
 import { logAudit } from '../lib/audit';
 import Starfield from './shared/Starfield';
@@ -58,22 +58,19 @@ function EyeIcon({ off }) {
   );
 }
 
-async function ensureAdmin() {
-  try {
-    const rows = await S.get('users');
-    if (!rows || rows.length === 0) {
-      await S.set('users', {
-        emp_id: 'ADMIN',
-        name: 'Administrator',
-        password: 'Admin@123',
-        role: 'admin',
-        access: 'ALL',
-        active: true,
-      });
-    }
-  } catch (err) {
-    console.warn('ensureAdmin:', err);
-  }
+// Security stage 1: the password is checked inside the database (rcm.user_login) — the browser never receives it.
+// → the user (without password) or null for a wrong ID / password.
+async function checkPassword(empId, password) {
+  const { data, error } = await supabase.rpc('user_login', { p_prefix: getTablePrefix(), p_emp_id: empId, p_password: password });
+  if (!error) return data ?? null;
+  if (!/user_login|schema cache|could not find the function/i.test(error.message)) throw error;
+  // TEMPORARY until migration 36 is run (remove in security stage 2): the old in-browser check
+  const rows = await S.get('users', { emp_id: empId });
+  const u = rows?.[0];
+  if (!u || u.password !== password) return null;
+  const safe = { ...u };
+  delete safe.password;
+  return safe;
 }
 
 const CARD = {
@@ -126,9 +123,6 @@ export default function Login({ onLogin, onOwnerLogin }) {
   const [showPw, setShowPw]       = useState(false);
   const [focused, setFocused]     = useState('');
 
-  // Bootstrap the home company's first admin (other companies get theirs when created)
-  useEffect(() => { if (!getTablePrefix()) ensureAdmin(); }, []);
-
   async function doCompany(e) {
     e.preventDefault();
     setError('');
@@ -171,9 +165,8 @@ export default function Login({ onLogin, onOwnerLogin }) {
     setError('');
     setLoading(true);
     try {
-      const rows = await S.get('users', { emp_id: empId.trim().toUpperCase() });
-      const u = rows?.[0];
-      if (!u || u.password !== password) {
+      const u = await checkPassword(empId.trim().toUpperCase(), password);
+      if (!u) {
         setError('Invalid Employee ID or password.');
         setLoading(false);
         return;

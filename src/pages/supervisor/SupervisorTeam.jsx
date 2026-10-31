@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { S } from '../../lib/supabase';
 import { scopeToSupervisor, permsFor, logAudit } from '../../lib/helpers';
 import { alertDialog, confirmDialog } from '../../components/shared/Dialog';
+import { tempPassword } from '../../lib/owner';
 
 export default function SupervisorTeam({ user }) {
   const [allUsers, setAllUsers]   = useState([]);
@@ -28,9 +29,9 @@ export default function SupervisorTeam({ user }) {
 
   async function approveReset(rr) {
     if (!await confirmDialog({ title: 'Reset password?', message: `A temporary password will be created for ${rr.emp_name ?? rr.emp_id}.`, tone: 'warning', confirmText: 'Reset Password' })) return;
-    const temp = `Temp@${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const temp = tempPassword();
     await S.update('users', { password: temp }, { emp_id: rr.emp_id });
-    await S.update('reset_requests', { status: 'approved', temp_password: temp }, { id: rr.id });
+    await S.update('reset_requests', { status: 'approved' }, { id: rr.id });   // shown once below, never saved
     logAudit({ actor: user, action: 'reset_password', targetEmpId: rr.emp_id, targetName: rr.emp_name });
     await alertDialog({ title: 'Password reset', message: `Employee: ${rr.emp_name ?? rr.emp_id}\nTemporary password: ${temp}\n\nShare it securely.`, tone: 'success' });
     await load();

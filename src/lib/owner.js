@@ -6,7 +6,8 @@ import { supabase } from './supabase';
 export const HOME_CODE = '__home__';
 export const codeOf = c => (c?.isHome || !c?.prefix ? HOME_CODE : c.code);
 
-const byOwner = owner => ({ p_by_user: owner.username, p_by_password: owner.password });
+// The owner's session key goes in p_by_password; the database accepts it in place of the password (migration 36)
+const byOwner = owner => ({ p_by_user: owner.username, p_by_password: owner.token });
 const notInstalled = e => /schema cache|does not exist|could not find the function/i.test(e?.message ?? '');
 
 async function rpc(name, args) {
@@ -94,7 +95,9 @@ export async function companyUsers(prefix) {
 /** Full user row (with password) — only for "Sign in as", never shown. */
 export async function companyUserForSignIn(prefix, empId) {
   const { data, error } = await supabase.from(prefix + 'users').select('*').eq('emp_id', empId).single();
-  return error ? null : data;
+  if (error) return null;
+  delete data.password;
+  return data;
 }
 
 export async function setUserPassword(prefix, empId, password) {
