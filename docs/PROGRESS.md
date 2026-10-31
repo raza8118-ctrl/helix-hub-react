@@ -23,6 +23,17 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — IN PROGRESS.**
+- Migration 38 `20261103_row_rules.sql`: RLS on every rcm table (78 home + every company copy) with one rule — a valid
+  session for that company (x-helix-session) or a valid owner key (x-helix-owner) — via `rcm._allowed(prefix)`; per-company
+  switch `helix_rls_settings` (3Gen + Test Co start OFF, new companies ON); home rcm_store `company_profile` readable before
+  sign-in; audit_log add-only; `users` trigger: employees only own name/photo/password, supervisors + password resets,
+  admins/managers/page_team grant everything; `request_password_reset` for Forgot password; `_clone_table` gives new
+  company copies their own rules; `_protect_table` / `protect_all_tables()` for future tables.
+- Code: supabase.js (send owner key), Login.jsx (Forgot password → reset request).
+- Rollout: run migration (switch off) → push → switch ON for Test Co → test → 3Gen only when the PO says.
+  Kill switch: `update rcm.helix_rls_settings set enforce = false where prefix = '<prefix>';`
+
 **Security stage 2 — signed-in sessions (PO approved 2026-10-31, "Go") — DONE 2026-10-31 (migration 37 run + verified; PO signed in as Test Co 1010 → session created, 12-hour expiry, session check updating).**
 Migration 37 run by Claude 2026-10-31, then code pushed (dd6983c). Verified: 22/22 home + 2/2 Test Co passwords in
 `helix_user_passwords`, every `users.password` empty, triggers `hash_password` + `end_sessions` on both, anon can't read the
