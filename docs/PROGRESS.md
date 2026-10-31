@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-31 — 🔐 Security stage 2 DONE (migration 37 run, sign-in tested). Next: stage 3 (row rules) plan when the PO asks. Before that: security stage 1 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-31 — 🔐 Security stage 3 DONE (row rules on for 3Gen + Test Co). Next: stage 4 (AI key server-side) when the PO asks. Next: stage 3 (row rules) plan when the PO asks. Before that: security stage 1 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — BUILT + tested in Test Co (PO: all fine); switch ON for Test Co, OFF for 3Gen until the PO says.**
+**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — DONE 2026-10-31: switch ON for Test Co and 3Gen.**
 Migration 38 run by Claude 2026-10-31 (152 tables protected = 76 × 2), code pushed (b7c2575), Test Co switched on.
 Verified with the public key and no sign-in: Test Co users / daily logs return 0 rows, a save is refused; 3Gen unchanged (switch
 off); Forgot password RPC works. Rolled-back test as Test Co employee 1010 with a session: sees 2 Test Co users and 0 3Gen users
@@ -34,7 +34,11 @@ all 30 Test Co sidebar pages opened with no rule failures (only old "setting not
 table — that table doesn't exist in 3Gen either: pre-existing gap, Payer Directory still loads); Audit Log, Team (2 users) and Today
 (90%) show data; theme save → read back → restore works; reload keeps the session; Back to Owner Console ends it.
 PO tested on the live site (2026-10-31): 1010 sign-in, saving, Profile, Forgot password → request on Team — "all fine".
-Still to do: switch 3Gen on when the PO says (`update rcm.helix_rls_settings set enforce = true where prefix = '';`).
+3Gen switched ON 2026-10-31 (PO "Switch 3Gen on"; no 3Gen users signed in at the time). Checked: public key alone → 3Gen users,
+daily logs, audit log, rcm_store all 0 rows; companies registry still readable; login company step unaffected (no saved
+`company_profile` → built-in default "3Gen Consulting / 3GEN"). Rolled-back test as a 3Gen admin session: sees every row in all 75
+accessible tables (907 rows; `keka_imports` was already closed to anon), 0 Test Co users; no session → 0 3Gen users.
+Kill switch: `update rcm.helix_rls_settings set enforce = false where prefix = '';`
 - Migration 38 `20261103_row_rules.sql`: RLS on every rcm table (78 home + every company copy) with one rule — a valid
   session for that company (x-helix-session) or a valid owner key (x-helix-owner) — via `rcm._allowed(prefix)`; per-company
   switch `helix_rls_settings` (3Gen + Test Co start OFF, new companies ON); home rcm_store `company_profile` readable before
@@ -1731,7 +1735,7 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     owner_open_session) — run 2026-10-31 by Claude (PO "Go"); verified same day (see Current step).
 38. `supabase/migrations/20261103_row_rules.sql` (security stage 3: RLS on every table via `rcm._allowed(prefix)`, switch
     `helix_rls_settings`, users guard, audit_log add-only, request_password_reset, `protect_all_tables()`) — run 2026-10-31 by
-    Claude. Switch: Test Co ON (2026-10-31), 3Gen OFF until the PO says. **Every future migration that adds a table must end
+    Claude. Switch: Test Co ON and 3Gen ON (both 2026-10-31). **Every future migration that adds a table must end
     with `select rcm.protect_all_tables();`**
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
