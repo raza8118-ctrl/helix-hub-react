@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-31 — 🔐 Security stage 1 DONE (migration 36 run, tested). Next: stage 2 plan when the PO asks. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-31 — 🔐 Security stage 2 built, migration 37 run + verified; PO to test sign-in. Before that: security stage 1 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 2 — signed-in sessions (PO approved 2026-10-31, "Go") — IN PROGRESS.**
+**Security stage 2 — signed-in sessions (PO approved 2026-10-31, "Go") — BUILT, migration 37 run + verified; PO to test sign-in.**
+Migration 37 run by Claude 2026-10-31, then code pushed (dd6983c). Verified: 22/22 home + 2/2 Test Co passwords in
+`helix_user_passwords`, every `users.password` empty, triggers `hash_password` + `end_sessions` on both, anon can't read the
+locked table. Rolled-back test: new password lands only in the locked table; sign-in returns a session (no password); session ends
+on switch-off, password change and owner sign-everyone-out; 6th try after 5 wrong → "Too many attempts". In the app: lockout
+message shows (tested with made-up ID ZZNOBODY in Test Co); the x-helix-session header passes CORS and reads still work.
+Not tested in the app: a real sign-in getting a session, owner Open → session (need the PO's passwords).
 - Migration 37 `20261102_user_sessions.sql`: locked tables `helix_user_passwords` (scrambled passwords, all companies),
   `helix_user_sessions` (12-hour keys), `helix_login_attempts` (5 wrong in 15 min → locked 15 min); hashes moved out of
   `users.password` (column kept, set empty — PO yes via "Go"); the stage-1 trigger now stores new passwords in the locked
@@ -1698,6 +1704,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     2/2 Test Co and 1/1 owner passwords scrambled, trigger on all three, 0 saved temp passwords, 0 patient columns in alloc lists;
     rolled-back test: new password scrambled, right password signs in (no password returned), wrong one refused, owner key works,
     owner password change with key only refused.
+37. `supabase/migrations/20261102_user_sessions.sql` (security stage 2: locked `helix_user_passwords` / `helix_user_sessions` /
+    `helix_login_attempts`, hashes moved out of users.password, session keys, lockout, session_check, current_session,
+    owner_open_session) — run 2026-10-31 by Claude (PO "Go"); verified same day (see Current step).
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
