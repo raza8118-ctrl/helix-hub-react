@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { S, kv } from '../../lib/supabase';
+import { S, kv, getTablePrefix } from '../../lib/supabase';
 import { today, yesterday, fmtD, dlCSV, effectiveTarget, getHourlySlots } from '../../lib/helpers';
 import { workedCounts } from '../../lib/worklist';
 import {
-  DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H,
+  DEFAULT_TASKS, AUTH_HOURLY_TASKS, HOURLY_SLOTS, SHIFT_H, ACCESSES,
   LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, ATTENDANCE_STATUSES, LEAVE_TYPES,
 } from '../../lib/constants';
 
@@ -67,7 +67,11 @@ export default function ProdReport({ user }) {
     const procs = Array.isArray(user.processes) && user.processes.length > 0
       ? user.processes.filter(p => p && p !== 'ALL')
       : [(user.process || user.access || 'MCO')].filter(p => p && p !== 'ALL');
-    return procs.length > 0 ? procs : ['MCO'];
+    if (procs.length > 0) return procs;
+    // "ALL" / no process: the home company keeps MCO; an added company has no MCO, so it gets all of its
+    // own active processes (ACCESSES = that company's list, loaded at sign-in — see setCompanyProcessNames)
+    const companyProcs = getTablePrefix() ? ACCESSES.filter(p => p !== 'ALL') : [];
+    return companyProcs.length > 0 ? companyProcs : ['MCO'];
   })();
   const proc       = userProcs[0];
   const isOnlyAuth = userProcs.length === 1 && proc === 'AUTH';
@@ -175,7 +179,9 @@ export default function ProdReport({ user }) {
     !submittedAt ||
     (Date.now() - new Date(submittedAt).getTime()) < 24 * 60 * 60 * 1000;
 
-  useEffect(() => { load(); }, [date, hourlySlots]);
+  // Wait for the task list (task_configs) first: custom processes get their tasks from it, and loading the saved
+  // report before it arrives dropped the saved counts (and a re-save then overwrote them with zeros)
+  useEffect(() => { if (taskCfgRows !== null) load(); }, [date, hourlySlots, taskCfgRows]);
 
   // Smart Worklist (roadmap 6.4): claims this person worked on this day, by the task each worklist counts towards.
   // Only a suggestion — the counts change only when the person clicks "Add", and are saved with the report as usual.
@@ -708,6 +714,12 @@ export default function ProdReport({ user }) {
                   </span>
                 ))}
                 <div className="text-muted" style={{ marginTop: 4 }}>Check you haven’t already counted these. Nothing is saved until you save your report.</div>
+              </div>
+            )}
+
+            {taskCfgRows !== null && taskDefs.length === 0 && !isLegacyAuth && (
+              <div className="text-sm" style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 12, background: 'var(--surface-2)', border: '1px solid var(--warning)' }}>
+                ⚠ No tasks are set up for {userProcs.join(' + ')} yet — an admin can add them in Settings → Productivity Tasks.
               </div>
             )}
 

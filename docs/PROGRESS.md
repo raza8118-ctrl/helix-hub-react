@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-10-31) — Finish Daily Report (from docs/REVIEW.md) — IN PROGRESS (plan approved).**
+**Fix (PO request 2026-10-31) — Finish Daily Report (from docs/REVIEW.md) — DONE (awaiting PO test).**
+Built as planned below, plus one more bug found while testing (told to the PO): for custom processes (added companies, and 3Gen's
+custom sub-processes) the saved task counts didn't appear after a reload because the report loaded before `task_configs`, and a
+re-save then wrote zeros. Fix: the load effect waits for the task list (`ProdReport.jsx`, one line). Tested in Test Co as Test
+(process ALL): header + tasks show TEST 01 / Denial / AR, 20 + 15 → 70%, saved, reload shows 20 / 15, edit to 25 → re-save →
+45 / 90% after reload; Prod Monitor (admin) shows TEST 01, 45 / 50, 90%. Lint: no new errors (30 older unchanged); build passes.
 - Bug: `ProdReport.jsx` falls back to `MCO` when a user's process is "ALL" / not set. In an added company MCO doesn't exist →
   empty task list, nothing can be reported, and "MCO" is saved as the process.
 - Fix: for "ALL" / no process — **home company unchanged (MCO)**; **added company → all its own active processes** (the list App
