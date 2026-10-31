@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-31 — 🔐 Security stage 1 built, migration 36 run + verified; PO to test sign-in. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-31 — 🔐 Security stage 1 DONE (migration 36 run, tested). Next: stage 2 plan when the PO asks. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,11 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — BUILT, migration 36 run + verified 2026-10-31; Owner Console tested in the app; employee sign-in left for PO.**
+**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — DONE 2026-10-31 (migration 36 run + verified; Owner Console tested by Claude; PO confirmed employee sign-in with a newly set password works).**
 Tested 2026-10-31 (PO signed in as owner): session holds name/username/key only (an older open tab had also kept the
 password → `getOwnerSession` now drops a leftover password); owner list + activity log load with the key; reload keeps the
 session; password change with a wrong current password → "Current password is incorrect"; Test Co opened as admin → stored
-user has no password; Team → Edit shows an empty hidden "New password" field. Not tested: employee password sign-in (needs a password).
+user has no password; Team → Edit shows an empty hidden "New password" field. PO then set a new password for Test Co user 1010 and signed in with it: working.
 Built as planned. Extra (told to the PO): a TEMPORARY fallback so the new code works before migration 36 is run (old in-browser
 check in `Login.jsx` `checkPassword`, and `company.js` `ownerLogin` uses the password as the key if the DB returns none) —
 zero downtime; remove both in stage 2. Owner password change now asks for the current password. Edit User / Add User password
