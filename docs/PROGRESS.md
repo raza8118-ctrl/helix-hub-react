@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-31 — 🔐 Security stage 1 built (migration 36 not run yet). Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-10-31 — 🔐 Security stage 1 built, migration 36 run + verified; PO to test sign-in. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,12 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — BUILT, waiting for migration 36 + PO test.**
+**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — BUILT, migration 36 run + verified 2026-10-31; waiting for PO test in the app.**
 Built as planned. Extra (told to the PO): a TEMPORARY fallback so the new code works before migration 36 is run (old in-browser
 check in `Login.jsx` `checkPassword`, and `company.js` `ownerLogin` uses the password as the key if the DB returns none) —
 zero downtime; remove both in stage 2. Owner password change now asks for the current password. Edit User / Add User password
-field is a hidden `type=password`; Add User requires one. Lint: no new errors (30 older unchanged); build passes. Not tested live
-yet (needs migration 36 + the PO's sign-in).
+field is a hidden `type=password`; Add User requires one. Lint: no new errors (30 older unchanged); build passes. Not tested in the app
+yet (needs the PO's sign-in).
 - Migration 36 `20261101_password_hashing.sql` (additive, re-runnable): pgcrypto; trigger on `users` (home + every `co_*__users`)
   that bcrypt-hashes any password not already hashed; hashes existing user + `helix_owners` passwords (same passwords keep
   working); `rcm.user_login(prefix, emp_id, password)` checks inside the DB and returns the user without the password;
@@ -1679,7 +1679,10 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     Smart Worklist claim # / DOS for home + every company, audit-logged) — run 2026-10-31 (no Sync structure needed); verified same day: job present, test worklist cleared + audit entry "Helix Hub (automatic)"
 36. `supabase/migrations/20261101_password_hashing.sql` (security stage 1: bcrypt passwords for users in every company +
     owners, scrambling trigger, `rcm.user_login`, owner 12-hour session keys, blanks old reset temp passwords, strips patient
-    columns from saved Work Allocation lists) — **NOT RUN YET** (no Sync structure needed). The app works before and after it.
+    columns from saved Work Allocation lists) — run 2026-10-31 by Claude in the SQL Editor (PO request); verified same day: 22/22 home,
+    2/2 Test Co and 1/1 owner passwords scrambled, trigger on all three, 0 saved temp passwords, 0 patient columns in alloc lists;
+    rolled-back test: new password scrambled, right password signs in (no password returned), wrong one refused, owner key works,
+    owner password change with key only refused.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
