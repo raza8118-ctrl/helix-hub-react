@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — BUILT, migration 36 run + verified 2026-10-31; waiting for PO test in the app.**
+**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — BUILT, migration 36 run + verified 2026-10-31; Owner Console tested in the app; employee sign-in left for PO.**
+Tested 2026-10-31 (PO signed in as owner): session holds name/username/key only (an older open tab had also kept the
+password → `getOwnerSession` now drops a leftover password); owner list + activity log load with the key; reload keeps the
+session; password change with a wrong current password → "Current password is incorrect"; Test Co opened as admin → stored
+user has no password; Team → Edit shows an empty hidden "New password" field. Not tested: employee password sign-in (needs a password).
 Built as planned. Extra (told to the PO): a TEMPORARY fallback so the new code works before migration 36 is run (old in-browser
 check in `Login.jsx` `checkPassword`, and `company.js` `ownerLogin` uses the password as the key if the DB returns none) —
 zero downtime; remove both in stage 2. Owner password change now asks for the current password. Edit User / Add User password

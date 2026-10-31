@@ -133,7 +133,12 @@ const OWNER_SESSION_KEY = 'hh_owner';
 export function getOwnerSession() {
   try {
     const o = JSON.parse(sessionStorage.getItem(OWNER_SESSION_KEY));
-    return o?.token ? o : null;
+    if (!o?.token) return null;
+    if ('password' in o) {   // left by an older version of the app — drop it
+      delete o.password;
+      sessionStorage.setItem(OWNER_SESSION_KEY, JSON.stringify(o));
+    }
+    return o;
   } catch { return null; }
 }
 
