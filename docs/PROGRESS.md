@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-10-31) — Finish Smart Worklist (from docs/REVIEW.md) — DONE (awaiting PO: run migration 35, test, unhide).**
+**Fix (PO request 2026-10-31) — Finish Smart Worklist (from docs/REVIEW.md) — DONE (migration 35 run 2026-10-31; awaiting PO test, then unhide).**
 Built as planned below. Tested in Test Co (Chicago time, page switched on for the test and off again afterwards): CSV ISO + US
 dates and an .xlsx date saved exactly, claim # `00777` kept, patient column dropped, columns auto-mapped, assign → status →
 follow-up → reload → ✓ Done all persisted. Lint: no new errors (30 older unchanged); build passes. The SQL function couldn't be
@@ -1602,7 +1602,7 @@ Approved approach (product owner chose “option 1”: a real project dependency
 
 ---
 
-## ✅ Supabase migrations (1–34 all run 2026-10-29)
+## ✅ Supabase migrations (1–34 run 2026-10-29, 35 run 2026-10-31)
 
 The product owner ran 1–33 in **Supabase → SQL Editor**, in this order, on 2026-10-29, then clicked **↻ Sync structure**
 in the Owner Console. New migrations go at the end of this list, marked “not run yet” until the PO runs them:
@@ -1643,8 +1643,7 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 34. `supabase/migrations/20261029_owner_console.sql` (Owner Console 2.0: company plan / seats / pages / pause / banner,
     owner-only notes + log, broadcasts, owner RPCs; `_home_tables` skips `helix_*`) — run + synced 2026-10-29
 35. `supabase/migrations/20261031_worklist_auto_clear.sql` (pg_cron + `rcm.clear_old_worklists()`: nightly 90-day clearing of
-    Smart Worklist claim # / DOS for home + every company, audit-logged) — ⏳ **PO to run** (enable pg_cron if Supabase asks);
-    no Sync structure needed
+    Smart Worklist claim # / DOS for home + every company, audit-logged) — run 2026-10-31 (no Sync structure needed)
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
