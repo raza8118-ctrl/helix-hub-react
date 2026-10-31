@@ -10,10 +10,10 @@ import BoardBadge from './components/shared/BoardBadge';
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import HelixLauncher from './components/shared/HelixLauncher';
 import { THEMES }  from './lib/constants';
-import { S, kv, setActiveCompany, getActiveCompany, refreshCompanyProcesses } from './lib/supabase';
+import { S, kv, supabase, setActiveCompany, getActiveCompany, refreshCompanyProcesses, getSessionToken, setSessionToken } from './lib/supabase';
 import { getOwnerSession, setOwnerSession, ownerLogout, loadCompanyRow, loadHomeFeatures, SIGNOUT_MSG_KEY } from './lib/company';
 import { disabledTabs, isFeatureOn, setAiAllowed } from './lib/companyFeatures';
-import { ownerLog, codeOf } from './lib/owner';
+import { ownerLog, codeOf, openOwnerSession } from './lib/owner';
 import PlatformBanners from './components/shared/PlatformBanners';
 import { WORKBENCH_TABS } from './pages/workbench/modules';
 import { logAudit } from './lib/audit';
@@ -114,6 +114,7 @@ function kickOut(message) {
     sessionStorage.setItem(SIGNOUT_MSG_KEY, message);
     ['hh_user', 'hh_tab', 'hh_missed_dismissed', SESSION_VERSION_KEY].forEach(k => sessionStorage.removeItem(k));
   } catch { /* storage unavailable */ }
+  setSessionToken(null);
   setActiveCompany(null);
   window.location.reload();
 }
@@ -179,9 +180,14 @@ export default function App() {
       if (!base) sessionStorage.setItem(SESSION_VERSION_KEY, String(row.session_version ?? 1));
       else if ((row.session_version ?? 1) > base) kickOut('You were signed out by the Helix Hub administrator. Please sign in again.');
     }, () => {});
-    check();
-    const id = setInterval(check, 2 * 60 * 1000);
-    const onFocus = () => check();
+    // Security stage 2: a session that ended (signed out elsewhere, switched off, password changed, expired) → login
+    const checkSession = () => supabase.rpc('session_check', { p_token: getSessionToken() }).then(({ data, error }) => {
+      if (alive && !error && data === false) kickOut('Your sign-in has ended. Please sign in again.');
+    }, () => {});
+    const checkAll = () => { checkSession(); check(); };
+    checkAll();
+    const id = setInterval(checkAll, 2 * 60 * 1000);
+    const onFocus = () => checkAll();
     window.addEventListener('focus', onFocus);
     return () => { alive = false; clearInterval(id); window.removeEventListener('focus', onFocus); };
   }, [currentUser]);
@@ -368,8 +374,10 @@ export default function App() {
   // ── Helix Hub owner ─────────────────────────────────────────────────────────
   // Opening a company from the Owner Console signs in to it as a full admin — or, with opts.asUser (Owner Console 2.0
   // master key), as that person. Either way the purple banner shows and the audit log says "via Helix Hub owner".
-  function openCompanyAsOwner(c, opts = {}) {
+  async function openCompanyAsOwner(c, opts = {}) {
     setActiveCompany(c.prefix ? { name: c.name, code: c.code, prefix: c.prefix } : null);
+    const { data: token } = await openOwnerSession(owner, c.prefix ?? '', opts.asUser?.emp_id ?? null);
+    setSessionToken(token);
     const ownerUser = opts.asUser
       ? { ...opts.asUser, isOwner: true, viewing: c.name, viewingAs: true, ownerUsername: owner.username }
       : {
@@ -394,6 +402,9 @@ export default function App() {
   function handleLogout() {
     window.dispatchEvent(new Event('helix:signed-out'));   // e.g. wipes an in-memory appeal form (patient details)
     if (!currentUser?.isOwner) handleOwnerSignOut();
+    const token = getSessionToken();
+    if (token) supabase.rpc('user_logout', { p_token: token }).then(() => {}, () => {});
+    setSessionToken(null);
     sessionStorage.removeItem('hh_user');
     sessionStorage.removeItem('hh_tab');
     setActiveCompany(null);   // next login starts at the company step again

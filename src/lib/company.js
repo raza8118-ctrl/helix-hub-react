@@ -161,8 +161,6 @@ export async function ownerLogin(username, password) {
         : 'Invalid owner username or password.',
     };
   }
-  // TEMPORARY until migration 36 is run (remove in security stage 2): the old database accepts only the password
-  if (!data?.token) return { data: { ...data, token: password }, error: null };
   return { data, error: null };
 }
 

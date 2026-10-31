@@ -27,6 +27,8 @@ export const addOwner = (owner, { username, name, password }) => rpc('owner_add_
 export const setOwnerActive = (owner, username, active) => rpc('owner_set_owner_active', { ...byOwner(owner), p_username: username, p_active: active });
 export const saveBroadcast = (owner, id, data) => rpc('owner_broadcast_save', { ...byOwner(owner), p_id: id ?? null, p_data: data });
 export const structureStatus = owner => rpc('owner_structure_status', byOwner(owner));
+/** Security stage 2: a session for "Open →" (empId null = full admin) or "Sign in as" → { data: session key } */
+export const openOwnerSession = (owner, prefix, empId) => rpc('owner_open_session', { ...byOwner(owner), p_prefix: prefix, p_emp_id: empId });
 
 /** Record an owner action done in the app (sign in as, password reset…). Fire-and-forget. */
 export function ownerLog(owner, action, code, target = null, details = null) {

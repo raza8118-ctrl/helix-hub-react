@@ -6,8 +6,32 @@ import { applyCompanyBuiltins, setCompanyProcessNames } from './constants';
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_ANTHROPIC_KEY,
-  { db: { schema: 'rcm' } }
+  { db: { schema: 'rcm' }, global: { fetch: fetchWithSession } }
 );
+
+// ── Signed-in session (security stage 2) ─────────────────────────────────────
+// Sign-in returns a 12-hour session key; it is sent with every database call (header x-helix-session) so the
+// database knows who is asking (rcm.current_session). Kept per browser tab. Only sent to the database API.
+const SESSION_KEY = 'hh_session';
+let sessionToken = null;
+try { sessionToken = sessionStorage.getItem(SESSION_KEY); } catch { /* storage unavailable */ }
+
+export function getSessionToken() { return sessionToken; }
+export function setSessionToken(token) {
+  sessionToken = token || null;
+  try {
+    if (sessionToken) sessionStorage.setItem(SESSION_KEY, sessionToken);
+    else sessionStorage.removeItem(SESSION_KEY);
+  } catch { /* storage unavailable */ }
+}
+
+function fetchWithSession(input, init = {}) {
+  const url = typeof input === 'string' ? input : input?.url ?? String(input);
+  if (!sessionToken || !url.includes('/rest/v1/')) return fetch(input, init);
+  const headers = new Headers(init.headers ?? (input instanceof Request ? input.headers : undefined));
+  headers.set('x-helix-session', sessionToken);
+  return fetch(input, { ...init, headers });
+}
 
 // ── Active company ────────────────────────────────────────────────────────────
 // Every company has its own copy of each table. The home company uses the
