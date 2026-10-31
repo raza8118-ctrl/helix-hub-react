@@ -23,6 +23,20 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — IN PROGRESS.**
+- Migration 36 `20261101_password_hashing.sql` (additive, re-runnable): pgcrypto; trigger on `users` (home + every `co_*__users`)
+  that bcrypt-hashes any password not already hashed; hashes existing user + `helix_owners` passwords (same passwords keep
+  working); `rcm.user_login(prefix, emp_id, password)` checks inside the DB and returns the user without the password;
+  `rcm.owner_sessions` (12-hour keys); `owner_login` returns a key; `_is_owner` accepts hashed password or key;
+  `owner_change_password` hashes; `sync_company_tables` attaches the trigger to new companies (create or replace, not dropped).
+- Code: Login.jsx (sign in via RPC, remove `ADMIN`/`Admin@123` seed), Profile.jsx (no password in session), TeamMgmt.jsx
+  (no password pre-fill, blank = unchanged, temp password shown once, not saved), SupervisorTeam.jsx (same reset fix),
+  company.js / owner.js / OwnerConsole.jsx (owner session key instead of the password), WorkAllocation.jsx (drop patient
+  columns with `PHI_HEADER` before saving).
+- PO said yes to two data clean-ups (in the migration): blank old `reset_requests.temp_password` values; remove patient
+  columns from already-saved `alloc_*` lists in rcm_store (home + companies).
+- Still open after stage 1 (stages 2–3): hashes readable and tables writable with the public key.
+
 **Fix (PO request 2026-10-31) — Finish Daily Report (from docs/REVIEW.md) — DONE (awaiting PO test).**
 Built as planned below, plus one more bug found while testing (told to the PO): for custom processes (added companies, and 3Gen's
 custom sub-processes) the saved task counts didn't appear after a reload because the report loaded before `task_configs`, and a
