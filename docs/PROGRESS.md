@@ -23,6 +23,17 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Security stage 2 — signed-in sessions (PO approved 2026-10-31, "Go") — IN PROGRESS.**
+- Migration 37 `20261102_user_sessions.sql`: locked tables `helix_user_passwords` (scrambled passwords, all companies),
+  `helix_user_sessions` (12-hour keys), `helix_login_attempts` (5 wrong in 15 min → locked 15 min); hashes moved out of
+  `users.password` (column kept, set empty — PO yes via "Go"); the stage-1 trigger now stores new passwords in the locked
+  table; `user_login` returns user + session key; `user_logout`, `session_check`, `current_session()` (for stage 3 RLS),
+  owner `owner_open_session`; sessions end on sign-out, user switched off, password changed, owner "sign everyone out".
+- Code: supabase.js (send key as `x-helix-session` on API calls), Login.jsx (keep key, lockout message, remove stage-1
+  fallback), company.js (remove owner fallback), App.jsx (sign-out ends session, 2-minute check signs out ended sessions),
+  owner.js (Open / Sign in as get a session).
+- Order: run migration first (old app ignores the extra key), then push. Everyone signed in at deploy signs in once more.
+
 **Security stage 1 — quick wins (PO approved 2026-10-31, "Go, yes to both") — DONE 2026-10-31 (migration 36 run + verified; Owner Console tested by Claude; PO confirmed employee sign-in with a newly set password works).**
 Tested 2026-10-31 (PO signed in as owner): session holds name/username/key only (an older open tab had also kept the
 password → `getOwnerSession` now drops a leftover password); owner list + activity log load with the key; reload keeps the
