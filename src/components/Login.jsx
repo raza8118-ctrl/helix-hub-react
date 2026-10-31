@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { S, supabase, getTablePrefix, setActiveCompany, setSessionToken } from '../lib/supabase';
+import { supabase, getTablePrefix, setActiveCompany, setSessionToken } from '../lib/supabase';
 import { findCompany, findPausedCompany, ownerLogin, setOwnerSession, SIGNOUT_MSG_KEY } from '../lib/company';
 import { logAudit } from '../lib/audit';
 import Starfield from './shared/Starfield';
@@ -196,14 +196,13 @@ export default function Login({ onLogin, onOwnerLogin }) {
     setForgotMsg('');
     setForgotOk(false);
     setLoading(true);
+    // Stage 3: creates a reset request for the admins / supervisors (Team page). The same message is shown whether or
+    // not the ID exists, so the screen can't be used to find valid IDs.
     try {
-      const rows = await S.get('users', { emp_id: forgotId.trim().toUpperCase() });
-      if (!rows?.length) {
-        setForgotMsg('No account found with that Employee ID.');
-      } else {
-        setForgotMsg('Account found. Please contact your administrator to reset your password.');
-        setForgotOk(true);
-      }
+      const { error } = await supabase.rpc('request_password_reset', { p_prefix: getTablePrefix(), p_emp_id: forgotId.trim() });
+      if (error) throw error;
+      setForgotMsg('Thanks. If that Employee ID exists, your administrator has been asked to reset your password. They will give you a temporary one.');
+      setForgotOk(true);
     } catch {
       setForgotMsg('Connection error. Please try again.');
     }

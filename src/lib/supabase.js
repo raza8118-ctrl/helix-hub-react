@@ -25,11 +25,19 @@ export function setSessionToken(token) {
   } catch { /* storage unavailable */ }
 }
 
+// Stage 3: the Helix Hub owner's 12-hour key (saved by lib/company.js setOwnerSession) is sent too, so the Owner
+// Console can read company tables once the database row rules are on.
+function ownerToken() {
+  try { return JSON.parse(sessionStorage.getItem('hh_owner'))?.token ?? null; } catch { return null; }
+}
+
 function fetchWithSession(input, init = {}) {
   const url = typeof input === 'string' ? input : input?.url ?? String(input);
-  if (!sessionToken || !url.includes('/rest/v1/')) return fetch(input, init);
+  const owner = ownerToken();
+  if ((!sessionToken && !owner) || !url.includes('/rest/v1/')) return fetch(input, init);
   const headers = new Headers(init.headers ?? (input instanceof Request ? input.headers : undefined));
-  headers.set('x-helix-session', sessionToken);
+  if (sessionToken) headers.set('x-helix-session', sessionToken);
+  if (owner) headers.set('x-helix-owner', owner);
   return fetch(input, { ...init, headers });
 }
 
