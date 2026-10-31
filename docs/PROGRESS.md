@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — BUILT; migration 38 run; switch ON for Test Co, OFF for 3Gen.**
+**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — BUILT + tested in Test Co (PO: all fine); switch ON for Test Co, OFF for 3Gen until the PO says.**
 Migration 38 run by Claude 2026-10-31 (152 tables protected = 76 × 2), code pushed (b7c2575), Test Co switched on.
 Verified with the public key and no sign-in: Test Co users / daily logs return 0 rows, a save is refused; 3Gen unchanged (switch
 off); Forgot password RPC works. Rolled-back test as Test Co employee 1010 with a session: sees 2 Test Co users and 0 3Gen users
@@ -33,7 +33,8 @@ Signed in as owner (PO) → Owner Console shows Test Co's 2 users (owner key pas
 all 30 Test Co sidebar pages opened with no rule failures (only old "setting not saved yet" 406s and a missing `payer_reports`
 table — that table doesn't exist in 3Gen either: pre-existing gap, Payer Directory still loads); Audit Log, Team (2 users) and Today
 (90%) show data; theme save → read back → restore works; reload keeps the session; Back to Owner Console ends it.
-Still to do: PO signs in as 1010 + tries Forgot password; then switch 3Gen on when the PO says.
+PO tested on the live site (2026-10-31): 1010 sign-in, saving, Profile, Forgot password → request on Team — "all fine".
+Still to do: switch 3Gen on when the PO says (`update rcm.helix_rls_settings set enforce = true where prefix = '';`).
 - Migration 38 `20261103_row_rules.sql`: RLS on every rcm table (78 home + every company copy) with one rule — a valid
   session for that company (x-helix-session) or a valid owner key (x-helix-owner) — via `rcm._allowed(prefix)`; per-company
   switch `helix_rls_settings` (3Gen + Test Co start OFF, new companies ON); home rcm_store `company_profile` readable before
