@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — IN PROGRESS.**
+**Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — BUILT; migration 38 run; switch ON for Test Co, OFF for 3Gen.**
+Migration 38 run by Claude 2026-10-31 (152 tables protected = 76 × 2), code pushed (b7c2575), Test Co switched on.
+Verified with the public key and no sign-in: Test Co users / daily logs return 0 rows, a save is refused; 3Gen unchanged (switch
+off); Forgot password RPC works. Rolled-back test as Test Co employee 1010 with a session: sees 2 Test Co users and 0 3Gen users
+(3Gen switched on inside the test), own name save ok, own role → admin refused, editing another user refused, audit_log delete
+removes 0 rows, audit add ok; without a session 0 rows. Code check: every page reads through the prefix (db()/S/kv).
+Still to do: click through Test Co pages signed in (owner + 1010), then switch 3Gen on when the PO says.
 - Migration 38 `20261103_row_rules.sql`: RLS on every rcm table (78 home + every company copy) with one rule — a valid
   session for that company (x-helix-session) or a valid owner key (x-helix-owner) — via `rcm._allowed(prefix)`; per-company
   switch `helix_rls_settings` (3Gen + Test Co start OFF, new companies ON); home rcm_store `company_profile` readable before
@@ -1718,6 +1724,10 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 37. `supabase/migrations/20261102_user_sessions.sql` (security stage 2: locked `helix_user_passwords` / `helix_user_sessions` /
     `helix_login_attempts`, hashes moved out of users.password, session keys, lockout, session_check, current_session,
     owner_open_session) — run 2026-10-31 by Claude (PO "Go"); verified same day (see Current step).
+38. `supabase/migrations/20261103_row_rules.sql` (security stage 3: RLS on every table via `rcm._allowed(prefix)`, switch
+    `helix_rls_settings`, users guard, audit_log add-only, request_password_reset, `protect_all_tables()`) — run 2026-10-31 by
+    Claude. Switch: Test Co ON (2026-10-31), 3Gen OFF until the PO says. **Every future migration that adds a table must end
+    with `select rcm.protect_all_tables();`**
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
