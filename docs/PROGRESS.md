@@ -29,7 +29,11 @@ Verified with the public key and no sign-in: Test Co users / daily logs return 0
 off); Forgot password RPC works. Rolled-back test as Test Co employee 1010 with a session: sees 2 Test Co users and 0 3Gen users
 (3Gen switched on inside the test), own name save ok, own role → admin refused, editing another user refused, audit_log delete
 removes 0 rows, audit add ok; without a session 0 rows. Code check: every page reads through the prefix (db()/S/kv).
-Still to do: click through Test Co pages signed in (owner + 1010), then switch 3Gen on when the PO says.
+Signed in as owner (PO) → Owner Console shows Test Co's 2 users (owner key passes the rules); Open Test Co → session key;
+all 30 Test Co sidebar pages opened with no rule failures (only old "setting not saved yet" 406s and a missing `payer_reports`
+table — that table doesn't exist in 3Gen either: pre-existing gap, Payer Directory still loads); Audit Log, Team (2 users) and Today
+(90%) show data; theme save → read back → restore works; reload keeps the session; Back to Owner Console ends it.
+Still to do: PO signs in as 1010 + tries Forgot password; then switch 3Gen on when the PO says.
 - Migration 38 `20261103_row_rules.sql`: RLS on every rcm table (78 home + every company copy) with one rule — a valid
   session for that company (x-helix-session) or a valid owner key (x-helix-owner) — via `rcm._allowed(prefix)`; per-company
   switch `helix_rls_settings` (3Gen + Test Co start OFF, new companies ON); home rcm_store `company_profile` readable before

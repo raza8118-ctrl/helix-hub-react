@@ -116,15 +116,16 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
 
 ## 5. Auth and roles
 
-- **Sign-in:** company name/code → Employee ID + password. The password is compared **in the browser** against `users.password` (plain text). The user object is kept in `sessionStorage` (`hh_user`).
+- **Sign-in (security stages 1–3, 2026-10-31):** company name/code → Employee ID + password, checked inside the database by `rcm.user_login` against bcrypt hashes in the locked `helix_user_passwords` table (`users.password` is always empty). 5 wrong tries lock an ID for 15 minutes. Sign-in returns a 12-hour session key (`helix_user_sessions`, `sessionStorage` `hh_session`) that `lib/supabase.js` sends as `x-helix-session` on every database call; the owner's key goes as `x-helix-owner`. The user object (no password) is kept in `sessionStorage` (`hh_user`).
+- **Row rules (stage 3):** every rcm table has RLS — a session for that company or an owner key (`rcm._allowed(prefix)`), switched per company in `helix_rls_settings` (kill switch: set `enforce = false`). `users` has a guard trigger (no self-promotion); `audit_log` is add-only. **Every new migration that adds a table must end with `select rcm.protect_all_tables();`**
 - **Roles** (`users.role`): `employee`, `supervisor`, `manager`, `admin`.
   - `admin` and `manager` both get the full admin app (including Settings and Team). A manager's data is scoped to `supervised_projects` (`['ALL']` or empty = everything).
   - `supervisor`: admin monitoring pages scoped to `supervisor_ids` + `supervised_processes`; per-person `permissions` (`resetPassword`, `bypassDeadline`, `editCounts`, `editQuality`, `pinEmployee`, all default **on**).
   - `employee`: own work only.
   - **Helix Hub owner** (`helix_owners`): checked server-side by RPC; can open any company as `admin` (`isOwner: true`).
 - **Process access:** `users.access` / `processes`, with values MCO, MCD, MCR, AUTH, ALL for the home company.
-- **Access control is enforced only in the UI.** There is no Supabase Auth and no row-level security on the data tables. Anyone with the anon key (it ships in the browser bundle) can read or write any table, including `users.password`. The README already flags this.
-- **Default admin seeding:** if `users` is empty, `Login.jsx` creates `ADMIN` / `Admin@123`.
+- **Inside a company, most access control is still UI-only:** a signed-in user of a company can read/write that company's tables through the API (except the `users` guard and add-only `audit_log`). Finer per-table rules are a later stage.
+- ~~Default admin seeding `ADMIN` / `Admin@123`~~ — removed in security stage 1.
 - **Audit:** `logAudit()` records edit_counts, edit_hourly_counts, edit_quality, quality_bypass/remove, remove_bypass, pin/unpin, assign_team and reset_password. It does **not** record logins, user create/delete, settings changes, allocations, announcements or company actions.
 
 ## 6. Half-built, inconsistent or risky
