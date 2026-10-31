@@ -23,6 +23,17 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Fix (PO request 2026-10-31) — Finish Smart Worklist (from docs/REVIEW.md) — IN PROGRESS (plan approved).**
+- **Dates one day early (US time zones):** CSV ISO dates (`2026-08-01`) were read as UTC midnight, then turned into a date with
+  local time. Fix: `readWorklistFile` reads `.csv` / `.txt` as plain text (`raw: true`) so `toDate()` parses every format the same
+  way (also keeps leading zeros in claim #). `.xlsx` unchanged. Existing rows are not changed (re-upload to correct).
+- **Auto-mapping:** not a bug — the review's test script misread the dropdowns. REVIEW.md corrected; no code change.
+- **90-day wipe:** new migration 35 `20261031_worklist_auto_clear.sql` — pg_cron + `rcm.clear_old_worklists()` (home + every
+  company prefix; same as “Close & clear”: claim # / DOS blanked, items cleared, worklist closed, audit entry “Helix Hub
+  (automatic)”), daily 02:30 UTC, not callable by app users. In-app check kept as a backup. **PO to run it** (enable pg_cron if asked).
+- Assign / work / follow-ups to be tested; anything broken there is reported before fixing. Module stays hidden until PO tests.
+- Not in scope: same date pattern in Denial Navigator's official-list import (`denials.js:158`).
+
 **Design system + restyle of the 4 demo modules (PO request 2026-10-30) — DONE (2026-10-31, awaiting PO review).**
 All 4 stages built as planned below, checkpointed on `wip` (d9d972a, 8c9040e, 4bdd980, then File Tools) and merged to `main`.
 Each stage: no new lint errors (30 older ones unchanged), build passes, checked in Test Co in light, dark and at 375 px, and a
