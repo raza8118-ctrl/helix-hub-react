@@ -23,6 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Security stage 6, phase 1 — rules inside a company (PO approved 2026-11-01, "Go") — IN PROGRESS.**
+- Migration 43 `20261108_role_rules.sql`: switch `helix_rls_settings.role_rules` (3Gen + Test Co start OFF, new companies ON);
+  `rcm._me()` / `_can(prefix, permission)` (current role + grants, mirrors access.js); read = anyone in the company, change =
+  daily_logs / hourly_logs: own rows or supervisor+; processes / task_configs / holidays: admins, managers, Settings / Team grants
+  (holidays: supervisor+); reference libraries: admins, managers or that tool's grant; rcm_store: own prefs, else supervisor+
+  (Appeal Packet naming: its grant; allocations: Work Allocation grant). `_protect_table` applies them to new companies.
+- Phase 2 later: workbench workflow tables + Team Feed own-post rules.
+
 **Fix (PO request 2026-11-01) — missing `payer_reports` table — DONE 2026-11-01 (migration 42 run).**
 - Cause: migration 6 `20261019c_payer_reports.sql` was skipped on 2026-10-29 (the only migration table missing in the DB), so
   "Report wrong info" on the payer card, its report list and Payer Directory's open-report flags never worked.
