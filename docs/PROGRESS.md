@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 4 — AI key on the server (PO approved 2026-11-01, "Go") — IN PROGRESS.**
+**Security stage 4 — AI key on the server (PO approved 2026-11-01, "Go") — BUILT; migration 39 run; helix-ai deployed; code pushed (b92924c).**
+Migration 39 run by Claude 2026-11-01 (3Gen key moved to `helix_ai_keys`, 108 chars, sk-ant-; no old copies left in rcm_store).
+Edge Function `helix-ai` deployed from the dashboard editor; "Verify JWT" left ON (turning it off was blocked as a security change;
+not needed — the app's public key is a legacy JWT and passes). Checked: no session / fake session → 403 SESSION.
+Still to do: a real AI call signed in (3Gen AI Email) + Settings shows "key saved (ending …)".
 - Supabase Edge Function `helix-ai` (`supabase/functions/helix-ai/index.ts`): checks x-helix-session + company AI switch, adds the
   company key from locked `helix_ai_keys`, forwards the Messages request to Anthropic, logs who/when/model/tokens in locked
   `helix_ai_usage` (never content); allow-listed models + max_tokens cap.
@@ -1747,6 +1751,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     `helix_rls_settings`, users guard, audit_log add-only, request_password_reset, `protect_all_tables()`) — run 2026-10-31 by
     Claude. Switch: Test Co ON and 3Gen ON (both 2026-10-31). **Every future migration that adds a table must end
     with `select rcm.protect_all_tables();`**
+39. `supabase/migrations/20261104_ai_key_server.sql` (security stage 4: locked `helix_ai_keys` / `helix_ai_usage`, ai_key_status,
+    set_ai_key, clear_ai_key, ai_key_for_session + ai_log_usage for the `helix-ai` Edge Function) — run 2026-11-01 by Claude.
+    Edge Function source: `supabase/functions/helix-ai/index.ts` — redeploy from Supabase → Edge Functions → helix-ai → Code.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
