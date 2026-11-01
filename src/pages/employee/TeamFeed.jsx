@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import SecureImage from '../../components/shared/SecureImage';
 import { S, storage } from '../../lib/supabase';
 import { canViewPost, resizeImage } from '../../lib/helpers';
 import { POST_VISIBILITY, FEED_BUCKET } from '../../lib/constants';
@@ -44,13 +45,13 @@ function PostCard({ post, user, userById, posts, sharePost, deletePost }) {
         <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10, marginBottom: 8, background: 'var(--surface-2)' }}>
           <div className="text-sm bold" style={{ marginBottom: 4 }}>{sharedAuthor?.name ?? shared.emp_id}</div>
           {shared.content && <div style={{ fontSize: 13, marginBottom: 6 }}>{shared.content}</div>}
-          {shared.image_url && <img src={shared.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
+          {shared.image_url && <SecureImage src={shared.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
           {shared.gif_url && <img src={shared.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 6 }} />}
         </div>
       )}
 
       {post.content && <div style={{ fontSize: 14, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{post.content}</div>}
-      {post.image_url && <img src={post.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
+      {post.image_url && <SecureImage src={post.image_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
       {post.gif_url && <img src={post.gif_url} alt="" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />}
 
       <ReactionBar targetType="post" targetId={post.id} user={user} />
@@ -223,7 +224,7 @@ export default function TeamFeed({ user }) {
 
         {imageUrl && (
           <div style={{ position: 'relative', marginBottom: 10, maxWidth: 240 }}>
-            <img src={imageUrl} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />
+            <SecureImage src={imageUrl} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />
             <button className="btn-sm" onClick={() => setImageUrl('')} style={{ position: 'absolute', top: 4, right: 4 }}>✕</button>
           </div>
         )}

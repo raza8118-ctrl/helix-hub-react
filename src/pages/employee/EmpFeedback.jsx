@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import SecureImage from '../../components/shared/SecureImage';
 import { S } from '../../lib/supabase';
 import { fmtD, scopeToSupervisor } from '../../lib/helpers';
 import { PRIORITIES } from '../../lib/constants';
@@ -193,7 +194,7 @@ export default function EmpFeedback({ user }) {
                 {f.message}
               </p>
               {f.image_url && (
-                <img
+                <SecureImage
                   src={f.image_url} alt=""
                   onClick={e => { e.stopPropagation(); setZoom(1); setLightboxUrl(f.image_url); }}
                   style={{ maxWidth: 200, borderRadius: 8, display: 'block', marginTop: 8, cursor: 'zoom-in' }}
@@ -259,7 +260,7 @@ export default function EmpFeedback({ user }) {
               {viewItem.message}
             </p>
             {viewItem.image_url && (
-              <img
+              <SecureImage
                 src={viewItem.image_url} alt=""
                 onClick={() => { setZoom(1); setLightboxUrl(viewItem.image_url); }}
                 style={{ maxWidth: '100%', borderRadius: 8, display: 'block', cursor: 'zoom-in', marginTop: 4 }}
@@ -287,7 +288,7 @@ export default function EmpFeedback({ user }) {
             cursor: 'zoom-out', overflow: 'hidden',
           }}
         >
-          <img
+          <SecureImage
             src={lightboxUrl}
             alt=""
             style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)', transform: `scale(${zoom})`, transformOrigin: 'center', transition: 'transform 0.1s ease', userSelect: 'none' }}

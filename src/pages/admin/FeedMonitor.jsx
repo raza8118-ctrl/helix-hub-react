@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SecureImage from '../../components/shared/SecureImage';
 import { S } from '../../lib/supabase';
 import { POST_VISIBILITY } from '../../lib/constants';
 import { confirmDialog } from '../../components/shared/Dialog';
@@ -72,7 +73,7 @@ export default function FeedMonitor() {
               </div>
             </div>
             {post.content && <div style={{ fontSize: 14, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{post.content}</div>}
-            {post.image_url && <img src={post.image_url} alt="" style={{ maxWidth: 300, borderRadius: 8, marginBottom: 8 }} />}
+            {post.image_url && <SecureImage src={post.image_url} alt="" style={{ maxWidth: 300, borderRadius: 8, marginBottom: 8 }} />}
             {post.gif_url && <img src={post.gif_url} alt="" style={{ maxWidth: 300, borderRadius: 8, marginBottom: 8 }} />}
             {postComments.length > 0 && (
               <div className="text-muted text-sm">{postComments.length} comment{postComments.length === 1 ? '' : 's'}</div>

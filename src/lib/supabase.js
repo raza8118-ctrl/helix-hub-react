@@ -10,7 +10,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, { db: { 
 
 // ── Signed-in session (security stage 2) ─────────────────────────────────────
 // Sign-in returns a 12-hour session key; it is sent with every database call (header x-helix-session) so the
-// database knows who is asking (rcm.current_session). Kept per browser tab. Only sent to the database API.
+// database knows who is asking (rcm.current_session). Kept per browser tab. Only sent to the database and file
+// storage APIs (stage 5: storage rules check it too).
 const SESSION_KEY = 'hh_session';
 let sessionToken = null;
 try { sessionToken = sessionStorage.getItem(SESSION_KEY); } catch { /* storage unavailable */ }
@@ -33,7 +34,7 @@ function ownerToken() {
 function fetchWithSession(input, init = {}) {
   const url = typeof input === 'string' ? input : input?.url ?? String(input);
   const owner = ownerToken();
-  if ((!sessionToken && !owner) || !url.includes('/rest/v1/')) return fetch(input, init);
+  if ((!sessionToken && !owner) || !/\/(rest|storage)\/v1\//.test(url)) return fetch(input, init);
   const headers = new Headers(init.headers ?? (input instanceof Request ? input.headers : undefined));
   if (sessionToken) headers.set('x-helix-session', sessionToken);
   if (owner) headers.set('x-helix-owner', owner);
@@ -129,11 +130,12 @@ export async function refreshCompanyProcesses() {
   setCompanyProcessNames((rows ?? []).filter(p => p.active !== false).map(p => p.name));
 }
 
-// File uploads — Supabase Storage (non-home companies get their own folder)
+// File uploads — Supabase Storage (non-home companies get their own folder). Stage 5: buckets are private and
+// files can't be overwritten through the public key; the returned address is shown through SecureImage.
 export const storage = {
   async uploadFile(bucket, path, file) {
     const fullPath = tablePrefix ? `${tablePrefix.replace(/_+$/, '')}/${path}` : path;
-    const { error } = await supabase.storage.from(bucket).upload(fullPath, file, { upsert: true });
+    const { error } = await supabase.storage.from(bucket).upload(fullPath, file, { upsert: false });
     if (error) { console.error('storage.uploadFile error', error); return null; }
     const { data } = supabase.storage.from(bucket).getPublicUrl(fullPath);
     return data?.publicUrl ?? null;

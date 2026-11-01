@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import SecureImage from '../../components/shared/SecureImage';
 import { S, storage } from '../../lib/supabase';
 import { today, fmtD, resizeImage, scopeToSupervisor, logAudit, isScopedUser } from '../../lib/helpers';
 import { ACCESSES, PRIORITIES, FEED_BUCKET } from '../../lib/constants';
@@ -236,7 +237,7 @@ export default function AdminFeedback({ user }) {
               <label>Snapshot (optional)</label>
               {imageUrl ? (
                 <div style={{ position: 'relative', maxWidth: 200 }}>
-                  <img src={imageUrl} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />
+                  <SecureImage src={imageUrl} alt="" style={{ maxWidth: '100%', borderRadius: 8 }} />
                   <button type="button" className="btn-sm" onClick={() => setImageUrl('')} style={{ position: 'absolute', top: 4, right: 4 }}>✕</button>
                 </div>
               ) : (
@@ -328,7 +329,7 @@ export default function AdminFeedback({ user }) {
 
                 <p style={{ fontSize: 13.5, lineHeight: 1.6, cursor: 'pointer', color: 'var(--text)' }} onClick={() => setViewItem(f)}>{f.message}</p>
                 {f.image_url && (
-                  <img
+                  <SecureImage
                     src={f.image_url} alt=""
                     onClick={() => { setZoom(1); setLightboxUrl(f.image_url); }}
                     style={{ maxWidth: 240, borderRadius: 8, display: 'block', marginTop: 8, cursor: 'zoom-in' }}
@@ -404,7 +405,7 @@ export default function AdminFeedback({ user }) {
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '6px 0' }} />
             <p style={{ lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{viewItem.message}</p>
             {viewItem.image_url && (
-              <img
+              <SecureImage
                 src={viewItem.image_url} alt=""
                 onClick={() => { setZoom(1); setLightboxUrl(viewItem.image_url); }}
                 style={{ maxWidth: '100%', borderRadius: 8, display: 'block', cursor: 'zoom-in', marginTop: 4 }}
@@ -432,7 +433,7 @@ export default function AdminFeedback({ user }) {
             cursor: 'zoom-out', overflow: 'hidden',
           }}
         >
-          <img
+          <SecureImage
             src={lightboxUrl}
             alt=""
             style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.6)', transform: `scale(${zoom})`, transformOrigin: 'center', transition: 'transform 0.1s ease', userSelect: 'none' }}
