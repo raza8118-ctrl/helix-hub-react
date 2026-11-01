@@ -27,6 +27,10 @@ export const addOwner = (owner, { username, name, password }) => rpc('owner_add_
 export const setOwnerActive = (owner, username, active) => rpc('owner_set_owner_active', { ...byOwner(owner), p_username: username, p_active: active });
 export const saveBroadcast = (owner, id, data) => rpc('owner_broadcast_save', { ...byOwner(owner), p_id: id ?? null, p_data: data });
 export const structureStatus = owner => rpc('owner_structure_status', byOwner(owner));
+// Demo data (2026-11-01): fake, tagged data for an added company — never the home company
+export const demoStatus = (owner, code) => rpc('owner_demo_status', { ...byOwner(owner), p_code: code });
+export const demoLoad   = (owner, code) => rpc('owner_demo_load',   { ...byOwner(owner), p_code: code });
+export const demoRemove = (owner, code) => rpc('owner_demo_remove', { ...byOwner(owner), p_code: code });
 /** Security stage 2: a session for "Open →" (empId null = full admin) or "Sign in as" → { data: session key } */
 export const openOwnerSession = (owner, prefix, empId) => rpc('owner_open_session', { ...byOwner(owner), p_prefix: prefix, p_emp_id: empId });
 

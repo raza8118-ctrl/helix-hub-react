@@ -6,7 +6,7 @@ import { FEATURE_GROUPS, ALL_FEATURES, isFeatureOn } from '../../lib/companyFeat
 import { actionLabel } from '../../lib/auditLabels';
 import {
   saveCompanySettings, savePrivate, forceSignOut, companyUsers, companyUserForSignIn, setUserPassword, setUserActive,
-  companyAudit, companyActivity, ownerLog, tempPassword, codeOf,
+  companyAudit, companyActivity, ownerLog, tempPassword, codeOf, demoStatus, demoLoad, demoRemove,
 } from '../../lib/owner';
 import { loadHomeFeatures, saveHomeFeatures } from '../../lib/company';
 
@@ -47,6 +47,15 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
   const [q, setQ] = useState('');
   const [activity, setActivity] = useState(null);
   const [reloadUsers, setReloadUsers] = useState(0);
+  const [demo, setDemo] = useState(undefined);   // demo data counts (added companies only)
+  const [reloadDemo, setReloadDemo] = useState(0);
+
+  useEffect(() => {
+    if (section !== 'demo' || isHome) return;
+    let alive = true;
+    demoStatus(owner, code).then(r => { if (alive) setDemo(r.error ? null : r.data); });
+    return () => { alive = false; };
+  }, [section, isHome, owner, code, reloadDemo]);
 
   useEffect(() => {
     if (section !== 'users') return;
@@ -152,7 +161,36 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
   }
 
   const shownUsers = (users ?? []).filter(u => !q.trim() || `${u.name ?? ''} ${u.emp_id} ${u.role}`.toLowerCase().includes(q.trim().toLowerCase()));
-  const sections = SECTIONS;   // the home company gets Pages too (PO 2026-10-30); its Pause tab only explains it can't be paused
+  // The home company gets Pages too (PO 2026-10-30); its Pause tab only explains it can't be paused. Demo data: added companies only.
+  const sections = isHome ? SECTIONS : [...SECTIONS.slice(0, 4), ['demo', 'Demo data'], SECTIONS[4]];
+  const demoLoaded = (demo?.users ?? 0) > 0;
+
+  async function loadDemo() {
+    if (!await confirmDialog({ title: `Load demo data into ${c.name}?`, message: 'Adds fake clients, payers, 9 demo users (DEMO-01…09), 30 days of production numbers, a denials worklist and denial steps. All of it is tagged so “Remove demo data” takes it out again. No patient data.', confirmText: 'Load demo data' })) return;
+    setBusy(true);
+    const r = await demoLoad(owner, code);
+    setBusy(false);
+    if (r.error) { onNotice(false, r.error === 'NOT_SET_UP' ? 'Demo data needs the database update (migration 41).' : r.error); return; }
+    setReloadDemo(x => x + 1);
+    onChanged();
+    await alertDialog({ title: 'Demo data loaded', message: `Demo users DEMO-01 to DEMO-09 (DEMO-09 is the supervisor) sign in with company “${c.name}” and this password:
+
+${r.data.password}
+
+It is shown only now — note it down. You can also use “Open as admin →”.`, tone: 'success' });
+  }
+
+  async function removeDemo() {
+    if (!await confirmDialog({ title: `Remove demo data from ${c.name}?`, message: 'Deletes only the demo rows (DEMO users, their reports, demo clients / payers, the demo worklist and denial steps). Anything your team added by hand stays.', tone: 'danger', confirmText: 'Remove demo data' })) return;
+    setBusy(true);
+    const r = await demoRemove(owner, code);
+    setBusy(false);
+    if (r.error) { onNotice(false, r.error); return; }
+    setReloadDemo(x => x + 1);
+    onChanged();
+    const kept = r.data?.kept ?? [];
+    onNotice(true, kept.length ? `✓ Demo data removed. Kept: ${kept.join('; ')}.` : '✓ Demo data removed.');
+  }
 
   return (
     <Modal title={`${c.name} — Manage`} onClose={onClose} wide>
@@ -289,6 +327,26 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {section === 'demo' && !isHome && (
+        <div className="card" style={{ margin: 0 }}>
+          <div className="bold">Demo data</div>
+          <p className="text-sm text-muted">Fake, clearly labelled data for showing Helix Hub: demo clients and payers, 9 demo users, 30 days of production numbers, a denials worklist and denial steps. No real names, no patient data. Never available for the home company.</p>
+          {demo === undefined && <div className="loading-row"><div className="spinner" /> Checking…</div>}
+          {demo === null && <p className="text-sm" style={{ color: 'var(--warning)' }}>Demo data needs the database update (migration 41).</p>}
+          {demo && (
+            <p className="text-sm" style={{ margin: '10px 0' }}>
+              {demoLoaded
+                ? <>Loaded: <strong>{demo.users}</strong> users · <strong>{demo.clients}</strong> clients · <strong>{demo.payers}</strong> payers · <strong>{demo.daily_reports}</strong> daily reports · <strong>{demo.denied_claims}</strong> denied claims · <strong>{demo.denial_entries}</strong> denial steps</>
+                : 'No demo data loaded.'}
+            </p>
+          )}
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn-sm btn-primary" onClick={loadDemo} disabled={busy || !demo || demoLoaded}>＋ Load demo data</button>
+            <button className="btn-sm" onClick={removeDemo} disabled={busy || !demo || !demoLoaded} style={{ color: 'var(--danger)' }}>Remove demo data</button>
+          </div>
         </div>
       )}
 
