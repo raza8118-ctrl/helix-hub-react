@@ -23,6 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Demo data (PO request 2026-11-01, "Go") — IN PROGRESS.**
+- Migration 41 `20261106_demo_data.sql`: owner-only `owner_demo_load` / `owner_demo_remove` / `owner_demo_status` (refuse the
+  home company; load once; logged in owner log + company audit log). Everything fake + tagged (`created_by = 'DEMO_DATA'`, user IDs
+  `DEMO-01…09`): 4 clients, 6 payers (+ fake payer IDs), 3 processes + task targets, 1 supervisor + 8 employees (one random
+  password shown once), ~30 working days of daily reports + today's hourly, ~25 QA audits, a Smart Worklist of ~40 fake denied
+  claims (claim # DEMO-1000xx, public CARC codes), ~6 denial library entries. No patient data. Remove deletes only tagged rows.
+- Code: owner.js (3 calls), CompanyManage.jsx new "Demo data" section (counts, Load, Remove).
+
 **Demo readiness check (PO "Step 6: minimum security before showing real data", 2026-11-01) — checked; 1 action for the PO.**
 - Hashed passwords: ✅ all user passwords bcrypt in `helix_user_passwords`, every `users.password` empty, owner bcrypt.
 - Default admin seed: ✅ removed from code (stage 1). ⚠ Two existing accounts (one per company) still use the old default
