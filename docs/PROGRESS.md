@@ -23,6 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Fix (PO request 2026-11-01) — missing `payer_reports` table — IN PROGRESS.**
+- Cause: migration 6 `20261019c_payer_reports.sql` was skipped on 2026-10-29 (the only migration table missing in the DB), so
+  "Report wrong info" on the payer card, its report list and Payer Directory's open-report flags never worked.
+- Fix: migration 42 `20261107_payer_reports_restore.sql` — same table as the original, a copy for every added company, then
+  `protect_all_tables()` (stage 3 rules). No app code changes. Don't re-run the old file.
+
 **Demo data (PO request 2026-11-01, "Go") — DONE 2026-11-01 (migration 41 run, code pushed).**
 Built as planned, plus (found while testing): today's reports for 6 of the 8 employees so Today isn't empty during a demo, and a
 type fix in the claim balance rounding (applied to the DB function the same way as the file). Not built: QA audits (they need
