@@ -23,6 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Security stage 5 — file storage rules (PO approved 2026-11-01, "Go") — IN PROGRESS.**
+- First: test that Supabase Storage passes x-helix-session to the database (temporary probe bucket, removed after). If not →
+  stop and offer a `helix-files` Edge Function for signed links instead.
+- Migration 40 `20261105_storage_rules.sql`: `rcm._storage_prefix(path)` (company from the first folder: `co_<code>/…` or home);
+  replace the 8 open storage policies with read + upload rules per bucket using `rcm._allowed(prefix)` (same per-company switch);
+  `feed-media` made private (PO yes via "Go"); no delete/overwrite through the public key; no files moved or deleted.
+- Code: supabase.js (session header to /storage/v1/ too; feed uploads), new `components/shared/SecureImage.jsx` (1-hour signed
+  links, cached), TeamFeed / AdminFeedback / EmpFeedback / FeedMonitor use it.
+
 **Security stage 4 — AI key on the server (PO approved 2026-11-01, "Go") — DONE 2026-11-01 (migration 39 run, helix-ai deployed, tested signed in).**
 Migration 39 run by Claude 2026-11-01 (3Gen key moved to `helix_ai_keys`, 108 chars, sk-ant-; no old copies left in rcm_store).
 Edge Function `helix-ai` deployed from the dashboard editor; "Verify JWT" left ON (turning it off was blocked as a security change;
