@@ -23,11 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-11-01) — missing `payer_reports` table — IN PROGRESS.**
+**Fix (PO request 2026-11-01) — missing `payer_reports` table — DONE 2026-11-01 (migration 42 run).**
 - Cause: migration 6 `20261019c_payer_reports.sql` was skipped on 2026-10-29 (the only migration table missing in the DB), so
   "Report wrong info" on the payer card, its report list and Payer Directory's open-report flags never worked.
 - Fix: migration 42 `20261107_payer_reports_restore.sql` — same table as the original, a copy for every added company, then
   `protect_all_tables()` (stage 3 rules). No app code changes. Don't re-run the old file.
+- Tested in Test Co (with demo data, removed after): Payer Directory loads without the error; payer card → 🚩 Report → saved and
+  shown under "Open reports (1)"; directory shows 🚩 "1 open report(s)"; Resolve → resolved, no open reports; public key alone →
+  0 rows. One resolved test report ("TEST by Claude…") stays in Test Co — reports are never deleted by design.
 
 **Demo data (PO request 2026-11-01, "Go") — DONE 2026-11-01 (migration 41 run, code pushed).**
 Built as planned, plus (found while testing): today's reports for 6 of the 8 employees so Today isn't empty during a demo, and a
@@ -1753,7 +1756,7 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 3. `supabase/migrations/20261018c_clients_payers.sql`
 4. `supabase/migrations/20261019_payer_directory.sql`
 5. `supabase/migrations/20261019b_payer_forms_storage.sql`
-6. `supabase/migrations/20261019c_payer_reports.sql`
+6. `supabase/migrations/20261019c_payer_reports.sql` — ⚠ was skipped on 2026-10-29; replaced by migration 42
 7. `supabase/migrations/20261019d_sop_library.sql` (SOP Library, step 3.1)
 8. `supabase/migrations/20261020_sop_template.sql` (SOP page template, step 3.2)
 9. `supabase/migrations/20261020b_sop_media.sql` (SOP screenshots/videos bucket + `sop_media`, step 3.3)
@@ -1805,6 +1808,8 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     by read + upload rules per bucket via `rcm._allowed`, `feed-media` private) — run 2026-11-01 by Claude.
 41. `supabase/migrations/20261106_demo_data.sql` (owner_demo_load / owner_demo_remove / owner_demo_status; fake tagged demo data
     for added companies only) — run 2026-11-01 by Claude (load function updated the same day: today's reports + rounding fix).
+42. `supabase/migrations/20261107_payer_reports_restore.sql` (replaces skipped migration 6: `payer_reports` + company copies +
+    `protect_all_tables()`) — run 2026-11-01 by Claude. Migration 6 (`20261019c_payer_reports.sql`) was never run — don't run it.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
