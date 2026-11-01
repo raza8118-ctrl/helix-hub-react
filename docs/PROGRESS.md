@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-11-01 — 🔐 Security stage 4 DONE (AI key on the server, helix-ai). ⚠ Anthropic account needs credit. Next: stage 5 (file storage rules) when the PO asks. Before that: stage 3 DONE. Before that: security stages 1–2 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-11-01 — 🔐 Security stages 1–5 DONE (stage 5: private file buckets with company rules). ⚠ Anthropic account needs credit. ⚠ PO may delete the empty probe bucket zz-header-probe. Before that: stage 3 DONE. Before that: security stages 1–2 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 5 — file storage rules (PO approved 2026-11-01, "Go") — IN PROGRESS.**
+**Security stage 5 — file storage rules (PO approved 2026-11-01, "Go") — DONE 2026-11-01 (migration 40 run, code pushed 1e06178).**
+Header probe passed (Storage passes x-helix-session to the rules). ⚠ Leftover: the empty private probe bucket `zz-header-probe`
+(one 0-byte test entry, no rules, unreadable) — Claude doesn't permanently delete; PO can delete it in Supabase → Storage →
+zz-header-probe → Edit bucket → Delete bucket. Tested: public key alone → every bucket lists 0 items, old public photo link 400;
+rolled-back test: no-session upload refused, Test Co session sees its 1 bulletin and 0 3Gen feed photos, uploads to its own folder,
+can't upload into 3Gen, overwrite 0 rows; in the app (owner → 3Gen) Announcements photos load through signed links.
 - First: test that Supabase Storage passes x-helix-session to the database (temporary probe bucket, removed after). If not →
   stop and offer a `helix-files` Edge Function for signed links instead.
 - Migration 40 `20261105_storage_rules.sql`: `rcm._storage_prefix(path)` (company from the first folder: `co_<code>/…` or home);
@@ -1766,6 +1771,8 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 39. `supabase/migrations/20261104_ai_key_server.sql` (security stage 4: locked `helix_ai_keys` / `helix_ai_usage`, ai_key_status,
     set_ai_key, clear_ai_key, ai_key_for_session + ai_log_usage for the `helix-ai` Edge Function) — run 2026-11-01 by Claude.
     Edge Function source: `supabase/functions/helix-ai/index.ts` — redeploy from Supabase → Edge Functions → helix-ai → Code.
+40. `supabase/migrations/20261105_storage_rules.sql` (security stage 5: `rcm._storage_prefix`, the 8 open storage policies replaced
+    by read + upload rules per bucket via `rcm._allowed`, `feed-media` private) — run 2026-11-01 by Claude.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 

@@ -9,8 +9,8 @@ Roadmap step 0.1 audit, done 2026-10-18 at commit `1697eb8`. No code was changed
 | Framework | Next.js | **Vite + React 19 single-page app**: no Next.js, no server routes, no API folder |
 | Routing | – | No router. `App.jsx` picks a tab list by role; `AdminApp` / `SupervisorApp` / `EmployeeApp` switch on tab id |
 | Database | Supabase | Supabase, schema `rcm`, called **directly from the browser** with the public anon key |
-| Auth | Supabase auth | **Custom**: `users` table with plain-text passwords, session kept in `sessionStorage` |
-| Storage | Supabase storage | Bucket `feed-media` (public URLs): Team Feed and Announcement images only |
+| Auth | Supabase auth | **Custom** (no Supabase Auth): `rcm.user_login` against bcrypt hashes in locked `helix_user_passwords`; 12-hour session keys (security stages 1–3) |
+| Storage | Supabase storage | Private buckets `feed-media`, `sop-media`, `payer-forms`, `payer-bulletins`; signed links only (security stage 5) |
 | Other libs | – | `xlsx` (Excel import/export), `@dnd-kit` (drag and drop), Giphy, Anthropic API (through the `helix-ai` Supabase Edge Function since security stage 4 — never from the browser) |
 | Env vars | `.env.local` | `VITE_SUPABASE_URL`, `VITE_ANTHROPIC_KEY` (actually holds the **Supabase anon key**), optional `VITE_COMPANY_NAME` / `VITE_COMPANY_CODE` |
 
@@ -112,7 +112,7 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
 
 **RPC functions** (in `multi_company_setup.sql`): `owner_login`, `owner_change_password`, `create_company`, `update_company`, `delete_company`, `sync_company_tables`, plus internal `_is_owner`, `_clone_table` and the `_home_tables` view.
 
-**Storage:** bucket `feed-media` (public); added companies get their own folder.
+**Storage (security stage 5, 2026-11-01):** all four buckets private. Added companies' files sit in `co_<code>/…`, the home company's at the top level; `rcm._storage_prefix(path)` + `rcm._allowed(prefix)` decide access (same switch as the table rules). Read = signed links / downloads, upload allowed; no delete or overwrite through the public key. Feed photos keep their old public-style address in `image_url`; `components/shared/SecureImage.jsx` turns it into a 1-hour signed link.
 
 ## 5. Auth and roles
 
