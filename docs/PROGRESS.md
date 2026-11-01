@@ -4,7 +4,7 @@
 what still has to be done, so work can continue even if a session ends mid-step.
 Updated at the start of every step (approved plan) and at the end (result).
 
-_Last updated: 2026-10-31 — 🔐 Security stage 3 DONE (row rules on for 3Gen + Test Co). Next: stage 4 (AI key server-side) when the PO asks. Before that: security stages 1–2 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
+_Last updated: 2026-11-01 — 🔐 Security stage 4 DONE (AI key on the server, helix-ai). ⚠ Anthropic account needs credit. Next: stage 5 (file storage rules) when the PO asks. Before that: stage 3 DONE. Before that: security stages 1–2 DONE. Before that: 🎨 Design system (docs/DESIGN.md, src/components/ui) + restyle of Payer Directory, Denial Navigator, Appeal Builder, File Tools (done, awaiting review). Before that: 🙈 Unfinished pages hidden in 3Gen + Test Co (done). ⚠ Work Allocation stores patient data in rcm_store – must be secured before go-live. Before that: 📑 PDF → Excel proper-format rebuild in progress (plan approved). Before that: 👑 Owner Console 2.0 built and pushed; migrations 1–34 all run + synced, awaiting PO testing. Team Dashboard awaiting review._
 
 ---
 
@@ -23,11 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 4 — AI key on the server (PO approved 2026-11-01, "Go") — BUILT; migration 39 run; helix-ai deployed; code pushed (b92924c).**
+**Security stage 4 — AI key on the server (PO approved 2026-11-01, "Go") — DONE 2026-11-01 (migration 39 run, helix-ai deployed, tested signed in).**
 Migration 39 run by Claude 2026-11-01 (3Gen key moved to `helix_ai_keys`, 108 chars, sk-ant-; no old copies left in rcm_store).
 Edge Function `helix-ai` deployed from the dashboard editor; "Verify JWT" left ON (turning it off was blocked as a security change;
 not needed — the app's public key is a legacy JWT and passes). Checked: no session / fake session → 403 SESSION.
-Still to do: a real AI call signed in (3Gen AI Email) + Settings shows "key saved (ending …)".
+Tested signed in (owner → Open 3Gen): Settings shows "🔒 A key is saved (ending …SAAA)", empty input, no key anywhere on the page;
+Today → AI Email → helix-ai → Anthropic answered 400 "credit balance is too low" (the PO's Anthropic account needs credit — the
+whole path works); helix_ai_usage logged 3Gen / HELIX_OWNER / OWNER / claude-opus-5-5 / 400, no content.
+⚠ PO action: add credit in the Anthropic console (Plans & Billing) for AI features to answer.
 - Supabase Edge Function `helix-ai` (`supabase/functions/helix-ai/index.ts`): checks x-helix-session + company AI switch, adds the
   company key from locked `helix_ai_keys`, forwards the Messages request to Anthropic, logs who/when/model/tokens in locked
   `helix_ai_usage` (never content); allow-listed models + max_tokens cap.

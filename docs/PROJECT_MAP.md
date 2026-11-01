@@ -11,7 +11,7 @@ Roadmap step 0.1 audit, done 2026-10-18 at commit `1697eb8`. No code was changed
 | Database | Supabase | Supabase, schema `rcm`, called **directly from the browser** with the public anon key |
 | Auth | Supabase auth | **Custom**: `users` table with plain-text passwords, session kept in `sessionStorage` |
 | Storage | Supabase storage | Bucket `feed-media` (public URLs): Team Feed and Announcement images only |
-| Other libs | – | `xlsx` (Excel import/export), `@dnd-kit` (drag and drop), Giphy, Anthropic API (from the browser) |
+| Other libs | – | `xlsx` (Excel import/export), `@dnd-kit` (drag and drop), Giphy, Anthropic API (through the `helix-ai` Supabase Edge Function since security stage 4 — never from the browser) |
 | Env vars | `.env.local` | `VITE_SUPABASE_URL`, `VITE_ANTHROPIC_KEY` (actually holds the **Supabase anon key**), optional `VITE_COMPANY_NAME` / `VITE_COMPANY_CODE` |
 
 Scripts: `npm run dev`, `build`, `lint`, `preview`.
@@ -59,7 +59,7 @@ supabase/multi_company_setup.sql   the only SQL in the repo
 | Engagement | Announcements | `admin/AdminFeedback.jsx` | Announcements/feedback to all or one employee, priority, images, acknowledgements |
 | | Team Feed | `employee/TeamFeed.jsx` | Social feed: posts, comments, reactions, GIFs, visibility |
 | | Feed Monitor | `admin/FeedMonitor.jsx` | Moderate feed posts |
-| System | Settings | `admin/Settings.jsx` | Anthropic API key, shift timing (DST), task target configuration |
+| System | Settings | `admin/Settings.jsx` | Anthropic API key (status / replace / clear only — kept in locked `helix_ai_keys`), shift timing (DST), task target configuration |
 
 ### Supervisor (`SUPERVISOR_TABS`)
 Team Dashboard, Attendance (Keka), Today, Prod Monitor, Hourly, Weekly, Monthly (same admin pages, scoped to the supervisor's team), **My Team** (`supervisor/SupervisorTeam.jsx`, team list + reset approvals), Announcements, Team Feed. No Quality, Team, Allocation or Settings tabs.
@@ -108,7 +108,7 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
 | `helix_broadcasts` | Owner banners for all / chosen companies (readable, written by owner RPC; never copied) | App banners, Owner Console |
 | `helix_owners` | Owner logins (not copied, not readable via API) | `owner_login` RPC only |
 
-**`rcm_store` keys:** `company_profile`, `prefs_<emp_id>` (theme), `anthropic_key`, `shift_dst`, `quality_skip_procs`, `pinned_emp_ids`, `alloc_<allocation id>` (the **full uploaded worklist rows** for each allocation).
+**`rcm_store` keys:** `company_profile`, `prefs_<emp_id>` (theme), `anthropic_key` (always empty since stage 4 — key in `helix_ai_keys`), `shift_dst`, `quality_skip_procs`, `pinned_emp_ids`, `alloc_<allocation id>` (the **full uploaded worklist rows** for each allocation).
 
 **RPC functions** (in `multi_company_setup.sql`): `owner_login`, `owner_change_password`, `create_company`, `update_company`, `delete_company`, `sync_company_tables`, plus internal `_is_owner`, `_clone_table` and the `_home_tables` view.
 
@@ -143,7 +143,7 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
 **Inconsistencies**
 9. **CLAUDE.md was wrong about the stack** (now corrected). It said Next.js; this is a Vite SPA with no server. That matters for the HIPAA rules ("runs on our own server", PDF → Excel on server in 2.4, AI calls). There is currently no server to run anything on.
 10. ~~**`VITE_ANTHROPIC_KEY` holds the Supabase anon key.**~~ Fixed 2026-10-29: the app reads `VITE_SUPABASE_ANON_KEY` (falling back to the old name until the PO renames it in Vercel and `.env`), and `callAI()` only uses the AI key saved in Settings — it no longer sends the Supabase key to Anthropic.
-11. **The AI model is hardcoded** (`claude-opus-4-5`) and called straight from the browser with the admin-saved key (`anthropic-dangerous-direct-browser-access`). Any signed-in user can read the key from `rcm_store`.
+11. ~~**The AI model is hardcoded and called straight from the browser; any signed-in user can read the key.**~~ Fixed in security stage 4 (2026-11-01): `lib/ai.js` `aiFetch()` → Edge Function `helix-ai` (source `supabase/functions/helix-ai/index.ts`) checks the session + company AI switch, adds the key from `helix_ai_keys`, logs usage (no content) in `helix_ai_usage`.
 
 **Security / HIPAA concerns to resolve before adding Workbench modules**
 12. Plain-text passwords, client-side login, no RLS (see section 5).
