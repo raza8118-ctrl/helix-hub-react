@@ -161,6 +161,24 @@ begin
                                  random() < 0.03 + 0 * e.t1 as off, random() + 0 * e.t1 as q) x
   $q$, p || 'daily_logs') using v_today;
 
+  -- Today: 6 of the 8 have already submitted (the other 2 show as pending on Today)
+  execute format($q$
+    insert into rcm.%I (emp_id, emp_name, date, process, total, target, adj_target, base_target, shift_hours,
+                        attendance_status, quality, tasks, submitted, submitted_at)
+    select e.id, e.name, to_char($1, 'YYYY-MM-DD'), e.proc, round(e.t1 * x.f) + round(e.t2 * x.f),
+           e.t1 + e.t2, e.t1 + e.t2, e.t1 + e.t2, 9, 'present', round((95 + x.q * 4)::numeric, 1),
+           jsonb_build_object(e.n1, round(e.t1 * x.f), e.n2, round(e.t2 * x.f)), true, now()
+      from (values
+        ('DEMO-01', 'Alex Demo',  'DEMO AR',      'Follow-up calls', 30, 'Status checks', 20, 1.04),
+        ('DEMO-02', 'Priya Demo', 'DEMO AR',      'Follow-up calls', 30, 'Status checks', 20, 0.97),
+        ('DEMO-03', 'Sam Demo',   'DEMO AR',      'Follow-up calls', 30, 'Status checks', 20, 0.82),
+        ('DEMO-04', 'Meera Demo', 'DEMO AR',      'Follow-up calls', 30, 'Status checks', 20, 1.08),
+        ('DEMO-05', 'Ravi Demo',  'DEMO DENIALS', 'Denials worked',  25, 'Appeals sent',  10, 1.00),
+        ('DEMO-06', 'Nina Demo',  'DEMO DENIALS', 'Denials worked',  25, 'Appeals sent',  10, 0.91)
+      ) e(id, name, proc, n1, t1, n2, t2, bias)
+      cross join lateral (select e.bias + (random() - 0.5) * 0.06 as f, random() + 0 * e.t1 as q) x
+  $q$, p || 'daily_logs') using v_today;
+
   -- Today's hourly counts (first hours of the shift)
   execute format($q$
     insert into rcm.%I (emp_id, date, h0, h1, h2, h3, h4)
@@ -210,7 +228,7 @@ begin
     select $1, 'DEMO-' || (100000 + i), $2[1 + i %% 6],
            (array['Northwind Health Plan (Demo)','Lakeside Medicaid (Demo)','Summit Advantage (Demo)',
                   'Bluebird Insurance (Demo)','Prairie Care Plan (Demo)','Coastal Senior Plan (Demo)'])[1 + i %% 6],
-           $3[1 + i %% 4], dos, dos, billed, round(billed * (0.4 + random() * 0.6), 2),
+           $3[1 + i %% 4], dos, dos, billed, round((billed * (0.4 + random() * 0.6))::numeric, 2),
            $4 - dos, dos + 25, dos + 25 + (array[30, 60, 90, 120])[1 + i %% 4], 'Appeal',
            (array['CO-16','CO-50','CO-97','CO-29','CO-18','CO-197'])[1 + i %% 6],
            'DEMO-0' || (1 + i %% 6), st,

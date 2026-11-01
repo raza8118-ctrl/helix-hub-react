@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Demo data (PO request 2026-11-01, "Go") — IN PROGRESS.**
+**Demo data (PO request 2026-11-01, "Go") — DONE 2026-11-01 (migration 41 run, code pushed).**
+Built as planned, plus (found while testing): today's reports for 6 of the 8 employees so Today isn't empty during a demo, and a
+type fix in the claim balance rounding (applied to the DB function the same way as the file). Not built: QA audits (they need
+scorecards + checkpoints) — quality numbers come from the daily reports instead. Tested in Test Co then removed again (Test Co is
+back to its own 2 users + REVIEW client): load → 9 users / 4 clients / 6 payers / 246 daily reports / 40 denied claims / 6 denial
+steps; Weekly 92.7% / 95.7%; Today 6 submitted, 3 pending; demo payers in Payer Directory, demo clients in Clients & Payers;
+DEMO-03 signs in with the one-time password (wrong password refused); 3Gen refused; remove → all 0, Test Co's own rows kept.
+How to demo: Owner Console → Add company "Demo Co" → Manage → Demo data → Load (note the one-time password) → Open as admin.
 - Migration 41 `20261106_demo_data.sql`: owner-only `owner_demo_load` / `owner_demo_remove` / `owner_demo_status` (refuse the
   home company; load once; logged in owner log + company audit log). Everything fake + tagged (`created_by = 'DEMO_DATA'`, user IDs
   `DEMO-01…09`): 4 clients, 6 payers (+ fake payer IDs), 3 processes + task targets, 1 supervisor + 8 employees (one random
@@ -1790,6 +1797,8 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     Edge Function source: `supabase/functions/helix-ai/index.ts` — redeploy from Supabase → Edge Functions → helix-ai → Code.
 40. `supabase/migrations/20261105_storage_rules.sql` (security stage 5: `rcm._storage_prefix`, the 8 open storage policies replaced
     by read + upload rules per bucket via `rcm._allowed`, `feed-media` private) — run 2026-11-01 by Claude.
+41. `supabase/migrations/20261106_demo_data.sql` (owner_demo_load / owner_demo_remove / owner_demo_status; fake tagged demo data
+    for added companies only) — run 2026-11-01 by Claude (load function updated the same day: today's reports + rounding fix).
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
