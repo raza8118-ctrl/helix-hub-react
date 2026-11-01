@@ -23,6 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Demo readiness check (PO "Step 6: minimum security before showing real data", 2026-11-01) — checked; 1 action for the PO.**
+- Hashed passwords: ✅ all user passwords bcrypt in `helix_user_passwords`, every `users.password` empty, owner bcrypt.
+- Default admin seed: ✅ removed from code (stage 1). ⚠ Two existing accounts (one per company) still use the old default
+  password — told to the PO in chat (not written here). PO changes both before any demo; Claude can't set passwords.
+- Real patient data: ✅ 3Gen has none in any patient-type column (claim #, DOS, member, DOB, address, phone, notes…); Test Co has
+  only 4 dummy review rows (added 2026-10-30) and the patient columns were stripped from `alloc_1` (stage 1). Demo in Test Co.
+- HIPAA answer for management: row rules / signed sessions / server-side AI key / private files are done (stages 1–5); still
+  before go-live: Supabase BAA (Team plan + HIPAA add-on; Free plan has no backups), finer in-company rules, outside review, policies.
+
 **Security stage 5 — file storage rules (PO approved 2026-11-01, "Go") — DONE 2026-11-01 (migration 40 run, code pushed 1e06178).**
 Header probe passed (Storage passes x-helix-session to the rules). ⚠ Leftover: the empty private probe bucket `zz-header-probe`
 (one 0-byte test entry, no rules, unreadable) — Claude doesn't permanently delete; PO can delete it in Supabase → Storage →
