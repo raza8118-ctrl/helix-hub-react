@@ -23,6 +23,16 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Security stage 4 — AI key on the server (PO approved 2026-11-01, "Go") — IN PROGRESS.**
+- Supabase Edge Function `helix-ai` (`supabase/functions/helix-ai/index.ts`): checks x-helix-session + company AI switch, adds the
+  company key from locked `helix_ai_keys`, forwards the Messages request to Anthropic, logs who/when/model/tokens in locked
+  `helix_ai_usage` (never content); allow-listed models + max_tokens cap.
+- Migration 39 `20261104_ai_key_server.sql`: those tables; `ai_key_status()`, `set_ai_key()`, `clear_ai_key()` (admin/manager
+  session, audit-logged); `ai_key_for_session()` (service role only); copies rcm_store `anthropic_key` into the locked table and
+  empties the old value (PO yes via "Go"); `protect_all_tables()`.
+- Code: new `src/lib/ai.js` `callClaude()`; appealAI / assistant / payerSuggestions / payerUpdates / reports / helpers.callAI use it;
+  Settings shows only "key saved (ending …)" + Replace / Clear; Today / Summary check key status; helpers model → claude-opus-5-5.
+
 **Security stage 3 — database row rules (PO approved 2026-10-31, "Go") — DONE 2026-10-31: switch ON for Test Co and 3Gen.**
 Migration 38 run by Claude 2026-10-31 (152 tables protected = 76 × 2), code pushed (b7c2575), Test Co switched on.
 Verified with the public key and no sign-in: Test Co users / daily logs return 0 rows, a save is refused; 3Gen unchanged (switch
