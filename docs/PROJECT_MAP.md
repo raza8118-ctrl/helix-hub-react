@@ -126,7 +126,7 @@ Each added company has a copy of every table named `co_<code>__<table>`. The hom
   - `employee`: own work only.
   - **Helix Hub owner** (`helix_owners`): checked server-side by RPC; can open any company as `admin` (`isOwner: true`).
 - **Process access:** `users.access` / `processes`, with values MCO, MCD, MCR, AUTH, ALL for the home company.
-- **Inside a company, most access control is still UI-only:** a signed-in user of a company can read/write that company's tables through the API (except the `users` guard and add-only `audit_log`). Finer per-table rules are a later stage.
+- **Rules inside a company (stage 6 phase 1, migration 43):** with `helix_rls_settings.role_rules` on, changes to daily / hourly logs (own rows or supervisor+), company setup (processes, task targets, holidays), reference libraries (clients, payers + sub-tables, denial library, SOPs, templates, code lists, portals, QA scorecards, learning paths) and `rcm_store` (own prefs; else supervisor+) follow the person's current role + grants (`rcm._may`, mirrors `access.js`). New tables in those areas: add them to `rcm._role_rule_for`. Still UI-only (phase 2): workbench workflow tables and Team Feed.
 - ~~Default admin seeding `ADMIN` / `Admin@123`~~ — removed in security stage 1.
 - **Audit:** `logAudit()` records edit_counts, edit_hourly_counts, edit_quality, quality_bypass/remove, remove_bypass, pin/unpin, assign_team and reset_password. It does **not** record logins, user create/delete, settings changes, allocations, announcements or company actions.
 
