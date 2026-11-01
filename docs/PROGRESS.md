@@ -23,14 +23,16 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Security stage 6, phase 1 — rules inside a company (PO approved 2026-11-01, "Go") — BUILT; migration 43 run; ON for Test Co, OFF for 3Gen.**
+**Security stage 6, phase 1 — rules inside a company (PO approved 2026-11-01, "Go") — DONE 2026-11-01; ON for Test Co and 3Gen.**
 Migration 43 run 2026-11-01 (change rules on 68 tables = 34 × 2, old open rule removed from them). Rolled-back test (Test Co switch
 on): employee — own report ok, others' report 0 rows, task target refused, payer 0 rows, own prefs ok, other setting refused, reads
 ok; supervisor — others' report 1 row, task target refused, holiday ok; employee with payers_edit grant — payer ok, task target
 refused; admin — all ok; switch off — old behaviour. Test Co switched on; through the real API with demo users: DEMO-03 own report
 1 row / others 0 / task target 401 / payer 0 / own theme ok / reads ok; DEMO-09 others' report 1 row / task target 401. Settings
-loads. Demo data removed again. 3Gen: switch on only when the PO says
-(`update rcm.helix_rls_settings set role_rules = true where prefix = '';`). Kill switch: same with false.
+loads. Demo data removed again. 3Gen switched ON 2026-11-01 (PO "Switch 3Gen on"; 1 admin, 1 supervisor, 12 employees, no extra
+grants, nobody signed in). Rolled-back 3Gen test with real roles: employee reads 462/462 reports, can change own 29, a colleague's 0,
+task target refused; supervisor changes an employee's 39, task target refused; admin all. Kill switch:
+`update rcm.helix_rls_settings set role_rules = false where prefix = '';`
 - Migration 43 `20261108_role_rules.sql`: switch `helix_rls_settings.role_rules` (3Gen + Test Co start OFF, new companies ON);
   `rcm._me()` / `_can(prefix, permission)` (current role + grants, mirrors access.js); read = anyone in the company, change =
   daily_logs / hourly_logs: own rows or supervisor+; processes / task_configs / holidays: admins, managers, Settings / Team grants
@@ -1826,7 +1828,7 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 42. `supabase/migrations/20261107_payer_reports_restore.sql` (replaces skipped migration 6: `payer_reports` + company copies +
     `protect_all_tables()`) — run 2026-11-01 by Claude. Migration 6 (`20261019c_payer_reports.sql`) was never run — don't run it.
 43. `supabase/migrations/20261108_role_rules.sql` (stage 6 phase 1: `role_rules` switch, `_me` / `_my_emp` / `_may`, change rules
-    for logs, company setup, reference libraries, rcm_store) — run 2026-11-01 by Claude. Switch: Test Co ON, 3Gen OFF.
+    for logs, company setup, reference libraries, rcm_store) — run 2026-11-01 by Claude. Switch: Test Co ON, 3Gen ON (2026-11-01).
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
