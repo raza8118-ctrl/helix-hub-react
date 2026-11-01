@@ -2,8 +2,8 @@
 // placeholders, never real values — and non-identifying facts are sent. Identifiers (names, DOB, member ID, claim /
 // auth numbers, every date) never leave this computer; real values are filled in locally afterwards.
 // Calls the Claude API from the browser with the company's AI key (same approach as callAI in helpers.js).
-import { kv } from './supabase';
 import { assertAiAllowed } from './companyFeatures';
+import { aiFetch } from './ai';
 import { logAudit } from './audit';
 import { denialTypeOf, levelOf } from './appeals';
 import { TOKEN_GROUPS, checkTemplate } from './appealTemplates';
@@ -131,27 +131,16 @@ export function validateAILetter(templateBody, letter) {
  */
 export async function improveWording(req, style, user) {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
-  const key = await kv.get('anthropic_key');
-  if (!key) throw new Error('NO_KEY');
   let ok = false;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'server-side-fallback-2026-07-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 16000,
-        system: SYSTEM,
-        messages: [{ role: 'user', content: userMessage(req, style) }],
-        output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
-        fallbacks: 'default',
-      }),
+    // Stage 4: through the helix-ai server function — the key stays on the server (NO_KEY thrown when none is saved)
+    const res = await aiFetch({
+      model: MODEL,
+      max_tokens: 16000,
+      system: SYSTEM,
+      messages: [{ role: 'user', content: userMessage(req, style) }],
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
+      fallbacks: 'default',
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

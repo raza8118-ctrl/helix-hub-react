@@ -4,13 +4,15 @@ import { DEFAULT_TASKS, DEF_PROCS } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { logAudit } from '../../lib/helpers';
+import { aiKeyStatus, saveAiKey as storeAiKey, clearAiKey as removeAiKey } from '../../lib/ai';
 
 // Company name/code, adding companies and the version history are managed by the
 // Helix Hub owner in the Owner Console, never from a company's own admin login.
 // DEF_PROCS (built-in processes) is empty for added companies — they configure all
 // their processes in the custom process card.
 export default function Settings({ user }) {
-  const [aiKey, setAiKey]   = useState('');
+  const [aiKey, setAiKey]   = useState('');   // a NEW key being typed — the saved key is never loaded (security stage 4)
+  const [keyStatus, setKeyStatus] = useState(null);   // { saved, ending }
   const [showKey, setShowKey] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiMsg, setAiMsg]   = useState('');
@@ -36,7 +38,7 @@ export default function Settings({ user }) {
   const [taskSaving, setTaskSaving]       = useState(false);
 
   useEffect(() => {
-    kv.get('anthropic_key').then(k => { if (k) setAiKey(k); });
+    aiKeyStatus().then(setKeyStatus);
     kv.get('shift_dst').then(v => setDstActive(v !== false));
     loadTaskCfg();
     loadCustomProcs();
@@ -102,18 +104,24 @@ export default function Settings({ user }) {
     if (!k) return;
     if (!await confirmDialog({ title: 'Save API key?', message: 'AI email generation will use this key.', confirmText: 'Save Key' })) return;
     setAiSaving(true);
-    await kv.set('anthropic_key', k);
-    logAudit({ actor: user, action: 'save_ai_key', entityType: 'setting', entityId: 'anthropic_key' });   // never the key itself
-    setAiMsg('✓ API key saved to Supabase');
+    const problem = await storeAiKey(k);   // kept on the server; the browser never reads it back
     setAiSaving(false);
+    if (problem) { setAiMsg(problem); return; }
+    logAudit({ actor: user, action: 'save_ai_key', entityType: 'setting', entityId: 'anthropic_key' });   // never the key itself
+    setAiKey('');
+    setShowKey(false);
+    setKeyStatus(await aiKeyStatus());
+    setAiMsg('✓ API key saved securely on the server');
     setTimeout(() => setAiMsg(''), 3000);
   }
 
   async function clearAiKey() {
     if (!await confirmDialog({ title: 'Clear the API key?', message: 'AI email generation will stop working until a key is saved again.', tone: 'danger', confirmText: 'Clear Key' })) return;
-    await kv.set('anthropic_key', null);
+    const problem = await removeAiKey();
+    if (problem) { setAiMsg(problem); return; }
     logAudit({ actor: user, action: 'clear_ai_key', entityType: 'setting', entityId: 'anthropic_key' });
     setAiKey('');
+    setKeyStatus({ saved: false });
     setAiMsg('Key cleared.');
     setTimeout(() => setAiMsg(''), 2000);
   }
@@ -271,23 +279,30 @@ export default function Settings({ user }) {
           <span className="badge badge-blue">AI Features</span>
         </div>
         <p className="text-muted text-sm" style={{ marginBottom: 14 }}>
-          Required for AI email generation (Today, Summary pages). Saved securely to Supabase kv store per admin.
+          Used by the AI features (AI Email, Appeal Builder wording, Ask Helix, Payer Updates, Reports). Kept on the server —
+          it is never shown again or sent to anyone's browser.
+        </p>
+        <p className="text-sm" style={{ marginBottom: 10 }}>
+          {keyStatus === null ? 'Checking…'
+            : keyStatus.saved ? <>🔒 A key is saved (ending <strong>…{keyStatus.ending}</strong>). Paste a new one below to replace it.</>
+            : 'No key is saved yet.'}
         </p>
         <div className="row" style={{ gap: 8 }}>
           <input
             type={showKey ? 'text' : 'password'}
             value={aiKey}
             onChange={e => setAiKey(e.target.value)}
-            placeholder="sk-ant-api03-…"
+            placeholder={keyStatus?.saved ? 'New key to replace the saved one' : 'sk-ant-api03-…'}
+            autoComplete="off"
             style={{ flex: 1, maxWidth: 420 }}
           />
           <button className="btn-sm" onClick={() => setShowKey(v => !v)}>
             {showKey ? 'Hide' : 'Show'}
           </button>
           <button className="btn-primary" onClick={saveAiKey} disabled={aiSaving || !aiKey.trim()}>
-            {aiSaving ? 'Saving…' : 'Save Key'}
+            {aiSaving ? 'Saving…' : keyStatus?.saved ? 'Replace Key' : 'Save Key'}
           </button>
-          {aiKey && (
+          {keyStatus?.saved && (
             <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={clearAiKey}>Clear</button>
           )}
         </div>

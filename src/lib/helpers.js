@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import { DEFAULT_TASKS, SHIFT_H, LEGACY_AUTH_CUTOFF, LEAVE_STATUSES, HALF_DAY_STATUSES, DEF_PROCS, DEFAULT_PROJECT, HOURLY_SLOTS_STD, HOURLY_SLOTS_DST } from './constants.js';
 import { kv } from './supabase.js';
 import { assertAiAllowed } from './companyFeatures.js';
+import { aiFetch, AI_MODEL } from './ai.js';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -372,25 +373,15 @@ export function canViewPost(post, viewerEmpId, requestRows, closeRows) {
 
 // ── AI helper ─────────────────────────────────────────────────────────────────
 
-export async function callAI(prompt, maxTokens = 1024, apiKey = null) {
+export async function callAI(prompt, maxTokens = 1024) {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
-  // Only the AI key saved in Settings — never an environment variable (VITE_ANTHROPIC_KEY held the Supabase key)
-  const key = apiKey;
-  if (!key) throw new Error('No AI key is saved in Settings — an admin can add one.');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-5',
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
+  // Stage 4: through the helix-ai server function — the company's key stays on the server
+  let res;
+  try {
+    res = await aiFetch({ model: AI_MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] });
+  } catch (err) {
+    throw err.message === 'NO_KEY' ? new Error('No AI key is saved in Settings — an admin can add one.') : err;
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message ?? `Anthropic API error ${res.status}`);

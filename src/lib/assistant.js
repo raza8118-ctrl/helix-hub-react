@@ -3,8 +3,9 @@
 // question is de-identified locally before it is sent (patient words block sending; dates / numbers / IDs / phones /
 // emails become placeholders). The reference data holds no patient information. Nothing is saved; usage is logged
 // with counts only. Browser call with the Settings key, same as 5.3 / 8.1.
-import { db, kv } from './supabase';
+import { db } from './supabase';
 import { assertAiAllowed } from './companyFeatures';
+import { aiFetch } from './ai';
 import { logAudit } from './audit';
 import { loadStepContext, loadDenialSteps } from './denialSteps';
 import { loadDenialCodes, normCode, typeOf } from './denials';
@@ -340,18 +341,12 @@ values — work without them and never ask for patient details.
 Write for busy staff: lead with the answer in one or two sentences, then short bullet points or numbered steps. No
 headings.`;
 
-async function callClaude(key, system, messages, format) {
+async function callClaude(system, messages, format) {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01',
-      'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: MODEL, max_tokens: 16000, system, tools: TOOLS, tool_choice: { type: 'auto' }, messages,
-      output_config: { effort: 'medium', ...(format ? { format } : {}) }, fallbacks: 'default',
-    }),
+  // Stage 4: through the helix-ai server function — the key stays on the server (NO_KEY thrown when none is saved)
+  const res = await aiFetch({
+    model: MODEL, max_tokens: 16000, system, tools: TOOLS, tool_choice: { type: 'auto' }, messages,
+    output_config: { effort: 'medium', ...(format ? { format } : {}) }, fallbacks: 'default',
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -368,14 +363,12 @@ async function callClaude(key, system, messages, format) {
  * returned). format = optional json_schema for the final answer. Returns { text, sources, actions, messages, lookups }.
  */
 export async function converse({ system, messages: history, format = null, knowledge, onLookup }) {
-  const key = await kv.get('anthropic_key');
-  if (!key) throw new Error('NO_KEY');
   const messages = [...history];
   const sources = new Map();
   const actions = new Map();
   let lookups = 0;
   for (let round = 0; round < MAX_LOOKUPS + 2; round++) {
-    const json = await callClaude(key, system, messages, format);
+    const json = await callClaude(system, messages, format);
     messages.push({ role: 'assistant', content: json.content });
     if (json.stop_reason === 'refusal') throw new Error('The AI declined to answer this question.');
     if (json.stop_reason === 'max_tokens') throw new Error('The answer was cut off — please ask a narrower question.');

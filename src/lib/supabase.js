@@ -3,11 +3,10 @@ import { applyCompanyBuiltins, setCompanyProcessNames } from './constants';
 
 // The Supabase anon key used to live in the misnamed VITE_ANTHROPIC_KEY — still read as a fallback so existing
 // deployments keep working until VITE_SUPABASE_ANON_KEY is set (2026-10-29).
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_ANTHROPIC_KEY,
-  { db: { schema: 'rcm' }, global: { fetch: fetchWithSession } }
-);
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_PUBLIC_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_ANTHROPIC_KEY;
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, { db: { schema: 'rcm' }, global: { fetch: fetchWithSession } });
 
 // ── Signed-in session (security stage 2) ─────────────────────────────────────
 // Sign-in returns a 12-hour session key; it is sent with every database call (header x-helix-session) so the

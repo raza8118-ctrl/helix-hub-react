@@ -1,9 +1,10 @@
 // Reports (roadmap 10.2): denial trends by payer / client / week / code from Smart Worklist claims with a denial date,
 // and a weekly client report pulled from the worklist, follow-ups, client queries, escalations, Medicare trackers and
 // payer updates. Read-only; exports and the optional AI summary carry counts / names only — never claim numbers.
-import { db, kv } from './supabase';
+import { db } from './supabase';
 import { logAudit } from './audit';
 import { assertAiAllowed } from './companyFeatures';
+import { aiFetch, AI_MODEL } from './ai';
 import { hasAccess } from './access';
 import { addDays, today } from './helpers';
 import { daysBetween } from './deadlines';
@@ -197,22 +198,14 @@ export function weeklyEmail(s, { clientName, from, to }) {
 /** ✨ Optional 3–4 sentence summary written by Claude from the numbers only. */
 export async function aiWeeklySummary(s, clientName, user) {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
-  const key = await kv.get('anthropic_key');
-  if (!key) throw new Error('NO_KEY');
   let ok = false;
   try {
     const numbers = { ...s, payerChanges: (s.payerChanges ?? []).map(c => ({ payer: c.payer, effective: c.effective, change: c.change })) };
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01',
-        'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-5-5', max_tokens: 4000, output_config: { effort: 'low' }, fallbacks: 'default',
+    // Stage 4: through the helix-ai server function — the key stays on the server (NO_KEY thrown when none is saved)
+    const res = await aiFetch({
+        model: AI_MODEL, max_tokens: 4000, output_config: { effort: 'low' }, fallbacks: 'default',
         system: 'You write the opening paragraph of a weekly status email from a medical billing company to its client (a home health / hospice agency). Use only the numbers given. 3–4 plain sentences, friendly and factual; mention what needs the client’s attention (questions waiting on them, ADRs due). No headings, no bullet points, no greetings or sign-off.',
         messages: [{ role: 'user', content: `Client: ${clientName}\nWeek numbers (JSON):\n${JSON.stringify(numbers)}` }],
-      }),
     });
     if (!res.ok) throw new Error(res.status === 401 ? 'The AI key in Settings was rejected.' : res.status === 429 ? 'The AI service is busy — try again in a minute.' : `AI request failed (${res.status}).`);
     const json = await res.json();

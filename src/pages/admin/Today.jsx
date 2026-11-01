@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { S, kv } from '../../lib/supabase';
+import { S } from '../../lib/supabase';
 import { loadCompany } from '../../lib/company';
 import { today, fmtD, pCol, avg, dlCSV, callAI, procIncludes, logMatchesProc, getPinned, togglePinned, scopeToSupervisor, isOnLeave, permsFor } from '../../lib/helpers';
 import { ACCESSES } from '../../lib/constants';
@@ -113,7 +113,7 @@ export default function Today({ user }) {
     setEmailLoading(true);
     setEmailBody('');
     try {
-      const [apiKey, company] = await Promise.all([kv.get('anthropic_key'), loadCompany()]);
+      const company = await loadCompany();
       const text = await callAI(
         `Write a professional daily performance summary email for an RCM team at ${company.name}.
 Date: ${fmtD(date)} | Process: ${filterProc}
@@ -122,8 +122,7 @@ Avg Productivity: ${avgProd != null ? avgProd.toFixed(1) + '%' : 'N/A'}
 Avg Quality: ${avgQuality != null ? avgQuality.toFixed(1) + '%' : 'N/A'}
 ${holiday ? `Holiday: ${holiday.note}` : ''}
 Write a concise professional email (150-200 words) from the RCM Operations Manager. Include subject line, highlights, and encouraging closing.`,
-        1024,
-        apiKey
+        1024
       );
       setEmailBody(text);
     } catch (err) {

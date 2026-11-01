@@ -2,9 +2,10 @@
 // facts only (contacts, payer IDs, base filing / appeal limits, notes) with the quoted evidence; the browser matches
 // the payer and compares with the current directory (add vs change, identical dropped). Nothing reaches the directory
 // until someone with “Edit Payer Directory” approves it — then it is written like a normal payer-card edit (history).
-import { supabase, db, S, kv } from './supabase';
+import { supabase, db, S } from './supabase';
 import { logAudit } from './audit';
 import { assertAiAllowed } from './companyFeatures';
+import { aiFetch } from './ai';
 import { hasAccess } from './access';
 import { matchPayerName } from './worklist';
 import { DEPARTMENTS, TRANSACTIONS, LIMIT_TYPES, MEASURED_FROM, NOTE_CATEGORIES, labelOf } from './payerOptions';
@@ -111,25 +112,17 @@ const toBase64 = blob => new Promise((resolve, reject) => {
 
 async function askClaude(pdf) {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
-  const key = await kv.get('anthropic_key');
-  if (!key) throw new Error('NO_KEY');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01',
-      'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 16000,
-      system: SYSTEM,
-      messages: [{ role: 'user', content: [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: await toBase64(pdf) } },
-        { type: 'text', text: 'List the Payer Directory facts in this bulletin.' },
-      ] }],
-      output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
-      fallbacks: 'default',
-    }),
+  // Stage 4: through the helix-ai server function — the key stays on the server (NO_KEY thrown when none is saved)
+  const res = await aiFetch({
+    model: MODEL,
+    max_tokens: 16000,
+    system: SYSTEM,
+    messages: [{ role: 'user', content: [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: await toBase64(pdf) } },
+      { type: 'text', text: 'List the Payer Directory facts in this bulletin.' },
+    ] }],
+    output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
+    fallbacks: 'default',
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

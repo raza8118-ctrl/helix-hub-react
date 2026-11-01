@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { S, kv } from '../../lib/supabase';
+import { S } from '../../lib/supabase';
 import { loadCompany } from '../../lib/company';
 import { today, fmtD, fmtSh, addDays, getMon, wDays, mDays, avg, pCol, dlCSV, callAI, procIncludes, logMatchesProc, scopeToSupervisor } from '../../lib/helpers';
 import { MONTHS, ACCESSES } from '../../lib/constants';
@@ -219,7 +219,7 @@ export default function Summary({ user, defaultMode = 'weekly' }) {
     setEmailLoading(true);
     setEmailBody('');
     try {
-      const [apiKey, company] = await Promise.all([kv.get('anthropic_key'), loadCompany()]);
+      const company = await loadCompany();
       const top = rankings[0];
       const text = await callAI(
         `Write a professional ${mode} performance summary email for an RCM team at ${company.name}.
@@ -229,8 +229,7 @@ Avg Quality: ${kpiAvgQ != null ? kpiAvgQ.toFixed(1) + '%' : 'N/A'}
 Total Volume: ${kpiTotal.toLocaleString()}
 Top Performer: ${top?.name ?? 'N/A'} — ${top?.avgProd?.toFixed(1) ?? 'N/A'}%
 Write a professional ${mode} recap email (200-250 words). Include subject line, highlights, top performers, areas for improvement.`,
-        1024,
-        apiKey
+        1024
       );
       setEmailBody(text);
     } catch (err) {
