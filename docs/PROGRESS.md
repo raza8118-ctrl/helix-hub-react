@@ -23,6 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Fix (PO request 2026-11-03) — File Tools → PDF to Excel "Clean table" — IN PROGRESS.**
+- New `src/lib/pdfReport.js`: header row → column ranges from header word positions → each item to the column it overlaps most;
+  a row starts only when the first column (e.g. Worked) has a date, other lines join the previous row (text columns with a space,
+  ID columns NPI / Provider / BNF ID / PCN / MRN with none); page junk removed (above-header lines, repeated headers, Page X of Y,
+  copyright / logo, lines repeating on most pages); section bands → "Section" column; types: dates → Excel dates, Charges →
+  numbers, IDs text. Verification panel (rows, rows/page, blank Name / BNF ID / Charges, total Charges, misfit warnings, removed lines).
+- Templates in rcm_store `pdf_templates` (headers + positions + column kinds + sections, no patient values); auto-applied when the
+  header matches; saving needs supervisor+ (stage 6), using works for all.
+- PdfToExcel.jsx: Clean table by default (in-browser reader / OCR); current views under "Advanced". `downloadReportXlsx` in
+  pdfExtract.js. Fake sample generator `scripts/make-sample-rtp-pdf.mjs` → `samples/` (gitignored). No patient data masked (PO
+  request); all in the browser; nothing logged but counts.
+
 **Security stage 6, phase 1 — rules inside a company (PO approved 2026-11-01, "Go") — DONE 2026-11-01; ON for Test Co and 3Gen.**
 Migration 43 run 2026-11-01 (change rules on 68 tables = 34 × 2, old open rule removed from them). Rolled-back test (Test Co switch
 on): employee — own report ok, others' report 0 rows, task target refused, payer 0 rows, own prefs ok, other setting refused, reads
