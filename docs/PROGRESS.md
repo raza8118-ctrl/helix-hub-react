@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-11-03) — File Tools → PDF to Excel "Clean table" — DONE (awaiting PO test with the real Waystar report).**
+**Fix (PO request 2026-11-03) — File Tools → PDF to Excel "Clean table" — DONE; PO tested with the real Waystar RTP report 2026-11-03: "works perfectly".**
 Tested with the fake report (`node scripts/make-sample-rtp-pdf.mjs` → samples/, gitignored): all 64 rows match the expected rows in every
 column (wrapped names + split PCNs joined, Section column, IDs with leading zeros); 15 page lines removed; rows per page 24/24/16;
 total Charges $298,440.70; 0 blanks; 0 misfits (first rule gave 7 false warnings on long Reason text — loosened to "centre outside the
