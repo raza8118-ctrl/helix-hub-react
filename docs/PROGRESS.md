@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Fix (PO request 2026-11-03) — File Tools → PDF to Excel "Clean table" — IN PROGRESS.**
+**Fix (PO request 2026-11-03) — File Tools → PDF to Excel "Clean table" — DONE (awaiting PO test with the real Waystar report).**
+Tested with the fake report (`node scripts/make-sample-rtp-pdf.mjs` → samples/, gitignored): all 64 rows match the expected rows in every
+column (wrapped names + split PCNs joined, Section column, IDs with leading zeros); 15 page lines removed; rows per page 24/24/16;
+total Charges $298,440.70; 0 blanks; 0 misfits (first rule gave 7 false warnings on long Reason text — loosened to "centre outside the
+column or < 35% inside"). In the app (Test Co, owner): Clean table shown by default; Excel file read back — dates are real dates
+(mm/dd/yyyy), Charges numbers ($#,##0.00), Provider / NPI / BNF ID / PCN / MRN / TOB text with leading zeros; template saved and
+auto-applied on re-upload, "Don't use it" works, test template removed (stores names, positions, kinds, sections only); Advanced
+views toggle shows the old Structured / Records / As on page views. Lint: no new errors (30 older); build passes.
 - New `src/lib/pdfReport.js`: header row → column ranges from header word positions → each item to the column it overlaps most;
   a row starts only when the first column (e.g. Worked) has a date, other lines join the previous row (text columns with a space,
   ID columns NPI / Provider / BNF ID / PCN / MRN with none); page junk removed (above-header lines, repeated headers, Page X of Y,
