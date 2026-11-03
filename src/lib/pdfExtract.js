@@ -412,3 +412,41 @@ export async function downloadStructuredXlsx(sheets, fileName) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/**
+ * "Clean table" download (pdfReport.js). Dates are real Excel dates, amounts real numbers (money format), plain
+ * numbers numbers; ID columns (NPI, BNF ID, PCN, MRN…) stay text so leading zeros and long numbers are kept.
+ * Every field is exported exactly as printed (PO request) — the file is built in the browser.
+ */
+export async function downloadReportXlsx(report, fileName, sheetName = 'Report') {
+  const XLSX = await import('xlsx');
+  const { typedValue } = await import('./pdfReport');
+  const cols = [...(report.hasSections ? [{ name: 'Section', kind: 'text' }] : []), ...report.columns];
+  const aoa = [cols.map(c => c.name), ...report.rows.map(r => [
+    ...(report.hasSections ? [r.section ?? ''] : []),
+    ...report.columns.map((c, i) => typedValue(r.cells[i], c.kind)),
+  ])];
+  const ws = XLSX.utils.aoa_to_sheet(aoa, { dateNF: 'mm/dd/yyyy' });
+  cols.forEach((c, ci) => {
+    for (let ri = 1; ri < aoa.length; ri++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: ri, c: ci })];
+      if (!cell) continue;
+      if (c.kind === 'amount' && cell.t === 'n') cell.z = '$#,##0.00';
+      if (c.kind === 'id') { cell.t = 's'; cell.v = String(cell.v); cell.z = '@'; }
+    }
+  });
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(aoa.length - 1, 1), c: cols.length - 1 } }) };
+  ws['!cols'] = cols.map((c, i) => ({
+    wch: Math.min(50, Math.max(8, c.name.length + 3, ...aoa.slice(1, 500).map(r => String(r[i] instanceof Date ? '00/00/0000' : r[i] ?? '').length + 1))),
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, (sheetName.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31)) || 'Report');
+  let data = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  try { data = styleHeaderRows(XLSX, data, 1); } catch { /* keep the plain file */ }
+  const out = /\.xlsx$/i.test(fileName) ? fileName : `${fileName || 'report'}.xlsx`;
+  const url = URL.createObjectURL(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = out;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

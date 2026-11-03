@@ -2,14 +2,127 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { readPdf, parsePageList } from '../../lib/pdfTools';
 import {
   EXTRACT_METHODS, loadMethodConfig, saveMethodConfig, methodReady, extractTables, arrangeSheets, downloadXlsx,
-  downloadStructuredXlsx,
+  downloadStructuredXlsx, downloadReportXlsx,
 } from '../../lib/pdfExtract';
 import { structure, buildView } from '../../lib/pdfStructure';
+import { buildReport, reportChecks } from '../../lib/pdfReport';
+import { loadTemplates, saveTemplate, matchTemplate } from '../../lib/pdfTemplates';
 import { logAudit } from '../../lib/audit';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { Modal, Card, Button, Badge, Tabs, Check, Field, FormActions, Notice, Table, Toolbar, EmptyState } from '../../components/ui';
 
 const PREVIEW_ROWS = 100;
+const money = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * "Clean table" (PO request 2026-11-03): one row per record, columns from the header positions, wrapped lines joined,
+ * page junk removed, section bands as a Section column. Shows every field exactly as printed (nothing masked).
+ */
+function CleanPreview({ report, templateName, onNoTemplate, canSaveTemplate, onSaveTemplate, outName, setOutName }) {
+  const checks = useMemo(() => reportChecks(report), [report]);
+  const [only, setOnly] = useState(null);           // { label, rows: Set<index> } — show just these rows
+  const [showRemoved, setShowRemoved] = useState(false);
+  const [tplName, setTplName] = useState(templateName ?? '');
+  const [tplMsg, setTplMsg] = useState(null);
+  const cols = [...(report.hasSections ? ['Section'] : []), ...report.columns.map(c => c.name)];
+  const indexes = only ? [...only.rows] : report.rows.map((_, i) => i);
+  const misfitSet = new Set(checks.misfits.map(m => m.row));
+  const removedBy = report.removed.reduce((m, r) => ({ ...m, [r.why]: (m[r.why] ?? 0) + 1 }), {});
+
+  async function saveTpl() {
+    const name = tplName.trim();
+    if (!name) return setTplMsg({ ok: false, text: 'Give the template a name, e.g. “Waystar RTP Productivity”.' });
+    const ok = await onSaveTemplate(name);
+    setTplMsg(ok ? { ok: true, text: `✓ Saved “${name}”. It will be used automatically when a PDF with these columns is uploaded.` }
+      : { ok: false, text: 'Couldn’t save the template — saving templates needs a supervisor, manager or admin.' });
+  }
+
+  return (
+    <div className="ui-stack">
+      {templateName && (
+        <Notice tone="info">
+          <span style={{ color: 'var(--text)' }}>📐 Using the saved template <strong>{templateName}</strong> for the column positions.</span>{' '}
+          <Button size="xs" variant="ghost" onClick={onNoTemplate}>Don’t use it</Button>
+        </Notice>
+      )}
+
+      {/* Verification */}
+      <div className="ui-card" style={{ margin: 0, padding: 'var(--ui-s3)' }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Check before you download</div>
+        <div className="ui-row" style={{ flexWrap: 'wrap', gap: 'var(--ui-s3)' }}>
+          <span><strong>{checks.total.toLocaleString()}</strong> rows</span>
+          <span className="ui-muted">Rows per page: {checks.perPage.map(p => `p${p.page}: ${p.count}`).join(' · ')}</span>
+          {checks.amountColumn && <span>Total {checks.amountColumn}: <strong>{money(checks.totalAmount)}</strong></span>}
+        </div>
+        <div className="ui-row" style={{ flexWrap: 'wrap', gap: 'var(--ui-s2)', marginTop: 6 }}>
+          {checks.blanks.map(b => (
+            <Button key={b.column} size="xs" variant={b.rows.length ? undefined : 'ghost'} disabled={!b.rows.length}
+              onClick={() => setOnly({ label: `Rows with a blank ${b.column}`, rows: new Set(b.rows) })}>
+              {b.rows.length ? '⚠' : '✓'} Blank {b.column}: {b.rows.length}
+            </Button>
+          ))}
+          <Button size="xs" variant={checks.misfits.length ? undefined : 'ghost'} disabled={!checks.misfits.length}
+            onClick={() => setOnly({ label: 'Rows where some text didn’t fit a column', rows: new Set(checks.misfits.map(m => m.row)) })}>
+            {checks.misfits.length ? '⚠' : '✓'} Text that didn’t fit a column: {checks.misfits.length}
+          </Button>
+          <Button size="xs" variant="ghost" onClick={() => setShowRemoved(v => !v)}>
+            🧹 Removed {report.removed.length} page line{report.removed.length === 1 ? '' : 's'} ({Object.entries(removedBy).map(([k, n]) => `${k} ${n}`).join(', ') || 'none'})
+          </Button>
+        </div>
+        {showRemoved && report.removed.length > 0 && (
+          <div style={{ maxHeight: 160, overflow: 'auto', marginTop: 6, fontSize: 12 }}>
+            {report.removed.map((r, i) => <div key={i} className="ui-muted">p{r.page} · {r.why}: {r.text}</div>)}
+          </div>
+        )}
+      </div>
+
+      {only && (
+        <Notice tone="warn">Showing {only.label.toLowerCase()} ({only.rows.size}). <Button size="xs" onClick={() => setOnly(null)}>Show all rows</Button></Notice>
+      )}
+
+      <Table dense maxHeight={460}>
+        <thead><tr><th>#</th>{cols.map(c => <th key={c} style={{ whiteSpace: 'nowrap' }}>{c}</th>)}</tr></thead>
+        <tbody>
+          {indexes.slice(0, PREVIEW_ROWS).map(i => {
+            const r = report.rows[i];
+            return (
+              <tr key={i} className={misfitSet.has(i) ? 'mark' : undefined} title={misfitSet.has(i) ? `Some text didn’t fit: ${r.misfit.join(', ')}` : undefined}>
+                <td className="ui-muted">{i + 1}</td>
+                {report.hasSections && <td style={{ whiteSpace: 'nowrap' }}>{r.section ?? ''}</td>}
+                {r.cells.map((v, c) => <td key={c} style={{ whiteSpace: 'nowrap' }}>{v}</td>)}
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+      {indexes.length > PREVIEW_ROWS && (
+        <div className="ui-muted">Showing the first {PREVIEW_ROWS} of {indexes.length.toLocaleString()} rows — the download has them all.</div>
+      )}
+
+      <Toolbar>
+        <label className="ui-label" htmlFor="xlsx-name-clean">File name</label>
+        <input id="xlsx-name-clean" type="text" value={outName} onChange={e => setOutName(e.target.value)} />
+        <Button variant="primary" disabled={!report.rows.length}
+          onClick={() => downloadReportXlsx(report, outName.trim() || 'report.xlsx')}>
+          ⬇ Download Excel
+        </Button>
+      </Toolbar>
+      <div className="ui-muted">
+        Dates download as real Excel dates and {checks.amountColumn ?? 'amounts'} as numbers; ID columns
+        ({report.columns.filter(c => c.kind === 'id').map(c => c.name).join(', ') || 'none'}) stay text so leading zeros are kept.
+      </div>
+
+      {canSaveTemplate && (
+        <Toolbar>
+          <label className="ui-label" htmlFor="tpl-name">Save these columns as a template</label>
+          <input id="tpl-name" type="text" value={tplName} placeholder="e.g. Waystar RTP Productivity" onChange={e => { setTplName(e.target.value); setTplMsg(null); }} />
+          <Button size="sm" onClick={saveTpl}>💾 Save as template</Button>
+          {tplMsg && <span style={{ color: tplMsg.ok ? 'var(--success)' : 'var(--danger)' }}>{tplMsg.text}</span>}
+        </Toolbar>
+      )}
+    </div>
+  );
+}
 
 /** Admin-only pop-up to switch a service method on (B / C / D). */
 function MethodSetup({ method, config, user, onClose, onSaved }) {
@@ -270,9 +383,14 @@ export default function PdfToExcel({ user }) {
   const [outName, setOutName] = useState('');
   const [tab, setTab]         = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [advanced, setAdvanced] = useState(false);     // Clean table (default) or the older views
+  const [templates, setTemplates] = useState([]);
+  const [noTemplate, setNoTemplate] = useState(false); // "Don't use it" for the matched template
   const control = useRef(null);   // { cancelled, onCancel } while an extraction runs
+  const canSaveTemplate = ['admin', 'manager', 'supervisor'].includes(user.role) || !!user.isOwner;
 
   useEffect(() => { loadMethodConfig().then(setConfig).catch(() => {}); }, []);
+  useEffect(() => { loadTemplates().then(setTemplates).catch(() => {}); }, []);
 
   const chosen = EXTRACT_METHODS.find(m => m.id === method);
   const chosenReady = chosen && methodReady(chosen, config);
@@ -315,13 +433,16 @@ export default function PdfToExcel({ user }) {
       });
       let structured = null;
       try { structured = structure(out.pages); } catch { /* “As on page” still works */ }
-      setResult({ key: runKey, pages: out.pages, method, structured });
-      setLayout(null); setEdits({}); setFilter('');
+      let clean = null;   // Clean table needs word positions (in-browser reader / OCR)
+      try { if (out.pages.some(p => p.pieces?.length)) clean = buildReport(out.pages); } catch { /* the older views still work */ }
+      setResult({ key: runKey, pages: out.pages, method, structured, clean });
+      setLayout(null); setEdits({}); setFilter(''); setNoTemplate(false); setAdvanced(!clean);
       logAudit({
         actor: user, action: 'pdf_to_excel', entityType: 'file_tool',
         details: {
           method: chosen.label, pages: out.pages.length, layout_detected: structured?.auto ?? 'raw',
           rows: out.pages.reduce((s, p) => s + p.rows.length, 0),
+          clean_rows: clean?.rows.length ?? null,
           ocr_pages: out.pages.filter(p => p.ocr).length,
           scanned_pages: out.pages.filter(p => p.scanned).length,
         },
@@ -370,6 +491,22 @@ export default function PdfToExcel({ user }) {
   const layoutKey = `${layoutNow}`;
   const tableEdits = edits[layoutKey] ?? {};
   const setTableEdit = (i, patch) => setEdits(e => ({ ...e, [layoutKey]: { ...e[layoutKey], [i]: { ...e[layoutKey]?.[i], ...patch } } }));
+  // Clean table: with the saved template whose headers match, unless the user said not to use it
+  const matched = current?.clean && !noTemplate ? matchTemplate(templates, current.clean) : null;
+  const cleanReport = useMemo(() => {
+    if (!current?.clean) return null;
+    if (!matched) return current.clean;
+    try { return buildReport(current.pages, matched) ?? current.clean; } catch { return current.clean; }
+  }, [current, matched]);
+  async function saveCleanTemplate(name) {
+    const next = await saveTemplate(name, cleanReport, user, templates);
+    if (!next) return false;
+    setTemplates(next);
+    setNoTemplate(false);
+    logAudit({ actor: user, action: 'pdf_template_save', entityType: 'file_tool', details: { columns: cleanReport.columns.length } });
+    return true;
+  }
+
   const LAYOUTS = [
     { id: 'table', label: 'Structured table', hint: 'Aging, denial and claim reports', ok: !!st?.table.length },
     { id: 'records', label: 'Records (Label: value)', hint: 'EOBs, remits, letters — one row per claim / patient', ok: !!st?.records.length },
@@ -458,9 +595,28 @@ export default function PdfToExcel({ user }) {
 
       {problem && <Notice tone="bad">⚠ {problem}</Notice>}
 
-      {current && (
-        <Card title="Preview">
+      {current && cleanReport && (
+        <Card title="Clean table">
           <div className="ui-stack">
+            <Toolbar>
+              <span className="ui-muted">One row per record, built from the column headers — page headings, repeated headers and page numbers removed.</span>
+              <Button size="xs" variant="ghost" onClick={() => setAdvanced(v => !v)}>{advanced ? 'Hide advanced views' : 'Advanced views…'}</Button>
+            </Toolbar>
+            {!advanced && (
+              <CleanPreview key={`${current.key}|${matched?.name ?? ''}`} report={cleanReport} templateName={matched?.name ?? null}
+                onNoTemplate={() => setNoTemplate(true)} canSaveTemplate={canSaveTemplate} onSaveTemplate={saveCleanTemplate}
+                outName={outName} setOutName={setOutName} />
+            )}
+          </div>
+        </Card>
+      )}
+
+      {current && (!cleanReport || advanced) && (
+        <Card title={cleanReport ? 'Advanced views' : 'Preview'}>
+          <div className="ui-stack">
+            {!cleanReport && current.pages.some(p => p.pieces?.length) && (
+              <Notice tone="neutral">No column header row was found, so the Clean table isn’t available for this PDF.</Notice>
+            )}
             {detected && (
               <Notice tone="info">
                 <span style={{ color: 'var(--text)' }}>
