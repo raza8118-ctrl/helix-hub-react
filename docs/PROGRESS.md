@@ -23,6 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Smoke test, login → every page (PO request 2026-11-04) — DONE.**
+Demo data loaded in Test Co (removed after). Login: unknown company → clear message; company by name and by code; wrong password →
+"Invalid Employee ID or password."; lowercase ID accepted; session created, no password in the browser; sign-out ends the session.
+Employee DEMO-03: Daily Report save ✓; all 21 pages open, 0 failed requests. Supervisor DEMO-09: all 25 pages, 0 failed requests;
+profile save ✓ (name changed in DB). Admin (owner → Test Co): all 30 pages ✓. 3Gen (owner): all 29 pages ✓, 0 failed requests.
+Fixed: Weekly / Monthly charts logged React duplicate-key warnings (value-mode grid rounded small maximums to the same line, e.g.
+0,1,1,2,2) → BarChart / LineChart drop repeated grid values; 0 warnings after. Cosmetic, not fixed: the profile window closes before
+its "Profile saved!" text can be seen.
+
 **Import: payer starter file, Claim.MD payer list, denial guides (PO request 2026-11-04, "Go") — DONE 2026-11-04 (Test Co + 3Gen; Claim.MD list still to download).**
 3Gen (2026-11-04, PO "Import into 3Gen"): Starter file → 12 payers, 9 IDs, 25 contacts, 25 limits, 28 notes (directory was empty);
 ⚠ 9; CGS verified shows 11/4/2026. Denial Guides → all 16 skipped: 3Gen already has Common 3Gen steps for all 16 codes — the app's
