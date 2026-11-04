@@ -406,7 +406,10 @@ export async function readStarterWorkbook(file) {
     for (const [k, label, fallbackType] of [['tfl', 'TFL', 'TFL'], ['cctfl', 'CCTFL', 'CCTFL'], ['afl', 'AFL / reconsideration', 'AFL']]) {
       const text = get(k);
       if (!text) continue;
-      const days = limitDays(text);
+      // "VERIFY (… usually 95 days)" is a to-do, not a limit — keep it as a note. In the appeal column, read the days that
+      // follow the appeal word ("…resubmit within 90 days… Appeals: 180 days" → 180)
+      const kw = k === 'afl' ? text.search(/appeal|reconsideration|redetermination|dispute/i) : -1;
+      const days = /^\s*verify\b/i.test(text) ? null : limitDays(kw > 0 ? text.slice(kw) : text) ?? (kw > 0 ? null : limitDays(text));
       const type = k === 'afl' && /reconsideration/i.test(text) && !/appeal|redetermination|dispute/i.test(text) ? 'RECON' : fallbackType;
       if (days) parsed.limits.push({ rowNum, values: { payer: name, limit_type: type, days: String(days), measured_from: limitFrom(text), notes: text, ...ver } });
       else note(`${label}: ${text}`, k === 'afl' ? 'Appeals' : 'Claims');
