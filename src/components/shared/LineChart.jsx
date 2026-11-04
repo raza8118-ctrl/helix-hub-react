@@ -71,7 +71,7 @@ export default function LineChart({ data = [], height = 200, color = 'var(--acce
     + ` L${pts[0][0].toFixed(1)},${(PAD_T + plotH).toFixed(1)} Z`;
 
   const GRID   = mode === 'value'
-    ? [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxV * f))
+    ? [...new Set([0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxV * f)))]   // small maximums round to the same line
     : [0, 25, 50, 75, 100];
   const safeId = (color + label).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 32);
   const avgV   = items.reduce((s, d) => s + d.v, 0) / items.length;

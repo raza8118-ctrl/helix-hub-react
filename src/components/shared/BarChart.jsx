@@ -80,7 +80,7 @@ export default function BarChart({ data = [], height = 220, showLine = false, ti
   const barW = Math.min(Math.max(slot - gap, 24), 70);
 
   const GRID = mode === 'value'
-    ? [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(scaleMax * f))
+    ? [...new Set([0, 0.25, 0.5, 0.75, 1].map(f => Math.round(scaleMax * f)))]   // small maximums round to the same line
     : [0, 25, 50, 75, 100];
   const avg  = items.reduce((s, d) => s + d.prod, 0) / items.length;
 
