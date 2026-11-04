@@ -1,6 +1,6 @@
 // Denial steps Excel template / import / export (roadmap 4.3). Runs in the browser; no PHI belongs in these sheets.
 // Import never deletes and blank cells never erase: "skip" leaves existing entries alone, "replace" updates them.
-import { S } from './supabase';
+import { S, db } from './supabase';
 import { logAudit } from './audit';
 import { CODE_TYPES, normCode, typeOf } from './denials';
 import { layerEntry } from './denialSteps';
@@ -139,4 +139,106 @@ export async function exportSteps({ codes, steps, clients, payers, sops }) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Denial steps');
   XLSX.writeFile(wb, `denial-steps-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+// ── Helix_Denial_Guides.xlsx (PO request 2026-11-04) → "Common 3Gen steps" layer only ─────────────────────────
+// Each guide row names its codes ("CO-197 / PR-197", "CO-B9") and has plain-English sections. Codes missing from the
+// library are added; an existing code's plain-English reason is filled only when it has none; a code that already has
+// Common 3Gen steps is skipped. Never client SOPs, never an overwrite.
+
+const GUIDE_SECTIONS = [
+  ['causes', /common.*causes/i, 'Common causes'],
+  ['check', /check before/i, 'Check before calling'],
+  ['questions', /questions/i, 'Questions to ask the payer rep'],
+  ['next', /next action/i, 'Next action by outcome'],
+  ['prevent', /prevent/i, 'How to prevent it'],
+  ['note', /claim note/i, 'Claim note template'],
+];
+const GROUP_CODE_RE = /\b(?:CO|PR|OA|PI|CR)-([A-Z]?\d{1,3})\b/gi;
+
+// "1) Search … 2) Check …" → one numbered line each
+const asLines = text => {
+  const t = (text ?? '').toString().trim();
+  if (!/(^|\s)1\)\s/.test(t)) return t;
+  return t.split(/\s*(?=(?:^|\s)\d{1,2}\)\s)/).map(x => x.trim().replace(/^(\d{1,2})\)\s*/, '$1. ')).filter(Boolean).join('\n');
+};
+
+/** → { guides: [{ line, codes: [code], reason, steps, notes }] } or null when the file isn't a Denial Guides file. */
+export async function readDenialGuides(file) {
+  const XLSX = await import('xlsx');
+  const wb = XLSX.read(await file.arrayBuffer());
+  const name = wb.SheetNames.find(s => s.trim().toLowerCase() === 'denial guides');
+  if (!name) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false });
+  const hi = grid.findIndex(r => r.some(c => /^code\(s\)$|^codes?$/i.test(String(c).trim())));
+  if (hi < 0) return { error: 'The “Denial Guides” sheet has no “Code(s)” column.' };
+  const head = grid[hi].map(h => String(h).trim());
+  const col = re => head.findIndex(h => re.test(h));
+  const C = { codes: col(/^code/i), name: col(/denial name/i), means: col(/what it means/i), tools: col(/related tools/i) };
+  const sections = GUIDE_SECTIONS.map(([key, re, label]) => ({ key, label, i: col(re) })).filter(x => x.i >= 0);
+  const guides = [];
+  grid.slice(hi + 1).forEach((r, k) => {
+    const cell = i => (i >= 0 ? String(r[i] ?? '').trim() : '');
+    const codesText = cell(C.codes);
+    if (!codesText) return;
+    const codes = [...new Set([...codesText.matchAll(GROUP_CODE_RE)].map(m => m[1].toUpperCase()))];
+    const nameText = cell(C.name);
+    const means = cell(C.means);
+    const steps = sections.map(s => (cell(s.i) ? `${s.label}:\n${asLines(cell(s.i))}` : null)).filter(Boolean).join('\n\n');
+    guides.push({
+      line: hi + k + 2, codesText, codes,
+      reason: [nameText, means].filter(Boolean).join(': ') || null,
+      steps, notes: cell(C.tools) ? `Related tools: ${cell(C.tools)}` : null,
+    });
+  });
+  return { guides };
+}
+
+/**
+ * → { newCodes: [{ code, reason }], fillReasons: [{ codeId, reason }], add: [{ code, steps, notes }], skipped: [{ line, code, why }],
+ *     errors: [{ line, message }] } — nothing is saved here.
+ */
+export function planDenialGuides(guides, { codes, steps }) {
+  const out = { newCodes: [], fillReasons: [], add: [], skipped: [], errors: [] };
+  const seen = new Set();
+  for (const g of guides) {
+    if (!g.codes.length) { out.errors.push({ line: g.line, message: `No CO-/PR- code found in “${g.codesText}”.` }); continue; }
+    if (!g.steps) { out.errors.push({ line: g.line, message: 'The guide has no steps.' }); continue; }
+    for (const code of g.codes) {
+      if (seen.has(code)) { out.skipped.push({ line: g.line, code, why: 'listed twice in the file' }); continue; }
+      seen.add(code);
+      const existing = codes.find(c => c.code_type === 'carc' && normCode(c.code) === normCode(code));
+      if (!existing) out.newCodes.push({ code, reason: g.reason });
+      else if (!txt(existing.plain_reason) && g.reason) out.fillReasons.push({ codeId: existing.id, code, reason: g.reason });
+      if (existing && layerEntry(steps, existing.id, 'common')) { out.skipped.push({ line: g.line, code, why: 'already has Common 3Gen steps' }); continue; }
+      out.add.push({ code, steps: g.steps, notes: g.notes });
+    }
+  }
+  return out;
+}
+
+/** Saves the plan: new codes, empty reasons filled, new Common 3Gen steps (unverified). Nothing is deleted or replaced. */
+export async function applyDenialGuides(plan, user) {
+  const stamp = { created_by: user.emp_id, updated_by: user.emp_id };
+  const codeIds = new Map();
+  let addedCodes = 0;
+  if (plan.newCodes.length) {
+    const rows = await S.set('denial_codes', plan.newCodes.map(c => ({
+      code_type: 'carc', code: c.code, plain_reason: c.reason, source: 'Helix Denial Guides', notes: 'Added from the Helix Denial Guides file', active: true, ...stamp,
+    })));
+    (rows ?? []).forEach(r => codeIds.set(normCode(r.code), r.id));
+    addedCodes = rows?.length ?? 0;
+  }
+  let reasons = 0;
+  for (const f of plan.fillReasons) {
+    if (await S.update('denial_codes', { plain_reason: f.reason, updated_by: user.emp_id, updated_at: new Date().toISOString() }, { id: f.codeId })) reasons++;
+  }
+  const { data: all } = await db('denial_codes').select('id,code,code_type').eq('code_type', 'carc');
+  (all ?? []).forEach(c => { if (!codeIds.has(normCode(c.code))) codeIds.set(normCode(c.code), c.id); });
+  const rows = plan.add.map(a => ({ code_id: codeIds.get(normCode(a.code)), scope: 'common', client_id: null, payer_id: null, steps: a.steps, notes: a.notes, active: true, ...stamp }))
+    .filter(r => r.code_id);
+  const saved = rows.length ? await S.set('denial_steps', rows) : [];
+  const result = { codes: addedCodes, reasons, steps: saved?.length ?? 0, skipped: plan.skipped.length };
+  logAudit({ actor: user, action: 'denial_guides_import', entityType: 'denial_step', details: result });
+  return result;
 }

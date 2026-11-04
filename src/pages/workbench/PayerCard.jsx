@@ -469,6 +469,24 @@ export default function PayerCard({ payer, user, onClose }) {
           </div>
         )}
         {payer.notes && <div className="ui-kv-v">{payer.notes}</div>}
+        {(payer.source || payer.source_links || payer.verification_note) && (
+          <div className="ui-small">
+            {payer.verified_at
+              ? <span className="ui-text-good">✓ Verified {new Date(payer.verified_at).toLocaleDateString('en-US')}</span>
+              : <span style={{ color: 'var(--warning)' }}>⚠ Needs verification{payer.verification_note ? ` — ${payer.verification_note}` : ''}</span>}
+            {payer.source && <span className="ui-muted"> · Source: {payer.source}</span>}
+            {payer.source_links && (
+              <div className="ui-muted" style={{ marginTop: 2, wordBreak: 'break-all' }}>
+                Source links:{' '}
+                {payer.source_links.split(/\s*;\s*|\s+(?=https?:)/).filter(Boolean).map((l, i) => (
+                  /^https?:\/\//i.test(l)
+                    ? <a key={i} href={l} target="_blank" rel="noopener noreferrer" style={{ marginRight: 8 }}>{l.replace(/^https?:\/\/(www\.)?/i, '').slice(0, 60)}</a>
+                    : <span key={i} style={{ marginRight: 8 }}>{l}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {clients.length > 0 && !tablesMissing && (
           <Toolbar>

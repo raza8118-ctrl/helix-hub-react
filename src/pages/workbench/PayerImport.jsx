@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
-import { SHEETS, downloadTemplate, readWorkbook, planImport } from '../../lib/payerImport';
+import { SHEETS, downloadTemplate, readWorkbook, planImport, detectPayerFile, readStarterWorkbook, readClaimMdWorkbook } from '../../lib/payerImport';
 import { DEPARTMENTS, LIMIT_TYPES, labelOf } from '../../lib/payerOptions';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { Card, Button, Badge, Notice, Check, FormActions, Table, Toolbar, ToolbarSpacer, Modal } from '../../components/ui';
@@ -35,15 +35,29 @@ function forInsert(data) {
 // Blank cells in the file leave the existing value unchanged
 const definedOnly = data => Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
 
-async function insertChunks(table, rows) {
+async function insertChunks(table, rows, onProgress) {
   const saved = [];
   for (let i = 0; i < rows.length; i += CHUNK) {
     const res = await S.set(table, rows.slice(i, i + CHUNK));
     if (!res) throw new Error(table);
     saved.push(...res);
+    if (rows.length > CHUNK) onProgress?.(saved.length, rows.length);
   }
   return saved;
 }
+
+// Starter file / Claim.MD list (PO request 2026-11-04): new payers only — existing payers are left exactly as they are
+const KINDS = {
+  template: { label: 'Helix import template', note: null },
+  starter: {
+    label: 'Payer Directory Starter file',
+    note: 'Only payers not already in the directory are added (matched by name or alias) — existing payers and their details are left exactly as they are. Payers not marked “Yes” in “Verified from official source?” show the ⚠ needs-verification flag; source links and the verification note are saved on the payer. Text that can’t become a field (e.g. “VERIFY”) is kept as a payer note.',
+  },
+  claimmd: {
+    label: 'Claim.MD payer list',
+    note: 'Only payers not already in the directory are added (matched by name or alias), with their alternate names as aliases and their payer IDs (clearinghouse “Claim.MD”). They are marked source “Claim.MD”, not verified (⚠ flag). Existing payers are not changed.',
+  },
+};
 
 /**
  * Bulk-load the Payer Directory from the Excel template (roadmap 1.7).
@@ -59,6 +73,9 @@ export default function PayerImport({ user, onClose, onImported }) {
   const [choices, setChoices]   = useState({});         // 'sheet:row' → 'keep' | 'replace'
   const [markVerified, setMarkVerified] = useState(false);
   const [result, setResult]     = useState(null);
+  const [kind, setKind]         = useState('template');  // template | starter | claimmd
+  const [progress, setProgress] = useState('');
+  const newOnly = kind !== 'template';
 
   async function pickFile(file) {
     if (!file) return;
@@ -70,12 +87,23 @@ export default function PayerImport({ user, onClose, onImported }) {
         setError('The Payer Directory tables aren’t set up yet. An admin needs to run the database updates first.');
         return;
       }
-      const parsed = await readWorkbook(file);
-      if (!Object.keys(parsed).length) {
-        setError('No template tabs were found. Use “Download template” and keep the tab names (Payers, Plans, Payer IDs, Contacts, Limits, Notes).');
-        return;
+      const fileKind = await detectPayerFile(file);
+      let parsed;
+      if (fileKind === 'template') {
+        parsed = await readWorkbook(file);
+        if (!Object.keys(parsed).length) {
+          setError('No template tabs were found. Use “Download template” and keep the tab names (Payers, Plans, Payer IDs, Contacts, Limits, Notes).');
+          return;
+        }
+      } else {
+        const res = fileKind === 'starter' ? await readStarterWorkbook(file) : await readClaimMdWorkbook(file);
+        if (res.error) { setError(res.error); return; }
+        parsed = res.parsed;
       }
-      setPlan(planImport(parsed, { payers, plans, ids, contacts, limits, notes, clients }));
+      setKind(fileKind);
+      setPlan(planImport(parsed, { payers, plans, ids, contacts, limits, notes, clients },
+        fileKind === 'template' ? {} : { matchAliases: true, newPayersOnly: true }));
+      setMatchMode('skip');
       setChoices({});
       setStep('preview');
     } catch {
@@ -86,7 +114,7 @@ export default function PayerImport({ user, onClose, onImported }) {
   }
 
   const keyOf = (sheetKey, m) => `${sheetKey}:${m.rowNum}`;
-  const isReplace = (sheetKey, m) => matchMode === 'review' && choices[keyOf(sheetKey, m)] === 'replace';
+  const isReplace = (sheetKey, m) => !newOnly && matchMode === 'review' && choices[keyOf(sheetKey, m)] === 'replace';
   const totals = plan && SHEETS.reduce((t, s) => {
     const p = plan[s.key];
     t.add += p.newRows.length;
@@ -115,7 +143,8 @@ export default function PayerImport({ user, onClose, onImported }) {
     setBusy(true); setError('');
     const now = new Date().toISOString();
     const stamps = { updated_by: user.emp_id, updated_at: now };
-    const verify = markVerified ? { verified_at: now, verified_by: user.emp_id } : {};
+    const verify = markVerified && !newOnly ? { verified_at: now, verified_by: user.emp_id } : {};
+    const say = label => (done, total) => setProgress(`Saving ${label}… ${done.toLocaleString()} of ${total.toLocaleString()}`);
     const counts = Object.fromEntries(SHEETS.map(s => [s.key, { added: 0, replaced: 0, unchanged: 0, problems: plan[s.key].errors.length }]));
     let failedAt = null;
 
@@ -125,7 +154,7 @@ export default function PayerImport({ user, onClose, onImported }) {
       const pp = plan.payers;
       const savedPayers = await insertChunks('payers', pp.newRows.map(r => ({
         ...forInsert(r.data), active: true, created_by: user.emp_id, ...stamps,
-      })));
+      })), say('payers'));
       savedPayers.forEach(p => newPayerId.set(n(p.name), p.id));
       counts.payers.added = savedPayers.length;
       for (const m of pp.matches) {
@@ -161,7 +190,7 @@ export default function PayerImport({ user, onClose, onImported }) {
             ...(s.key === 'limits' ? { client_id: r.clientId } : {}),
             active: true, created_by: user.emp_id, ...stamps, ...verify,
           };
-        }));
+        }), say(s.label.toLowerCase()));
         counts[s.key].added = saved.length;
         for (const m of p.matches) {
           if (!isReplace(s.key, m)) { counts[s.key].unchanged++; continue; }
@@ -175,8 +204,9 @@ export default function PayerImport({ user, onClose, onImported }) {
 
     logAudit({
       actor: user, action: 'import_payer_data', entityType: 'payer_import',
-      details: { ...Object.fromEntries(SHEETS.map(s => [s.key, counts[s.key]])), ...(failedAt ? { stopped_at: failedAt } : {}) },
+      details: { file: kind, ...Object.fromEntries(SHEETS.map(s => [s.key, counts[s.key]])), ...(failedAt ? { stopped_at: failedAt } : {}) },
     });
+    setProgress('');
     setResult({ counts, failedAt });
     setBusy(false);
     setStep('done');
@@ -191,6 +221,10 @@ export default function PayerImport({ user, onClose, onImported }) {
             1. Download the template and fill in the tabs you need (Payers, Plans, Payer IDs, Contacts, Limits, Notes).<br />
             2. Upload it here. You’ll see a preview — nothing is saved until you confirm.
           </p>
+          <div className="ui-muted">
+            Also accepted (recognised automatically): the <strong>Payer Directory Starter</strong> file (sheet “Payers”) and the
+            {' '}<strong>Claim.MD payer list</strong> download — both add new payers only and never change existing ones.
+          </div>
           <Notice tone="warn">
             ⚠ Payer information only — never put patient names, member IDs or claim details in the file.
           </Notice>
@@ -208,16 +242,23 @@ export default function PayerImport({ user, onClose, onImported }) {
 
       {step === 'preview' && plan && (
         <div className="ui-stack">
+          {newOnly && (
+            <Notice tone="info">
+              <span style={{ color: 'var(--text)' }}><strong>{KINDS[kind].label}</strong> — {KINDS[kind].note}</span>
+            </Notice>
+          )}
           <Table dense>
             <thead>
-              <tr><th>Tab</th><th className="num">New</th><th className="num">Already exist</th><th className="num">Problems</th></tr>
+              <tr><th>Tab</th><th className="num">New</th><th className="num">Already exist</th>
+                {newOnly && <th className="num">Skipped (payer already in directory)</th>}<th className="num">Problems</th></tr>
             </thead>
             <tbody>
-              {SHEETS.map(s => (
+              {SHEETS.filter(s => !newOnly || plan[s.key].newRows.length + plan[s.key].matches.length + plan[s.key].errors.length + plan[s.key].skippedExisting > 0).map(s => (
                 <tr key={s.key}>
                   <td>{s.label}</td>
-                  <td className="num">{plan[s.key].newRows.length}</td>
-                  <td className="num">{plan[s.key].matches.length}</td>
+                  <td className="num">{plan[s.key].newRows.length.toLocaleString()}</td>
+                  <td className="num">{plan[s.key].matches.length.toLocaleString()}</td>
+                  {newOnly && <td className="num">{s.key === 'payers' ? '—' : plan[s.key].skippedExisting.toLocaleString()}</td>}
                   <td className={`num${plan[s.key].errors.length ? ' ui-text-bad' : ''}`}>{plan[s.key].errors.length}</td>
                 </tr>
               ))}
@@ -237,7 +278,11 @@ export default function PayerImport({ user, onClose, onImported }) {
             </details>
           )}
 
-          {totals.matches > 0 && (
+          {totals.matches > 0 && newOnly && (
+            <div className="ui-muted">{plan.payers.matches.length.toLocaleString()} payer{plan.payers.matches.length === 1 ? ' is' : 's are'} already in the directory and will be left exactly as {plan.payers.matches.length === 1 ? 'it is' : 'they are'}.</div>
+          )}
+
+          {totals.matches > 0 && !newOnly && (
             <div>
               <div className="ui-label" style={{ marginBottom: 6 }}>{totals.matches} entr{totals.matches === 1 ? 'y is' : 'ies are'} already in Helix Hub. What should happen to them?</div>
               <Check type="radio" name="matchMode" checked={matchMode === 'skip'} onChange={() => setMatchMode('skip')}>
@@ -297,10 +342,13 @@ export default function PayerImport({ user, onClose, onImported }) {
             </Card>
           )}
 
-          <Check checked={markVerified} onChange={e => setMarkVerified(e.target.checked)}>
-            This data was checked recently — mark imported and replaced entries as verified today
-          </Check>
+          {!newOnly && (
+            <Check checked={markVerified} onChange={e => setMarkVerified(e.target.checked)}>
+              This data was checked recently — mark imported and replaced entries as verified today
+            </Check>
+          )}
 
+          {progress && <div className="ui-muted">{progress}</div>}
           {error && <Notice tone="bad">{error}</Notice>}
           <FormActions split>
             <Button onClick={() => { setStep('choose'); setPlan(null); }} disabled={busy}>← Choose another file</Button>

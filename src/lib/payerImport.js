@@ -12,6 +12,11 @@ const txt = v => { const s = (v ?? '').toString().trim(); return s === '' ? unde
 // Known list value, or the typed text as-is (free-text columns that usually use the list)
 const loose = (list, v) => { const s = txt(v); if (s === undefined) return undefined; return matchOption(list, s) || s; };
 
+// Payer-level source / verification, and per-row verification, set only by the Starter / Claim.MD readers below
+const extraPayerFields = v => Object.fromEntries(
+  ['source', 'source_links', 'verified_at', 'verified_by', 'verification_note'].filter(k => txt(v[k]) !== undefined).map(k => [k, txt(v[k])]));
+const rowVerified = v => (txt(v._verified_at) ? { verified_at: v._verified_at, verified_by: txt(v._verified_by) ?? null } : {});
+
 const PAYER = { key: 'payer', header: 'Payer Name', required: true, example: 'Blue Cross Blue Shield of Texas' };
 const PLAN  = { key: 'plan', header: 'Plan Name (optional)', example: '' };
 const NOTES = { key: 'notes', header: 'Notes', example: '' };
@@ -32,6 +37,8 @@ export const SHEETS = [
     build: v => ({ data: {
       name: txt(v.name), payer_type: txt(v.payer_type), notes: txt(v.notes),
       aliases: txt(v.aliases) && [...new Set(v.aliases.split(',').map(a => a.trim()).filter(Boolean))],
+      // Starter file / Claim.MD list only (not template columns): where it came from + verification (migration 44)
+      ...extraPayerFields(v),
     } }),
   },
   {
@@ -72,7 +79,7 @@ export const SHEETS = [
       electronic_payer_id: txt(v.electronic_payer_id), clearinghouse: txt(v.clearinghouse),
       transaction_type: loose(TRANSACTIONS, v.transaction_type),
       enrollment_required: txt(v.enrollment_required) === undefined ? undefined : yes(v.enrollment_required),
-      notes: txt(v.notes),
+      notes: txt(v.notes), ...rowVerified(v),
     } }),
     dupKey: r => [n(r.electronic_payer_id), n(r.clearinghouse), n(r.transaction_type)].join('|'),
   },
@@ -97,7 +104,7 @@ export const SHEETS = [
       return { data: {
         department: dept, phone: txt(v.phone), phone_ext: txt(v.phone_ext), fax: txt(v.fax), email: txt(v.email),
         portal_url: txt(v.portal_url), attention_line: txt(v.attention_line), mailing_address: txt(v.mailing_address),
-        hours: txt(v.hours), notes: txt(v.notes),
+        hours: txt(v.hours), notes: txt(v.notes), ...rowVerified(v),
       } };
     },
     dupKey: r => r.department,
@@ -121,7 +128,7 @@ export const SHEETS = [
       if (!(days > 0)) return { error: 'Days must be a number greater than 0' };
       const level = txt(v.level) === undefined ? undefined : parseInt(v.level, 10);
       if (level !== undefined && !(level > 0)) return { error: 'Level must be a number (1, 2…)' };
-      return { data: { limit_type: type, level, days, measured_from: loose(MEASURED_FROM, v.measured_from), notes: txt(v.notes) } };
+      return { data: { limit_type: type, level, days, measured_from: loose(MEASURED_FROM, v.measured_from), notes: txt(v.notes), ...rowVerified(v) } };
     },
     dupKey: r => `${r.limit_type}|${r.level ?? ''}`,
   },
@@ -136,7 +143,7 @@ export const SHEETS = [
     ],
     build: v => ({ data: {
       note: txt(v.note), category: loose(NOTE_CATEGORIES, v.category),
-      pinned: txt(v.pinned) === undefined ? undefined : yes(v.pinned),
+      pinned: txt(v.pinned) === undefined ? undefined : yes(v.pinned), ...rowVerified(v),
     } }),
     dupKey: r => n(r.note),
   },
@@ -214,9 +221,13 @@ export function readWorkbook(file) {
  * → { [sheetKey]: { newRows, matches, errors } } where each row carries
  *   { rowNum, data, payerRef, planRef, clientId, existing? }.
  */
-export function planImport(parsed, existing) {
-  const result = Object.fromEntries(SHEETS.map(s => [s.key, { newRows: [], matches: [], errors: [] }]));
+export function planImport(parsed, existing, { matchAliases = false, newPayersOnly = false } = {}) {
+  const result = Object.fromEntries(SHEETS.map(s => [s.key, { newRows: [], matches: [], errors: [], skippedExisting: 0 }]));
   const payerByName = new Map((existing.payers ?? []).map(p => [n(p.name), p]));
+  // Starter / Claim.MD: a payer already known by one of its aliases is the same payer (the template matches names only)
+  if (matchAliases) {
+    for (const p of existing.payers ?? []) for (const a of p.aliases ?? []) if (!payerByName.has(n(a))) payerByName.set(n(a), p);
+  }
   const filePayers  = new Set();
   const clientByName = new Map((existing.clients ?? []).filter(c => c.active !== false).map(c => [n(c.name), c]));
 
@@ -265,6 +276,8 @@ export function planImport(parsed, existing) {
       if (missing.length) { r.errors.push({ rowNum, message: `Missing: ${missing.join(', ')}` }); continue; }
       const payerRef = payerRefFor(values.payer);
       if (!payerRef) { r.errors.push({ rowNum, message: `Payer “${values.payer}” isn’t on the Payers tab or in Helix Hub` }); continue; }
+      // Starter / Claim.MD: only new payers get details — a payer already in the directory is left exactly as it is
+      if (newPayersOnly && payerRef.id != null) { r.skippedExisting++; continue; }
       const built = sheet.build(values);
       if (built.error) { r.errors.push({ rowNum, message: built.error }); continue; }
 
@@ -298,4 +311,162 @@ export function planImport(parsed, existing) {
     }
   }
   return result;
+}
+
+// ── Payer Directory Starter file + Claim.MD payer list (PO request 2026-11-04) ─
+// Both are turned into the same { sheetKey: [{ rowNum, values }] } shape the template uses, then go through
+// planImport(…, { matchAliases: true, newPayersOnly: true }): payers already in the directory (by name or alias) are
+// skipped with everything under them — nothing existing is changed.
+
+const cellText = v => (v ?? '').toString().replace(/\s+/g, ' ').trim();
+const URL_RE = /https?:\/\/[^\s;,)]+/i;
+// Electronic payer IDs: 5 letters / digits with at least one digit ("61101", "SX107")
+const PAYER_ID_RE = /\b(?=[A-Z0-9]*\d)[A-Z0-9]{5}\b/g;
+
+/** Days in a limit cell: "95 days", "365-day", "12 months" / "1 calendar year" (= 365). null when there's no number. */
+export function limitDays(text) {
+  const t = cellText(text);
+  let m = t.match(/(\d{1,4})\s*-?\s*(?:calendar\s+|business\s+)?days?\b/i);
+  if (m) return parseInt(m[1], 10);
+  m = t.match(/(\d{1,2})\s*-?\s*months?\b/i);
+  if (m) return Math.round(parseInt(m[1], 10) * 365 / 12);
+  if (/\b(?:1|one)\s+(?:calendar\s+)?year\b/i.test(t)) return 365;
+  return null;
+}
+function limitFrom(text) {
+  if (/through|discharge/i.test(text)) return 'Discharge date';
+  if (/\bdos\b|date of service/i.test(text)) return 'Date of service';
+  if (/denial|eob|eop|pra|determination|notice/i.test(text)) return 'Denial / EOB date';
+  if (/paid/i.test(text)) return 'Paid date';
+  return 'Other';
+}
+
+async function sheetGrid(file, wanted) {
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const name = wanted ? wb.SheetNames.find(x => x.trim().toLowerCase() === wanted.toLowerCase()) : wb.SheetNames[0];
+  if (!name) return null;
+  return XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false });
+}
+
+/**
+ * Helix_Payer_Directory_Starter.xlsx, sheet "Payers" (one row per payer, plain-English cells).
+ * → { parsed, rows } or { error }. Every cell's full text is kept (in the entry's notes when it can't be a field).
+ */
+export async function readStarterWorkbook(file) {
+  const grid = await sheetGrid(file, 'Payers');
+  if (!grid) return { error: 'This file has no “Payers” sheet.' };
+  const hi = grid.findIndex(r => r.some(c => /^payer\s*name$/i.test(cellText(c))));
+  if (hi < 0) return { error: 'The “Payers” sheet has no “Payer name” column.' };
+  const head = grid[hi].map(h => cellText(h).toLowerCase());
+  const col = re => head.findIndex(h => re.test(h));
+  const C = {
+    name: col(/^payer\s*name$/), aliases: col(/^aliases/), lob: col(/^line of business/), states: col(/^states/),
+    pid: col(/^payer id/), claimsAddr: col(/^claims mailing/), appealsAddr: col(/^appeals/), phone: col(/provider services phone/),
+    fax: col(/^fax/), portal: col(/^portal/), tfl: col(/^tfl/), cctfl: col(/^cctfl/), afl: col(/^afl/), notes: col(/^notes$/),
+    links: col(/^source link/), verified: col(/^verified/), checked: col(/^last checked/),
+  };
+  const parsed = { payers: [], ids: [], contacts: [], limits: [], notes: [] };
+  grid.slice(hi + 1).forEach((r, i) => {
+    const rowNum = hi + i + 2;
+    const get = k => (C[k] >= 0 ? cellText(r[C[k]]) : '');
+    const name = get('name');
+    if (!name) return;
+    const verifiedText = get('verified');
+    const isVerified = /^yes\b/i.test(verifiedText);
+    const checked = get('checked');
+    const verifiedAt = isVerified ? (/^\d{4}-\d{2}-\d{2}$/.test(checked) ? `${checked}T00:00:00Z` : new Date().toISOString()) : undefined;
+    const ver = isVerified ? { _verified_at: verifiedAt, _verified_by: 'Starter file' } : {};
+    parsed.payers.push({ rowNum, values: {
+      name, aliases: get('aliases').replace(/;/g, ','), payer_type: get('lob'), notes: get('notes'),
+      source: 'Payer Directory Starter', source_links: get('links'),
+      verified_at: verifiedAt, verified_by: isVerified ? 'Starter file' : undefined,
+      verification_note: isVerified ? undefined : (verifiedText || 'Not verified'),
+    } });
+    const note = (text, category) => parsed.notes.push({ rowNum, values: { payer: name, note: text, category, ...ver } });
+
+    if (get('states')) note(`States / region: ${get('states')}`, 'General');
+    // Payer IDs: one row per ID found; the whole cell is kept as the note
+    const pidText = get('pid');
+    const ids = [...new Set((pidText.toUpperCase().match(PAYER_ID_RE) ?? []))];
+    ids.forEach(id => parsed.ids.push({ rowNum, values: { payer: name, electronic_payer_id: id, notes: pidText, ...ver } }));
+    if (pidText && !ids.length) note(`Payer ID: ${pidText}`, 'Claims');
+
+    if (get('claimsAddr')) parsed.contacts.push({ rowNum, values: { payer: name, department: 'Claims', mailing_address: get('claimsAddr'), ...ver } });
+    if (get('appealsAddr')) parsed.contacts.push({ rowNum, values: { payer: name, department: 'Appeals', mailing_address: get('appealsAddr'), ...ver } });
+    const portal = get('portal');
+    const url = portal.match(URL_RE)?.[0];
+    if (get('phone') || get('fax') || portal) {
+      const extra = url ? portal.replace(url, '').replace(/^[\s–—-]+|[\s–—-]+$/g, '').trim() : portal;
+      parsed.contacts.push({ rowNum, values: {
+        payer: name, department: 'Provider Relations', phone: get('phone'), fax: get('fax'), portal_url: url ?? '',
+        notes: extra ? `Portal / website: ${extra}` : '', ...ver,
+      } });
+    }
+    // Limits: a structured limit when the days can be read; the full text is always kept
+    for (const [k, label, fallbackType] of [['tfl', 'TFL', 'TFL'], ['cctfl', 'CCTFL', 'CCTFL'], ['afl', 'AFL / reconsideration', 'AFL']]) {
+      const text = get(k);
+      if (!text) continue;
+      const days = limitDays(text);
+      const type = k === 'afl' && /reconsideration/i.test(text) && !/appeal|redetermination|dispute/i.test(text) ? 'RECON' : fallbackType;
+      if (days) parsed.limits.push({ rowNum, values: { payer: name, limit_type: type, days: String(days), measured_from: limitFrom(text), notes: text, ...ver } });
+      else note(`${label}: ${text}`, k === 'afl' ? 'Appeals' : 'Claims');
+    }
+  });
+  return { parsed, rows: parsed.payers.length };
+}
+
+/**
+ * Claim.MD payer list (Excel or CSV download from claim.md/payer_list.html). Headers are matched loosely
+ * (payer name / alternate names / payer ID / payer type). One payer per name; every payer ID becomes a Payer ID row
+ * with clearinghouse "Claim.MD". → { parsed, rows } or { error }.
+ */
+export async function readClaimMdWorkbook(file) {
+  const grid = await sheetGrid(file);
+  if (!grid) return { error: 'The file is empty.' };
+  const norm = h => cellText(h).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const hi = grid.findIndex(r => r.some(c => /^(payer)?name$/.test(norm(c))) && r.some(c => /payerid/.test(norm(c))));
+  if (hi < 0) return { error: 'This doesn’t look like the Claim.MD payer list — it needs “Payer Name” and “Payer ID” columns.' };
+  const head = grid[hi].map(norm);
+  const exactId = head.findIndex(h => h === 'payerid');
+  const C = {
+    name: head.findIndex(h => /^(payer)?name$/.test(h)),
+    id: exactId >= 0 ? exactId : head.findIndex(h => /payerid/.test(h)),
+    alt: head.findIndex(h => /alt|alternate|aka|othername/.test(h)),
+    type: head.findIndex(h => /type/.test(h) && !/service/.test(h)),
+  };
+  const byName = new Map();   // one payer per name (several IDs / alternate names merged)
+  grid.slice(hi + 1).forEach((r, i) => {
+    const name = cellText(r[C.name]);
+    if (!name) return;
+    const key = name.toLowerCase();
+    const p = byName.get(key) ?? { rowNum: hi + i + 2, name, aliases: new Set(), ids: new Set(), type: '' };
+    if (C.alt >= 0) cellText(r[C.alt]).split(/[,;|]/).map(a => a.trim()).filter(a => a && a.toLowerCase() !== key).forEach(a => p.aliases.add(a));
+    const id = cellText(r[C.id]);
+    if (id) p.ids.add(id);
+    if (C.type >= 0 && !p.type) p.type = cellText(r[C.type]);
+    byName.set(key, p);
+  });
+  const parsed = { payers: [], ids: [] };
+  for (const p of byName.values()) {
+    parsed.payers.push({ rowNum: p.rowNum, values: {
+      name: p.name, aliases: [...p.aliases].join(','), payer_type: p.type, source: 'Claim.MD',
+      verification_note: 'Imported from the Claim.MD payer list — not verified',
+    } });
+    for (const id of p.ids) parsed.ids.push({ rowNum: p.rowNum, values: { payer: p.name, electronic_payer_id: id, clearinghouse: 'Claim.MD', transaction_type: 'Claims (837)' } });
+  }
+  return { parsed, rows: parsed.payers.length };
+}
+
+/** Which kind of payer file this is: 'starter' | 'claimmd' | 'template' (by its sheets and headers). */
+export async function detectPayerFile(file) {
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', sheetRows: 6 });
+  const payersSheet = wb.SheetNames.find(x => x.trim().toLowerCase() === 'payers');
+  if (payersSheet) {
+    const head = XLSX.utils.sheet_to_json(wb.Sheets[payersSheet], { header: 1, defval: '' }).flat().map(c => cellText(c).toLowerCase());
+    if (head.includes('payer name') && head.some(h => h.startsWith('source link'))) return 'starter';
+    return 'template';
+  }
+  const first = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }).flat()
+    .map(c => cellText(c).toLowerCase().replace(/[^a-z0-9]/g, ''));
+  return first.some(h => /payerid/.test(h)) ? 'claimmd' : 'template';
 }

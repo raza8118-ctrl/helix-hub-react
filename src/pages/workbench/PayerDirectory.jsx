@@ -59,12 +59,15 @@ export default function PayerDirectory({ user }) {
   }
 
   const active = useMemo(() => (payers ?? []).filter(p => p.active !== false), [payers]);
+  // ⚠ also for payers imported from the Starter file / Claim.MD list that nobody has verified yet (migration 44)
+  const unverified = p => !!p.source && !p.verified_at;
+  const flagged = p => summary.stale.has(p.id) || unverified(p);
   const cardPayer = selected ?? (wanted != null ? active.find(p => p.id === wanted) ?? null : null);
   const types  = useMemo(() => [...new Set(active.map(p => p.payer_type).filter(Boolean))].sort(), [active]);
   const browse = useMemo(() => active
     .filter(p => typeFilter === 'ALL' || p.payer_type === typeFilter)
     .filter(p => reviewFilter === 'ALL'
-      || (reviewFilter === 'STALE' && summary.stale.has(p.id))
+      || (reviewFilter === 'STALE' && (summary.stale.has(p.id) || (!!p.source && !p.verified_at)))
       || (reviewFilter === 'REPORTED' && summary.reports[p.id] > 0))
     .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')), [active, typeFilter, reviewFilter, summary]);
 
@@ -117,7 +120,7 @@ export default function PayerDirectory({ user }) {
               )}
               <select value={reviewFilter} onChange={e => setReviewFilter(e.target.value)} aria-label="Review status">
                 <option value="ALL">All payers</option>
-                <option value="STALE">⚠ Needs re-check ({active.filter(p => summary.stale.has(p.id)).length})</option>
+                <option value="STALE">⚠ Needs re-check / verification ({active.filter(flagged).length})</option>
                 <option value="REPORTED">🚩 Has open reports ({active.filter(p => summary.reports[p.id] > 0).length})</option>
               </select>
             </Toolbar>
@@ -134,10 +137,11 @@ export default function PayerDirectory({ user }) {
                 {list.map(p => (
                   <Chip key={p.id} on={selected?.id === p.id} onClick={() => setSelected(p)}
                     title={[(p.aliases ?? []).join(', '),
+                      unverified(p) && `Needs verification (from ${p.source})`,
                       summary.stale.has(p.id) && 'Some details need re-checking',
                       summary.reports[p.id] > 0 && `${summary.reports[p.id]} open report(s)`].filter(Boolean).join(' · ')}>
                     {p.name}
-                    {summary.stale.has(p.id) && <span aria-label="needs re-check">⚠</span>}
+                    {flagged(p) && <span aria-label="needs re-check">⚠</span>}
                     {summary.reports[p.id] > 0 && <span aria-label="open reports">🚩</span>}
                   </Chip>
                 ))}

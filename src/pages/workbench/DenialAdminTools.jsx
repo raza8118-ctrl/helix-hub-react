@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { typeOf } from '../../lib/denials';
 import { scopeOf, stepsNeedRecheck, verifySteps, setStepsActive, planCopy, applyCopy } from '../../lib/denialSteps';
-import { readStepsFile, compareStepsImport, applyStepsImport, downloadStepsTemplate } from '../../lib/denialStepsImport';
+import { readStepsFile, compareStepsImport, applyStepsImport, downloadStepsTemplate, readDenialGuides, planDenialGuides, applyDenialGuides } from '../../lib/denialStepsImport';
 import DenialStepsModal from './DenialStepsModal';
 import SopText from './SopText';
 import PayerSearch from '../../components/shared/PayerSearch';
@@ -155,17 +155,30 @@ export function CopyStepsModal({ codeIds, steps, ctx, user, onClose, onSaved }) 
 
 /** Bulk import of steps from the Excel template, with a preview (4.3). */
 export function StepsImportModal({ codes, steps, ctx, user, onClose, onSaved }) {
-  const [read, setRead] = useState(null);         // { rows } or { error }
+  const [read, setRead] = useState(null);         // { rows } | { guides } (Helix Denial Guides file) | { error }
   const [mode, setMode] = useState('skip');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
   const diff = read?.rows ? compareStepsImport(read.rows, { codes, steps, ...ctx }, mode) : null;
+  // Denial Guides file (PO request 2026-11-04): Common 3Gen steps only, missing codes added, existing steps kept
+  const guidePlan = read?.guides ? planDenialGuides(read.guides, { codes, steps }) : null;
 
   async function pick(f) {
     setRead(null);
     if (!f) return;
     setBusy(true);
-    try { setRead(await readStepsFile(f)); } catch { setRead({ error: 'This file couldn’t be read. Please use the .xlsx template.' }); }
+    try { setRead((await readDenialGuides(f)) ?? await readStepsFile(f)); } catch { setRead({ error: 'This file couldn’t be read. Please use the .xlsx template.' }); }
+    setBusy(false);
+  }
+  async function saveGuides() {
+    if (!await confirmDialog({
+      title: 'Import the Denial Guides?',
+      message: `${guidePlan.add.length} code${guidePlan.add.length === 1 ? '' : 's'} get Common 3Gen steps${guidePlan.newCodes.length ? ` (${guidePlan.newCodes.length} new code${guidePlan.newCodes.length === 1 ? '' : 's'} added to the library)` : ''}. ${guidePlan.skipped.length} skipped. Nothing existing is changed or deleted.`,
+      confirmText: 'Import',
+    })) return;
+    setBusy(true);
+    const r = await applyDenialGuides(guidePlan, user);
+    setDone({ guides: r });
     setBusy(false);
   }
   async function save() {
@@ -193,12 +206,34 @@ export function StepsImportModal({ codes, steps, ctx, user, onClose, onSaved }) 
             <Field style={{ marginBottom: 0 }}>
               <input type="file" accept=".xlsx,.xls,.csv" onChange={e => pick(e.target.files?.[0] ?? null)} aria-label="Steps file" />
             </Field>
-            <div>
-              <Check type="radio" checked={mode === 'skip'} onChange={() => setMode('skip')}>Skip codes that already have steps</Check>
-              <Check type="radio" checked={mode === 'replace'} onChange={() => setMode('replace')}>Replace existing steps</Check>
-            </div>
+            {!guidePlan && (
+              <div>
+                <Check type="radio" checked={mode === 'skip'} onChange={() => setMode('skip')}>Skip codes that already have steps</Check>
+                <Check type="radio" checked={mode === 'replace'} onChange={() => setMode('replace')}>Replace existing steps</Check>
+              </div>
+            )}
             {busy && <EmptyState compact title="Working…" />}
             {read?.error && <Notice tone="bad">{read.error}</Notice>}
+            {guidePlan && (
+              <Card variant="soft">
+                <div className="ui-small" style={{ marginBottom: 6 }}>
+                  <strong>Helix Denial Guides file</strong> — loaded as the <strong>Common 3Gen steps</strong> layer (not client SOPs).
+                  Codes that already have Common 3Gen steps are skipped; existing descriptions are kept.
+                </div>
+                <div className="ui-row" style={{ gap: 6 }}>
+                  <Badge tone="good">{guidePlan.add.length} codes get steps</Badge>
+                  {guidePlan.newCodes.length > 0 && <Badge tone="info">{guidePlan.newCodes.length} new codes added to the library</Badge>}
+                  {guidePlan.fillReasons.length > 0 && <Badge>{guidePlan.fillReasons.length} empty descriptions filled</Badge>}
+                  {guidePlan.skipped.length > 0 && <Badge>{guidePlan.skipped.length} skipped</Badge>}
+                  {guidePlan.errors.length > 0 && <Badge tone="bad">{guidePlan.errors.length} with errors</Badge>}
+                </div>
+                <div className="ui-small ui-muted" style={{ marginTop: 6 }}>
+                  Codes: {guidePlan.add.map(a => a.code).join(', ') || '—'}
+                  {guidePlan.skipped.length > 0 && <> · Skipped: {guidePlan.skipped.map(x => `${x.code} (${x.why})`).join(', ')}</>}
+                </div>
+                {guidePlan.errors.map(e => <div key={e.line} className="ui-small ui-text-bad" style={{ marginTop: 4 }}>Row {e.line}: {e.message}</div>)}
+              </Card>
+            )}
             {diff && (
               <Card variant="soft">
                 <div className="ui-row" style={{ gap: 6 }}>
@@ -215,15 +250,20 @@ export function StepsImportModal({ codes, steps, ctx, user, onClose, onSaved }) 
             )}
           </>
         )}
-        {done && <Notice tone="good">✓ Imported: {done.added} new, {done.updated} replaced. New entries start as “not verified”.</Notice>}
+        {done && !done.guides && <Notice tone="good">✓ Imported: {done.added} new, {done.updated} replaced. New entries start as “not verified”.</Notice>}
+        {done?.guides && (
+          <Notice tone="good">✓ Denial Guides imported: {done.guides.steps} codes got Common 3Gen steps, {done.guides.codes} new codes added, {done.guides.reasons} empty descriptions filled, {done.guides.skipped} skipped. New steps start as “not verified”.</Notice>
+        )}
         <FormActions>
           {done
             ? <Button variant="primary" onClick={onSaved}>Done</Button>
             : (
               <>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button variant="primary" onClick={save}
-                  disabled={busy || !diff || (diff.add.length + (mode === 'replace' ? diff.update.length : 0) === 0)}>Import</Button>
+                {guidePlan
+                  ? <Button variant="primary" onClick={saveGuides} disabled={busy || guidePlan.add.length + guidePlan.newCodes.length + guidePlan.fillReasons.length === 0}>Import</Button>
+                  : <Button variant="primary" onClick={save}
+                      disabled={busy || !diff || (diff.add.length + (mode === 'replace' ? diff.update.length : 0) === 0)}>Import</Button>}
               </>
             )}
         </FormActions>
