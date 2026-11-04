@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Import: payer starter file, Claim.MD payer list, denial guides (PO request 2026-11-04, "Go") — BUILT; imported into Test Co; 3Gen when the PO says.**
+**Import: payer starter file, Claim.MD payer list, denial guides (PO request 2026-11-04, "Go") — BUILT; Test Co done; 3Gen payers done; 3Gen denial guides waiting for a PO decision.**
+3Gen (2026-11-04, PO "Import into 3Gen"): Starter file → 12 payers, 9 IDs, 25 contacts, 25 limits, 28 notes (directory was empty);
+⚠ 9; CGS verified shows 11/4/2026. Denial Guides → all 16 skipped: 3Gen already has Common 3Gen steps for all 16 codes — the app's
+built-in starter steps ("Add starter codes", 2026-10-29), unedited and unverified. Nothing imported; PO to choose keep / replace / add.
 Migration 44 run 2026-11-04. Test Co: Starter file → 12 payers, 9 payer IDs, 25 contacts, 25 limits, 28 notes (REVIEW Payer untouched);
 ⚠ filter "Needs re-check / verification (9)" = exactly the 9 not marked Yes; CGS card ✓ Verified + source + 4 links; Palmetto ⚠ "No –
 contact details missing". Re-import → 0 new, all skipped. Denial Guides → 16 new CARC codes + 16 Common 3Gen steps (unverified),
