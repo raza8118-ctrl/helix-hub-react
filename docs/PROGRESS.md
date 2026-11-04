@@ -23,6 +23,17 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Import: payer starter file, Claim.MD payer list, denial guides (PO request 2026-11-04, "Go") — IN PROGRESS.**
+- Migration 44 `20261109_payer_source_verified.sql`: `payers.source`, `source_links`, `verified_at`, `verified_by`, `verification_note`
+  (home + every company). No deletes, no overwrites anywhere: existing payers / codes / common steps are skipped.
+- Payer Import gets a file-type choice: Helix template (unchanged) / Payer Directory Starter (sheet "Payers": name, aliases, line of
+  business → payer_type, states → note, 5-char payer IDs → Payer IDs, claims / appeals addresses + provider phone / fax / portal →
+  contacts, TFL / CCTFL / AFL → limits when days can be read, full text always kept in notes; Source link(s) → source_links;
+  Verified Yes → verified on Last checked, No / Partly → unverified + verification_note) / Claim.MD list (new payers only, alt names →
+  aliases, payer ID → Payer IDs with clearinghouse Claim.MD, source "Claim.MD", unverified). Unverified payers show ⚠.
+- Denial Guides (sheet "Denial Guides") → Common 3Gen steps only: CO-/PR-/OA- codes → CARC codes (added if missing), plain reason only
+  if none, steps = labelled sections, related tools → notes; codes with existing common steps skipped.
+
 **Fix (PO request 2026-11-03) — File Tools → PDF to Excel "Clean table" — DONE; PO tested with the real Waystar RTP report 2026-11-03: "works perfectly".**
 Tested with the fake report (`node scripts/make-sample-rtp-pdf.mjs` → samples/, gitignored): all 64 rows match the expected rows in every
 column (wrapped names + split PCNs joined, Section column, IDs with leading zeros); 15 page lines removed; rows per page 24/24/16;
