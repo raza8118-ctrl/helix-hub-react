@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Import: payer starter file, Claim.MD payer list, denial guides (PO request 2026-11-04, "Go") — IN PROGRESS.**
+**Import: payer starter file, Claim.MD payer list, denial guides (PO request 2026-11-04, "Go") — BUILT; imported into Test Co; 3Gen when the PO says.**
+Migration 44 run 2026-11-04. Test Co: Starter file → 12 payers, 9 payer IDs, 25 contacts, 25 limits, 28 notes (REVIEW Payer untouched);
+⚠ filter "Needs re-check / verification (9)" = exactly the 9 not marked Yes; CGS card ✓ Verified + source + 4 links; Palmetto ⚠ "No –
+contact details missing". Re-import → 0 new, all skipped. Denial Guides → 16 new CARC codes + 16 Common 3Gen steps (unverified),
+Test Co's own client step untouched; re-import → 0, all 16 skipped. Fixes found while testing: VERIFY cells stay notes (Molina),
+appeal days read after the appeal word (BCBSTX → note), verified date stored at noon UTC (showed a day early in US time),
+Denial Guides save re-plans against fresh data (a stale screen would have added duplicate Common steps — proven: stale plan of 16 →
+0 saved) and the page reloads codes after an import. Claim.MD list: reader built, not yet tried — needs the real download in samples/.
 - Migration 44 `20261109_payer_source_verified.sql`: `payers.source`, `source_links`, `verified_at`, `verified_by`, `verification_note`
   (home + every company). No deletes, no overwrites anywhere: existing payers / codes / common steps are skipped.
 - Payer Import gets a file-type choice: Helix template (unchanged) / Payer Directory Starter (sheet "Payers": name, aliases, line of
@@ -1859,6 +1866,8 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     `protect_all_tables()`) — run 2026-11-01 by Claude. Migration 6 (`20261019c_payer_reports.sql`) was never run — don't run it.
 43. `supabase/migrations/20261108_role_rules.sql` (stage 6 phase 1: `role_rules` switch, `_me` / `_my_emp` / `_may`, change rules
     for logs, company setup, reference libraries, rcm_store) — run 2026-11-01 by Claude. Switch: Test Co ON, 3Gen ON (2026-11-01).
+44. `supabase/migrations/20261109_payer_source_verified.sql` (payers.source / source_links / verified_at / verified_by /
+    verification_note, home + companies) — run 2026-11-04 by Claude.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 

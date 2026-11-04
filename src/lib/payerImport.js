@@ -374,7 +374,7 @@ export async function readStarterWorkbook(file) {
     const verifiedText = get('verified');
     const isVerified = /^yes\b/i.test(verifiedText);
     const checked = get('checked');
-    const verifiedAt = isVerified ? (/^\d{4}-\d{2}-\d{2}$/.test(checked) ? `${checked}T00:00:00Z` : new Date().toISOString()) : undefined;
+    const verifiedAt = isVerified ? (/^\d{4}-\d{2}-\d{2}$/.test(checked) ? `${checked}T12:00:00Z` : new Date().toISOString()) : undefined;
     const ver = isVerified ? { _verified_at: verifiedAt, _verified_by: 'Starter file' } : {};
     parsed.payers.push({ rowNum, values: {
       name, aliases: get('aliases').replace(/;/g, ','), payer_type: get('lob'), notes: get('notes'),

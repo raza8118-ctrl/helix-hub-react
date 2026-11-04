@@ -199,7 +199,7 @@ export async function readDenialGuides(file) {
  *     errors: [{ line, message }] } — nothing is saved here.
  */
 export function planDenialGuides(guides, { codes, steps }) {
-  const out = { newCodes: [], fillReasons: [], add: [], skipped: [], errors: [] };
+  const out = { guides, newCodes: [], fillReasons: [], add: [], skipped: [], errors: [] };
   const seen = new Set();
   for (const g of guides) {
     if (!g.codes.length) { out.errors.push({ line: g.line, message: `No CO-/PR- code found in “${g.codesText}”.` }); continue; }
@@ -218,8 +218,12 @@ export function planDenialGuides(guides, { codes, steps }) {
 }
 
 /** Saves the plan: new codes, empty reasons filled, new Common 3Gen steps (unverified). Nothing is deleted or replaced. */
-export async function applyDenialGuides(plan, user) {
+export async function applyDenialGuides(staleplan, user) {
   const stamp = { created_by: user.emp_id, updated_by: user.emp_id };
+  // Fresh from the database, so a screen opened before an earlier import can't add a code or Common steps twice
+  const { data: freshCodes } = await db('denial_codes').select('*');
+  const { data: freshSteps } = await db('denial_steps').select('*');
+  const plan = planDenialGuides(staleplan.guides, { codes: freshCodes ?? [], steps: freshSteps ?? [] });
   const codeIds = new Map();
   let addedCodes = 0;
   if (plan.newCodes.length) {

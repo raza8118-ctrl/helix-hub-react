@@ -220,7 +220,7 @@ export default function DenialNavigator({ user }) {
         <PageHeader icon="🧩" kicker="Workbench" title="Denial Navigator"
           subtitle="Manage the steps: which codes have common, client and payer steps, and what needs checking." />
         {tabBar}
-        <DenialAdmin codes={codes} steps={steps} ctx={ctx} user={user} onChanged={reloadSteps} />
+        <DenialAdmin codes={codes} steps={steps} ctx={ctx} user={user} onChanged={() => { reload(); reloadSteps(); }} />
       </div>
     );
   }
