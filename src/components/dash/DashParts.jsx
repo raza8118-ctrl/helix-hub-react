@@ -164,13 +164,13 @@ export function StatTile({ label, value, sub, trend, compare, tone, rank, onClic
 }
 
 /** Big number card in the KPI row (Frost Glass). delta = change from the previous period as text (null hides it). */
-export function KpiCard({ label, value, sub, delta, tone = 'none', fill, onClick }) {
+export function KpiCard({ label, value, sub, delta, tone = 'none', fill, onClick, valueClass = '' }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag type={onClick ? 'button' : undefined} className={`hx-kpi${onClick ? ' click' : ''}`} onClick={onClick}
       title={onClick ? 'Click to see the details' : undefined}>
       <div className="hx-kpi-l">{label}</div>
-      <div className="hx-kpi-v">{value}</div>
+      <div className={`hx-kpi-v ${valueClass}`.trim()}>{value}</div>
       <div className="hx-kpi-s">
         <span>{sub}</span>
         {delta && <span className={`hx-chip hx-tone-${tone}`} title="Change from the previous period">{delta}</span>}

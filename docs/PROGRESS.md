@@ -23,7 +23,9 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 2 — Today (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same numbers, filters, buttons, pins, AI Email,
+**Frost Glass page 2 — Today (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+Frost / Daylight / Slate at 1440 px and Frost at 375 px (no sideways scroll); Pinned only on → 0 rows / off → 12; owner theme left on
+Frost. `--col-orange` now follows the theme (amber). AI Email not run (Anthropic account has no credit) — only its text box changed. Styling only (same numbers, filters, buttons, pins, AI Email,
 employee pop-up; no database change). Old page header → one filter / action card (title is in the top bar); holiday banner → themed
 amber notice; 5 stat cards → `KpiCard` (new optional `valueClass` keeps the green / amber / red value colour); chart in a glass card
 (shared `BarChart` unchanged — 4 other pages use it); Submission Tracker statuses, Prod % and the count → `Pill`; AI Email text box

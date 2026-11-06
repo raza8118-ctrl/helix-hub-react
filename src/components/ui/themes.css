@@ -220,6 +220,7 @@ body.theme-frost, body.theme-violet, body.theme-daylight, body.theme-slate {
   --danger: var(--bad-fg);
   --col-green: var(--good-fg);
   --col-yellow: var(--warn-fg);
+  --col-orange: var(--warn-fg);
   --col-red: var(--bad-fg);
   --col-neutral: var(--text-muted);
   --radius: 12px;

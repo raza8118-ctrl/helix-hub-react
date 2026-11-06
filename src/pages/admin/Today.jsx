@@ -7,6 +7,12 @@ import BarChart from '../../components/shared/BarChart';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 import { promptDialog } from '../../components/shared/Dialog';
+import { KpiCard } from '../../components/dash/DashParts';
+import { Pill, Notice, Button } from '../../components/ui';
+
+/** Frost Glass: productivity colour band (pCol) → status pill tone. */
+const TONE_OF = { 'col-green': 'good', 'col-orange': 'warn', 'col-red': 'bad' };
+const toneOf = pct => TONE_OF[pCol(pct)] ?? 'neutral';
 
 const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
@@ -150,76 +156,60 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
   }
 
   return (
-    <div>
+    <div className="td-page">
       {/* Holiday banner */}
       {holiday && (
-        <div style={{
-          background: 'linear-gradient(90deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))',
-          border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8,
-          padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center',
-          gap: 10, fontSize: 13, color: 'var(--warning)',
-        }}>
-          🏖 <strong>{holiday.note}</strong> — This date is marked as a holiday
-        </div>
+        <Notice tone="warn" icon="🏖">
+          <strong>{holiday.note}</strong> — This date is marked as a holiday
+        </Notice>
       )}
 
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-title">Today's Overview</div>
-          <div className="page-subtitle">{fmtD(date)}</div>
+      {/* Filters + actions (the page title is in the top bar) */}
+      <div className="td-bar">
+        <div className="td-filters">
+          <label className="td-f"><span>Date</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </label>
+          <label className="td-f"><span>Process</span>
+            <select value={filterProc} onChange={e => setProc(e.target.value)}>
+              {ACCESSES.map(a => <option key={a}>{a}</option>)}
+            </select>
+          </label>
+          <label className="td-f"><span>Status</span>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <span className="td-date">{fmtD(date)}</span>
         </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
-          <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
-            {ACCESSES.map(a => <option key={a}>{a}</option>)}
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="all">All</option>
-          </select>
-          <button
-            className="btn-sm"
-            style={pinnedOnly ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-            onClick={() => setPinnedOnly(v => !v)}
-          >
+        <div className="td-actions">
+          <Button size="sm" variant={pinnedOnly ? 'primary' : 'secondary'} aria-pressed={pinnedOnly} onClick={() => setPinnedOnly(v => !v)}>
             📌 Pinned only
-          </button>
+          </Button>
           {!isGrantedEmployee && (
-            <button
-              className="btn-sm"
-              style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
-              onClick={toggleHoliday}
-            >
+            <Button size="sm" className={holiday ? 'td-holiday-on' : ''} aria-pressed={!!holiday} onClick={toggleHoliday}>
               {holiday ? 'Unmark Holiday' : '🏖 Mark Holiday'}
-            </button>
+            </Button>
           )}
-          <button className="btn-sm" onClick={load}>↺ Refresh</button>
-          <button className="btn-sm" onClick={exportCSV}>Export CSV</button>
-          <button className="btn-primary" onClick={genEmail}>✦ AI Email</button>
+          <Button size="sm" onClick={load}>↺ Refresh</Button>
+          <Button size="sm" onClick={exportCSV}>Export CSV</Button>
+          <Button size="sm" variant="primary" onClick={genEmail}>✦ AI Email</Button>
         </div>
       </div>
 
       {/* KPI cards */}
-      <div className="grid-5 mb-16">
-        {[
-          { label: 'Team Size',        value: filteredUsers.length, sub: `${statusFilter} employees`, cls: '' },
-          { label: 'Submitted',        value: submitted,             sub: `${pending} pending`,  cls: 'col-green' },
-          { label: 'On Leave',         value: onLeave,                sub: 'absent today', cls: 'col-blue' },
-          { label: 'Avg Productivity', value: avgProd != null ? avgProd.toFixed(1) + '%' : '—', sub: 'target 100%', cls: pCol(avgProd) },
-          { label: 'Avg Quality',      value: avgQuality != null ? avgQuality.toFixed(1) + '%' : '—', sub: 'target ≥95%', cls: pCol(avgQuality) },
-        ].map(kpi => (
-          <div key={kpi.label} className="stat-card">
-            <div className="stat-label">{kpi.label}</div>
-            <div className={`stat-value ${kpi.cls}`}>{kpi.value}</div>
-            <div className="stat-sub">{kpi.sub}</div>
-          </div>
-        ))}
+      <div className="td-kpis">
+        <KpiCard label="Team size" value={filteredUsers.length} sub={`${statusFilter} employees`} />
+        <KpiCard label="Submitted" value={submitted} sub={`${pending} pending`} valueClass="col-green" />
+        <KpiCard label="On leave" value={onLeave} sub="absent today" valueClass="col-blue" />
+        <KpiCard label="Avg productivity" value={avgProd != null ? avgProd.toFixed(1) + '%' : '—'} sub="target 100%" valueClass={pCol(avgProd)} />
+        <KpiCard label="Avg quality" value={avgQuality != null ? avgQuality.toFixed(1) + '%' : '—'} sub="target ≥95%" valueClass={pCol(avgQuality)} />
       </div>
 
       {/* Bar chart */}
-      <div className="card mb-16">
+      <div className="card td-card">
         <div className="card-header">
           <div className="card-title">Team Productivity</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
@@ -228,12 +218,12 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       </div>
 
       {/* Submission tracker */}
-      <div className="card">
+      <div className="card td-card td-tracker">
         <div className="card-header">
           <div className="card-title">Submission Tracker</div>
-          <span className={`badge ${submitted === filteredUsers.length && filteredUsers.length > 0 ? 'badge-green' : 'badge-yellow'}`}>
+          <Pill tone={submitted === filteredUsers.length && filteredUsers.length > 0 ? 'good' : 'warn'}>
             {submitted}/{filteredUsers.length}
-          </span>
+          </Pill>
         </div>
         <div className="table-wrap">
           <table>
@@ -252,46 +242,46 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
             </thead>
             <tbody>
               {tableRows.length === 0 && (
-                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No data for this date</td></tr>
+                <tr><td colSpan={9} className="td-empty">No data for this date</td></tr>
               )}
               {tableRows.map(row => {
                 const prod = row.log ? p(row.log.total, row.log.adj_target ?? row.log.target) : null;
                 const isPinned = pinned.includes(row.emp_id);
                 return (
-                  <tr key={row.emp_id} style={isPinned ? { borderLeft: '3px solid var(--accent)' } : undefined}>
+                  <tr key={row.emp_id} className={isPinned ? 'td-pinned' : undefined}>
                     <td className="bold">
                       <span
                         onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
-                        style={{ cursor: canPin ? 'pointer' : 'default', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
+                        className={`td-pin${isPinned ? ' on' : ''}${canPin ? ' can' : ''}`}
                         title={canPin ? (isPinned ? 'Unpin' : 'Pin for close monitoring') : (isPinned ? 'Pinned' : '')}
                       >
                         📌
                       </span>
-                      <span style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setEmpDetail(row)}>
+                      <span className="td-name" onClick={() => setEmpDetail(row)}>
                         {row.name ?? row.emp_id}
                       </span>
                     </td>
                     <td>{row.log?.process ?? row.access}</td>
                     <td className="center">
                       {isOnLeave(row.log)
-                        ? <span className="badge badge-blue">On Leave</span>
+                        ? <Pill tone="accent">On Leave</Pill>
                         : row.log?.submitted
-                          ? <span className="badge badge-green">Submitted</span>
-                          : <span className="badge badge-red">Pending</span>}
+                          ? <Pill tone="good">Submitted</Pill>
+                          : <Pill tone="bad">Pending</Pill>}
                     </td>
                     <td className="right">{row.log?.total ?? '—'}</td>
-                    <td className={`right bold ${pCol(prod)}`}>{prod != null ? prod + '%' : '—'}</td>
+                    <td className="right">{prod != null ? <Pill tone={toneOf(prod)}>{prod}%</Pill> : '—'}</td>
                     <td className={`right ${pCol(row.log?.quality)}`}>
                       {row.log?.quality != null
                         ? row.log.quality + '%'
                         : (row.log && !isOnLeave(row.log) && !row.log?.bypass_reason)
-                          ? <span className="badge badge-gray" style={{ fontSize: 11 }}>Pending</span>
+                          ? <Pill>Pending</Pill>
                           : '—'}
                     </td>
                     <td className="right text-muted">{row.log?.downtime != null ? row.log.downtime + 'h' : '—'}</td>
-                    <td className="text-sm text-muted" style={{ maxWidth: 140 }}>
+                    <td className="text-sm text-muted td-reason">
                       {row.log?.bypass_reason
-                        ? <span style={{ color: 'var(--accent)' }}>📋 {row.log.bypass_reason}</span>
+                        ? <span className="td-bypass">📋 {row.log.bypass_reason}</span>
                         : row.log?.remarks ?? '—'}
                     </td>
                     <td className="text-sm text-muted">
@@ -309,16 +299,10 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       {showEmail && (
         <Modal title="AI Generated Email" onClose={() => setShowEmail(false)} wide>
           {emailLoading
-            ? <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Generating with Claude…</div>
+            ? <div className="td-empty">Generating with Claude…</div>
             : (
               <>
-                <textarea value={emailBody} readOnly style={{
-                  width: '100%', minHeight: 280, resize: 'vertical',
-                  fontFamily: 'inherit', fontSize: 13, lineHeight: 1.65,
-                  padding: 12, background: 'var(--surface)',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                  color: 'var(--text)', outline: 'none',
-                }} />
+                <textarea className="td-email" value={emailBody} readOnly />
                 <div className="form-actions">
                   <button className="btn-sm" onClick={() => navigator.clipboard?.writeText(emailBody)}>Copy</button>
                   <button className="btn-primary" onClick={() => setShowEmail(false)}>Done</button>
