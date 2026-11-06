@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 21 — Feed Monitor (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner, view
+**Frost Glass page 22 — Settings (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (API key on the server, shift timing, task
+targets / weightage, task add / edit / delete unchanged; no database change). `Settings.jsx`: old heading → intro card; cards in the
+shared page layout (even spacing). Cards, labels, buttons already themed. Test in Test Co, view only (no key typed / saved).
+
+**Frost Glass page 21 — Feed Monitor (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in Test Co (owner, view
 only) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): 1 post card with Hide / Delete; search "zzzz" → themed
 "No posts found.", cleared → post back; nothing hidden / deleted. A hidden (faded) post was not seen. Test Co theme left on Daylight. PO: skip the switched-off pages (Alloc Monitor, Work
 Alloc) for now. Styling only (loading, search, Hide / Unhide, Delete + confirm unchanged; no database change). `FeedMonitor.jsx`: old
