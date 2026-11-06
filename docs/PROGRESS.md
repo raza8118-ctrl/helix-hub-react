@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 20 — Attendance (Keka) (PO "Go" 2026-11-06) — BUILT, NOT seen in the browser, waiting for PO approval.** Lint
+**Frost Glass page 21 — Feed Monitor (PO "Go" 2026-11-06) — IN PROGRESS.** PO: skip the switched-off pages (Alloc Monitor, Work
+Alloc) for now. Styling only (loading, search, Hide / Unhide, Delete + confirm unchanged; no database change). `FeedMonitor.jsx`: old
+heading → shared filter card (search, Refresh, "All Team Feed posts … N total"); post cards themed, hidden posts stay faded; Hide /
+Delete → compact themed buttons (Delete red); empty message centred. Test in 3Gen, view only.
+
+**Frost Glass page 20 — Attendance (Keka) (PO "Go" 2026-11-06) — BUILT, NOT seen in the browser (switched off); PO moved on 2026-11-06.** Lint
 (only the old warning) + build pass. The page is switched off for both 3Gen and Test Co (Owner Console → Manage), so it could not be
 opened; company settings were not changed to look. Alloc Monitor and Work Alloc are switched off in both companies too. Styling only (Keka import + mapping, numbers,
 filters, tables unchanged; no database change). `Dashboard.jsx`: old "Dashboard" heading → shared filter card (date / Process /
