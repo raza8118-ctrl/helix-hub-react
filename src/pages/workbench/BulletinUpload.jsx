@@ -118,7 +118,7 @@ export default function BulletinUpload({ ctx, user, onSaved }) {
             const payer = r.payer_id ? ctx.payers.find(p => p.id === r.payer_id) : null;
             const warn = warnings[r.key] ?? [];
             return (
-              <div key={r.key} style={{ borderTop: '1px solid var(--border)', padding: '8px 0', ...(warn.length ? { background: 'var(--warning-bg, rgba(250, 204, 21, 0.08))' } : {}) }}>
+              <div key={r.key} style={{ borderTop: '1px solid var(--border)', padding: '8px 0', ...(warn.length ? { background: 'var(--warn-bg, rgba(250, 204, 21, 0.08))' } : {}) }}>
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span className="bold">{i + 1}.</span>
                   {warn.includes('payer') && <span className="badge badge-yellow">No payer</span>}

@@ -50,7 +50,7 @@ export default function UpdatesForTeam({ updates, reads, people, ctx, user, show
       {list.map(u => {
         const days = startsIn(u);
         return (
-          <div key={u.id} className="card mb-16" style={readByMe(u) ? { opacity: 0.7 } : { borderLeft: '4px solid var(--primary, #3b82f6)' }}>
+          <div key={u.id} className="card mb-16" style={readByMe(u) ? { opacity: 0.7 } : { borderLeft: '4px solid var(--accent)' }}>
             <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span className="bold">{payerName(u)}</span>
               <span className="badge badge-gray">{categoryLabel(u.category)}</span>

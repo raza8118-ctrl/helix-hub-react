@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 14 — Payer Updates (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (bulletins, AI reading, patient-info
+**Frost Glass page 14 — Payer Updates (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all five tabs opened (For my team, All updates, By bulletin,
+Upload bulletin, Directory suggestions); nothing uploaded / approved / marked read. 3Gen has no updates in the last 30 days and no
+upload was made, so the unread edge and warning-row tint were not seen. Owner theme left on Frost. Styling only (bulletins, AI reading, patient-info
 checks, read counts, directory suggestions, approvals, saving unchanged; no database change). `PayerUpdates.jsx`: old heading →
 intro card; tabs → themed toggles. `UpdatesForTeam.jsx`: unread edge `var(--primary, #3b82f6)` → `var(--accent)`.
 `BulletinUpload.jsx`: warning-row tint `var(--warning-bg, …)` (no such variable) → `var(--warn-bg, …)`. Test in 3Gen, view only.

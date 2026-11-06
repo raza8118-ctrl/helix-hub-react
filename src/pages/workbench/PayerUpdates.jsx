@@ -9,6 +9,7 @@ import UpdatesForTeam from './UpdatesForTeam';
 import UpdatesSearch from './UpdatesSearch';
 import DirectorySuggestions from './DirectorySuggestions';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { Button } from '../../components/ui';
 import { loadSuggestions, suggestFromBulletin, canApproveSuggestions, peekOpenSuggestions, clearOpenSuggestions } from '../../lib/payerSuggestions';
 
 /**
@@ -85,12 +86,10 @@ export default function PayerUpdates({ user }) {
   const pendingSuggestions = (suggestions ?? []).filter(s => s.status === 'pending').length;
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📰 Payer Updates</div>
-          <div className="page-subtitle">What payers changed, when it starts, who it affects and what to do — from payer bulletins.</div>
-        </div>
+    <div className="fg-page wl-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">What payers changed, when it starts, who it affects and what to do — from payer bulletins.</span>
       </div>
 
       {bulletins === undefined && <div className="card text-muted">Loading…</div>}
@@ -102,7 +101,7 @@ export default function PayerUpdates({ user }) {
 
       {bulletins && (
         <>
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="fg-choices wl-tabs" role="group" aria-label="Payer update views">
             {[
               ['team', `🆕 For my team${newForMe ? ` (${newForMe} new)` : ''}`],
               ['all', '🔎 All updates'],
@@ -110,7 +109,7 @@ export default function PayerUpdates({ user }) {
               ...(canEdit ? [['upload', '⬆ Upload bulletin']] : []),
               ...(seesSuggestions && suggestions ? [['suggestions', `🛠 Directory suggestions${pendingSuggestions ? ` (${pendingSuggestions})` : ''}`]] : []),
             ].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+              <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</Button>
             ))}
           </div>
           {tab === 'team' && (
