@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 4 — Quality (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+**Frost Glass page 5 — Hourly (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same slots, search, filters, totals, filed /
+pending, refresh, Edit window + save; no database change). Old header → shared filter card (date · filed · pending · last refresh
+at the end); 4 `KpiCard`s; table in a solid card with frozen names (Quality's grid styles made shared as `.fg-grid`); status →
+`Pill`; Edit → themed button; Team Total row themed; window buttons themed.
+
+**Frost Glass page 4 — Quality (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only) in
 Frost + Daylight at 1440 px and at 375 px (no page sideways scroll; grid scrolls inside its card with names frozen); range 7 → 7 day
 columns, 14 → 14. 3Gen has no quality values in the range, so the cell pills were not seen with real numbers (same `Pill` as Today /
 Prod Monitor). Owner theme left on Frost. Styling only (same dates, ranges, process filter, colour
