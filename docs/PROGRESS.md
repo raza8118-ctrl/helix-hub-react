@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 6 — Weekly / Monthly (Performance Summary, PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in
+**Frost Glass page 7 — Team (admin) + My Team (supervisor) (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (users, projects,
+sub-processes, reset approvals, drag-to-reorder, Enable / Disable and every save unchanged; no database change). Old header → small
+summary card + actions; reset requests → amber-edged card; sub-processes / roles / team / QA / status / ramp → `Pill`; action
+buttons themed (Disable red, Enable green); drag handle + faded disabled rows kept; window buttons themed — the big user form keeps
+its layout (roles, permissions, passwords). My Team: same summary card, reset card, roster table with pills. Test as owner in 3Gen,
+view only (a window opened + cancelled; no drag-reorder — it saves).
+
+**Frost Glass page 6 — Weekly / Monthly (Performance Summary, PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in
 3Gen (owner, view only): Weekly in Frost and Monthly in Daylight at 1440 px, 375 px in Frost (cards 2 per row, charts 1 column, no
 page sideways scroll); ‹ → Oct 2026 (22 working days), › back to Nov 2026 (21); a chart day opens the themed Daily Breakdown and
 closes. 3Gen has no daily reports this week / month, so ranking bars and coloured values were not seen with real numbers. AI Summary
