@@ -9,7 +9,10 @@ import GlobalSearch from './components/shared/GlobalSearch';
 import BoardBadge from './components/shared/BoardBadge';
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import HelixLauncher from './components/shared/HelixLauncher';
-import { THEMES }  from './lib/constants';
+import { THEMES, resolveTheme } from './lib/constants';
+import ThemeSwitcher from './components/ui/ThemeSwitcher';
+import './components/ui/themes.css';
+import './components/ui/shell.css';
 import { S, kv, supabase, setActiveCompany, getActiveCompany, refreshCompanyProcesses, getSessionToken, setSessionToken } from './lib/supabase';
 import { getOwnerSession, setOwnerSession, ownerLogout, loadCompanyRow, loadHomeFeatures, SIGNOUT_MSG_KEY } from './lib/company';
 import { disabledTabs, isFeatureOn, setAiAllowed } from './lib/companyFeatures';
@@ -29,7 +32,7 @@ function Clock() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div style={{ textAlign: 'right', lineHeight: 1.3 }}>
+    <div className="tb-clock" style={{ textAlign: 'right', lineHeight: 1.3 }}>
       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
         {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </div>
@@ -47,18 +50,16 @@ const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
 const OwnerConsole  = lazy(() => import('./pages/owner/OwnerConsole'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
-const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars'];
+const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars', ...THEMES.map(th => `theme-${th.id}`)];
 
+/** Frost Glass (2026-11-06): one body class per theme (colours in components/ui/themes.css); Frost / Violet keep `dark`. */
 function applyTheme(themeId) {
-  const found = THEMES.find(t => t.id === themeId);
-  if (!found) return;
-  document.body.style.background = found.bg;
-  document.body.style.setProperty('--topbar-bg', found.topbar);
+  const found = THEMES.find(t => t.id === resolveTheme(themeId));
+  document.body.style.background = '';
+  document.body.style.removeProperty('--topbar-bg');
   THEME_CLASSES.forEach(c => document.body.classList.remove(c));
+  document.body.classList.add(`theme-${found.id}`);
   if (found.dark) document.body.classList.add('dark');
-  if (found.cls)  document.body.classList.add(found.cls);
-  // Starfield backdrop for dark themes + Dusk; High Contrast stays plain for readability
-  if ((found.dark || found.cls === 'dusk') && found.id !== 'highcontrast') document.body.classList.add('stars');
 }
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
@@ -206,10 +207,10 @@ export default function App() {
         const savedTab = sessionStorage.getItem('hh_tab');
         setActiveTab(savedTab || ((isAdmin || isSupervisor) ? 'today' : 'prodreport'));
 
-        let t = u.theme || THEMES[0].id;
+        let t = resolveTheme(u.theme);
         try {
           const prefs = await kv.get(`prefs_${u.emp_id}`);
-          if (prefs?.theme && THEMES.find(th => th.id === prefs.theme)) t = prefs.theme;
+          if (prefs?.theme) t = resolveTheme(prefs.theme);
         } catch { /* use default */ }
         setTheme(t);
         applyTheme(t);
@@ -354,11 +355,11 @@ export default function App() {
     sessionStorage.setItem('hh_tab', startTab);
 
     // Load saved theme from rcm:prefs:{empId}
-    let t = u.theme || THEMES[0].id;
+    let t = resolveTheme(u.theme);
     try {
       const prefs = await kv.get(`prefs_${u.emp_id}`);
-      if (prefs?.theme && THEMES.find(th => th.id === prefs.theme)) {
-        t = prefs.theme;
+      if (prefs?.theme) {
+        t = resolveTheme(prefs.theme);
       }
     } catch { /* use default */ }
     setTheme(t);
@@ -421,7 +422,7 @@ export default function App() {
     setMissedDay(null);
     setMissedDismissed(false);
     setTheme(THEMES[0].id);
-    applyTheme(THEMES[0].id);
+    THEME_CLASSES.forEach(c => document.body.classList.remove(c));   // sign-in page keeps its own look
   }
 
   // ── Theme change ────────────────────────────────────────────────────────────
@@ -475,6 +476,7 @@ export default function App() {
   const tabs = withGrantedTabs(roleTabs, currentUser).filter(t => !offTabs.has(t.id));
   const shownTab = offTabs.has(activeTab) ? (tabs[0]?.id ?? activeTab) : activeTab;
   const pageTitle = tabs.find(t => t.id === shownTab)?.label ?? '';
+  const pageSection = tabs.find(t => t.id === shownTab)?.section ?? '';
   // Counts on Workbench items: 6.5 follow-ups, 8.2 payer updates, 10.3 notice board
   const tabCounts = { wb_worklist: followupDue, wb_updates: updatesNew, wb_board: boardNew };
   const sidebarTabs = Object.values(tabCounts).some(n => n > 0)
@@ -503,10 +505,13 @@ export default function App() {
       {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
       <div className="content-col">
-        <header className="page-topbar topbar-blur">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <header className="page-topbar topbar-blur tb-glass">
+          <div className="tb-left">
             <button className="nav-menu-btn" onClick={() => setNavOpen(true)} aria-label="Open menu" title="Menu">☰</button>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15.5, color: 'var(--text)' }}>{pageTitle}</span>
+            <div className="tb-titles">
+              <span className="tb-title">{pageTitle}</span>
+              {pageSection && <span className="tb-sub">{pageSection}</span>}
+            </div>
             {hasDeficit && (
               <span
                 style={{ background: '#ef4444', color: '#fff', borderRadius: 12, padding: '3px 9px', fontSize: 11, fontWeight: 700 }}
@@ -516,8 +521,9 @@ export default function App() {
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="tb-right">
             <GlobalSearch user={currentUser} tabs={tabs} onOpen={openFromSearch} />
+            <ThemeSwitcher value={theme} onChange={handleThemeChange} />
             <Clock />
           </div>
         </header>
@@ -591,9 +597,9 @@ export default function App() {
               {/* A crash in one page shows an error card instead of blanking the whole app (resets on page change) */}
               <PageErrorBoundary>
                 {isAdmin
-                  ? <AdminApp      activeTab={shownTab} user={currentUser} />
+                  ? <AdminApp      activeTab={shownTab} user={currentUser} tabs={tabs} onOpenTab={openFromSearch} />
                   : isSupervisor
-                  ? <SupervisorApp activeTab={shownTab} user={currentUser} />
+                  ? <SupervisorApp activeTab={shownTab} user={currentUser} tabs={tabs} onOpenTab={openFromSearch} />
                   : <EmployeeApp   activeTab={shownTab} user={currentUser} />
                 }
               </PageErrorBoundary>

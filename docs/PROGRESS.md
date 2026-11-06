@@ -23,9 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass redesign — Sidebar + Team Dashboard first (PO request 2026-11-06, "Go") — IN PROGRESS.**
+**Frost Glass redesign — Sidebar + Team Dashboard first (PO request 2026-11-06, "Go") — BUILT, waiting for PO approval.**
 Styling only: no logic, data, calculations or permissions change; no database change. PO screenshots (Frost / Slate / Daylight)
 are the reference. Other pages follow page by page after the PO approves these two.
+Built + checked 2026-11-06 in Test Co (owner): all four themes on the Team Dashboard (1440 px) and on phone (375 px, no sideways
+scroll; ☰ drawer; theme menu); icons-only mode; Workbench tile opens Payer Directory; theme saved and restored after reload; other
+pages (Today, Payer Directory) take the theme colours. Owner's theme left on Daylight (was an old light theme). Choices made while
+building: non-Workbench sections list their pages under the heading, Workbench keeps its 4 sub-groups (fly-outs) so the admin menu
+stays short; no bell (no notifications behind it); the dashboard's big header title moved to the top bar (period / scope pills
+stay); the KPI cards replace the Prod % / Quality % / Shrinkage badges (same numbers + same drills) and show the change from the
+previous period (Achieved compares achieved, its small tile still compares Prod % as before). Sign-in page and Owner Console keep
+their old look (no theme class there). New files: `components/ui/themes.css`, `shell.css`, `ThemeSwitcher.jsx`, `NavIcon.jsx`,
+`Pill.jsx`; `docs/DESIGN.md` section 0.
 - `src/components/ui/themes.css`: 4 themes as variables — Frost (default, dark navy glass, #5EB8FF), Daylight (light glass, #4F46E5),
   Slate (white workspace, dark solid sidebar, #0F766E, no blur), Violet (dark glass, #A78BFA). Tokens: background, panel, panel
   border, text, muted, dividers, inputs, accent, sidebar colours, green / amber / red pills, `--blur`. The old variables (`--bg`,

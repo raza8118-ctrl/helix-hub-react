@@ -23,14 +23,14 @@ const OWN_TABS = new Set(['dashboard', 'teamdash', 'today', 'prodmonitor', 'hour
  * Tab IDs: dashboard | today | prodmonitor | hourlymon | weekly | monthly | feedback | myteam | feed
  * plus any page an admin granted (lib/access.js), opened in its admin version.
  */
-export default function SupervisorApp({ activeTab, user }) {
+export default function SupervisorApp({ activeTab, user, tabs, onOpenTab }) {
   if (isWorkbenchTab(activeTab)) return <WorkbenchApp activeTab={activeTab} user={user} />;
   if (TAB_FEATURES[activeTab] && !OWN_TABS.has(activeTab)) {
     return canOpenTab(user, activeTab) ? <AdminApp activeTab={activeTab} user={user} /> : <Today user={user} />;
   }
   switch (activeTab) {
     case 'dashboard':   return <Dashboard user={user} />;
-    case 'teamdash':    return canOpenTab(user, 'teamdash') ? <TeamDashboard user={user} /> : <Today user={user} />;
+    case 'teamdash':    return canOpenTab(user, 'teamdash') ? <TeamDashboard user={user} tabs={tabs} onOpenTab={onOpenTab} /> : <Today user={user} />;
     case 'today':       return <Today user={user} />;
     case 'prodmonitor': return <ProdMonitor user={user} />;
     case 'hourlymon':   return <HourlyMonitor user={user} />;

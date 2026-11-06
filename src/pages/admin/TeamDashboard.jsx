@@ -3,16 +3,30 @@ import { today, fmtD, fmtSh, addDays, getProcs, scopeToSupervisor } from '../../
 import { TEAMS } from '../../lib/constants';
 import {
   periodOf, recentMonths, monthQuickPicks, loadDashboard, buildDashboard, logDashboardView, compareOf, exportRows, hoursOf,
-  prodTone, qualTone, shrinkTone, fmtPct, fmtNum, fmtHm, PROD_GOOD, QUAL_GOOD, NEON, TONE_HEX,
+  prodTone, qualTone, fmtPct, fmtNum, fmtHm, PROD_GOOD, QUAL_GOOD, NEON, TONE_HEX,
 } from '../../lib/teamDashboard';
 import {
-  Chip, Meter, Avatar, Segmented, MonthPicker, StatTile, Badge, Panel, Glass, PanelTabs, TrendChart, Donut, BarList,
+  Chip, Meter, Avatar, Segmented, MonthPicker, StatTile, KpiCard, Badge, Panel, Glass, PanelTabs, TrendChart, Donut, BarList,
   HeatGrid, HeatLegend, HBars, MiniStats, Legend, Empty,
 } from '../../components/dash/DashParts';
 import DrillModal from '../../components/dash/DrillModal';
+import NavIcon from '../../components/ui/NavIcon';
 
 const MODES = [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'months', label: 'Month' }];
-const TABS = [['prod', '⚡ Production'], ['qual', '⭐ Quality'], ['att', '🗓️ Attendance'], ['calls', '📞 Calls']];
+const TABS = [['prod', 'Production'], ['qual', 'Quality'], ['att', 'Attendance'], ['calls', 'Calls']];
+/** Workbench shortcuts (Frost Glass): shown only when the person can open the page (App passes their tab list). */
+const QUICK = [
+  ['wb_payers', 'Phone, fax, TFL, forms'], ['wb_denials', 'Steps by denial code'], ['wb_appeals', 'Appeal letters and packets'],
+  ['wb_files', 'PDF ↔ Excel, merge'], ['wb_worklist', 'Follow-ups due'], ['wb_queries', 'Questions to clients'],
+];
+/** Signed change for the KPI chips, e.g. +2.1% / −114; null when there is nothing to compare. */
+const deltaText = (a, b, unit = '') => {
+  if (a == null || b == null || a === b) return null;
+  const d = a - b;
+  const v = unit === '%' ? `${Math.abs(d).toFixed(1)}%` : Math.round(Math.abs(d)).toLocaleString();
+  return `${d > 0 ? '+' : '−'}${v}`;
+};
+const toneOf = c => (!c || c.better == null ? 'none' : c.better ? 'good' : 'bad');
 const SORTS = {
   name: p => (p.name ?? '').toLowerCase(), prod: p => p.prod ?? -1, quality: p => p.quality ?? -1, achieved: p => p.achieved,
   missing: p => p.missing, present: p => p.present, late: p => p.late, hours: p => p.avgHours ?? -1, calls: p => p.calls,
@@ -23,7 +37,7 @@ const SORTS = {
  * whole team or one person, for a day, a week or one or more months. Admins / managers see everyone, supervisors
  * their own team. Click any number for the records behind it (Excel export is audit-logged).
  */
-export default function TeamDashboard({ user }) {
+export default function TeamDashboard({ user, tabs = [], onOpenTab }) {
   const todayStr = today();
   const top = useRef(null);
   const viewLogged = useRef(false);
@@ -181,6 +195,9 @@ export default function TeamDashboard({ user }) {
   const qaReady = now.audited != null;
   const mixData = dash.mix.map((m, k) => ({ ...m, fill: NEON[k % NEON.length] }));
   const bucketWord = buckets.length && buckets[0].days.length > 1 ? 'week' : 'day';
+  const quick = onOpenTab ? QUICK.map(([id, hint]) => ({ tab: tabs.find(t => t.id === id), hint })).filter(q => q.tab) : [];
+  const cProd = compareOf(now.prod, prev.prod), cQual = compareOf(now.quality, prev.quality);
+  const cAch = compareOf(now.achieved, prev.achieved), cShr = compareOf(now.shrinkage, prev.shrinkage, true);
 
   return (
     <div className="hx-dash" ref={top}>
@@ -242,6 +259,18 @@ export default function TeamDashboard({ user }) {
       {!dash.workDays.length && <div className="card hx-note">No working days in this period (weekend or holiday). Pick another date.</div>}
 
       {/* Summary card */}
+      <div className="hx-kpis">
+        <KpiCard label="Productivity" value={fmtPct(now.prod)} sub={`Target ${PROD_GOOD}%`} delta={deltaText(now.prod, prev.prod, '%')}
+          tone={toneOf(cProd)} fill={now.prod} onClick={drills.achieved} />
+        <KpiCard label="Quality" value={fmtPct(now.quality)} sub={`Target ${QUAL_GOOD}%`} delta={deltaText(now.quality, prev.quality, '%')}
+          tone={toneOf(cQual)} fill={now.quality} onClick={drills.quality} />
+        <KpiCard label="Achieved" value={now.achieved.toLocaleString()} sub={`of ${now.target.toLocaleString()} target`}
+          delta={deltaText(now.achieved, prev.achieved)} tone={toneOf(cAch)} fill={now.target ? (now.achieved / now.target) * 100 : null}
+          onClick={drills.achieved} />
+        <KpiCard label="Shrinkage" value={fmtPct(now.shrinkage)} sub="Leave + absent days" delta={deltaText(now.shrinkage, prev.shrinkage, '%')}
+          tone={toneOf(cShr)} fill={now.shrinkage} onClick={drills.leave} />
+      </div>
+
       <section className="hx-entity">
         <div className="hx-entity-l">
           <div className="hx-entity-who">
@@ -252,12 +281,11 @@ export default function TeamDashboard({ user }) {
               <div className="hx-sub">{p ? `${p.team ? `${p.team} · ` : ''}${p.procs}` : (proc === 'ALL' ? 'All processes' : proc)} · {period.label}</div>
             </div>
           </div>
-          <div className="hx-badges">
-            <Badge label="Prod %" value={fmtPct(now.prod)} tone={prodTone(now.prod)} onClick={drills.achieved} />
-            <Badge label="Quality %" value={fmtPct(now.quality)} tone={qualTone(now.quality)} onClick={drills.quality} />
-            <Badge label="Shrinkage" value={fmtPct(now.shrinkage)} tone={shrinkTone(now.shrinkage)} onClick={drills.leave} />
-            {p && p.rank && <Badge rank label="Prod rank" value={`${p.rank}/${people.filter(x => x.rank).length}`} />}
-          </div>
+          {p && p.rank && (
+            <div className="hx-badges">
+              <Badge rank label="Prod rank" value={`${p.rank}/${people.filter(x => x.rank).length}`} />
+            </div>
+          )}
           {p && <button type="button" className="hx-back" onClick={() => setPerson('')}>← Back to the whole team</button>}
         </div>
         <div className="hx-tiles">
@@ -283,13 +311,13 @@ export default function TeamDashboard({ user }) {
           <PanelTabs tabs={TABS} value={tab} onChange={setTab} badge={`By ${bucketWord} · click a ${bucketWord} for its records`} />
           {tab === 'prod' && <>
             <TrendChart data={buckets} pillKey="prodPct" onPick={drills.bucket}
-              series={[{ key: 'target', label: 'Target', type: 'bar', color: '#94a3b8', ghost: true }, { key: 'achieved', label: 'Achieved', type: 'bar', color: NEON[0] }]} />
-            <Legend items={[['Achieved', NEON[0]], ['Target', '#94a3b8', true], ['% = achieved ÷ target', 'transparent']]} />
+              series={[{ key: 'target', label: 'Target', type: 'bar', color: '#94a3b8', ghost: true }, { key: 'achieved', label: 'Achieved', type: 'bar', color: 'var(--accent)' }]} />
+            <Legend items={[['Achieved', 'var(--accent)'], ['Target', 'var(--chart-target)', true], ['% = achieved ÷ target', 'transparent']]} />
           </>}
           {tab === 'qual' && <>
             <TrendChart data={buckets} refY={QUAL_GOOD} yMax={100} onPick={drills.bucket}
               series={[{ key: 'quality', label: 'Quality %', color: NEON[3], unit: '%' }, ...(qaReady ? [{ key: 'auditScore', label: 'QA audit score', color: NEON[1], dashed: true, unit: '%' }] : [])]} />
-            <Legend items={[['Quality %', NEON[3]], ...(qaReady ? [['QA audit score', NEON[1], true]] : []), [`Goal ${QUAL_GOOD}%`, 'rgba(255,255,255,.5)', true]]} />
+            <Legend items={[['Quality %', NEON[3]], ...(qaReady ? [['QA audit score', NEON[1], true]] : []), [`Goal ${QUAL_GOOD}%`, 'var(--chart-target)', true]]} />
           </>}
           {tab === 'att' && <>
             <TrendChart data={buckets} onPick={drills.bucket}
@@ -313,7 +341,7 @@ export default function TeamDashboard({ user }) {
           <HeatGrid columns={buckets.map(b => b.label)} rows={dash.heat} tone={prodTone} />
         </Glass>
 
-        <Glass title="⚠️ Needs attention" sub="This period · click a name">
+        <Glass title="Needs attention" sub="This period · click a name">
           {dash.watch.length ? (
             <ul className="hx-watch">
               {dash.watch.slice(0, 8).map(w => (
@@ -326,22 +354,36 @@ export default function TeamDashboard({ user }) {
           ) : <Empty>Everyone is on track 🎉</Empty>}
         </Glass>
 
-        <Glass title="🏆 Productivity ranking" sub="Prod % · click a name">
+        <Glass title="Productivity ranking" sub="Prod % · click a name">
           <BarList rows={people.filter(u => u.prod != null).sort((a, b) => b.prod - a.prod).map(u => ({ key: u.emp_id, name: u.name, value: u.prod }))}
             fmt={fmtPct} max={Math.max(PROD_GOOD * 1.2, ...people.map(u => u.prod ?? 0))} color={v => TONE_HEX[prodTone(v)]} onRowClick={r => pickPerson(r.key)} />
         </Glass>
 
-        <Glass title="⭐ Quality ranking" sub="Quality % · click a name">
+        <Glass title="Quality ranking" sub="Quality % · click a name">
           <BarList rows={people.filter(u => u.quality != null).sort((a, b) => b.quality - a.quality).map(u => ({ key: u.emp_id, name: u.name, value: u.quality }))}
             fmt={fmtPct} max={100} color={v => TONE_HEX[qualTone(v)]} onRowClick={r => pickPerson(r.key)} />
         </Glass>
 
-        <Glass title="🚩 Flags by employee" sub="Late, long breaks, short days">
+        <Glass title="Flags by employee" sub="Late, long breaks, short days">
           <HBars rows={[...people].sort((a, b) => (b.late + b.breakOver + b.short) - (a.late + a.breakOver + a.short)).map(u => ({ key: u.emp_id, ...u }))}
             series={[['late', 'Late', NEON[5]], ['breakOver', 'Break over', NEON[2]], ['short', 'Under 8:00', NEON[3]]]} onRowClick={r => pickPerson(r.key)} />
           <MiniStats items={[{ label: 'Late', value: now.late, onClick: drills.late }, { label: 'Break over', value: now.breakOver, onClick: drills.breaks }, { label: 'Avg hrs', value: fmtHm(now.avgHours), onClick: drills.hours }]} />
         </Glass>
       </Panel>
+
+      {quick.length > 0 && (
+        <section className="hx-quick" aria-label="Workbench shortcuts">
+          <div className="hx-quick-h">Workbench</div>
+          <div className="hx-quick-grid">
+            {quick.map(({ tab: t, hint }) => (
+              <button key={t.id} type="button" className="hx-qtile" onClick={() => onOpenTab(t.id)}>
+                <span className="hx-qtile-i"><NavIcon tab={t.id} fallback={t.icon} size={20} /></span>
+                <span className="hx-qtile-t"><b>{t.label}</b><small>{hint}</small></span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Team members */}
       <div className="card hx-team">

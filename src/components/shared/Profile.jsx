@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { THEMES } from '../../lib/constants';
+import ThemeSwitcher from '../ui/ThemeSwitcher';
 import { S } from '../../lib/supabase';
 
 // Resize + compress an uploaded image client-side so it stores compactly as a data URL
@@ -162,32 +162,7 @@ export default function Profile({ user, theme: currentTheme, onTheme, onClose, o
           {/* Theme selector */}
           <div style={{ marginBottom: 16 }}>
             <div className="section-title" style={{ marginBottom: 10 }}>Theme</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {THEMES.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => onTheme(t.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
-                    border: currentTheme === t.id
-                      ? '2px solid var(--accent)'
-                      : '2px solid var(--border)',
-                    background: 'var(--surface)',
-                    transition: 'border-color 0.15s',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-                    <div style={{ width: 13, height: 13, borderRadius: 2, background: t.bg, border: '1px solid rgba(0,0,0,0.12)' }} />
-                    <div style={{ width: 13, height: 13, borderRadius: 2, background: t.topbar, border: '1px solid rgba(0,0,0,0.12)' }} />
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: currentTheme === t.id ? 700 : 400, color: 'var(--text)' }}>
-                    {t.label}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <ThemeSwitcher variant="grid" value={currentTheme} onChange={onTheme} />
           </div>
 
           {msg && (

@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { THEMES } from '../lib/constants';
-import Starfield from './shared/Starfield';
+import NavIcon from './ui/NavIcon';
 import { useCompany } from '../lib/company';
 import { groupTabs, splitCount, loadNavPrefs, saveNavPrefs, HIDDEN_IN_SIDEBAR, MAX_PINS } from '../lib/navGroups';
 
@@ -23,27 +22,16 @@ function initials(name, empId) {
     .split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
 }
 
-function HexLogo({ size = 30 }) {
+/** Helix mark on a rounded square in the theme's logo colour (Frost Glass, 2026-11-06). */
+function HexLogo({ size = 36 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <defs>
-        <linearGradient id="sbMarkG" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7c3aed" />
-          <stop offset="100%" stopColor="#1e1b4b" />
-        </linearGradient>
-        <linearGradient id="sbStrandG" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6" />
-        </linearGradient>
-      </defs>
-      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#sbMarkG)" />
-      <path d="M36,21 C36,38 64,38 64,50 C64,62 36,62 36,79"
-        stroke="url(#sbStrandG)" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <path d="M64,21 C64,38 36,38 36,50 C36,62 64,62 64,79"
-        stroke="url(#sbStrandG)" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <line x1="42" y1="29" x2="58" y2="29" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
-      <line x1="48" y1="50" x2="52" y2="50" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
-      <line x1="42" y1="71" x2="58" y2="71" stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+    <svg className="sb-logo" width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+      <rect x="2" y="2" width="96" height="96" rx="26" fill="var(--sb-logo-bg)" />
+      <g stroke="var(--sb-logo-text)" fill="none" strokeLinecap="round">
+        <path d="M36,21 C36,38 64,38 64,50 C64,62 36,62 36,79" strokeWidth="6" />
+        <path d="M64,21 C64,38 36,38 36,50 C36,62 64,62 64,79" strokeWidth="6" />
+        <path d="M42,29 H58 M47,50 H53 M42,71 H58" strokeWidth="4.5" opacity="0.6" />
+      </g>
     </svg>
   );
 }
@@ -54,8 +42,6 @@ function HexLogo({ size = 30 }) {
  */
 export default function Sidebar({
   user,
-  theme,
-  onTheme,
   onLogout,
   onOpenProfile,
   activeTab,
@@ -65,7 +51,6 @@ export default function Sidebar({
   onCloseMobile,
 }) {
   const company = useCompany();
-  const isDark = THEMES.find(t => t.id === theme)?.dark ?? false;
   const ini    = initials(user?.name, user?.emp_id);
   const empId  = user?.emp_id;
   const [prefs, setPrefs] = useState(() => loadNavPrefs(empId));
@@ -109,10 +94,6 @@ export default function Sidebar({
   const toggleGroup = (g, i) => update({ open: { ...prefs.open, [g.key]: !isOpen(g, i) } });
   const togglePin = id => update({ pins: pins.includes(id) ? pins.filter(x => x !== id) : [...pins, id].slice(-MAX_PINS) });
 
-  function toggleTheme() {
-    onTheme(isDark ? 'light' : 'dark');
-  }
-
   function open(id) {
     setFly(null);
     onTab(id);
@@ -132,7 +113,7 @@ export default function Sidebar({
           className={`sidebar-link ${activeTab === tab.id ? 'active' : ''}`}
           title={iconOnly ? `${text}${count ? ` (${count})` : ''}` : undefined}
         >
-          <span className="icon">{tab.icon ?? '•'}</span>
+          <span className="icon"><NavIcon tab={tab.id} fallback={tab.icon} /></span>
           {!iconOnly && <span className="sidebar-link-text">{text}</span>}
           {count > 0 && <span className="nav-count">{count}</span>}
         </button>
@@ -150,13 +131,58 @@ export default function Sidebar({
     );
   };
 
+  // Frost Glass: section headings (Monitoring / Workbench / Team …). Workbench keeps its sub-groups with fly-outs;
+  // the other sections list their pages straight under the heading. Icons-only mode keeps one row per group.
+  const sections = [];
+  groups.forEach((g, i) => {
+    const name = g.key.startsWith('wb_') ? 'Workbench' : g.label;
+    const last = sections[sections.length - 1];
+    if (last && last.name === name) last.groups.push({ g, i });
+    else sections.push({ name, groups: [{ g, i }] });
+  });
+
+  const groupRow = (g, i) => {
+    const hasActive = g.tabs.some(t => t.id === activeTab);
+    const total = g.tabs.reduce((n, t) => n + splitCount(t.label).count, 0);
+    const inPlace = isPhone && isOpen(g, i);     // phones: tap opens the group in place
+    const flying = !isPhone && fly?.key === g.key;
+    const below = compact ? [] : inPlace ? g.tabs : g.tabs.filter(t => t.id === activeTab);
+    return (
+      <div key={g.key} className="nav-group">
+        <button
+          className={`nav-group-row${hasActive ? ' has-active' : ''}${flying || inPlace ? ' open' : ''}`}
+          aria-haspopup={isPhone ? undefined : 'menu'}
+          aria-expanded={isPhone ? inPlace : flying}
+          title={compact ? g.label : undefined}
+          onMouseEnter={isPhone ? undefined : e => showFly(g, e.currentTarget)}
+          onMouseLeave={isPhone ? undefined : hideFlySoon}
+          onClick={e => (isPhone ? toggleGroup(g, i) : flying ? setFly(null) : showFly(g, e.currentTarget))}
+        >
+          <span className="icon"><NavIcon group={g.key} fallback={g.icon} /></span>
+          {!compact && <span className="sidebar-link-text">{g.label}</span>}
+          {total > 0 && <span className="nav-count">{total}</span>}
+          {!compact && <span className={`nav-chevron${inPlace ? ' open' : ''}`} aria-hidden="true">›</span>}
+        </button>
+        {flying && (
+          <div className="nav-flyout" role="menu" aria-label={g.label} style={{ top: fly.top, left: fly.left }}
+            onMouseEnter={keepFly} onMouseLeave={hideFlySoon}>
+            <div className="nav-flyout-title">{g.label}</div>
+            {g.tabs.map(t => link(t, { inFlyout: true }))}
+          </div>
+        )}
+        {below.length > 0 && <div className="nav-sub">{below.map(t => link(t))}</div>}
+      </div>
+    );
+  };
+
+  const roleLine = [user?.role, user?.team].filter(Boolean).join(' · ');
+
   return (
-    <aside className={`sidebar${compact ? ' compact' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Main menu">
-      <Starfield local />
+    <aside className={`sidebar sb-glass${compact ? ' compact' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Main menu">
       <div className="sidebar-brand">
-        <HexLogo size={compact ? 28 : 30} />
+        <HexLogo size={compact ? 34 : 38} />
         {!compact && (
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="sb-brand-text">
             <div className="brand-name">Helix Hub</div>
             <div className="brand-company">{company.name}</div>
           </div>
@@ -165,7 +191,7 @@ export default function Sidebar({
           <button className="nav-icon-btn" onClick={onCloseMobile} aria-label="Close menu">✕</button>
         ) : (
           <button
-            className="nav-icon-btn"
+            className="nav-icon-btn sb-collapse"
             onClick={() => update({ compact: !prefs.compact })}
             title={compact ? 'Show names' : 'Icons only'}
             aria-label={compact ? 'Expand menu' : 'Collapse menu'}
@@ -178,83 +204,41 @@ export default function Sidebar({
       <nav className="sidebar-nav" role="tablist" onScroll={() => setFly(null)}>
         {pins.length > 0 && (
           <div className="nav-group">
-            {!compact && <div className="sidebar-section-label">⭐ Pinned</div>}
+            {!compact && <div className="sidebar-section-label">Pinned</div>}
             {pins.map(id => link(byId[id], { pinnable: false }))}
             {compact && <div className="nav-divider" />}
           </div>
         )}
 
-        {!compact && pins.length > 0 && <div className="sidebar-section-label">Menu</div>}
-        {groups.map((g, i) => {
-          const hasActive = g.tabs.some(t => t.id === activeTab);
-          const total = g.tabs.reduce((n, t) => n + splitCount(t.label).count, 0);
-          const inPlace = isPhone && isOpen(g, i);     // phones: tap opens the group in place
-          const flying = !isPhone && fly?.key === g.key;
-          const below = compact ? [] : inPlace ? g.tabs : g.tabs.filter(t => t.id === activeTab);
-          return (
-            <div key={g.key} className="nav-group">
-              <button
-                className={`nav-group-row${hasActive ? ' has-active' : ''}${flying || inPlace ? ' open' : ''}`}
-                aria-haspopup={isPhone ? undefined : 'menu'}
-                aria-expanded={isPhone ? inPlace : flying}
-                title={compact ? g.label : undefined}
-                onMouseEnter={isPhone ? undefined : e => showFly(g, e.currentTarget)}
-                onMouseLeave={isPhone ? undefined : hideFlySoon}
-                onClick={e => (isPhone ? toggleGroup(g, i) : flying ? setFly(null) : showFly(g, e.currentTarget))}
-              >
-                <span className="icon">{g.icon}</span>
-                {!compact && <span className="sidebar-link-text">{g.label}</span>}
-                {total > 0 && <span className="nav-count">{total}</span>}
-                {!compact && <span className={`nav-chevron${inPlace ? ' open' : ''}`} aria-hidden="true">›</span>}
-              </button>
-              {flying && (
-                <div className="nav-flyout" role="menu" aria-label={g.label} style={{ top: fly.top, left: fly.left }}
-                  onMouseEnter={keepFly} onMouseLeave={hideFlySoon}>
-                  <div className="nav-flyout-title">{g.icon} {g.label}</div>
-                  {g.tabs.map(t => link(t, { inFlyout: true }))}
-                </div>
-              )}
-              {below.length > 0 && <div className="nav-sub">{below.map(t => link(t))}</div>}
-            </div>
-          );
-        })}
+        {sections.map(sec => (
+          <div key={sec.name} className="sb-section">
+            {compact ? <div className="nav-divider" /> : <div className="sidebar-section-label">{sec.name}</div>}
+            {sec.name !== 'Workbench' && !compact
+              ? sec.groups.flatMap(({ g }) => g.tabs).map(t => link(t))
+              : sec.groups.map(({ g, i }) => groupRow(g, i))}
+          </div>
+        ))}
       </nav>
 
       <div className="sidebar-footer">
         <div className="sidebar-me">
           <button
+            className="sb-avatar"
             onClick={() => { onOpenProfile(); onCloseMobile?.(); }}
             title="My Profile"
-            style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              background: user?.avatar_url ? 'transparent' : 'linear-gradient(135deg, #7c3aed, #4338ca)',
-              border: '2px solid rgba(255,255,255,0.18)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', padding: 0,
-            }}
+            aria-label="My Profile"
           >
             {user?.avatar_url
-              ? <img src={user.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={user.avatar_url} alt="" />
               : ini
             }
           </button>
           {!compact && (
-            <div style={{ lineHeight: 1.3, flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.92)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {user?.name || user?.emp_id}
-              </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', textTransform: 'capitalize' }}>
-                {user?.role}
-              </div>
-            </div>
+            <button type="button" className="sb-me-text" onClick={() => { onOpenProfile(); onCloseMobile?.(); }} title="My Profile">
+              <span className="sb-me-name">{user?.name || user?.emp_id}</span>
+              {roleLine && <span className="sb-me-role">{roleLine}</span>}
+            </button>
           )}
-          <button className="nav-icon-btn" onClick={toggleTheme} title={isDark ? 'Switch to Light' : 'Switch to Dark'}>
-            {isDark ? '☀️' : '🌙'}
-          </button>
           <button className="nav-icon-btn" onClick={onLogout} title="Sign out" aria-label="Sign out">⏻</button>
         </div>
       </div>

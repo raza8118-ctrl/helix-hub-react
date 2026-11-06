@@ -27,6 +27,58 @@ highlight), `.ui-details`, `.ui-listrow`, `.ui-tick` (bare table checkbox), `.ui
 
 ---
 
+## 0. Frost Glass themes (2026-11-06)
+
+Helix Hub has four themes. Each person picks one in the **top bar** (or Profile), and it is saved in `prefs_<emp_id>.theme`.
+
+| Theme | Look | Accent | Blur |
+|---|---|---|---|
+| **Frost** (default) | Dark navy glass | `#5EB8FF` | Sidebar + top bar |
+| **Daylight** | Light glass | `#4F46E5` | Sidebar + top bar |
+| **Slate** | White workspace, dark solid sidebar | `#0F766E` | None |
+| **Violet** | Dark glass | `#A78BFA` | Sidebar + top bar |
+
+- Colours: `src/components/ui/themes.css`. App puts `theme-<id>` on `<body>` (Frost / Violet also get the old `dark` class so
+  older dark-mode rules keep working). Old saved theme ids are mapped by `resolveTheme()` in `lib/constants.js`.
+- Layout for the shell (sidebar, top bar, theme switcher) and the Team Dashboard: `src/components/ui/shell.css`.
+- The old variables (`--bg`, `--surface`, `--text`, `--accent`, `--border` …) point at the new tokens, so every page already
+  takes the theme colours. Pages get the new **layout** one at a time (checklist in section 8).
+- **Performance:** `backdrop-filter` only on the sidebar (`.sb-glass`) and the top bar (`.tb-glass`) — use `var(--blur)`, which
+  is `none` in Slate. Cards are see-through fills (`--panel`) without blur. Never add blur to cards, tables or lists.
+
+**Theme tokens** (use these in new styles; never a hex value):
+
+| Token | Use for |
+|---|---|
+| `--app-bg` / `--app-bg-image` | Page background (set on `body`) |
+| `--panel` | Cards (see-through) |
+| `--panel-solid` | Menus, pop-ups, anything that must not show what's behind it |
+| `--panel-2` / `--panel-2-hover` | Tiles and rows inside a card / their hover |
+| `--panel-border` · `--divider` | Card borders · lines between rows |
+| `--text` · `--text-muted` · `--text-subtle` | Main text · labels · hints |
+| `--input-bg` · `--input-border` | Search box, segmented controls |
+| `--accent` · `--accent-strong` · `--accent-soft` · `--on-accent` | Accent · its hover · light fill · text on an accent fill |
+| `--sb-*` | Sidebar: `bg`, `border`, `text`, `muted`, `heading`, `hover`, `active-bg`, `active-text`, `active-bar`, `logo-bg`, `logo-text` |
+| `--topbar-glass` · `--blur` | Top bar fill · the only blur value |
+| `--good-*` · `--warn-*` · `--bad-*` · `--none-*` (`-bg` / `-fg`) | Status pills (`Pill`, `.hx-chip`, `Badge`) |
+| `--chart-target` | Target / goal lines in charts |
+
+**Shared pieces:** `Card`, `Button`, `Pill`, `Table`, `PageHeader` (plus `ThemeSwitcher`, `NavIcon`) from `components/ui` follow
+the theme automatically. `NavIcon` draws the sidebar's line icons by tab id; a page without one keeps its emoji.
+
+**Shell anatomy**
+
+```
+Sidebar (.sb-glass, floating; flush in Slate)   Top bar (.tb-glass, floating; flush in Slate)
+├── logo block · company                       ├── page title · section
+├── Pinned                                     └── search (Ctrl K) · theme switcher · clock
+├── MONITORING / TEAM / … pages
+├── WORKBENCH sub-groups (fly-outs)
+└── name · role · sign out
+```
+
+---
+
 ## 1. Colours
 
 Theme colours come from `index.css` and change with the theme. Always use the variable, never a hex value.
@@ -218,7 +270,7 @@ Confirm dialogs (`confirmDialog`) still appear above it.
 - Use theme variables and tone tokens only. Hard-coded light colours (`#fff`, `rgba(245,158,11,…)`, `color: #000`) are what made
   text invisible in dark mode before (Medicare tiles, letter placeholders).
 - Highlights use `--ui-mark-bg` / `--ui-mark`, never a fixed yellow with inherited text.
-- Check every restyled page with the theme switch in the sidebar (🌙), in both light and dark.
+- Check every restyled page in all four themes with the switcher in the top bar (Frost, Daylight, Slate, Violet).
 
 ## 7. Phones (≤ 640 px)
 
@@ -235,4 +287,5 @@ Confirm dialogs (`confirmDialog`) still appear above it.
 5. `badge badge-*` → `Badge tone`, coloured `<p>` / `<div>` messages → `Notice`, "Nothing yet" text → `EmptyState`.
 6. `components/shared/Modal` → `Modal` from `components/ui` (same props).
 7. Remove inline colours, borders, radii and font sizes. Keep every handler, state variable and piece of wording as it was.
-8. `npm run lint` + `npm run build`; check light, dark and 375 px; repeat the page's add / save / reload test.
+8. `npm run lint` + `npm run build`; check all four themes and 375 px; repeat the page's add / save / reload test.
+9. Frost Glass look: cards on `--panel` (no blur), rows on `--panel-2`, status with `Pill`, no hex colours (section 0).

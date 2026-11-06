@@ -2,7 +2,8 @@
 // and the `.hx-*` rules at the end of index.css. No chart / animation / icon libraries. Charts size to real pixels.
 import { useState, useRef, useLayoutEffect, useEffect, useId } from 'react';
 
-const TONE_HEX = { good: '#34d399', warn: '#fbbf24', bad: '#f87171', none: '#94a3b8' };
+// Frost Glass (2026-11-06): tones come from the theme (components/ui/themes.css)
+const TONE_HEX = { good: 'var(--good-fg)', warn: 'var(--warn-fg)', bad: 'var(--bad-fg)', none: 'var(--none-fg)' };
 
 function useWidth() {
   const ref = useRef(null);
@@ -162,6 +163,23 @@ export function StatTile({ label, value, sub, trend, compare, tone, rank, onClic
   );
 }
 
+/** Big number card in the KPI row (Frost Glass). delta = change from the previous period as text (null hides it). */
+export function KpiCard({ label, value, sub, delta, tone = 'none', fill, onClick }) {
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag type={onClick ? 'button' : undefined} className={`hx-kpi${onClick ? ' click' : ''}`} onClick={onClick}
+      title={onClick ? 'Click to see the details' : undefined}>
+      <div className="hx-kpi-l">{label}</div>
+      <div className="hx-kpi-v">{value}</div>
+      <div className="hx-kpi-s">
+        <span>{sub}</span>
+        {delta && <span className={`hx-chip hx-tone-${tone}`} title="Change from the previous period">{delta}</span>}
+      </div>
+      {fill != null && <div className="hx-kpi-bar"><i style={{ width: `${Math.max(0, Math.min(100, fill))}%` }} /></div>}
+    </Tag>
+  );
+}
+
 /** Coloured badge in the summary card (Prod %, Qual %, Shrinkage, rank). */
 export function Badge({ label, value, tone = 'none', rank, onClick }) {
   const Tag = onClick ? 'button' : 'span';
@@ -252,7 +270,7 @@ export function TrendChart({ data, xKey = 'label', series, refY, pillKey, height
           <defs>
             {series.map((s, k) => (
               <linearGradient key={k} id={`${gid}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={s.color} stopOpacity="0.95" /><stop offset="100%" stopColor={s.color} stopOpacity="0.35" />
+                <stop offset="0%" style={{ stopColor: s.color, stopOpacity: 0.95 }} /><stop offset="100%" style={{ stopColor: s.color, stopOpacity: 0.35 }} />
               </linearGradient>
             ))}
           </defs>
@@ -269,15 +287,15 @@ export function TrendChart({ data, xKey = 'label', series, refY, pillKey, height
             const x = PL + i * step + step / 2 - (bars.length * bw) / 2 + k * bw;
             const top = y(d[s.key], s);
             return <rect key={`${i}-${s.key}`} x={x} y={top} width={bw - 1} height={Math.max(0, PT + ih - top)} rx={Math.min(4, bw / 3)}
-              fill={s.ghost ? 'rgba(255,255,255,0.10)' : `url(#${gid}-${s.key})`} stroke={s.ghost ? 'rgba(255,255,255,0.25)' : 'none'} strokeDasharray={s.ghost ? '3 2' : undefined} />;
+              className={s.ghost ? 'hx-ghost' : undefined} fill={s.ghost ? undefined : `url(#${gid}-${s.key})`} strokeDasharray={s.ghost ? '3 2' : undefined} />;
           }))}
           {series.filter(s => s.type !== 'bar').map(s => {
             const pts = data.map((d, i) => [PL + i * step + step / 2, d[s.key]]).filter(p => p[1] != null).map(([x, v]) => [Math.round(x * 10) / 10, Math.round(y(v, s) * 10) / 10]);
             if (!pts.length) return null;
             return (
               <g key={s.key}>
-                {pts.length > 1 && <path d={smooth(pts)} fill="none" stroke={s.color} strokeWidth="2.2" strokeDasharray={s.dashed ? '5 4' : undefined} className="hx-glow" />}
-                {pts.map(([x, yy], k) => <circle key={k} cx={x} cy={yy} r={n > 24 ? 1.8 : 3} fill={s.color} />)}
+                {pts.length > 1 && <path d={smooth(pts)} fill="none" style={{ stroke: s.color }} strokeWidth="2.2" strokeDasharray={s.dashed ? '5 4' : undefined} className="hx-glow" />}
+                {pts.map(([x, yy], k) => <circle key={k} cx={x} cy={yy} r={n > 24 ? 1.8 : 3} style={{ fill: s.color }} />)}
               </g>
             );
           })}

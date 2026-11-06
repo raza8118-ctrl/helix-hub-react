@@ -1,0 +1,234 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Helix Hub themes — "Frost Glass" (PO request 2026-11-06). See docs/DESIGN.md.
+   Every colour in the new look comes from these variables. App.jsx puts one class on <body>:
+     theme-frost (default) · theme-daylight · theme-slate · theme-violet
+   Frost and Violet also get the old `dark` class so the existing dark-mode rules keep working on pages not yet restyled.
+   The old variables (--bg, --surface, --text, --accent, --border …) point at the new ones, so every page takes the
+   new colours straight away; layouts change page by page.
+   Performance: --blur is used only by the sidebar and the top bar. Cards are see-through fills without blur.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Frost — dark navy glass (default) ─── */
+body.theme-frost {
+  --app-bg: #0a1120;
+  --app-bg-image:
+    radial-gradient(1200px 700px at 85% -10%, rgba(56, 120, 220, 0.22), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(30, 80, 170, 0.20), transparent 60%),
+    linear-gradient(160deg, #0b1324 0%, #0a1120 55%, #0c1428 100%);
+  --panel: rgba(20, 30, 52, 0.62);
+  --panel-solid: #121b30;
+  --panel-2: rgba(255, 255, 255, 0.035);
+  --panel-2-hover: rgba(255, 255, 255, 0.06);
+  --panel-border: rgba(148, 178, 230, 0.13);
+  --text: #e8eef8;
+  --text-muted: #93a3bc;
+  --text-subtle: #66768f;
+  --divider: rgba(148, 178, 230, 0.10);
+  --input-bg: rgba(255, 255, 255, 0.045);
+  --input-border: rgba(148, 178, 230, 0.20);
+  --accent: #5eb8ff;
+  --accent-strong: #3a9bef;
+  --accent-soft: rgba(94, 184, 255, 0.14);
+  --on-accent: #04121f;
+  --chart-bar: linear-gradient(180deg, #5eb8ff 0%, rgba(58, 155, 239, 0.28) 100%);
+  --chart-target: rgba(232, 238, 248, 0.38);
+
+  --sb-bg: rgba(15, 23, 41, 0.72);
+  --sb-border: rgba(148, 178, 230, 0.12);
+  --sb-text: #dce6f5;
+  --sb-muted: #aab7cb;
+  --sb-heading: #7d8ca6;
+  --sb-hover: rgba(255, 255, 255, 0.05);
+  --sb-active-bg: rgba(94, 184, 255, 0.12);
+  --sb-active-text: #ffffff;
+  --sb-active-bar: #5eb8ff;
+  --sb-logo-bg: #5eb8ff;
+  --sb-logo-text: #04121f;
+  --sb-gap: 16px;
+  --sb-radius: 22px;
+
+  --topbar-glass: rgba(15, 23, 41, 0.62);
+  --blur: blur(18px) saturate(140%);
+  --card-shadow: 0 12px 32px -20px rgba(0, 0, 0, 0.7);
+
+  --good-bg: rgba(52, 211, 153, 0.15);  --good-fg: #4ade9b;
+  --warn-bg: rgba(251, 191, 36, 0.15);  --warn-fg: #fbbf24;
+  --bad-bg:  rgba(248, 113, 113, 0.16); --bad-fg:  #f87171;
+  --none-bg: rgba(255, 255, 255, 0.06); --none-fg: #93a3bc;
+}
+
+/* ─── Violet — dark glass, violet accent ─── */
+body.theme-violet {
+  --app-bg: #110d20;
+  --app-bg-image:
+    radial-gradient(1100px 700px at 85% -10%, rgba(139, 92, 246, 0.24), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(91, 33, 182, 0.22), transparent 60%),
+    linear-gradient(160deg, #130f25 0%, #110d20 55%, #150f2a 100%);
+  --panel: rgba(34, 26, 60, 0.60);
+  --panel-solid: #1c1633;
+  --panel-2: rgba(255, 255, 255, 0.035);
+  --panel-2-hover: rgba(255, 255, 255, 0.06);
+  --panel-border: rgba(196, 181, 253, 0.13);
+  --text: #eeeaf9;
+  --text-muted: #a69cc3;
+  --text-subtle: #776d95;
+  --divider: rgba(196, 181, 253, 0.10);
+  --input-bg: rgba(255, 255, 255, 0.045);
+  --input-border: rgba(196, 181, 253, 0.20);
+  --accent: #a78bfa;
+  --accent-strong: #8b6cf6;
+  --accent-soft: rgba(167, 139, 250, 0.16);
+  --on-accent: #150b2e;
+  --chart-bar: linear-gradient(180deg, #a78bfa 0%, rgba(139, 108, 246, 0.28) 100%);
+  --chart-target: rgba(238, 234, 249, 0.38);
+
+  --sb-bg: rgba(26, 19, 47, 0.72);
+  --sb-border: rgba(196, 181, 253, 0.12);
+  --sb-text: #e6e0f7;
+  --sb-muted: #b8aed6;
+  --sb-heading: #8a7fab;
+  --sb-hover: rgba(255, 255, 255, 0.05);
+  --sb-active-bg: rgba(167, 139, 250, 0.14);
+  --sb-active-text: #ffffff;
+  --sb-active-bar: #a78bfa;
+  --sb-logo-bg: #a78bfa;
+  --sb-logo-text: #150b2e;
+  --sb-gap: 16px;
+  --sb-radius: 22px;
+
+  --topbar-glass: rgba(26, 19, 47, 0.62);
+  --blur: blur(18px) saturate(140%);
+  --card-shadow: 0 12px 32px -20px rgba(0, 0, 0, 0.7);
+
+  --good-bg: rgba(52, 211, 153, 0.15);  --good-fg: #4ade9b;
+  --warn-bg: rgba(251, 191, 36, 0.15);  --warn-fg: #fbbf24;
+  --bad-bg:  rgba(248, 113, 113, 0.16); --bad-fg:  #f87171;
+  --none-bg: rgba(255, 255, 255, 0.06); --none-fg: #a69cc3;
+}
+
+/* ─── Daylight — light glass, indigo accent ─── */
+body.theme-daylight {
+  --app-bg: #eef1f9;
+  --app-bg-image:
+    radial-gradient(900px 600px at 100% 0%, rgba(165, 180, 252, 0.35), transparent 60%),
+    radial-gradient(800px 600px at 0% 100%, rgba(153, 246, 228, 0.30), transparent 60%),
+    linear-gradient(160deg, #f3f4fb 0%, #eef1f9 60%, #eef5f7 100%);
+  --panel: rgba(255, 255, 255, 0.74);
+  --panel-solid: #ffffff;
+  --panel-2: rgba(255, 255, 255, 0.85);
+  --panel-2-hover: #ffffff;
+  --panel-border: rgba(15, 23, 42, 0.07);
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --divider: rgba(15, 23, 42, 0.07);
+  --input-bg: #ffffff;
+  --input-border: #dfe3ee;
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
+  --accent-soft: rgba(79, 70, 229, 0.10);
+  --on-accent: #ffffff;
+  --chart-bar: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+  --chart-target: rgba(15, 23, 42, 0.35);
+
+  --sb-bg: rgba(255, 255, 255, 0.62);
+  --sb-border: rgba(15, 23, 42, 0.06);
+  --sb-text: #1e293b;
+  --sb-muted: #475569;
+  --sb-heading: #64748b;
+  --sb-hover: rgba(255, 255, 255, 0.7);
+  --sb-active-bg: #ffffff;
+  --sb-active-text: #0f172a;
+  --sb-active-bar: #4f46e5;
+  --sb-logo-bg: #4f46e5;
+  --sb-logo-text: #ffffff;
+  --sb-gap: 16px;
+  --sb-radius: 22px;
+
+  --topbar-glass: rgba(255, 255, 255, 0.6);
+  --blur: blur(18px) saturate(160%);
+  --card-shadow: 0 12px 30px -22px rgba(30, 41, 90, 0.35);
+
+  --good-bg: #dcfce7; --good-fg: #15803d;
+  --warn-bg: #fef3c7; --warn-fg: #b45309;
+  --bad-bg:  #fee2e2; --bad-fg:  #b91c1c;
+  --none-bg: #f1f5f9; --none-fg: #64748b;
+}
+
+/* ─── Slate — white workspace, dark solid sidebar, teal accent, no blur ─── */
+body.theme-slate {
+  --app-bg: #f4f5f7;
+  --app-bg-image: none;
+  --panel: #ffffff;
+  --panel-solid: #ffffff;
+  --panel-2: #f8fafc;
+  --panel-2-hover: #f1f5f9;
+  --panel-border: #e5e7eb;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --text-subtle: #9ca3af;
+  --divider: #eef0f3;
+  --input-bg: #ffffff;
+  --input-border: #d9dde3;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: #e6f3f1;
+  --on-accent: #ffffff;
+  --chart-bar: #0f766e;
+  --chart-target: rgba(17, 24, 39, 0.35);
+
+  --sb-bg: #0f1b2d;
+  --sb-border: rgba(255, 255, 255, 0.08);
+  --sb-text: #e2e8f0;
+  --sb-muted: #a3b0c2;
+  --sb-heading: #7c8aa0;
+  --sb-hover: rgba(255, 255, 255, 0.05);
+  --sb-active-bg: rgba(255, 255, 255, 0.08);
+  --sb-active-text: #ffffff;
+  --sb-active-bar: #2dd4bf;
+  --sb-logo-bg: #0f766e;
+  --sb-logo-text: #ffffff;
+  --sb-gap: 0px;
+  --sb-radius: 0px;
+
+  --topbar-glass: #ffffff;
+  --blur: none;
+  --card-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+
+  --good-bg: #dcfce7; --good-fg: #15803d;
+  --warn-bg: #fef3c7; --warn-fg: #b45309;
+  --bad-bg:  #fee2e2; --bad-fg:  #b91c1c;
+  --none-bg: #f3f4f6; --none-fg: #6b7280;
+}
+
+/* ─── Old variables → new ones (every theme) ─── */
+body.theme-frost, body.theme-violet, body.theme-daylight, body.theme-slate {
+  --bg: var(--app-bg);
+  --surface: var(--panel-solid);
+  --surface-2: color-mix(in srgb, var(--panel-solid) 92%, var(--text) 8%);
+  --surface-3: color-mix(in srgb, var(--panel-solid) 86%, var(--text) 14%);
+  --border: color-mix(in srgb, var(--panel-solid) 82%, var(--text) 18%);
+  --border-focus: var(--accent);
+  --topbar-bg: var(--topbar-glass);
+  --topbar-text: var(--text);
+  --topbar-border: var(--panel-border);
+  --accent-hover: var(--accent-strong);
+  --accent-dim: var(--accent-soft);
+  --dot-color: transparent;
+  --success: var(--good-fg);
+  --warning: var(--warn-fg);
+  --danger: var(--bad-fg);
+  --col-green: var(--good-fg);
+  --col-yellow: var(--warn-fg);
+  --col-red: var(--bad-fg);
+  --col-neutral: var(--text-muted);
+  --radius: 12px;
+  --radius-lg: 18px;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  background: var(--app-bg-image), var(--app-bg);
+  background-attachment: fixed;
+  color: var(--text);
+}
+body.theme-daylight, body.theme-slate { --border: #e3e6ee; }
+body.theme-slate { background: var(--app-bg); }

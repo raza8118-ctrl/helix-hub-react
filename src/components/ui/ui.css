@@ -281,3 +281,37 @@ details.ui-details[open] > summary { margin-bottom: var(--ui-s2); }
 @media (prefers-reduced-motion: reduce) {
   .ui-modal-bg, .ui-modal, .ui-spin { animation: none; }
 }
+
+/* ── Frost Glass themes (2026-11-06) ─────────────────────────────────────────────────────────────────────────────
+   With a theme on (body.theme-frost / daylight / slate / violet — see themes.css) the kit takes the theme's tokens:
+   see-through cards without blur, solid accent buttons, status colours from --good / --warn / --bad. */
+body[class*="theme-"] {
+  --ui-good: var(--good-fg); --ui-good-bg: var(--good-bg);
+  --ui-warn: var(--warn-fg); --ui-warn-bg: var(--warn-bg);
+  --ui-bad:  var(--bad-fg);  --ui-bad-bg:  var(--bad-bg);
+  --ui-accent-bg: var(--accent-soft);
+  --ui-grad: var(--accent);
+  --ui-ring: 0 0 0 0 transparent;
+  --ui-r: 18px; --ui-r-lg: 20px; --ui-r-sm: 11px;
+}
+body[class*="theme-"] .ui-card { background: var(--panel); border-color: var(--panel-border); box-shadow: var(--card-shadow); }
+body[class*="theme-"] .ui-card.soft { background: var(--panel-2); box-shadow: none; }
+body[class*="theme-"] .ui-card.accent { border-color: color-mix(in srgb, var(--accent) 40%, var(--panel-border)); box-shadow: var(--card-shadow); }
+body[class*="theme-"] .ui-ph { background: var(--panel); border-color: var(--panel-border); box-shadow: var(--card-shadow); }
+body[class*="theme-"] .ui-ph::before { display: none; }
+body[class*="theme-"] .ui-ph-title { font-family: inherit; font-weight: 700; }
+body[class*="theme-"] .ui-card-t { font-family: inherit; font-weight: 600; }
+body[class*="theme-"] .ui-btn.primary { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+body[class*="theme-"] .ui-btn.primary:hover:not(:disabled) { background: var(--accent-strong); filter: none; box-shadow: none; }
+body[class*="theme-"] .ui-btn.secondary { background: var(--input-bg); border-color: var(--input-border); }
+body[class*="theme-"] .ui-table { background: transparent; border-color: var(--panel-border); }
+body[class*="theme-"] .ui-table th { background: var(--panel-2); color: var(--text-muted); border-color: var(--divider); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; }
+body[class*="theme-"] .ui-table td { border-color: var(--divider); }
+body[class*="theme-"] .ui-table tbody tr:hover { background: var(--panel-2-hover); }
+
+/* Status pill */
+.ui-pill { display: inline-block; padding: 3px 10px; border-radius: var(--ui-r-pill); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; background: var(--none-bg, var(--surface-2)); color: var(--none-fg, var(--text-muted)); }
+.ui-pill.good   { background: var(--good-bg, var(--ui-good-bg)); color: var(--good-fg, var(--ui-good)); }
+.ui-pill.warn   { background: var(--warn-bg, var(--ui-warn-bg)); color: var(--warn-fg, var(--ui-warn)); }
+.ui-pill.bad    { background: var(--bad-bg, var(--ui-bad-bg));   color: var(--bad-fg, var(--ui-bad)); }
+.ui-pill.accent { background: var(--accent-soft, var(--ui-accent-bg)); color: var(--accent); }

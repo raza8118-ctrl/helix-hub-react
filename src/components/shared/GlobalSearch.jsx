@@ -72,8 +72,10 @@ export default function GlobalSearch({ user, tabs, onOpen }) {
   let n = -1;
   return (
     <>
-      <button type="button" className="btn-sm" onClick={() => setOpen(true)} title="Search Helix Hub (Ctrl+K)" aria-label="Search">
-        🔍 <span className="text-sm text-muted">Search</span>
+      <button type="button" className="ui-search-btn" onClick={() => setOpen(true)} title="Search Helix Hub (Ctrl+K)" aria-label="Search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <span className="ui-search-ph">Search payers, SOPs, people…</span>
+        <kbd>Ctrl K</kbd>
       </button>
       {open && (
         <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.35)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '10vh 16px 16px' }}>

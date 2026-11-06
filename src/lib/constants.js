@@ -96,19 +96,27 @@ export const PRIORITIES = [
 export const FEED_BUCKET = 'feed-media';
 export const GIPHY_API_KEY = 'O7xoQ2OykXwLJWW9WkTbfT6mOCmUC7NJ';
 
+// Frost Glass themes (PO request 2026-11-06) — colours live in src/components/ui/themes.css (body class theme-<id>).
+// bg / topbar / accent are only for the little swatches in the theme pickers.
 export const THEMES = [
-  { id: 'light',       label: 'Light',         bg: '#eceaf6',  topbar: '#f4f2fc',  dark: false },
-  { id: 'mist',        label: 'Mist',          bg: '#c8c5dc',  topbar: '#d4d1e8',  dark: false, cls: 'mist' },
-  { id: 'dusk',        label: 'Dusk',          bg: '#211e38',  topbar: '#2b2848',  dark: false, cls: 'dusk' },
-  { id: 'dark',        label: 'Dark',          bg: '#0f1117',  topbar: '#1a1d27',  dark: true  },
-  { id: 'ocean',       label: 'Ocean Blue',    bg: '#0d1b2a',  topbar: '#1b2d45',  dark: true  },
-  { id: 'forest',      label: 'Forest Green',  bg: '#0d1f12',  topbar: '#1a3320',  dark: true  },
-  { id: 'rose',        label: 'Rose',          bg: '#fff5f7',  topbar: '#fff0f2',  dark: false },
-  { id: 'slate',       label: 'Slate',         bg: '#1e2533',  topbar: '#252d3d',  dark: true  },
-  { id: 'amber',       label: 'Amber',         bg: '#fffbf0',  topbar: '#fff8e6',  dark: false },
-  { id: 'violet',      label: 'Violet',        bg: '#0f0d1a',  topbar: '#1a1530',  dark: true  },
-  { id: 'highcontrast',label: 'High Contrast', bg: '#000000',  topbar: '#111111',  dark: true  },
+  { id: 'frost',    label: 'Frost',    bg: '#0a1120', topbar: '#14203a', accent: '#5EB8FF', dark: true,  blur: true },
+  { id: 'daylight', label: 'Daylight', bg: '#eef1f9', topbar: '#ffffff', accent: '#4F46E5', dark: false, blur: true },
+  { id: 'slate',    label: 'Slate',    bg: '#f4f5f7', topbar: '#0f1b2d', accent: '#0F766E', dark: false, blur: false },
+  { id: 'violet',   label: 'Violet',   bg: '#110d20', topbar: '#221a3c', accent: '#A78BFA', dark: true,  blur: true },
 ];
+
+/** Theme ids saved before 2026-11-06 → the nearest new theme (the saved value is only changed when the person picks again). */
+const OLD_THEMES = {
+  light: 'daylight', mist: 'daylight', rose: 'daylight', amber: 'daylight',
+  dark: 'frost', dusk: 'frost', ocean: 'frost', forest: 'frost',
+  highcontrast: 'slate',
+};
+
+/** Any saved theme id (new or old) → one of THEMES' ids; unknown → Frost. */
+export function resolveTheme(id) {
+  if (THEMES.some(t => t.id === id)) return id;
+  return OLD_THEMES[id] ?? THEMES[0].id;
+}
 
 export const DEFAULT_TASKS = {
   MCO: [
