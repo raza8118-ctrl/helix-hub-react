@@ -658,3 +658,21 @@ body[class*="theme-"] .stat-value { font-size: 30px; letter-spacing: -0.02em; }
 
 /* Checkboxes / radios: the old "input { width: 100% }" stretched them away from their labels — size to themselves (every page) */
 body[class*="theme-"] input[type="checkbox"], body[class*="theme-"] input[type="radio"] { width: auto; flex-shrink: 0; accent-color: var(--accent); }
+
+/* ─── Notice Board (Frost Glass page 11) ─── */
+.nb-page { max-width: 960px; margin: 0 auto; width: 100%; }
+.nb-filters { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.nb-search { display: flex; flex-wrap: wrap; gap: 8px; }
+.nb-search select { max-width: 220px; }
+.nb-search input[type="search"] { flex: 1 1 200px; width: auto; }
+.nb-page > .nb-card { margin: 0; }
+.nb-card.pinned { border-left: 4px solid var(--accent) !important; }
+.nb-card.focus { box-shadow: 0 0 0 2px var(--accent) !important; }
+.nb-card.expired { opacity: 0.6; }
+.nb-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.nb-title { flex: 1 1 240px; font-size: 16px; font-weight: 700; }
+.nb-meta { margin: 4px 0 8px; }
+.nb-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.nb-read { margin-left: auto; }
+.nb-readers { margin-top: 8px; }
+.nb-manage { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--divider, var(--border)); }

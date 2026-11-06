@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 11 — Notice Board (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (notices, must-read, "I've read this",
+**Frost Glass page 11 — Notice Board (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all four views switch; "+ Post a notice" window opened
+(11 fields) and cancelled — nothing posted. 3Gen has no notices in any view, so the notice cards (pinned edge, buttons) were not
+seen with real notices. Owner theme left on Frost. Styling only (notices, must-read, "I've read this",
 pin, archive, posting, links unchanged; no database change). `NoticeBoard.jsx`: old heading → intro card with "+ Post a notice";
 views → themed toggles; notice cards keep pinned edge / focus outline / faded expired; link + action buttons → compact themed
 buttons. `NoticeEditor` unchanged (already themed). Test in 3Gen, view only.

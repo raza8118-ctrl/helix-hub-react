@@ -10,6 +10,7 @@ import { today } from '../../lib/helpers';
 import { confirmDialog } from '../../components/shared/Dialog';
 import SopText from './SopText';
 import NoticeEditor from './NoticeEditor';
+import { Button } from '../../components/ui';
 
 const fmt = d => (d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 const openTab = id => window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: id }));
@@ -90,13 +91,15 @@ export default function NoticeBoard({ user }) {
   } : { unread: 0 };
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📌 Notice Board</div>
-          <div className="page-subtitle">Process changes, client and payer news, system notices and wins — kept until they no longer apply.</div>
-        </div>
-        {board && poster && <button className="btn-primary" onClick={() => setEditing({ row: null })}>+ Post a notice</button>}
+    <div className="fg-page nb-page">
+      {/* Intro + action (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Process changes, client and payer news, system notices and wins — kept until they no longer apply.</span>
+        {board && poster && (
+          <div className="fg-actions">
+            <Button size="sm" variant="primary" onClick={() => setEditing({ row: null })}>+ Post a notice</Button>
+          </div>
+        )}
       </div>
 
       {board === undefined && <div className="card text-muted">Loading…</div>}
@@ -104,22 +107,22 @@ export default function NoticeBoard({ user }) {
 
       {board && (
         <>
-          <div className="card mb-16">
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          <div className="card nb-filters">
+            <div className="fg-choices fg-choices-tight" role="group" aria-label="Notice views">
               {[['mine', 'For my team'], ['unread', `Must read — not yet read${counts.unread ? ` (${counts.unread})` : ''}`], ['all', 'Everything'], ['archive', 'Archive']].map(([id, label]) => (
-                <button key={id} className={view === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>
+                <Button key={id} size="sm" active={view === id} aria-pressed={view === id} onClick={() => setView(id)}>{label}</Button>
               ))}
             </div>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <div className="nb-search">
               <select value={category} onChange={e => setCategory(e.target.value)} aria-label="Category">
                 <option value="ALL">All categories</option>
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
               </select>
-              <input type="search" style={{ flex: '1 1 200px' }} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search notices…" aria-label="Search" />
+              <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search notices…" aria-label="Search" />
             </div>
           </div>
 
-          {list.length === 0 && <div className="card text-muted" style={{ textAlign: 'center' }}>{view === 'unread' ? 'You have read every must-read notice. 🎉' : 'No notices here.'}</div>}
+          {list.length === 0 && <div className="card text-muted fg-empty">{view === 'unread' ? 'You have read every must-read notice. 🎉' : 'No notices here.'}</div>}
 
           {list.map(n => {
             const cat = categoryOf(n.category);
@@ -130,39 +133,39 @@ export default function NoticeBoard({ user }) {
             const mayManage = poster && (['admin', 'manager'].includes(user.role) || n.posted_by === user.emp_id);
             const showReaders = n.must_read && (['admin', 'manager', 'supervisor'].includes(user.role) || n.posted_by === user.emp_id);
             return (
-              <div key={n.id} className="card mb-16" style={{ ...(n.pinned ? { borderLeft: '4px solid var(--accent)' } : {}), ...(n.id === focus ? { boxShadow: '0 0 0 2px var(--accent)' } : {}), ...(!isLive(n) ? { opacity: 0.6 } : {}) }}>
-                <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div key={n.id} className={`card nb-card${n.pinned ? ' pinned' : ''}${n.id === focus ? ' focus' : ''}${!isLive(n) ? ' expired' : ''}`}>
+                <div className="nb-head">
                   {n.pinned && <span title="Pinned">📌</span>}
-                  <span className="bold" style={{ fontSize: 16, flex: '1 1 240px' }}>{n.title}</span>
+                  <span className="nb-title">{n.title}</span>
                   <span className="badge badge-gray">{cat.icon} {cat.label}</span>
                   {n.must_read && (readByMe(n) ? <span className="badge badge-green">✓ Read</span> : <span className="badge badge-red">Must read</span>)}
                 </div>
-                <div className="text-sm text-muted" style={{ margin: '4px 0 8px' }}>
+                <div className="text-sm text-muted nb-meta">
                   {(n.teams ?? []).length ? n.teams.join(', ') : 'Everyone'}{client ? ` · ${client.name}` : ''} · from {fmt(n.show_from)}{n.show_until ? ` until ${fmt(n.show_until)}` : ''}
                   {' '}· posted by {people.find(p => p.emp_id === n.posted_by)?.name ?? n.posted_by ?? '—'}
                   {n.show_until && n.show_until < today() && ' · expired'}
                   {n.active === false && ' · archived'}
                 </div>
                 {n.body && <SopText text={n.body} />}
-                <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                  {sop && <button className="btn-sm" onClick={() => openSopLibrary(sop.title)}>📚 {sop.title}</button>}
-                  {payer && <button className="btn-sm" onClick={() => openPayer(payer.id)}>📇 {payer.name}</button>}
-                  {update && <button className="btn-sm" onClick={() => { setRecord('wb_updates', { tab: 'all', query: update.label.split(':')[0] }); openTab('wb_updates'); }}>📰 Payer update</button>}
+                <div className="nb-links">
+                  {sop && <Button size="xs" onClick={() => openSopLibrary(sop.title)}>📚 {sop.title}</Button>}
+                  {payer && <Button size="xs" onClick={() => openPayer(payer.id)}>📇 {payer.name}</Button>}
+                  {update && <Button size="xs" onClick={() => { setRecord('wb_updates', { tab: 'all', query: update.label.split(':')[0] }); openTab('wb_updates'); }}>📰 Payer update</Button>}
                   {n.must_read && !readByMe(n) && isLive(n) && forMe(n, user) && (
-                    <button className="btn-primary btn-sm" style={{ marginLeft: 'auto' }} disabled={busy} onClick={() => run(() => markNoticeRead(n, user))}>✓ I've read this</button>
+                    <Button size="sm" variant="primary" className="nb-read" disabled={busy} onClick={() => run(() => markNoticeRead(n, user))}>✓ I've read this</Button>
                   )}
                 </div>
                 {showReaders && (
-                  <div className="text-sm text-muted" style={{ marginTop: 8 }}>
+                  <div className="text-sm text-muted nb-readers">
                     Read: {readLine(n) || '—'}
                     {notRead(n).length > 0 && notRead(n).length <= 25 && <div>Not yet: {notRead(n).join(', ')}</div>}
                   </div>
                 )}
                 {mayManage && (
-                  <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
-                    <button className="btn-sm" disabled={busy} onClick={() => setEditing({ row: n })}>✏️ Edit</button>
-                    <button className="btn-sm" disabled={busy} onClick={() => run(() => setNoticeFlags(n, { pinned: !n.pinned }, user))}>{n.pinned ? 'Unpin' : '📌 Pin'}</button>
-                    <button className="btn-sm" disabled={busy} onClick={() => archive(n)}>{n.active === false ? 'Restore' : 'Archive'}</button>
+                  <div className="nb-manage">
+                    <Button size="xs" disabled={busy} onClick={() => setEditing({ row: n })}>✏️ Edit</Button>
+                    <Button size="xs" disabled={busy} onClick={() => run(() => setNoticeFlags(n, { pinned: !n.pinned }, user))}>{n.pinned ? 'Unpin' : '📌 Pin'}</Button>
+                    <Button size="xs" disabled={busy} onClick={() => archive(n)}>{n.active === false ? 'Restore' : 'Archive'}</Button>
                   </div>
                 )}
               </div>
