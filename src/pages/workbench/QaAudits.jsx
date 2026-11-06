@@ -12,6 +12,7 @@ import QaResults from './QaResults';
 import QaScorecards from './QaScorecards';
 import ErrorLibrary from './ErrorLibrary';
 import { loadMistakes, seenCounts } from '../../lib/mistakes';
+import { Button } from '../../components/ui';
 
 const fmtDate = d => (d ? new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 const cell = { padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'left', verticalAlign: 'top' };
@@ -75,18 +76,16 @@ export default function QaAudits({ user }) {
     ...(manager ? [['setup', '🗂 Scorecards & categories']] : []),
   ];
 
+  // Intro (the page title is in the top bar)
   const header = (
-    <div className="page-header">
-      <div>
-        <div className="page-title">✅ QA Audits</div>
-        <div className="page-subtitle">Scorecards, error categories linked to SOPs, and audits the agent acknowledges.</div>
-      </div>
+    <div className="fg-bar">
+      <span className="fg-date">Scorecards, error categories linked to SOPs, and audits the agent acknowledges.</span>
     </div>
   );
-  if (ready === undefined) return <div style={{ maxWidth: 1100, margin: '0 auto' }}>{header}<div className="card text-muted">Loading…</div></div>;
+  if (ready === undefined) return <div className="fg-page wl-page">{header}<div className="card text-muted">Loading…</div></div>;
   if (!ready) {
     return (
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>{header}
+      <div className="fg-page wl-page">{header}
         <div className="card text-muted">
           QA Audits aren’t set up yet. An admin needs to run the QA database update (<code>20261021m_qa_audits.sql</code>) in Supabase.
         </div>
@@ -105,7 +104,7 @@ export default function QaAudits({ user }) {
   }
 
   const list = (title, rows, action) => rows.length > 0 && (
-    <div className="card mb-16">
+    <div className="card fg-card fg-tracker">
       <div className="card-header"><div className="card-title">{title} <span className="text-sm text-muted">· {rows.length}</span></div></div>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -128,12 +127,12 @@ export default function QaAudits({ user }) {
   );
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div className="fg-page wl-page">
       {header}
-      <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div className="fg-choices wl-tabs" role="group" aria-label="QA views">
         {tabs.map(([id, label]) => (
-          <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id}
-            onClick={() => { setTab(id); setEditing(null); }}>{label}</button>
+          <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id}
+            onClick={() => { setTab(id); setEditing(null); }}>{label}</Button>
         ))}
       </div>
 
@@ -143,9 +142,9 @@ export default function QaAudits({ user }) {
       )}
       {tab === 'audit' && auditor && !editing && (
         <>
-          <div className="card mb-16">
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <button className="btn-primary" onClick={() => setEditing({})} disabled={!setup.scorecards.some(c => c.active !== false)}>+ New audit</button>
+          <div className="card wl-card">
+            <div className="wl-card-row">
+              <Button size="sm" variant="primary" onClick={() => setEditing({})} disabled={!setup.scorecards.some(c => c.active !== false)}>+ New audit</Button>
               <span className="text-sm text-muted">
                 {setup.scorecards.some(c => c.active !== false)
                   ? 'Audit any claim, or use 🎲 Sampling to pick worked claims from the Smart Worklist.'
@@ -153,16 +152,16 @@ export default function QaAudits({ user }) {
               </span>
             </div>
           </div>
-          {list('⚖️ Disputes to resolve', disputed.filter(a => a.agent_emp_id !== empId), a => <button className="btn-sm" onClick={() => setResolving(a)}>Resolve</button>)}
-          {list('📝 My drafts', drafts, a => <button className="btn-sm" onClick={() => setEditing(a)}>Continue</button>)}
+          {list('⚖️ Disputes to resolve', disputed.filter(a => a.agent_emp_id !== empId), a => <Button size="xs" onClick={() => setResolving(a)}>Resolve</Button>)}
+          {list('📝 My drafts', drafts, a => <Button size="xs" onClick={() => setEditing(a)}>Continue</Button>)}
           {list('🎲 To audit (sampled)', queued, a => (
-            <span className="row" style={{ gap: 4 }}>
-              <button className="btn-sm" onClick={() => setEditing(a)}>Start</button>
-              <button className="btn-sm" onClick={() => skip(a)}>Skip</button>
+            <span className="fg-row-actions">
+              <Button size="xs" onClick={() => setEditing(a)}>Start</Button>
+              <Button size="xs" onClick={() => skip(a)}>Skip</Button>
             </span>
           ))}
           {!disputed.length && !drafts.length && !queued.length && (
-            <div className="card text-muted" style={{ textAlign: 'center' }}>Nothing waiting. Start a new audit or pick a sample.</div>
+            <div className="card text-muted fg-empty">Nothing waiting. Start a new audit or pick a sample.</div>
           )}
         </>
       )}

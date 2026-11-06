@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 18 — QA Audits (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (audits, scoring, critical fails, disputes,
+**Frost Glass page 18 — QA Audits (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all six tabs opened (Audit, My audits, Mistakes & fixes,
+Sampling, Results, Scorecards & categories); nothing started / scored / skipped. 3Gen has no queued / draft / disputed audits, so the
+To-do lists and their buttons were not seen. Owner theme left on Frost. Styling only (audits, scoring, critical fails, disputes,
 acknowledgements, sampling, scorecards, error library unchanged; no database change). `QaAudits.jsx`: old heading → intro card; tabs
 → themed toggles; To-do queue: "+ New audit" themed, lists in the shared table style, Resolve / Continue / Start / Skip → compact
 themed buttons, empty message centred. Six parts already themed — no changes. Test in 3Gen, view only.
