@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 8 — Smart Worklist (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Smart Worklist is switched off for
+**Frost Glass page 9 — Client Queries (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (queries, tabs, chasing, aging, saving
+unchanged; no database change). Only `ClientQueries.jsx`: old heading → intro card with "+ New query" on the right; tabs → themed
+toggles (counts kept). Its parts (`QueryList`, `QueryAging`, `QueryEditor`) already follow the theme — no changes. Test in 3Gen,
+view only (+ New query window opened and cancelled).
+
+**Frost Glass page 8 — Smart Worklist (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Smart Worklist is switched off for
 3Gen, so checked in Test Co (owner, view only) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): My worklist,
 Follow-ups (4 tiles), Manage (REVIEW Worklist opened → claim table + priority pills, then back; nothing saved). Shared CSS made
 the older `.badge-*` labels and `.stat-card` tiles follow the theme on every page (colours / shape only), so the four sub-parts
