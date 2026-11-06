@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 17 — Credentialing (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (providers, enrollments, CAQH /
+**Frost Glass page 17 — Credentialing (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all four tabs opened (Due soon, Providers, Enrollments,
+Enrollment checklist); nothing added / edited, AI checklist not run. 3Gen has no providers, so provider details and the payer card
+back button were not seen. Owner theme left on Frost. Styling only (providers, enrollments, CAQH /
 revalidation dates, warnings, checklist, saving unchanged; no database change). `Credentialing.jsx`: old heading → intro card; tabs
 → themed toggles; "← Back to Credentialing" → themed button. Parts already themed — no changes. Test in 3Gen, view only.
 

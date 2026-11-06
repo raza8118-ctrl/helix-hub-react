@@ -9,6 +9,7 @@ import CredEnrollments from './CredEnrollments';
 import CredChecklist from './CredChecklist';
 import PayerCard from './PayerCard';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { Button } from '../../components/ui';
 
 const openTab = id => window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: id }));
 
@@ -56,25 +57,23 @@ export default function Credentialing({ user }) {
     else openTab('wb_updates');
   }
 
+  // Intro (the page title is in the top bar)
   const header = (
-    <div className="page-header">
-      <div>
-        <div className="page-title">🪪 Credentialing</div>
-        <div className="page-subtitle">Payer enrollments, CAQH, revalidations and expiring licenses — with what is due next.</div>
-      </div>
+    <div className="fg-bar">
+      <span className="fg-date">Payer enrollments, CAQH, revalidations and expiring licenses — with what is due next.</span>
     </div>
   );
   if (payerCard) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <button className="btn-sm" style={{ marginBottom: 12 }} onClick={() => setPayerCard(null)}>← Back to Credentialing</button>
+      <div className="fg-page nb-page">
+        <div><Button size="sm" onClick={() => setPayerCard(null)}>← Back to Credentialing</Button></div>
         <PayerCard key={payerCard.id} payer={payerCard} user={user} onClose={() => setPayerCard(null)} />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div className="fg-page wl-page">
       {header}
       {data === undefined && <div className="card text-muted">Loading…</div>}
       {data === null && (
@@ -84,15 +83,15 @@ export default function Credentialing({ user }) {
       )}
       {data && (
         <>
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="fg-choices wl-tabs" role="group" aria-label="Credentialing views">
             {[
               ['due', `⏰ Due soon${due.length ? ` (${due.length}${urgent ? ` · ${urgent} urgent` : ''})` : ''}`],
               ['providers', '👤 Providers'],
               ['enrollments', '🏥 Enrollments'],
               ['checklist', '✨ Enrollment checklist'],
             ].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id}
-                onClick={() => { setTab(id); if (id !== 'providers') setOpenId(null); }}>{label}</button>
+              <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id}
+                onClick={() => { setTab(id); if (id !== 'providers') setOpenId(null); }}>{label}</Button>
             ))}
           </div>
           {tab === 'due' && <CredDueSoon items={due} ctx={ctx} user={user} canEdit={canEdit} onChanged={reload} onOpenProvider={openProvider} />}
