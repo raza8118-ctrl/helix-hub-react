@@ -4,6 +4,7 @@ import { loadDenialCodes } from '../../lib/denials';
 import { canViewReports } from '../../lib/reports';
 import DenialTrends from './DenialTrends';
 import WeeklyClientReport from './WeeklyClientReport';
+import { Button } from '../../components/ui';
 
 /**
  * 📈 Reports (roadmap 10.2): 🧩 Denial trends and 🗓 Weekly client report. Read-only, for “View reports” holders
@@ -24,20 +25,18 @@ export default function Reports({ user }) {
   }, [allowed]);
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📈 Reports</div>
-          <div className="page-subtitle">Denial trends by payer and client, and a weekly report for each client.</div>
-        </div>
+    <div className="fg-page wl-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Denial trends by payer and client, and a weekly report for each client.</span>
       </div>
       {!allowed ? (
         <div className="card text-muted">Reports are available to managers and supervisors, or anyone an admin gives “View reports”.</div>
       ) : (
         <>
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="fg-choices wl-tabs" role="group" aria-label="Reports">
             {[['denials', '🧩 Denial trends'], ['weekly', '🗓 Weekly client report']].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+              <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</Button>
             ))}
           </div>
           {tab === 'denials' && <DenialTrends ctx={ctx} codes={codes} user={user} />}
