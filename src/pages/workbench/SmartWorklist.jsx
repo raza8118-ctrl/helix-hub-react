@@ -9,6 +9,7 @@ import WorklistManage from './WorklistManage';
 import MyWorklist from './MyWorklist';
 import Followups from './Followups';
 import { peekOpenFollowups, clearOpenFollowups } from '../../lib/followups';
+import { Button, Notice } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
@@ -87,16 +88,14 @@ export default function SmartWorklist({ user }) {
   const people = users.filter(u => !isSupervisor || u.team === user.team || (u.supervisor_ids ?? []).includes(empId));
   const reload = () => setReloadKey(k => k + 1);
 
-  if (worklists === undefined) return <div style={{ maxWidth: 1100, margin: '0 auto' }}><div className="card text-muted">Loading…</div></div>;
+  if (worklists === undefined) return <div className="fg-page wl-page"><div className="card text-muted">Loading…</div></div>;
 
   const opened = openId != null ? visible.find(w => w.id === openId) : null;
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📋 Smart Worklist</div>
-          <div className="page-subtitle">Claims in priority order — deadline, dollars and payer — assigned and worked one by one.</div>
-        </div>
+    <div className="fg-page wl-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Claims in priority order — deadline, dollars and payer — assigned and worked one by one.</span>
       </div>
 
       {worklists === null && (
@@ -108,10 +107,10 @@ export default function SmartWorklist({ user }) {
 
       {worklists && (
         <>
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="fg-choices wl-tabs" role="group" aria-label="Worklist views">
             {[['mine', '🙋 My worklist'], ['followups', '⏰ Follow-ups'], ...(canManage ? [['manage', '🛠 Manage worklists']] : [])].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id}
-                onClick={() => { setTab(id); setView(null); }}>{label}</button>
+              <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id}
+                onClick={() => { setTab(id); setView(null); }}>{label}</Button>
             ))}
           </div>
 
@@ -136,23 +135,22 @@ export default function SmartWorklist({ user }) {
 
           {tab === 'manage' && canManage && view == null && (
             <>
-              <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-                <button className="btn-primary btn-sm" onClick={() => setView('upload')}>⬆ Upload a worklist</button>
-                <label className="row text-sm text-muted" style={{ gap: 4, cursor: 'pointer', marginLeft: 'auto' }}>
+              <div className="wl-tools">
+                <Button size="sm" variant="primary" onClick={() => setView('upload')}>⬆ Upload a worklist</Button>
+                <label className="row text-sm text-muted wl-closed-toggle">
                   <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} /> Show closed
                 </label>
               </div>
-              <div className="text-sm text-muted mb-16">
-                🔒 Claim # and dates of service are wiped automatically {CLEAR_AFTER_DAYS} days after upload, or when you close a worklist.
-              </div>
+              <Notice icon="🔒">
+                Claim # and dates of service are wiped automatically {CLEAR_AFTER_DAYS} days after upload, or when you close a worklist.
+              </Notice>
               {visible.filter(w => showClosed || w.status !== 'closed').length === 0 && (
-                <div className="card text-muted" style={{ textAlign: 'center' }}>No worklists yet — upload an aging or RTP file to start.</div>
+                <div className="card text-muted fg-empty">No worklists yet — upload an aging or RTP file to start.</div>
               )}
               {visible.filter(w => showClosed || w.status !== 'closed').map(w => (
-                <div key={w.id} className="card mb-16" style={w.status === 'closed' ? { opacity: 0.65 } : undefined}>
-                  <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <button type="button" className="card-title" onClick={() => setView(w.id)}
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', textAlign: 'left' }}>
+                <div key={w.id} className={`card wl-card${w.status === 'closed' ? ' wl-closed' : ''}`}>
+                  <div className="wl-card-row">
+                    <button type="button" className="card-title wl-open" onClick={() => setView(w.id)}>
                       📋 {w.name} ›
                     </button>
                     {w.team && <span className="badge badge-blue">{w.team}</span>}

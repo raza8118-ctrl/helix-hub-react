@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 8 — Smart Worklist (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (tabs, uploads, assigning, statuses,
+**Frost Glass page 8 — Smart Worklist (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Smart Worklist is switched off for
+3Gen, so checked in Test Co (owner, view only) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): My worklist,
+Follow-ups (4 tiles), Manage (REVIEW Worklist opened → claim table + priority pills, then back; nothing saved). Shared CSS made
+the older `.badge-*` labels and `.stat-card` tiles follow the theme on every page (colours / shape only), so the four sub-parts
+(`MyWorklist`, `Followups`, `WorklistManage`, `WorklistUpload`) needed no markup changes — only `SmartWorklist.jsx` changed. Owner
+themes left as they were (3Gen Frost, Test Co Daylight). Styling only (tabs, uploads, assigning, statuses,
 follow-ups, closing, automatic clearing unchanged; no database change; claim details untouched). Files: `SmartWorklist.jsx`,
 `MyWorklist.jsx`, `Followups.jsx`, `WorklistManage.jsx`, `WorklistUpload.jsx`. Old heading → small intro card; tabs → themed toggles;
 claim cards keep their coloured left edge (theme colours); labels → `Pill`; tables / buttons themed; 🔒 note → notice. Plus: the

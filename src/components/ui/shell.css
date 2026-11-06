@@ -623,3 +623,35 @@ body[class*="theme-"] .tm-dir tbody tr:hover td { background: var(--panel-2-hove
   .tm-quality { margin: 12px 14px 0; }
   .tm-hint { padding: 0 14px; }
 }
+
+/* ─── Older shared labels (.badge-*) follow the theme (Frost Glass, 2026-11-06) — every page, colours only ─── */
+body[class*="theme-"] .badge { padding: 2px 9px; border-radius: 999px; font-weight: 700; }
+body[class*="theme-"] .badge-green  { background: var(--good-bg); color: var(--good-fg); }
+body[class*="theme-"] .badge-red    { background: var(--bad-bg);  color: var(--bad-fg); }
+body[class*="theme-"] .badge-yellow { background: var(--warn-bg); color: var(--warn-fg); }
+body[class*="theme-"] .badge-orange { background: color-mix(in srgb, #f97316 16%, transparent); color: #ea580c; }
+body.dark[class*="theme-"] .badge-orange { color: #fb923c; }
+body[class*="theme-"] .badge-blue   { background: var(--accent-soft); color: var(--accent); }
+body[class*="theme-"] .badge-purple { background: color-mix(in srgb, #a78bfa 18%, transparent); color: #8b5cf6; }
+body.dark[class*="theme-"] .badge-purple { color: #c4b5fd; }
+body[class*="theme-"] .badge-gray   { background: var(--none-bg); color: var(--none-fg); }
+
+/* ─── Older shared number tiles (.stat-card) look like the KPI cards (Frost Glass, 2026-11-06) — every page ─── */
+body[class*="theme-"] .stat-card {
+  background: var(--panel); border-color: var(--panel-border); border-radius: 18px; box-shadow: var(--card-shadow); padding: 18px 20px;
+}
+body[class*="theme-"] .stat-card::before { display: none; }
+body[class*="theme-"] .stat-card:hover { transform: none; box-shadow: var(--card-shadow); }
+body[class*="theme-"] .stat-label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+body[class*="theme-"] .stat-value { font-size: 30px; letter-spacing: -0.02em; }
+
+/* ─── Smart Worklist (Frost Glass page 8) ─── */
+.wl-page { max-width: 1100px; margin: 0 auto; width: 100%; }
+.wl-tabs { margin-top: 0; }
+.wl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wl-closed-toggle { gap: 4px; cursor: pointer; margin-left: auto; white-space: nowrap; }
+.wl-page > .wl-card { margin: 0; }
+.wl-card-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wl-open { background: none; border: 0; padding: 0; cursor: pointer; color: var(--accent); text-align: left; font: inherit; font-weight: 600; font-size: 16px; }
+.wl-open:hover { text-decoration: underline; }
+.wl-closed { opacity: 0.65; }
