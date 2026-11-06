@@ -3,6 +3,7 @@ import { S, kv } from '../../lib/supabase';
 import { today, fmtSh, fmtD, avg, procIncludes, scopeToSupervisor, permsFor, logAudit, isOnLeave, isScopedUser } from '../../lib/helpers';
 import Modal from '../../components/shared/Modal';
 import { alertDialog } from '../../components/shared/Dialog';
+import { Pill, Notice, Button } from '../../components/ui';
 
 const RANGE_OPTIONS = [7, 14, 21];
 
@@ -25,6 +26,10 @@ function qColor(val) {
   if (val >= 90) return 'col-yellow';
   return 'col-red';
 }
+
+/** Frost Glass: same bands as qColor → pill tone. */
+const Q_TONE = { 'col-green': 'good', 'col-yellow': 'warn', 'col-red': 'bad' };
+const qTone = val => Q_TONE[qColor(val)] ?? 'neutral';
 
 export default function QualityMonitor({ user }) {
   const [endDate, setEndDate]       = useState(today());
@@ -156,84 +161,67 @@ export default function QualityMonitor({ user }) {
   }
 
   return (
-    <div>
-      {/* Header controls */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-header">
-          <div className="card-title">Quality Monitor</div>
-          {loading && <span className="text-muted text-sm">Loading…</span>}
-        </div>
-        <div className="row" style={{ gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>End Date</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-              style={{ padding: '6px 10px', fontSize: 13 }} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Range</label>
-            <div className="row" style={{ gap: 6, marginTop: 2 }}>
+    <div className="fg-page">
+      {/* Filters (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <label className="fg-f"><span>End date</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </label>
+          <div className="fg-f" role="group" aria-label="Range"><span>Range</span>
+            <div className="fg-choices fg-choices-tight">
               {RANGE_OPTIONS.map(r => (
-                <button key={r} className="btn-sm"
-                  style={range === r ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-                  onClick={() => setRange(r)}>
+                <Button key={r} size="sm" active={range === r} aria-pressed={range === r} onClick={() => setRange(r)}>
                   {r} days
-                </button>
+                </Button>
               ))}
             </div>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Process</label>
-            <div className="row" style={{ gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+          <div className="fg-f" role="group" aria-label="Process"><span>Process</span>
+            <div className="fg-choices fg-choices-tight">
               {allProcs.map(p => (
-                <button key={p} className="btn-sm"
-                  style={filterProc === p ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-                  onClick={() => setFilterProc(p)}>
+                <Button key={p} size="sm" active={filterProc === p} aria-pressed={filterProc === p} onClick={() => setFilterProc(p)}>
                   {p}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
         </div>
+        {loading && <span className="fg-date">Loading…</span>}
       </div>
 
       {/* Summary stat */}
       {totalPending > 0 && (
-        <div style={{ marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span className="badge badge-gray" style={{ fontSize: 12 }}>
-            ⏳ {totalPending} quality entr{totalPending === 1 ? 'y' : 'ies'} pending across this range
-          </span>
-        </div>
+        <Notice icon="⏳">
+          {totalPending} quality entr{totalPending === 1 ? 'y' : 'ies'} pending across this range
+        </Notice>
       )}
 
       {/* Grid */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ minWidth: 700 }}>
+      <div className="card qm-grid">
+        <div className="qm-scroll">
+          <table>
             <thead>
               <tr>
-                <th style={{ minWidth: 140, position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 2 }}>Employee</th>
-                <th style={{ minWidth: 60 }}>Proc</th>
+                <th className="qm-name">Employee</th>
+                <th className="qm-proc">Proc</th>
                 {dates.map((d, i) => (
-                  <th key={d} className="center" style={{
-                    minWidth: 72, fontSize: 11,
-                    color: holidayDates.has(d) ? 'var(--accent)' : 'var(--text-muted)',
-                    fontWeight: holidayDates.has(d) ? 700 : 600,
-                  }}>
+                  <th key={d} className={`center qm-day${holidayDates.has(d) ? ' holiday' : ''}`}>
                     {fmtSh(d)}
-                    {holidayDates.has(d) && <div style={{ fontSize: 9, color: 'var(--accent)' }}>Holiday</div>}
+                    {holidayDates.has(d) && <div className="qm-hol">Holiday</div>}
                     {dateAvgs[i] != null && (
-                      <div className={qColor(dateAvgs[i])} style={{ fontSize: 10, fontWeight: 700, marginTop: 1 }}>
+                      <div className={`qm-davg ${qColor(dateAvgs[i])}`}>
                         avg {dateAvgs[i]}%
                       </div>
                     )}
                   </th>
                 ))}
-                <th className="right" style={{ minWidth: 72 }}>Avg</th>
+                <th className="right qm-avg">Avg</th>
               </tr>
             </thead>
             <tbody>
               {employees.length === 0 && (
-                <tr><td colSpan={dates.length + 3} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No employees found</td></tr>
+                <tr><td colSpan={dates.length + 3} className="fg-empty">No employees found</td></tr>
               )}
               {employees.map(emp => {
                 const avg_ = empAvg(emp);
@@ -241,10 +229,10 @@ export default function QualityMonitor({ user }) {
                 const skipQuality = empProcs.length > 0 && empProcs.every(p => qualitySkipProcs.has(p));
                 return (
                   <tr key={emp.emp_id}>
-                    <td className="bold" style={{ position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1 }}>
+                    <td className="bold qm-name">
                       {emp.name ?? emp.emp_id}
                     </td>
-                    <td className="text-muted" style={{ fontSize: 12 }}>
+                    <td className="text-muted qm-small">
                       {(emp.processes ?? [emp.access]).filter(Boolean).join(', ')}
                     </td>
                     {dates.map(d => {
@@ -257,7 +245,7 @@ export default function QualityMonitor({ user }) {
 
                       if (isHoliday) {
                         return (
-                          <td key={d} className="center" style={{ background: 'var(--surface-2)', fontSize: 11, color: 'var(--accent)' }}>
+                          <td key={d} className="center qm-holcell">
                             —
                           </td>
                         );
@@ -265,41 +253,41 @@ export default function QualityMonitor({ user }) {
                       if (onLeave) {
                         return (
                           <td key={d} className="center">
-                            <span className="badge badge-blue" style={{ fontSize: 10 }}>Leave</span>
+                            <Pill tone="accent">Leave</Pill>
                           </td>
                         );
                       }
                       if (bypassed) {
                         return (
                           <td key={d} className="center">
-                            <span className="badge" style={{ fontSize: 10, background: 'rgba(99,102,241,0.15)', color: 'var(--accent)' }}>Bypassed</span>
+                            <Pill>Bypassed</Pill>
                           </td>
                         );
                       }
                       if (skipQuality) {
                         return (
-                          <td key={d} className="center" style={{ fontSize: 12 }}>
-                            {hasLog ? <span className="bold col-green" style={{ fontSize: 13 }}>100%</span> : <span className="text-muted">—</span>}
+                          <td key={d} className="center">
+                            {hasLog ? <Pill tone="good">100%</Pill> : <span className="text-muted">—</span>}
                           </td>
                         );
                       }
                       const qualityBypassed = !!log?.quality_bypass_reason;
                       if (!hasLog || qualityBypassed) {
-                        return <td key={d} className="center text-muted" style={{ fontSize: 12 }}>—</td>;
+                        return <td key={d} className="center text-muted">—</td>;
                       }
                       // Has log — show quality or pending
                       return (
-                        <td key={d} className="center" style={{ cursor: canEdit ? 'pointer' : 'default' }}
+                        <td key={d} className={`center${canEdit ? ' qm-edit' : ''}`}
                           onClick={() => canEdit && openEdit(emp, d, quality)}
                           title={canEdit ? `Click to ${quality != null ? 'edit' : 'enter'} quality for ${fmtD(d)}` : ''}>
                           {quality != null
-                            ? <span className={`bold ${qColor(quality)}`} style={{ fontSize: 13 }}>{quality}%</span>
-                            : <span className="badge badge-gray" style={{ fontSize: 10 }}>Pending</span>
+                            ? <Pill tone={qTone(quality)}>{quality}%</Pill>
+                            : <Pill>Pending</Pill>
                           }
                         </td>
                       );
                     })}
-                    <td className={`right bold ${qColor(avg_)}`} style={{ fontSize: 13 }}>
+                    <td className={`right bold qm-avg ${qColor(avg_)}`}>
                       {avg_ != null ? avg_ + '%' : '—'}
                     </td>
                   </tr>
@@ -319,8 +307,7 @@ export default function QualityMonitor({ user }) {
           <div className="field">
             <label>Quality % (0–100)</label>
             <input type="number" min="0" max="100" step="0.1" value={editVal}
-              onChange={e => setEditVal(e.target.value)} placeholder="e.g. 96.5" autoFocus
-              style={{ color: 'var(--text)', background: 'var(--surface)' }} />
+              onChange={e => setEditVal(e.target.value)} placeholder="e.g. 96.5" autoFocus />
           </div>
           <div className="form-actions">
             <button className="btn-sm" onClick={() => setEditTarget(null)}>Cancel</button>

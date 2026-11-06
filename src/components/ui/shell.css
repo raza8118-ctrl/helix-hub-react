@@ -423,6 +423,7 @@ body[class*="theme-"] .page-topbar.tb-glass::before {
 .fg-filters, .fg-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .fg-actions { gap: 8px; }
 .fg-f { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.fg-f > span { white-space: nowrap; }
 .fg-f input { max-width: 160px; }
 .fg-f select { max-width: 140px; }
 .fg-date { font-size: 13px; color: var(--text-muted); }
@@ -474,3 +475,27 @@ body[class*="theme-"] .fg-tracker tbody tr:hover td { background: var(--panel-2-
 @media (max-width: 1280px) {
   .fg-kpis.fg-kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ─── Quality grid (Frost Glass page 4) ─── */
+.fg-choices.fg-choices-tight { margin-top: 0; gap: 6px; }
+.qm-grid { padding: 0 !important; overflow: hidden; }
+body[class*="theme-"] .qm-grid { background: var(--panel-solid); }
+.qm-scroll { overflow-x: auto; }
+.qm-grid table { min-width: 700px; }
+.qm-grid th { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+body[class*="theme-"] .qm-grid th { background: var(--panel-solid); text-transform: none; letter-spacing: 0; padding: 12px 10px; }
+body[class*="theme-"] .qm-grid td { padding: 11px 10px; }
+.qm-name { min-width: 150px; position: sticky; left: 0; z-index: 1; background: var(--panel-solid, var(--surface)); }
+th.qm-name { z-index: 2; }
+body[class*="theme-"] .qm-grid th.qm-name, body[class*="theme-"] .qm-grid td.qm-name { padding-left: 18px; box-shadow: inset -1px 0 0 var(--divider); }
+.qm-proc { min-width: 60px; }
+.qm-small { font-size: 12px; }
+.qm-day { min-width: 76px; }
+.qm-day.holiday { color: var(--accent) !important; font-weight: 700; }
+.qm-hol { font-size: 10px; color: var(--accent); }
+.qm-davg { font-size: 11px; font-weight: 700; margin-top: 2px; }
+.qm-avg { min-width: 72px; font-size: 14px; }
+.qm-holcell { background: var(--accent-soft, var(--surface-2)); color: var(--accent); font-size: 11px; }
+.qm-edit { cursor: pointer; }
+.qm-edit:hover { background: var(--panel-2-hover, var(--surface-2)); }
+.qm-grid .ui-pill { font-size: 12px; padding: 2px 8px; }
