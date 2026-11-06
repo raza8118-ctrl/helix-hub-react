@@ -12,7 +12,8 @@ import { Pill, Notice, Button } from '../../components/ui';
 const TONE_OF = { 'col-green': 'good', 'col-orange': 'warn', 'col-red': 'bad' };
 const toneOf = pct => TONE_OF[pCol(pct)] ?? 'neutral';
 
-const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
+// No report yet (no total) → null, so the row shows "—" / "No Data" instead of "NaN%" / "Below Target" (fix 2026-11-06)
+const p = (total, adjT) => (total == null || !adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
 const STATUS_LABELS = { present: 'Present', half_day_1: 'First Half', half_day_2: 'Second Half', absent: 'Absent' };
 

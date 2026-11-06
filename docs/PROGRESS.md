@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 3 — Prod Monitor (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only —
+**Fix — Prod Monitor "NaN%" (PO "Approved, fix NaN%" 2026-11-06) — DONE.** People with no report showed "NaN%" Prod % and
+"Below Target": the page's `p()` divided an empty total. Now `p()` returns null when there is no total → "—" and "No Data". Real
+percentages unchanged (45/50 → 90 %, 60/50 → 120 %); averages and "On track" already skipped these rows. Side effect: a saved row
+with an empty total (e.g. leave) shows "—" instead of "0%" (its On Leave / Bypassed pill unchanged). Checked in 3Gen: 12 rows today
+→ all "—" / "No Data", no NaN anywhere; 3Gen has no daily reports 29 Oct – 6 Nov, so real numbers were checked with the helper.
+Today was never affected (it only calculates when a report exists).
+
+**Frost Glass page 3 — Prod Monitor (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only —
 the Bypass window was opened and cancelled, nothing saved) in Frost + Daylight at 1440 px and at 375 px (no sideways scroll); Today
 re-checked after the class rename (unchanged). Fixed while testing: selected toggle buttons (`.ui-btn.on`) lost to the themed
 secondary style — the rule now lives in `ui.css`. Found, NOT changed (logic): people with no report today show "NaN%" Prod % and
