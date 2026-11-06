@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 15 — SOP Library (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+**Frost Glass page 16 — Training (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (paths, items, ticking done, assignments,
+progress, editing unchanged; no database change). `Training.jsx`: old heading → intro card; tabs → themed toggles; empty message
+centred; "← Back to training" → themed button. Parts already themed — no changes. Test in 3Gen, view only.
+
+**Frost Glass page 15 — SOP Library (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only)
 in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll): intro card + "+ Category", filters, 7 category cards with
 105 compact row buttons, a software row expanded ("No tasks yet."); nothing edited / moved. 3Gen has no SOPs and nothing to
 acknowledge, so an opened SOP page and the amber "To acknowledge" card were not seen. Owner theme left on Frost. Styling only (tree, search / filters, opening SOPs,
