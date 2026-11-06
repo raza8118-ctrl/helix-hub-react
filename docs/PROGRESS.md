@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 3 — Prod Monitor (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same numbers, filters, pins, Bypass /
+**Frost Glass page 3 — Prod Monitor (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only —
+the Bypass window was opened and cancelled, nothing saved) in Frost + Daylight at 1440 px and at 375 px (no sideways scroll); Today
+re-checked after the class rename (unchanged). Fixed while testing: selected toggle buttons (`.ui-btn.on`) lost to the themed
+secondary style — the rule now lives in `ui.css`. Found, NOT changed (logic): people with no report today show "NaN%" Prod % and
+"Below Target" on Prod Monitor (same before the restyle) — waiting for a PO decision. Owner theme left on Frost. Styling only (same numbers, filters, pins, Bypass /
 Quality / Q Bypass / Counts actions + windows, same saves; no database change). Filter card (date + team avg at the end); holiday
 notice; 4 `KpiCard`s; table statuses / Prod % / Auth Y / Quality Pending → `Pill`, deficit ▼▲ kept; action buttons → themed
 `Button` (Remove red); window choice buttons → themed toggles, textareas lose fixed colours. Today's `.td-*` styles renamed to shared

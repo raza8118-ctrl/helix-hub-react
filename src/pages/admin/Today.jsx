@@ -156,7 +156,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
   }
 
   return (
-    <div className="td-page">
+    <div className="fg-page">
       {/* Holiday banner */}
       {holiday && (
         <Notice tone="warn" icon="🏖">
@@ -165,31 +165,31 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       )}
 
       {/* Filters + actions (the page title is in the top bar) */}
-      <div className="td-bar">
-        <div className="td-filters">
-          <label className="td-f"><span>Date</span>
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <label className="fg-f"><span>Date</span>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </label>
-          <label className="td-f"><span>Process</span>
+          <label className="fg-f"><span>Process</span>
             <select value={filterProc} onChange={e => setProc(e.target.value)}>
               {ACCESSES.map(a => <option key={a}>{a}</option>)}
             </select>
           </label>
-          <label className="td-f"><span>Status</span>
+          <label className="fg-f"><span>Status</span>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="active">Active</option>
               <option value="disabled">Disabled</option>
               <option value="all">All</option>
             </select>
           </label>
-          <span className="td-date">{fmtD(date)}</span>
+          <span className="fg-date">{fmtD(date)}</span>
         </div>
-        <div className="td-actions">
+        <div className="fg-actions">
           <Button size="sm" variant={pinnedOnly ? 'primary' : 'secondary'} aria-pressed={pinnedOnly} onClick={() => setPinnedOnly(v => !v)}>
             📌 Pinned only
           </Button>
           {!isGrantedEmployee && (
-            <Button size="sm" className={holiday ? 'td-holiday-on' : ''} aria-pressed={!!holiday} onClick={toggleHoliday}>
+            <Button size="sm" className={holiday ? 'fg-holiday-on' : ''} aria-pressed={!!holiday} onClick={toggleHoliday}>
               {holiday ? 'Unmark Holiday' : '🏖 Mark Holiday'}
             </Button>
           )}
@@ -200,7 +200,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       </div>
 
       {/* KPI cards */}
-      <div className="td-kpis">
+      <div className="fg-kpis">
         <KpiCard label="Team size" value={filteredUsers.length} sub={`${statusFilter} employees`} />
         <KpiCard label="Submitted" value={submitted} sub={`${pending} pending`} valueClass="col-green" />
         <KpiCard label="On leave" value={onLeave} sub="absent today" valueClass="col-blue" />
@@ -209,7 +209,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       </div>
 
       {/* Bar chart */}
-      <div className="card td-card">
+      <div className="card fg-card">
         <div className="card-header">
           <div className="card-title">Team Productivity</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
@@ -218,7 +218,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       </div>
 
       {/* Submission tracker */}
-      <div className="card td-card td-tracker">
+      <div className="card fg-card fg-tracker">
         <div className="card-header">
           <div className="card-title">Submission Tracker</div>
           <Pill tone={submitted === filteredUsers.length && filteredUsers.length > 0 ? 'good' : 'warn'}>
@@ -242,22 +242,22 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
             </thead>
             <tbody>
               {tableRows.length === 0 && (
-                <tr><td colSpan={9} className="td-empty">No data for this date</td></tr>
+                <tr><td colSpan={9} className="fg-empty">No data for this date</td></tr>
               )}
               {tableRows.map(row => {
                 const prod = row.log ? p(row.log.total, row.log.adj_target ?? row.log.target) : null;
                 const isPinned = pinned.includes(row.emp_id);
                 return (
-                  <tr key={row.emp_id} className={isPinned ? 'td-pinned' : undefined}>
+                  <tr key={row.emp_id} className={isPinned ? 'fg-pinned' : undefined}>
                     <td className="bold">
                       <span
                         onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
-                        className={`td-pin${isPinned ? ' on' : ''}${canPin ? ' can' : ''}`}
+                        className={`fg-pin${isPinned ? ' on' : ''}${canPin ? ' can' : ''}`}
                         title={canPin ? (isPinned ? 'Unpin' : 'Pin for close monitoring') : (isPinned ? 'Pinned' : '')}
                       >
                         📌
                       </span>
-                      <span className="td-name" onClick={() => setEmpDetail(row)}>
+                      <span className="fg-name" onClick={() => setEmpDetail(row)}>
                         {row.name ?? row.emp_id}
                       </span>
                     </td>
@@ -279,9 +279,9 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
                           : '—'}
                     </td>
                     <td className="right text-muted">{row.log?.downtime != null ? row.log.downtime + 'h' : '—'}</td>
-                    <td className="text-sm text-muted td-reason">
+                    <td className="text-sm text-muted fg-reason">
                       {row.log?.bypass_reason
-                        ? <span className="td-bypass">📋 {row.log.bypass_reason}</span>
+                        ? <span className="fg-bypass">📋 {row.log.bypass_reason}</span>
                         : row.log?.remarks ?? '—'}
                     </td>
                     <td className="text-sm text-muted">
@@ -299,10 +299,10 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       {showEmail && (
         <Modal title="AI Generated Email" onClose={() => setShowEmail(false)} wide>
           {emailLoading
-            ? <div className="td-empty">Generating with Claude…</div>
+            ? <div className="fg-empty">Generating with Claude…</div>
             : (
               <>
-                <textarea className="td-email" value={emailBody} readOnly />
+                <textarea className="fg-email" value={emailBody} readOnly />
                 <div className="form-actions">
                   <button className="btn-sm" onClick={() => navigator.clipboard?.writeText(emailBody)}>Copy</button>
                   <button className="btn-primary" onClick={() => setShowEmail(false)}>Done</button>

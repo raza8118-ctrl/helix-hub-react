@@ -304,6 +304,7 @@ body[class*="theme-"] .ui-card-t { font-family: inherit; font-weight: 600; }
 body[class*="theme-"] .ui-btn.primary { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 body[class*="theme-"] .ui-btn.primary:hover:not(:disabled) { background: var(--accent-strong); filter: none; box-shadow: none; }
 body[class*="theme-"] .ui-btn.secondary { background: var(--input-bg); border-color: var(--input-border); }
+body[class*="theme-"] .ui-btn.on, body[class*="theme-"] .ui-btn.secondary.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 body[class*="theme-"] .ui-table { background: transparent; border-color: var(--panel-border); }
 body[class*="theme-"] .ui-table th { background: var(--panel-2); color: var(--text-muted); border-color: var(--divider); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; }
 body[class*="theme-"] .ui-table td { border-color: var(--divider); }

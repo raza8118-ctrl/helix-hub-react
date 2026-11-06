@@ -5,18 +5,24 @@ import { ACCESSES, ATTENDANCE_STATUSES, LEAVE_STATUSES, HALF_DAY_STATUSES, LEAVE
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 import { alertDialog, confirmDialog, promptDialog } from '../../components/shared/Dialog';
+import { KpiCard } from '../../components/dash/DashParts';
+import { Pill, Notice, Button } from '../../components/ui';
+
+/** Frost Glass: productivity colour band (pCol) → status pill tone. */
+const TONE_OF = { 'col-green': 'good', 'col-orange': 'warn', 'col-red': 'bad' };
+const toneOf = pct => TONE_OF[pCol(pct)] ?? 'neutral';
 
 const p = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
 const STATUS_LABELS = { present: 'Present', half_day_1: 'First Half', half_day_2: 'Second Half', absent: 'Absent' };
 
 function StatusBadge({ prod, bypassed, onLeave }) {
-  if (onLeave) return <span className="badge badge-blue">On Leave</span>;
-  if (bypassed) return <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--accent)' }}>Bypassed</span>;
-  if (prod == null) return <span className="badge badge-gray">No Data</span>;
-  if (prod >= 100) return <span className="badge badge-green">On Track</span>;
-  if (prod >= 75)  return <span className="badge badge-yellow">At Risk</span>;
-  return <span className="badge badge-red">Below Target</span>;
+  if (onLeave) return <Pill tone="accent">On Leave</Pill>;
+  if (bypassed) return <Pill>Bypassed</Pill>;
+  if (prod == null) return <Pill>No Data</Pill>;
+  if (prod >= 100) return <Pill tone="good">On Track</Pill>;
+  if (prod >= 75)  return <Pill tone="warn">At Risk</Pill>;
+  return <Pill tone="bad">Below Target</Pill>;
 }
 
 export default function ProdMonitor({ user }) {
@@ -308,81 +314,62 @@ export default function ProdMonitor({ user }) {
   const avgQuality = avg(tableRows.map(r => r.log?.quality).filter(v => v != null));
 
   return (
-    <div>
+    <div className="fg-page">
       {/* Holiday banner */}
       {holiday && (
-        <div style={{
-          background: 'linear-gradient(90deg, rgba(245,158,11,0.15), transparent)',
-          border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8,
-          padding: '10px 16px', marginBottom: 16, fontSize: 13, color: 'var(--warning)',
-        }}>
-          🏖 <strong>{holiday.note}</strong> — Holiday
-        </div>
+        <Notice tone="warn" icon="🏖">
+          <strong>{holiday.note}</strong> — Holiday
+        </Notice>
       )}
 
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-title">Productivity Monitor</div>
-          <div className="page-subtitle">
+      {/* Filters + actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <label className="fg-f"><span>Date</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </label>
+          <label className="fg-f"><span>Process</span>
+            <select value={filterProc} onChange={e => setProc(e.target.value)}>
+              {ACCESSES.map(a => <option key={a}>{a}</option>)}
+            </select>
+          </label>
+          <label className="fg-f"><span>Status</span>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <span className="fg-date">
             {fmtD(date)}
             {avgProd != null && (
               <> · Team avg: <span className={pCol(avgProd)}>{avgProd.toFixed(1)}%</span></>
             )}
-          </div>
+          </span>
         </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
-          <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
-            {ACCESSES.map(a => <option key={a}>{a}</option>)}
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="all">All</option>
-          </select>
-          <button
-            className="btn-sm"
-            style={pinnedOnly ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-            onClick={() => setPinnedOnly(v => !v)}
-          >
+        <div className="fg-actions">
+          <Button size="sm" variant={pinnedOnly ? 'primary' : 'secondary'} aria-pressed={pinnedOnly} onClick={() => setPinnedOnly(v => !v)}>
             📌 Pinned only
-          </button>
-          <button className="btn-sm" onClick={load}>↺ Refresh</button>
+          </Button>
+          <Button size="sm" onClick={load}>↺ Refresh</Button>
           {canMarkHoliday && (
-            <button
-              className="btn-sm"
-              style={holiday ? { background: 'var(--warning)', color: '#000', border: 'none' } : {}}
-              onClick={toggleHoliday}
-            >
+            <Button size="sm" className={holiday ? 'fg-holiday-on' : ''} aria-pressed={!!holiday} onClick={toggleHoliday}>
               {holiday ? 'Unmark Holiday' : '🏖 Holiday'}
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* KPI row */}
-      <div className="grid-4 mb-16">
-        <div className="stat-card">
-          <div className="stat-label">Total Employees</div>
-          <div className="stat-value">{tableRows.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">On Track (≥100%)</div>
-          <div className="stat-value col-green">{tableRows.filter(r => (r.prod ?? 0) >= 100).length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Avg Productivity</div>
-          <div className={`stat-value ${pCol(avgProd)}`}>{avgProd != null ? avgProd.toFixed(1) + '%' : '—'}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Avg Quality</div>
-          <div className={`stat-value ${pCol(avgQuality)}`}>{avgQuality != null ? avgQuality.toFixed(1) + '%' : '—'}</div>
-        </div>
+      <div className="fg-kpis fg-kpis-4">
+        <KpiCard label="Total employees" value={tableRows.length} />
+        <KpiCard label="On track (≥100%)" value={tableRows.filter(r => (r.prod ?? 0) >= 100).length} valueClass="col-green" />
+        <KpiCard label="Avg productivity" value={avgProd != null ? avgProd.toFixed(1) + '%' : '—'} valueClass={pCol(avgProd)} />
+        <KpiCard label="Avg quality" value={avgQuality != null ? avgQuality.toFixed(1) + '%' : '—'} valueClass={pCol(avgQuality)} />
       </div>
 
       {/* Main table */}
-      <div className="card">
+      <div className="card fg-card fg-tracker">
         <div className="card-header">
           <div className="card-title">Employee Productivity</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
@@ -407,38 +394,38 @@ export default function ProdMonitor({ user }) {
             </thead>
             <tbody>
               {tableRows.length === 0 && (
-                <tr><td colSpan={12} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No employees found</td></tr>
+                <tr><td colSpan={12} className="fg-empty">No employees found</td></tr>
               )}
               {tableRows.map(row => {
                 const isPinned = pinned.includes(row.emp_id);
                 return (
-                <tr key={row.emp_id} style={isPinned ? { borderLeft: '3px solid var(--accent)' } : undefined}>
+                <tr key={row.emp_id} className={isPinned ? 'fg-pinned' : undefined}>
                   <td className="bold">
                     {canPin && (
                       <span
                         onClick={e => { e.stopPropagation(); togglePin(row.emp_id); }}
-                        style={{ cursor: 'pointer', marginRight: 6, opacity: isPinned ? 1 : 0.3 }}
+                        className={`fg-pin can${isPinned ? ' on' : ''}`}
                         title={isPinned ? 'Unpin' : 'Pin for close monitoring'}
                       >
                         📌
                       </span>
                     )}
-                    <span style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setEmpDetail(row)}>
+                    <span className="fg-name" onClick={() => setEmpDetail(row)}>
                       {row.name ?? row.emp_id}
                     </span>
                   </td>
                   <td>{row.log?.process ?? row.access}</td>
                   <td className="center">
                     {row.access === 'AUTH' || row.access === 'ALL'
-                      ? <span className="badge badge-blue">Y</span>
-                      : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      ? <Pill tone="accent">Y</Pill>
+                      : <span className="text-muted">—</span>}
                   </td>
                   <td className="center">
                     <StatusBadge prod={row.prod} bypassed={!!row.log?.bypass_reason} onLeave={isOnLeave(row.log)} />
                   </td>
                   <td className="right">{row.log?.total ?? '—'}</td>
                   <td className="right">{row.adjT ?? '—'}</td>
-                  <td className={`right bold ${row.log?.bypass_reason || isOnLeave(row.log) ? '' : pCol(row.prod)}`}>{row.prod != null ? row.prod + '%' : '—'}</td>
+                  <td className="right">{row.prod != null ? <Pill tone={row.log?.bypass_reason || isOnLeave(row.log) ? 'neutral' : toneOf(row.prod)}>{row.prod}%</Pill> : '—'}</td>
                   <td className={`right ${row.deficit != null && row.deficit > 0 ? 'col-red' : 'col-green'}`}>
                     {row.deficit != null ? (row.deficit > 0 ? `▼${row.deficit}` : `▲${Math.abs(row.deficit)}`) : '—'}
                   </td>
@@ -446,37 +433,37 @@ export default function ProdMonitor({ user }) {
                     {row.log?.quality != null
                       ? row.log.quality + '%'
                       : (row.log && !isOnLeave(row.log) && !row.log?.quality_bypass_reason)
-                        ? <span className="badge badge-gray" style={{ fontSize: 11 }}>Pending</span>
+                        ? <Pill>Pending</Pill>
                         : '—'}
                   </td>
                   <td className="right text-muted">
                     {row.log?.downtime != null ? row.log.downtime + 'h' : '—'}
                   </td>
-                  <td className="text-sm text-muted" style={{ maxWidth: 140 }}>
+                  <td className="text-sm text-muted fg-reason">
                     {row.log?.bypass_reason
-                      ? <span style={{ color: 'var(--accent)' }}>📋 {row.log.bypass_reason}</span>
+                      ? <span className="fg-bypass">📋 {row.log.bypass_reason}</span>
                       : row.log?.remarks ?? '—'}
                   </td>
                   <td>
-                    <div className="row" style={{ gap: 4 }}>
+                    <div className="fg-row-actions">
                       {canBypass && !row.log?.bypass_reason && (
-                        <button className="btn-sm" onClick={() => { setBypassTarget(row); setBypassReason(''); setBypassStatus(row.log?.attendance_status || 'absent'); setBypassLeaveType(row.log?.leave_type || 'planned'); }}>
+                        <Button size="xs" onClick={() => { setBypassTarget(row); setBypassReason(''); setBypassStatus(row.log?.attendance_status || 'absent'); setBypassLeaveType(row.log?.leave_type || 'planned'); }}>
                           {row.log ? 'Bypass' : '+ Note'}
-                        </button>
+                        </Button>
                       )}
                       {canBypass && row.log?.bypass_reason && (
-                        <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeBypass(row)}>Remove</button>
+                        <Button size="xs" variant="danger" onClick={() => removeBypass(row)}>Remove</Button>
                       )}
                       {canQuality && row.log && !isOnLeave(row.log) && (
                         row.log?.quality_bypass_reason
-                          ? <button className="btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeQualityBypass(row)}>Remove Q Bypass</button>
+                          ? <Button size="xs" variant="danger" onClick={() => removeQualityBypass(row)}>Remove Q Bypass</Button>
                           : <>
-                              <button className="btn-sm" onClick={() => { setQualityTarget(row); setQualityVal(row.log?.quality ?? ''); setQualityDate(date); }}>Quality</button>
-                              <button className="btn-sm" style={{ opacity: 0.75 }} onClick={() => { setQualityBypassTarget(row); setQualityBypassReason(''); }}>Q Bypass</button>
+                              <Button size="xs" onClick={() => { setQualityTarget(row); setQualityVal(row.log?.quality ?? ''); setQualityDate(date); }}>Quality</Button>
+                              <Button size="xs" variant="ghost" onClick={() => { setQualityBypassTarget(row); setQualityBypassReason(''); }}>Q Bypass</Button>
                             </>
                       )}
                       {canEditCounts && (
-                        <button className="btn-sm" onClick={() => openCounts(row)}>✏️ Counts</button>
+                        <Button size="xs" onClick={() => openCounts(row)}>✏️ Counts</Button>
                       )}
                     </div>
                   </td>
@@ -493,34 +480,22 @@ export default function ProdMonitor({ user }) {
           <p className="text-muted text-sm" style={{ marginBottom: 12 }}>Set attendance and/or bypass reason for {fmtD(date)}.</p>
           <div className="field">
             <label>Attendance Status</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+            <div className="fg-choices">
               {ATTENDANCE_STATUSES.map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setBypassStatus(s)}
-                  className="btn-sm"
-                  style={bypassStatus === s ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-                >
+                <Button key={s} size="sm" active={bypassStatus === s} aria-pressed={bypassStatus === s} onClick={() => setBypassStatus(s)}>
                   {STATUS_LABELS[s] ?? s}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
           {LEAVE_STATUSES.includes(bypassStatus) && (
             <div className="field">
               <label>Leave Type</label>
-              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <div className="fg-choices">
                 {LEAVE_TYPES.map(lt => (
-                  <button
-                    key={lt.id}
-                    type="button"
-                    onClick={() => setBypassLeaveType(lt.id)}
-                    className="btn-sm"
-                    style={bypassLeaveType === lt.id ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-                  >
+                  <Button key={lt.id} size="sm" active={bypassLeaveType === lt.id} aria-pressed={bypassLeaveType === lt.id} onClick={() => setBypassLeaveType(lt.id)}>
                     {lt.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -529,7 +504,7 @@ export default function ProdMonitor({ user }) {
             <label>Reason</label>
             <textarea rows={3} value={bypassReason} onChange={e => setBypassReason(e.target.value)}
               placeholder="e.g. System downtime, Training, Employee on leave…"
-              style={{ resize: 'vertical', color: 'var(--text)', background: 'var(--surface)' }} />
+              className="fg-textarea" />
           </div>
           <div className="form-actions">
             <button className="btn-sm" onClick={() => setBypassTarget(null)}>Cancel</button>
@@ -574,7 +549,7 @@ export default function ProdMonitor({ user }) {
             <label>Reason</label>
             <textarea rows={3} value={qualityBypassReason} onChange={e => setQualityBypassReason(e.target.value)}
               placeholder="e.g. New hire, training day, not subject to quality review…"
-              style={{ resize: 'vertical', color: 'var(--text)', background: 'var(--surface)' }} />
+              className="fg-textarea" />
           </div>
           <div className="form-actions">
             <button className="btn-sm" onClick={() => setQualityBypassTarget(null)}>Cancel</button>
@@ -593,17 +568,11 @@ export default function ProdMonitor({ user }) {
           </p>
           <div className="field">
             <label>Attendance Status</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+            <div className="fg-choices">
               {ATTENDANCE_STATUSES.map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setCountsAttendance(s)}
-                  className="btn-sm"
-                  style={countsAttendance === s ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
-                >
+                <Button key={s} size="sm" active={countsAttendance === s} aria-pressed={countsAttendance === s} onClick={() => setCountsAttendance(s)}>
                   {STATUS_LABELS[s] ?? s}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

@@ -413,54 +413,64 @@ body[class*="theme-"] .page-topbar.tb-glass::before {
 .sb-glass .sidebar-nav::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--sb-text) 18%, transparent); border-radius: 6px; }
 .sb-glass .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 
-/* ─── Today (Frost Glass page 2, 2026-11-06) ─── */
-.td-page { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.td-page .card + .card { margin-top: 0; }
-.td-bar {
+/* ─── Shared page pieces (.fg-*): filter card, KPI row, table card — first used by Today and Prod Monitor ─── */
+.fg-page { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.fg-page .card + .card { margin-top: 0; }
+.fg-bar {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 12px 16px;
   border-radius: 18px; background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--card-shadow);
 }
-.td-filters, .td-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-.td-actions { gap: 8px; }
-.td-f { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
-.td-f input { max-width: 160px; }
-.td-f select { max-width: 140px; }
-.td-date { font-size: 13px; color: var(--text-muted); }
-.td-holiday-on.ui-btn, .td-holiday-on.ui-btn:hover:not(:disabled) { background: var(--warn-bg); color: var(--warn-fg); border-color: color-mix(in srgb, var(--warn-fg) 40%, transparent); }
-.td-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
-.td-kpis .col-blue { color: var(--accent); }
-.td-kpis .hx-kpi-v { font-size: 34px; }
-body[class*="theme-"] .td-card { padding: 20px 22px; }
-body[class*="theme-"] .td-card .card-title { font-size: 17px; font-weight: 600; }
-body[class*="theme-"] .td-tracker { padding: 20px 0 6px; }
-body[class*="theme-"] .td-tracker .card-header { padding: 0 22px 12px; }
-body[class*="theme-"] .td-tracker th { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; background: transparent; padding: 12px 14px; }
-body[class*="theme-"] .td-tracker td { padding: 13px 14px; font-size: 14px; }
-body[class*="theme-"] .td-tracker th:first-child, body[class*="theme-"] .td-tracker td:first-child { padding-left: 22px; }
-body[class*="theme-"] .td-tracker tbody tr:hover td { background: var(--panel-2-hover); }
-.td-pinned td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-.td-pin { margin-right: 6px; opacity: 0.3; cursor: default; }
-.td-pin.on { opacity: 1; }
-.td-pin.can { cursor: pointer; }
-.td-name { cursor: pointer; color: var(--accent); }
-.td-reason { max-width: 140px; }
-.td-bypass { color: var(--accent); }
-.td-empty { text-align: center; padding: 28px 0; color: var(--text-muted); }
-.td-email {
+.fg-filters, .fg-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.fg-actions { gap: 8px; }
+.fg-f { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.fg-f input { max-width: 160px; }
+.fg-f select { max-width: 140px; }
+.fg-date { font-size: 13px; color: var(--text-muted); }
+.fg-holiday-on.ui-btn, .fg-holiday-on.ui-btn:hover:not(:disabled) { background: var(--warn-bg); color: var(--warn-fg); border-color: color-mix(in srgb, var(--warn-fg) 40%, transparent); }
+.fg-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
+.fg-kpis .col-blue { color: var(--accent); }
+.fg-kpis .hx-kpi-v { font-size: 34px; }
+body[class*="theme-"] .fg-card { padding: 20px 22px; }
+body[class*="theme-"] .fg-card .card-title { font-size: 17px; font-weight: 600; }
+body[class*="theme-"] .fg-tracker { padding: 20px 0 6px; }
+body[class*="theme-"] .fg-tracker .card-header { padding: 0 22px 12px; }
+body[class*="theme-"] .fg-tracker th { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; background: transparent; padding: 12px 14px; }
+body[class*="theme-"] .fg-tracker td { padding: 13px 14px; font-size: 14px; }
+body[class*="theme-"] .fg-tracker th:first-child, body[class*="theme-"] .fg-tracker td:first-child { padding-left: 22px; }
+body[class*="theme-"] .fg-tracker tbody tr:hover td { background: var(--panel-2-hover); }
+.fg-pinned td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.fg-pin { margin-right: 6px; opacity: 0.3; cursor: default; }
+.fg-pin.on { opacity: 1; }
+.fg-pin.can { cursor: pointer; }
+.fg-name { cursor: pointer; color: var(--accent); }
+.fg-reason { max-width: 140px; }
+.fg-bypass { color: var(--accent); }
+.fg-empty { text-align: center; padding: 28px 0; color: var(--text-muted); }
+.fg-email {
   width: 100%; min-height: 280px; resize: vertical; padding: 12px; outline: none;
   font-family: inherit; font-size: 13px; line-height: 1.65;
   background: var(--input-bg, var(--surface)); color: var(--text);
   border: 1px solid var(--input-border, var(--border)); border-radius: var(--radius);
 }
 @media (max-width: 1280px) {
-  .td-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fg-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 768px) {
-  .td-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .td-kpis .hx-kpi-v { font-size: 26px; }
-  .td-bar { padding: 12px; }
-  .td-date { width: 100%; }
-  body[class*="theme-"] .td-card { padding: 14px; }
-  body[class*="theme-"] .td-tracker { padding: 14px 0 4px; }
-  body[class*="theme-"] .td-tracker .card-header { padding: 0 14px 10px; }
+  .fg-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .fg-kpis .hx-kpi-v { font-size: 26px; }
+  .fg-bar { padding: 12px; }
+  .fg-date { width: 100%; }
+  body[class*="theme-"] .fg-card { padding: 14px; }
+  body[class*="theme-"] .fg-tracker { padding: 14px 0 4px; }
+  body[class*="theme-"] .fg-tracker .card-header { padding: 0 14px 10px; }
+}
+.fg-kpis.fg-kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fg-row-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.fg-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.fg-textarea {
+  resize: vertical; color: var(--text);
+  background: var(--input-bg, var(--surface)); border-color: var(--input-border, var(--border));
+}
+@media (max-width: 1280px) {
+  .fg-kpis.fg-kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
