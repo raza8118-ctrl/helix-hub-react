@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 9 — Client Queries (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+**Frost Glass page 10 — Handover & Escalations (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (handovers, read marks,
+escalations, assigning, saving unchanged; no database change). `HandoverEscalations.jsx`: old heading → intro card, tabs → themed
+toggles (counts kept). `HandoverInbox.jsx`: unread edge `var(--primary, #3b82f6)` (no such variable → always blue) → `var(--accent)`.
+Test in 3Gen, view only (tabs switched, nothing submitted).
+
+**Frost Glass page 9 — Client Queries (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only)
 in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll): My queries / All queries (5 filters) / Aging tabs; "+ New
 query" window opened and cancelled (nothing saved). Fixed while testing (every page, CSS only): checkboxes / radios were stretched
 to full width by the old `input { width: 100% }` rule, pushing them away from their labels — now they size to themselves (accent
