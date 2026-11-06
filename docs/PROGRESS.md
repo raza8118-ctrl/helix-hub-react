@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 5 — Hourly (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+**Frost Glass page 6 — Weekly / Monthly (Performance Summary, PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same periods,
+‹ › navigation, filters, numbers, rankings, Export CSV, AI Summary Email, day breakdown; no database change). One file
+(`Summary.jsx`) serves both tabs. Old header → shared filter card (mode toggles, ‹ ›, Process / Status / Agent, period · working days,
+actions right); 6 `KpiCard`s (colours from the theme, faint big emoji removed); 4 glass chart cards (best / lowest strip in theme
+green / red; Productivity / Quality keep their band colours; Call volume / Call hours use the theme accent); Rankings table card
+(medals kept, prod bar + quality in theme bands, orange band kept orange, top-3 tint themed); day breakdown + AI email box themed.
+
+**Frost Glass page 5 — Hourly (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only) in
 Frost + Daylight at 1440 px and at 375 px (no page sideways scroll; table scrolls inside its card with names frozen); 12 rows,
 status pills, 4 cards. 3Gen has no hourly counts today, so the Team Total row (shown only when someone filed) was not seen.
 Owner theme left on Frost. Styling only (same slots, search, filters, totals, filed /
