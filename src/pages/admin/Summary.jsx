@@ -7,8 +7,15 @@ import BarChart from '../../components/shared/BarChart';
 import LineChart from '../../components/shared/LineChart';
 import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
+import { KpiCard } from '../../components/dash/DashParts';
+import { Pill, Button } from '../../components/ui';
 
 const MEDAL = { 1: '🏆', 2: '🥈', 3: '🥉' };
+
+// Frost Glass: the same colour bands as before, as theme classes (col-* follow the theme; orange band keeps its orange)
+const prodBand = v => (v == null ? '' : v >= 100 ? 'col-green' : v >= 75 ? 'col-yellow' : 'col-red');        // KPI card
+const qualBand = v => (v == null ? '' : v >= 98 ? 'col-green' : v >= 90 ? 'col-yellow' : 'col-red');
+const rankProdTone = v => (v >= 100 ? 'good' : v >= 85 ? 'warn' : v >= 70 ? 'orange' : 'bad');            // rankings bar
 const pp = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
 // Best/worst day for a chart's dataset — used to fill the space below the chart with real numbers
@@ -23,30 +30,19 @@ function bestWorstDay(data, key, unit = '') {
 
 function ChartCard({ icon, title, subtitle, highlight, children }) {
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{
-        padding: '12px 16px', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
-      }}>
+    <div className="card sm-chart">
+      <div className="sm-chart-h">
         <div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{icon} {title}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{subtitle}</div>
+          <div className="sm-chart-t">{icon} {title}</div>
+          <div className="sm-chart-s">{subtitle}</div>
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginTop: 2 }}>Click to view day</div>
+        <div className="sm-chart-hint">Click to view day</div>
       </div>
-      <div style={{ padding: '12px 8px 4px' }}>{children}</div>
+      <div className="sm-chart-b">{children}</div>
       {highlight && (
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
-          padding: '10px 16px', margin: '4px 12px 12px', borderRadius: 8,
-          background: 'var(--surface-2)', fontSize: 12,
-        }}>
-          <span style={{ color: 'var(--text-muted)' }}>
-            Best day: <strong style={{ color: '#10b981' }}>{highlight.best}</strong>
-          </span>
-          <span style={{ color: 'var(--text-muted)' }}>
-            Lowest day: <strong style={{ color: '#ef4444' }}>{highlight.worst}</strong>
-          </span>
+        <div className="sm-hl">
+          <span>Best day: <strong className="sm-good">{highlight.best}</strong></span>
+          <span>Lowest day: <strong className="sm-bad">{highlight.worst}</strong></span>
         </div>
       )}
     </div>
@@ -256,104 +252,62 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-title">Performance Summary</div>
-          <div className="page-subtitle">{periodLabel} · {kpiDays} working day{kpiDays !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          {/* Mode toggle */}
-          <div className="row" style={{ background: 'var(--surface-2)', borderRadius: 6, padding: 2, gap: 2 }}>
+    <div className="fg-page">
+      {/* Filters + actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <div className="fg-choices fg-choices-tight" role="group" aria-label="Period">
             {['weekly', 'monthly'].map(m => (
-              <button key={m} onClick={() => setMode(m)} style={{
-                padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 4, border: 'none',
-                background: mode === m ? 'var(--accent)' : 'transparent',
-                color: mode === m ? '#fff' : 'var(--text-muted)',
-                cursor: 'pointer',
-              }}>
+              <Button key={m} size="sm" active={mode === m} aria-pressed={mode === m} onClick={() => setMode(m)}>
                 {m.charAt(0).toUpperCase() + m.slice(1)}
-              </button>
+              </Button>
             ))}
           </div>
-          <div className="row" style={{ gap: 4 }}>
-            <button className="btn-sm" onClick={navPrev} style={{ fontWeight: 700, fontSize: 15 }}>‹</button>
-            <button className="btn-sm" onClick={navNext} style={{ fontWeight: 700, fontSize: 15 }}>›</button>
+          <div className="fg-choices fg-choices-tight">
+            <Button size="sm" onClick={navPrev} aria-label="Previous period">‹</Button>
+            <Button size="sm" onClick={navNext} aria-label="Next period">›</Button>
           </div>
-          <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 120 }}>
-            {ACCESSES.map(a => <option key={a}>{a}</option>)}
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="all">All</option>
-          </select>
-          <select value={agentId} onChange={e => setAgentId(e.target.value)} style={{ maxWidth: 165 }}>
-            <option value="ALL">All Agents</option>
-            {allUsers.filter(u => u.role === 'employee').map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
-          </select>
-          <button className="btn-sm" onClick={exportCSV}>Export CSV</button>
-          <button className="btn-primary" onClick={genEmail}>✦ AI Summary Email</button>
+          <label className="fg-f"><span>Process</span>
+            <select value={filterProc} onChange={e => setProc(e.target.value)}>
+              {ACCESSES.map(a => <option key={a}>{a}</option>)}
+            </select>
+          </label>
+          <label className="fg-f"><span>Status</span>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <label className="fg-f"><span>Agent</span>
+            <select value={agentId} onChange={e => setAgentId(e.target.value)}>
+              <option value="ALL">All Agents</option>
+              {allUsers.filter(u => u.role === 'employee').map(u => <option key={u.emp_id} value={u.emp_id}>{u.name ?? u.emp_id}</option>)}
+            </select>
+          </label>
+          <span className="fg-date">{periodLabel} · {kpiDays} working day{kpiDays !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="fg-actions">
+          <Button size="sm" onClick={exportCSV}>Export CSV</Button>
+          <Button size="sm" variant="primary" onClick={genEmail}>✦ AI Summary Email</Button>
         </div>
       </div>
 
       {/* KPI cards */}
-      <div className="mb-16" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-        {[
-          {
-            icon: '📅', label: 'Working Days', value: kpiDays,
-            sub: `${holidays.filter(h => workDays.includes(h.date)).length} holiday(s)`,
-            accent: 'var(--info)',
-          },
-          {
-            icon: '👥', label: 'Agents', value: kpiAgents,
-            sub: filterProc === 'ALL' ? 'All processes' : filterProc,
-            accent: 'var(--accent)',
-          },
-          {
-            icon: '⚡', label: 'Avg Productivity',
-            value: kpiAvgProd != null ? kpiAvgProd.toFixed(1) + '%' : '—',
-            valueCol: kpiAvgProd >= 100 ? '#10b981' : kpiAvgProd >= 75 ? '#f59e0b' : kpiAvgProd != null ? '#ef4444' : 'var(--text)',
-            bar: kpiAvgProd, accent: kpiAvgProd >= 100 ? '#10b981' : kpiAvgProd >= 75 ? '#f59e0b' : '#ef4444',
-          },
-          {
-            icon: '⭐', label: 'Avg Quality',
-            value: kpiAvgQ != null ? kpiAvgQ.toFixed(1) + '%' : '—',
-            valueCol: kpiAvgQ >= 98 ? '#10b981' : kpiAvgQ >= 90 ? '#f59e0b' : kpiAvgQ != null ? '#ef4444' : 'var(--text)',
-            bar: kpiAvgQ, accent: kpiAvgQ >= 98 ? '#10b981' : kpiAvgQ >= 90 ? '#f59e0b' : '#ef4444',
-          },
-          {
-            icon: '📦', label: 'Total Claims', value: kpiTotal.toLocaleString(),
-            sub: 'volume processed', accent: 'var(--warning)',
-          },
-          {
-            icon: '📞', label: 'Total Calls', value: kpiTotalCalls.toLocaleString(),
-            sub: `${kpiTotalCallHours.toFixed(1)} hrs on calls`, accent: '#0284c7',
-          },
-        ].map(({ icon, label, value, sub, valueCol, bar, accent }) => (
-          <div key={label} className="stat-card" style={{ borderTop: `3px solid ${accent}`, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-              <span style={{ fontSize: 18 }}>{icon}</span>
-              <div className="stat-label" style={{ margin: 0 }}>{label}</div>
-            </div>
-            <div className="stat-value" style={{ color: valueCol ?? 'var(--text)', fontSize: 28, lineHeight: 1 }}>{value}</div>
-            {bar != null && (
-              <div style={{ marginTop: 8, height: 4, background: 'var(--surface-3)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(bar, 100)}%`, background: accent, borderRadius: 4, transition: 'width 0.6s ease' }} />
-              </div>
-            )}
-            {sub && <div className="stat-sub" style={{ marginTop: 6 }}>{sub}</div>}
-            <div style={{ position: 'absolute', right: -10, top: -10, fontSize: 52, opacity: 0.05, pointerEvents: 'none' }}>{icon}</div>
-          </div>
-        ))}
+      <div className="fg-kpis fg-kpis-6">
+        <KpiCard label="Working days" value={kpiDays} sub={`${holidays.filter(h => workDays.includes(h.date)).length} holiday(s)`} />
+        <KpiCard label="Agents" value={kpiAgents} sub={filterProc === 'ALL' ? 'All processes' : filterProc} />
+        <KpiCard label="Avg productivity" value={kpiAvgProd != null ? kpiAvgProd.toFixed(1) + '%' : '—'}
+          valueClass={prodBand(kpiAvgProd)} fill={kpiAvgProd} />
+        <KpiCard label="Avg quality" value={kpiAvgQ != null ? kpiAvgQ.toFixed(1) + '%' : '—'}
+          valueClass={qualBand(kpiAvgQ)} fill={kpiAvgQ} />
+        <KpiCard label="Total claims" value={kpiTotal.toLocaleString()} sub="volume processed" />
+        <KpiCard label="Total calls" value={kpiTotalCalls.toLocaleString()} sub={`${kpiTotalCallHours.toFixed(1)} hrs on calls`} />
       </div>
 
       {/* Charts */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '4px 0 10px' }}>
-        Team Trends · {periodLabel}
-      </div>
-      <div className="grid-2 mb-16">
+      <div className="fg-section">Team Trends · {periodLabel}</div>
+      <div className="sm-charts">
         <ChartCard icon="⚡" title="Productivity" subtitle={`Daily average, with trend line · ${barData.length} days`}
           highlight={bestWorstDay(barData, 'prod', '%')}>
           {loading
@@ -367,41 +321,37 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
             : <BarChart data={qualityBarData} height={190} showLine onBarClick={openDayDetail} />}
         </ChartCard>
       </div>
-      <div className="grid-2 mb-16">
+      <div className="sm-charts">
         <ChartCard icon="📞" title="Call Volume" subtitle={`${kpiTotalCalls.toLocaleString()} total calls · ${callsBarData.length} days`}
           highlight={bestWorstDay(callsBarData, 'prod')}>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
-            : <BarChart data={callsBarData} height={190} mode="value" color="#0284c7" onBarClick={openDayDetail} />}
+            : <BarChart data={callsBarData} height={190} mode="value" color="var(--accent)" onBarClick={openDayDetail} />}
         </ChartCard>
         <ChartCard icon="⏱️" title="Call Hours" subtitle={`${kpiTotalCallHours.toFixed(1)} total hrs · ${callHoursLineData.length} days`}
           highlight={bestWorstDay(callHoursLineData, 'v', 'h')}>
           {loading
             ? <div className="loading-row"><div className="spinner" /></div>
-            : <LineChart data={callHoursLineData} height={190} mode="value" suffix="h" color="#7c3aed" onPointClick={openDayDetail} />}
+            : <LineChart data={callHoursLineData} height={190} mode="value" suffix="h" color="var(--accent)" onPointClick={openDayDetail} />}
         </ChartCard>
       </div>
 
       {/* Rankings */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
-          padding: '14px 18px', borderBottom: '1px solid var(--border)',
-          background: 'linear-gradient(135deg, var(--surface) 60%, var(--surface-2))',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>🏆 Performance Rankings</div>
-          <span className="badge badge-blue">{rankings.length} agent{rankings.length !== 1 ? 's' : ''}</span>
+      <div className="card fg-card fg-tracker">
+        <div className="card-header">
+          <div className="card-title">🏆 Performance Rankings</div>
+          <Pill tone="accent">{rankings.length} agent{rankings.length !== 1 ? 's' : ''}</Pill>
         </div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th className="center" style={{ width: 64 }}>Rank</th>
+                <th className="center sm-rank-col">Rank</th>
                 <th>Employee</th>
                 <th>Process</th>
                 <th className="right">Days</th>
                 <th className="right">Volume</th>
-                <th style={{ minWidth: 160 }}>Avg Prod%</th>
+                <th className="sm-prod-col">Avg Prod%</th>
                 <th className="right">Quality</th>
                 <th className="right">Calls</th>
                 <th className="right">Call Hrs</th>
@@ -409,61 +359,43 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
             </thead>
             <tbody>
               {rankings.length === 0 && (
-                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 36, color: 'var(--text-muted)' }}>No data for this period</td></tr>
+                <tr><td colSpan={9} className="fg-empty">No data for this period</td></tr>
               )}
-              {rankings.map((r, i) => {
-                const prodColor = r.avgProd >= 100 ? '#10b981' : r.avgProd >= 85 ? '#f59e0b' : r.avgProd >= 70 ? '#f97316' : '#ef4444';
-                const qualColor = r.avgQuality >= 98 ? '#10b981' : r.avgQuality >= 90 ? '#f59e0b' : '#ef4444';
-                const rowBg = i === 0 ? 'rgba(16,185,129,0.05)' : i === 1 ? 'rgba(234,179,8,0.04)' : i === 2 ? 'rgba(249,115,22,0.04)' : undefined;
-                return (
-                  <tr key={r.emp_id} style={{ background: rowBg }}>
-                    <td className="center">
-                      {i < 3
-                        ? <span style={{ fontSize: 20 }}>{MEDAL[i + 1]}</span>
-                        : <span style={{
-                            display: 'inline-block', width: 26, height: 26, lineHeight: '26px',
-                            borderRadius: '50%', background: 'var(--surface-2)',
-                            fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
-                          }}>#{i + 1}</span>
-                      }
-                    </td>
-                    <td>
-                      <span className="bold" style={{ cursor: 'pointer', color: 'var(--accent)' }}
-                        onClick={() => setEmpDetail(r)}>
-                        {r.name ?? r.emp_id}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{r.access}</td>
-                    <td className="right" style={{ fontSize: 13 }}>{r.days}</td>
-                    <td className="right bold" style={{ fontSize: 13 }}>{r.total.toLocaleString()}</td>
-                    <td style={{ paddingRight: 16 }}>
-                      {r.avgProd != null ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 6, overflow: 'hidden', minWidth: 60 }}>
-                            <div style={{
-                              height: '100%', width: `${Math.min(r.avgProd, 100)}%`,
-                              background: prodColor, borderRadius: 6,
-                              transition: 'width 0.5s ease',
-                            }} />
-                          </div>
-                          <span style={{ fontWeight: 700, fontSize: 13, color: prodColor, minWidth: 44, textAlign: 'right' }}>
-                            {r.avgProd.toFixed(1)}%
-                          </span>
-                        </div>
-                      ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                    </td>
-                    <td className="right" style={{ fontWeight: 600, fontSize: 13, color: r.avgQuality != null ? qualColor : 'var(--text-muted)' }}>
-                      {r.avgQuality != null ? r.avgQuality.toFixed(1) + '%' : '—'}
-                    </td>
-                    <td className="right" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                      {r.calls > 0 ? r.calls.toLocaleString() : '—'}
-                    </td>
-                    <td className="right" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                      {r.callHours > 0 ? r.callHours.toFixed(1) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
+              {rankings.map((r, i) => (
+                <tr key={r.emp_id} className={i < 3 ? `sm-top${i + 1}` : undefined}>
+                  <td className="center">
+                    {i < 3
+                      ? <span className="sm-medal">{MEDAL[i + 1]}</span>
+                      : <span className="sm-rank">#{i + 1}</span>
+                    }
+                  </td>
+                  <td>
+                    <span className="bold fg-name" onClick={() => setEmpDetail(r)}>
+                      {r.name ?? r.emp_id}
+                    </span>
+                  </td>
+                  <td className="text-muted sm-small">{r.access}</td>
+                  <td className="right">{r.days}</td>
+                  <td className="right bold">{r.total.toLocaleString()}</td>
+                  <td className="sm-prod-cell">
+                    {r.avgProd != null ? (
+                      <div className={`sm-bar sm-tone-${rankProdTone(r.avgProd)}`}>
+                        <div className="sm-bar-track"><i style={{ width: `${Math.min(r.avgProd, 100)}%` }} /></div>
+                        <span>{r.avgProd.toFixed(1)}%</span>
+                      </div>
+                    ) : <span className="text-muted">—</span>}
+                  </td>
+                  <td className={`right sm-q ${r.avgQuality != null ? qualBand(r.avgQuality) : 'text-muted'}`}>
+                    {r.avgQuality != null ? r.avgQuality.toFixed(1) + '%' : '—'}
+                  </td>
+                  <td className="right text-muted">
+                    {r.calls > 0 ? r.calls.toLocaleString() : '—'}
+                  </td>
+                  <td className="right text-muted">
+                    {r.callHours > 0 ? r.callHours.toFixed(1) : '—'}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -473,18 +405,13 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       {showEmail && (
         <Modal title={`AI ${mode.charAt(0).toUpperCase() + mode.slice(1)} Summary Email`} onClose={() => setShowEmail(false)} wide>
           {emailLoading
-            ? <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Generating with Claude…</div>
+            ? <div className="fg-empty">Generating with Claude…</div>
             : (
               <>
-                <textarea value={emailBody} readOnly style={{
-                  width: '100%', minHeight: 300, resize: 'vertical',
-                  fontFamily: 'inherit', fontSize: 13, lineHeight: 1.65, padding: 12,
-                  background: 'var(--surface)', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius)', color: 'var(--text)', outline: 'none',
-                }} />
+                <textarea className="fg-email sm-email" value={emailBody} readOnly />
                 <div className="form-actions">
-                  <button className="btn-sm" onClick={() => navigator.clipboard?.writeText(emailBody)}>Copy</button>
-                  <button className="btn-primary" onClick={() => setShowEmail(false)}>Done</button>
+                  <Button size="sm" onClick={() => navigator.clipboard?.writeText(emailBody)}>Copy</Button>
+                  <Button size="sm" variant="primary" onClick={() => setShowEmail(false)}>Done</Button>
                 </div>
               </>
             )}
@@ -497,10 +424,10 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
 
       {dayDetail && (
         <Modal title={`${dayDetail.label} — Daily Breakdown`} onClose={() => setDayDetail(null)} wide>
-          <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+          <div className="sm-day-sub">
             {dayDetail.rows.length} submission{dayDetail.rows.length !== 1 ? 's' : ''} · {dayDetail.date}
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap sm-day">
             <table>
               <thead>
                 <tr>
@@ -518,27 +445,27 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
               <tbody>
                 {dayDetail.rows.length === 0 && (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                    <td colSpan={9} className="fg-empty">
                       No data submitted for this day
                     </td>
                   </tr>
                 )}
                 {dayDetail.rows.map((r, i) => (
-                  <tr key={r.emp_id} style={i === 0 ? { background: 'rgba(16,185,129,0.04)' } : undefined}>
+                  <tr key={r.emp_id} className={i === 0 ? 'sm-top1' : undefined}>
                     <td>
-                      <span className="bold" style={{ cursor: 'pointer', color: 'var(--accent)' }}
+                      <span className="bold fg-name"
                         onClick={() => { setDayDetail(null); setEmpDetail(allUsers.find(u => u.emp_id === r.emp_id) ?? r); }}>
                         {r.name}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--text-muted)' }}>{r.process}</td>
+                    <td className="text-muted">{r.process}</td>
                     <td className="right bold">{r.total || '—'}</td>
-                    <td className="right" style={{ color: 'var(--text-muted)' }}>{r.target || '—'}</td>
+                    <td className="right text-muted">{r.target || '—'}</td>
                     <td className={`right bold ${pCol(r.prod)}`}>{r.prod != null ? r.prod + '%' : '—'}</td>
                     <td className={`right ${pCol(r.quality)}`}>{r.quality != null ? r.quality + '%' : '—'}</td>
-                    <td className="right" style={{ color: 'var(--text-muted)' }}>{r.calls ?? '—'}</td>
-                    <td className="right" style={{ color: 'var(--text-muted)' }}>{r.callHours ?? '—'}</td>
-                    <td style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td className="right text-muted">{r.calls ?? '—'}</td>
+                    <td className="right text-muted">{r.callHours ?? '—'}</td>
+                    <td className="text-muted sm-remarks">
                       {r.remarks ?? '—'}
                     </td>
                   </tr>
@@ -547,7 +474,7 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
             </table>
           </div>
           <div className="form-actions">
-            <button className="btn-primary" onClick={() => setDayDetail(null)}>Close</button>
+            <Button size="sm" variant="primary" onClick={() => setDayDetail(null)}>Close</Button>
           </div>
         </Modal>
       )}

@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 6 — Weekly / Monthly (Performance Summary, PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same periods,
+**Frost Glass page 6 — Weekly / Monthly (Performance Summary, PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in
+3Gen (owner, view only): Weekly in Frost and Monthly in Daylight at 1440 px, 375 px in Frost (cards 2 per row, charts 1 column, no
+page sideways scroll); ‹ → Oct 2026 (22 working days), › back to Nov 2026 (21); a chart day opens the themed Daily Breakdown and
+closes. 3Gen has no daily reports this week / month, so ranking bars and coloured values were not seen with real numbers. AI Summary
+Email not run (no Anthropic credit). Owner theme left on Frost. Styling only (same periods,
 ‹ › navigation, filters, numbers, rankings, Export CSV, AI Summary Email, day breakdown; no database change). One file
 (`Summary.jsx`) serves both tabs. Old header → shared filter card (mode toggles, ‹ ›, Process / Status / Agent, period · working days,
 actions right); 6 `KpiCard`s (colours from the theme, faint big emoji removed); 4 glass chart cards (best / lowest strip in theme

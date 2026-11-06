@@ -524,3 +524,56 @@ body[class*="theme-"] .fg-grid tbody tr:hover td { background: var(--panel-2-hov
 .hm-foot td { font-weight: 700; background: var(--accent-soft, var(--surface-2)); }
 .hm-foot td.fg-sticky { background: color-mix(in srgb, var(--accent) 12%, var(--panel-solid, var(--surface))); }
 .hm-foot-l { color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ─── Performance Summary — Weekly / Monthly (Frost Glass page 6) ─── */
+.fg-kpis.fg-kpis-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.fg-kpis-6 .hx-kpi-v { font-size: 30px; }
+.fg-section { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 2px 0 -6px; }
+.sm-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.sm-chart { padding: 0 !important; overflow: hidden; }
+.sm-chart-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 16px 20px 10px; border-bottom: 1px solid var(--divider, var(--border)); }
+.sm-chart-t { font-weight: 600; font-size: 15px; color: var(--text); }
+.sm-chart-s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.sm-chart-hint { font-size: 11px; color: var(--text-muted); white-space: nowrap; margin-top: 3px; }
+.sm-chart-b { padding: 12px 8px 4px; }
+.sm-hl {
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 4px 14px 14px; padding: 10px 14px;
+  border-radius: 12px; background: var(--panel-2, var(--surface-2)); font-size: 12.5px; color: var(--text-muted);
+}
+.sm-good { color: var(--good-fg, #10b981); }
+.sm-bad { color: var(--bad-fg, #ef4444); }
+.sm-rank-col { width: 64px; }
+.sm-prod-col { min-width: 170px; }
+.sm-small { font-size: 12.5px; }
+.sm-medal { font-size: 20px; }
+.sm-rank {
+  display: inline-block; width: 26px; height: 26px; line-height: 26px; border-radius: 50%;
+  background: var(--panel-2, var(--surface-2)); font-size: 11px; font-weight: 700; color: var(--text-muted);
+}
+.sm-top1 td { background: color-mix(in srgb, var(--good-fg, #10b981) 7%, transparent); }
+.sm-top2 td { background: color-mix(in srgb, var(--warn-fg, #eab308) 6%, transparent); }
+.sm-top3 td { background: color-mix(in srgb, #f97316 6%, transparent); }
+.sm-prod-cell { padding-right: 16px !important; }
+.sm-bar { display: flex; align-items: center; gap: 8px; }
+.sm-bar-track { flex: 1; min-width: 60px; height: 6px; border-radius: 6px; overflow: hidden; background: var(--divider, var(--surface-3)); }
+.sm-bar-track i { display: block; height: 100%; border-radius: 6px; background: currentColor; }
+.sm-bar span { min-width: 46px; text-align: right; font-weight: 700; font-size: 13px; }
+.sm-tone-good { color: var(--good-fg, #10b981); }
+.sm-tone-warn { color: var(--warn-fg, #f59e0b); }
+.sm-tone-orange { color: #f97316; }
+.sm-tone-bad { color: var(--bad-fg, #ef4444); }
+.sm-q { font-weight: 600; }
+.sm-email { min-height: 300px; }
+.sm-day-sub { margin-bottom: 12px; font-size: 12px; color: var(--text-muted); }
+.sm-remarks { font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1440px) {
+  .fg-kpis.fg-kpis-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1024px) {
+  .sm-charts { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .fg-kpis.fg-kpis-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fg-kpis-6 .hx-kpi-v { font-size: 24px; }
+  .sm-chart-h { padding: 12px 14px 8px; }
+}
