@@ -676,3 +676,7 @@ body[class*="theme-"] input[type="checkbox"], body[class*="theme-"] input[type="
 .nb-read { margin-left: auto; }
 .nb-readers { margin-top: 8px; }
 .nb-manage { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--divider, var(--border)); }
+
+/* Buttons styled as cards (e.g. Medicare Overview tiles): browsers don't pass the text colour into buttons, so numbers turned
+   near-black on dark themes — use the theme text colour (every page) */
+body[class*="theme-"] button.card { color: var(--text); font: inherit; }

@@ -6,6 +6,7 @@ import MedicareOverview from './MedicareOverview';
 import AdrTracker from './AdrTracker';
 import OverpaymentTracker from './OverpaymentTracker';
 import RtpMonitor from './RtpMonitor';
+import { Button } from '../../components/ui';
 
 /**
  * 🏛️ Medicare Trackers (roadmap 7.5): ADRs, overpayments / credit balances and the RTP / suspense monitor, with an
@@ -42,12 +43,10 @@ export default function MedicareTrackers({ user }) {
   const props = { ctx, people, names, user, onChanged: reload };
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">🏛️ Medicare Trackers</div>
-          <div className="page-subtitle">ADRs, overpayments and credit balances, and claims stuck in RTP or suspense.</div>
-        </div>
+    <div className="fg-page wl-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">ADRs, overpayments and credit balances, and claims stuck in RTP or suspense.</span>
       </div>
 
       {data === undefined && <div className="card text-muted">Loading…</div>}
@@ -60,14 +59,14 @@ export default function MedicareTrackers({ user }) {
 
       {data && (
         <>
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="fg-choices wl-tabs" role="group" aria-label="Medicare trackers">
             {[
               ['overview', '📊 Overview'],
               ['adr', `📄 ADRs (${count('adr')})`],
               ['overpayment', `💸 Overpayments & credit balances (${count('overpayment')})`],
               ['rtp', `🔁 RTP / suspense (${count('rtp')})`],
             ].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+              <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</Button>
             ))}
           </div>
           {tab === 'overview' && <MedicareOverview data={data} ctx={ctx} names={names} onOpen={setTab} />}

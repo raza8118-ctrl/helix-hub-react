@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 13 — Medicare Trackers (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (trackers, due dates, RTP uploads,
+**Frost Glass page 13 — Medicare Trackers (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view
+only) in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all four tabs opened; nothing added / uploaded /
+closed. Fixed while testing (every page, CSS only): buttons styled as cards (Medicare Overview tiles, also Training path editor)
+showed near-black numbers on dark themes — browsers don't pass the text colour into buttons — now they use the theme text colour.
+Owner theme left on Frost. Styling only (trackers, due dates, RTP uploads,
 assigning, 90-day clearing unchanged; no database change). `MedicareTrackers.jsx`: old heading → intro card; tabs → themed toggles
 (open counts kept). The four parts already themed — no changes. Test in 3Gen, view only (each tab opened).
 
