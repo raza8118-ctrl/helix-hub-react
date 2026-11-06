@@ -655,3 +655,6 @@ body[class*="theme-"] .stat-value { font-size: 30px; letter-spacing: -0.02em; }
 .wl-open { background: none; border: 0; padding: 0; cursor: pointer; color: var(--accent); text-align: left; font: inherit; font-weight: 600; font-size: 16px; }
 .wl-open:hover { text-decoration: underline; }
 .wl-closed { opacity: 0.65; }
+
+/* Checkboxes / radios: the old "input { width: 100% }" stretched them away from their labels — size to themselves (every page) */
+body[class*="theme-"] input[type="checkbox"], body[class*="theme-"] input[type="radio"] { width: auto; flex-shrink: 0; accent-color: var(--accent); }

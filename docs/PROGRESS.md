@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 9 — Client Queries (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (queries, tabs, chasing, aging, saving
+**Frost Glass page 9 — Client Queries (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll): My queries / All queries (5 filters) / Aging tabs; "+ New
+query" window opened and cancelled (nothing saved). Fixed while testing (every page, CSS only): checkboxes / radios were stretched
+to full width by the old `input { width: 100% }` rule, pushing them away from their labels — now they size to themselves (accent
+colour). Owner theme left on Frost. Styling only (queries, tabs, chasing, aging, saving
 unchanged; no database change). Only `ClientQueries.jsx`: old heading → intro card with "+ New query" on the right; tabs → themed
 toggles (counts kept). Its parts (`QueryList`, `QueryAging`, `QueryEditor`) already follow the theme — no changes. Test in 3Gen,
 view only (+ New query window opened and cancelled).

@@ -7,6 +7,7 @@ import QueryEditor from './QueryEditor';
 import QueryList from './QueryList';
 import QueryAging from './QueryAging';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { Button } from '../../components/ui';
 
 /**
  * 💬 Client Queries (roadmap 7.3): every question we send a client — logged, chased every 3 working days until
@@ -47,13 +48,15 @@ export default function ClientQueries({ user }) {
   const attention = mineOpen.filter(q => chaseDue(q) || isOverdue(q)).length;
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">💬 Client Queries</div>
-          <div className="page-subtitle">Questions sent to clients — chased until answered, with aging per client.</div>
-        </div>
-        {queries && <button className="btn-primary" onClick={() => setAdding(true)}>+ New query</button>}
+    <div className="fg-page wl-page">
+      {/* Intro + action (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Questions sent to clients — chased until answered, with aging per client.</span>
+        {queries && (
+          <div className="fg-actions">
+            <Button size="sm" variant="primary" onClick={() => setAdding(true)}>+ New query</Button>
+          </div>
+        )}
       </div>
 
       {queries === undefined && <div className="card text-muted">Loading…</div>}
@@ -66,13 +69,13 @@ export default function ClientQueries({ user }) {
 
       {queries && (
         <>
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="fg-choices wl-tabs" role="group" aria-label="Query views">
             {[
               ['mine', `🙋 My queries (${mineOpen.length}${attention ? ` · ${attention} to chase` : ''})`],
               ['all', '📋 All queries'],
               ['aging', '📊 Aging'],
             ].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+              <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</Button>
             ))}
           </div>
           {(tab === 'mine' || tab === 'all') && (
