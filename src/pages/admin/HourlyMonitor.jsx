@@ -4,6 +4,8 @@ import { today, fmtD, procIncludes, scopeToSupervisor, isOnLeave, permsFor, logA
 import { ACCESSES, HOURLY_SLOTS } from '../../lib/constants';
 import EmpDetail from '../../components/shared/EmpDetail';
 import Modal from '../../components/shared/Modal';
+import { KpiCard } from '../../components/dash/DashParts';
+import { Pill, Button } from '../../components/ui';
 
 const SLOT_KEYS = HOURLY_SLOTS.map((_, i) => `h${i}`);
 
@@ -124,83 +126,74 @@ export default function HourlyMonitor({ user }) {
   }, [allUsers, hourlyData, dailyLogs, user, customProcs, filterProc, search, statusFilter]);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-title">Hourly Monitor</div>
-          <div className="page-subtitle">
-            {fmtD(date)} · {filed} filed · {pending} pending
-          </div>
-        </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Last refresh: {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          </span>
+    <div className="fg-page">
+      {/* Filters (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
           <input
             type="text"
+            className="fg-search"
             placeholder="Search employee…"
+            aria-label="Search employee"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 180 }}
           />
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
-          <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
-            {ACCESSES.map(a => <option key={a}>{a}</option>)}
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="all">All</option>
-          </select>
-          <button className="btn-sm" onClick={load}>↺ Refresh</button>
+          <label className="fg-f"><span>Date</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </label>
+          <label className="fg-f"><span>Process</span>
+            <select value={filterProc} onChange={e => setProc(e.target.value)}>
+              {ACCESSES.map(a => <option key={a}>{a}</option>)}
+            </select>
+          </label>
+          <label className="fg-f"><span>Status</span>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <span className="fg-date">
+            {fmtD(date)} · {filed} filed · {pending} pending · Last refresh: {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+        </div>
+        <div className="fg-actions">
+          <Button size="sm" onClick={load}>↺ Refresh</Button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid-4 mb-16">
-        <div className="stat-card">
-          <div className="stat-label">Total Employees</div>
-          <div className="stat-value">{tableRows.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Filed</div>
-          <div className="stat-value col-green">{filed}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Pending</div>
-          <div className="stat-value col-red">{pending}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Grand Total</div>
-          <div className="stat-value">{grandTotal.toLocaleString()}</div>
-        </div>
+      <div className="fg-kpis fg-kpis-4">
+        <KpiCard label="Total employees" value={tableRows.length} />
+        <KpiCard label="Filed" value={filed} valueClass="col-green" />
+        <KpiCard label="Pending" value={pending} valueClass="col-red" />
+        <KpiCard label="Grand total" value={grandTotal.toLocaleString()} />
       </div>
 
       {/* Table */}
-      <div className="card">
-        <div className="card-header">
+      <div className="card fg-grid">
+        <div className="card-header fg-grid-h">
           <div className="card-title">Hourly Counts — {hourlySlots[0]} to {hourlySlots.at(-1)}</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
         </div>
-        <div className="table-wrap">
+        <div className="fg-scroll">
           <table>
             <thead>
               <tr>
-                <th style={{ position: 'sticky', left: 0, background: 'var(--surface-2)', zIndex: 2, minWidth: 140 }}>Employee</th>
-                <th style={{ minWidth: 70 }}>Process</th>
+                <th className="fg-sticky">Employee</th>
+                <th className="hm-proc">Process</th>
                 {hourlySlots.map(s => (
-                  <th key={s} className="center" style={{ minWidth: 64, fontSize: 10 }}>{s}</th>
+                  <th key={s} className="center hm-slot">{s}</th>
                 ))}
-                <th className="right" style={{ minWidth: 60 }}>Total</th>
-                <th className="center" style={{ minWidth: 80 }}>Status</th>
-                {canEditCounts && <th className="center" style={{ minWidth: 70 }}>Actions</th>}
+                <th className="right hm-total">Total</th>
+                <th className="center hm-status">Status</th>
+                {canEditCounts && <th className="center hm-act">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {tableRows.length === 0 && (
                 <tr>
-                  <td colSpan={HOURLY_SLOTS.length + (canEditCounts ? 5 : 4)} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>
+                  <td colSpan={HOURLY_SLOTS.length + (canEditCounts ? 5 : 4)} className="fg-empty">
                     No employees found
                   </td>
                 </tr>
@@ -208,29 +201,28 @@ export default function HourlyMonitor({ user }) {
               {tableRows.map(row => (
                 <tr key={row.emp_id}>
                   <td
-                    className="bold"
-                    style={{ position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1, cursor: 'pointer', color: 'var(--accent)' }}
+                    className="bold fg-sticky fg-name"
                     onClick={() => setEmpDetail(row)}
                   >
                     {row.name ?? row.emp_id}
                   </td>
                   <td className="text-sm text-muted">{row.access}</td>
                   {row.slots.map((v, si) => (
-                    <td key={si} className="center" style={{ color: v != null ? 'var(--text)' : 'var(--text-muted)', fontSize: 12 }}>
+                    <td key={si} className={`center hm-cell${v != null ? '' : ' text-muted'}`}>
                       {v ?? '—'}
                     </td>
                   ))}
                   <td className="right bold">{row.total != null ? row.total : '—'}</td>
                   <td className="center">
                     {isOnLeave(row.log)
-                      ? <span className="badge badge-blue">On Leave</span>
+                      ? <Pill tone="accent">On Leave</Pill>
                       : row.row
-                        ? <span className="badge badge-green">Filed</span>
-                        : <span className="badge badge-red">Pending</span>}
+                        ? <Pill tone="good">Filed</Pill>
+                        : <Pill tone="bad">Pending</Pill>}
                   </td>
                   {canEditCounts && (
                     <td className="center">
-                      <button className="btn-sm" onClick={() => openEdit(row)}>✏️ Edit</button>
+                      <Button size="xs" onClick={() => openEdit(row)}>✏️ Edit</Button>
                     </td>
                   )}
                 </tr>
@@ -238,14 +230,14 @@ export default function HourlyMonitor({ user }) {
             </tbody>
             {tableRows.some(r => r.row) && (
               <tfoot>
-                <tr style={{ background: 'var(--surface-2)', fontWeight: 700 }}>
-                  <td colSpan={2} style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase' }}>
+                <tr className="hm-foot">
+                  <td colSpan={2} className="fg-sticky hm-foot-l">
                     Team Total
                   </td>
                   {slotTotals.map((t, si) => (
-                    <td key={si} className="center" style={{ padding: '10px 14px', fontSize: 12 }}>{t || '—'}</td>
+                    <td key={si} className="center hm-cell">{t || '—'}</td>
                   ))}
-                  <td className="right bold" style={{ padding: '10px 14px' }}>{grandTotal}</td>
+                  <td className="right bold">{grandTotal}</td>
                   <td />
                   {canEditCounts && <td />}
                 </tr>
@@ -275,10 +267,10 @@ export default function HourlyMonitor({ user }) {
             ))}
           </div>
           <div className="form-actions">
-            <button className="btn-sm" onClick={() => setEditTarget(null)}>Cancel</button>
-            <button className="btn-primary" onClick={doSaveEdit} disabled={editLoading}>
+            <Button size="sm" onClick={() => setEditTarget(null)}>Cancel</Button>
+            <Button size="sm" variant="primary" onClick={doSaveEdit} disabled={editLoading}>
               {editLoading ? 'Saving…' : 'Save Counts'}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

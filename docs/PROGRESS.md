@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 5 — Hourly (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same slots, search, filters, totals, filed /
+**Frost Glass page 5 — Hourly (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+Frost + Daylight at 1440 px and at 375 px (no page sideways scroll; table scrolls inside its card with names frozen); 12 rows,
+status pills, 4 cards. 3Gen has no hourly counts today, so the Team Total row (shown only when someone filed) was not seen.
+Owner theme left on Frost. Styling only (same slots, search, filters, totals, filed /
 pending, refresh, Edit window + save; no database change). Old header → shared filter card (date · filed · pending · last refresh
 at the end); 4 `KpiCard`s; table in a solid card with frozen names (Quality's grid styles made shared as `.fg-grid`); status →
 `Pill`; Edit → themed button; Team Total row themed; window buttons themed.

@@ -499,3 +499,28 @@ body[class*="theme-"] .qm-grid th.qm-name, body[class*="theme-"] .qm-grid td.qm-
 .qm-edit { cursor: pointer; }
 .qm-edit:hover { background: var(--panel-2-hover, var(--surface-2)); }
 .qm-grid .ui-pill { font-size: 12px; padding: 2px 8px; }
+
+/* ─── Shared frozen-column grid (.fg-grid) — Hourly; same look as the Quality grid ─── */
+.fg-grid { padding: 0 !important; overflow: hidden; }
+body[class*="theme-"] .fg-grid { background: var(--panel-solid); }
+body[class*="theme-"] .fg-grid .fg-grid-h { padding: 18px 18px 12px; margin: 0; }
+body[class*="theme-"] .fg-grid .card-title { font-size: 17px; font-weight: 600; }
+.fg-scroll { overflow-x: auto; }
+.fg-grid table { min-width: 700px; }
+.fg-grid th { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+body[class*="theme-"] .fg-grid th { background: var(--panel-solid); text-transform: none; letter-spacing: 0; padding: 12px 10px; }
+body[class*="theme-"] .fg-grid td { padding: 11px 10px; }
+.fg-sticky { min-width: 150px; position: sticky; left: 0; z-index: 1; background: var(--panel-solid, var(--surface)); }
+th.fg-sticky { z-index: 2; }
+body[class*="theme-"] .fg-grid .fg-sticky { padding-left: 18px; box-shadow: inset -1px 0 0 var(--divider); }
+body[class*="theme-"] .fg-grid tbody tr:hover td { background: var(--panel-2-hover); }
+.fg-search { max-width: 200px; }
+.hm-proc { min-width: 70px; }
+.hm-slot { min-width: 64px; font-size: 11px !important; }
+.hm-total { min-width: 60px; }
+.hm-status { min-width: 84px; }
+.hm-act { min-width: 72px; }
+.hm-cell { font-size: 12.5px; }
+.hm-foot td { font-weight: 700; background: var(--accent-soft, var(--surface-2)); }
+.hm-foot td.fg-sticky { background: color-mix(in srgb, var(--accent) 12%, var(--panel-solid, var(--surface))); }
+.hm-foot-l { color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; }
