@@ -23,6 +23,25 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Frost Glass redesign — Sidebar + Team Dashboard first (PO request 2026-11-06, "Go") — IN PROGRESS.**
+Styling only: no logic, data, calculations or permissions change; no database change. PO screenshots (Frost / Slate / Daylight)
+are the reference. Other pages follow page by page after the PO approves these two.
+- `src/components/ui/themes.css`: 4 themes as variables — Frost (default, dark navy glass, #5EB8FF), Daylight (light glass, #4F46E5),
+  Slate (white workspace, dark solid sidebar, #0F766E, no blur), Violet (dark glass, #A78BFA). Tokens: background, panel, panel
+  border, text, muted, dividers, inputs, accent, sidebar colours, green / amber / red pills, `--blur`. The old variables (`--bg`,
+  `--surface`, `--text`, `--accent`, `--border`, `--success`…) point at the new ones so other pages take the colours (not the layout).
+  Frost / Violet keep the `dark` body class so the existing dark rules still apply. Starfield off.
+- Theme choice still saved in `prefs_<emp_id>.theme` (rcm_store). Old ids map: light / mist / rose / amber → Daylight; dark / dusk /
+  ocean / forest → Frost; slate / highcontrast → Slate; violet → Violet. Switcher in the top bar (4 swatches; one button on phones)
+  and in Profile.
+- Sidebar: logo block, section headings, line icon per item, accent bar on the active item, name + role at the bottom. Pins,
+  icons-only mode, phone drawer kept; Workbench keeps its sub-groups (fly-outs), other sections list their pages under the heading.
+- Top bar (all pages): glass, title + subtitle, search field (Ctrl K), theme switcher, clock. Blur only on sidebar + top bar.
+- Team Dashboard: 4 KPI cards (Prod %, Quality %, Achieved vs target, Shrinkage — existing numbers + existing drills), weekly bar
+  chart, "Needs attention" cards, team table, new Workbench quick tiles (open pages the person can already open). All existing
+  sections kept, restyled.
+- Shared `Card`, `Button`, `Pill`, `Table`, `PageHeader` in `src/components/ui/`; `docs/DESIGN.md` updated.
+
 **Smoke test, login → every page (PO request 2026-11-04) — DONE.**
 Demo data loaded in Test Co (removed after). Login: unknown company → clear message; company by name and by code; wrong password →
 "Invalid Employee ID or password."; lowercase ID accepted; session created, no password in the browser; sign-out ends the session.
