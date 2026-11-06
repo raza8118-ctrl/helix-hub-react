@@ -5,6 +5,10 @@ import { DEFAULT_SUPERVISOR_PERMS, NO_PERMS, permsFor, subProcessesOf, logAudit,
 import { FEATURES, hasRoleDefault, grantsOf } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
+import { Pill, Button } from '../../components/ui';
+
+/** Frost Glass: role → pill tone (same roles, colours from the theme). */
+const ROLE_TONE = { admin: 'accent', manager: 'purple', supervisor: 'warn' };
 import { seatLimitProblem } from '../../lib/company';
 import { tempPassword } from '../../lib/owner';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -52,7 +56,7 @@ function SortableRow({ u, children }) {
         background: isDragging ? 'var(--bg-hover, rgba(0,0,0,0.04))' : undefined,
       }}
     >
-      <td style={{ width: 28, cursor: 'grab', touchAction: 'none', color: 'var(--text-muted)' }} {...attributes} {...listeners}>⠿</td>
+      <td className="tm-grip" {...attributes} {...listeners}>⠿</td>
       {children}
     </tr>
   );
@@ -487,29 +491,27 @@ export default function TeamMgmt({ user }) {
   const f = form;
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Team Management</div>
-          <div className="page-subtitle">
-            {allUsers.length} users
-            {pendingResets.length > 0 && (
-              <span className="col-red" style={{ marginLeft: 8 }}>· {pendingResets.length} reset request(s)</span>
-            )}
-          </div>
+    <div className="fg-page">
+      {/* Summary + actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <span className="tm-count">{allUsers.length} users</span>
+          {pendingResets.length > 0 && (
+            <span className="col-red tm-resets">· {pendingResets.length} reset request(s)</span>
+          )}
         </div>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn-sm" onClick={() => openProjectForm()}>+ Add Project</button>
-          <button className="btn-primary" onClick={openCreate}>+ Add User</button>
+        <div className="fg-actions">
+          <Button size="sm" onClick={() => openProjectForm()}>+ Add Project</Button>
+          <Button size="sm" variant="primary" onClick={openCreate}>+ Add User</Button>
         </div>
       </div>
 
       {/* Password reset approvals */}
       {pendingResets.length > 0 && (
-        <div className="card mb-16" style={{ borderColor: 'var(--warning)', borderWidth: 2 }}>
+        <div className="card fg-card fg-tracker tm-reset">
           <div className="card-header">
-            <div className="card-title" style={{ color: 'var(--warning)' }}>⚠ Password Reset Requests</div>
-            <span className="badge badge-yellow">{pendingResets.length} pending</span>
+            <div className="card-title tm-reset-t">⚠ Password Reset Requests</div>
+            <Pill tone="warn">{pendingResets.length} pending</Pill>
           </div>
           <div className="table-wrap">
             <table>
@@ -525,9 +527,9 @@ export default function TeamMgmt({ user }) {
                       {rr.requested_at ? new Date(rr.requested_at).toLocaleString() : '—'}
                     </td>
                     <td>
-                      <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => approveReset(rr)}>
+                      <Button size="xs" variant="primary" onClick={() => approveReset(rr)}>
                         Approve & Reset
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -538,10 +540,10 @@ export default function TeamMgmt({ user }) {
       )}
 
       {/* Process management */}
-      <div className="card mb-16">
+      <div className="card fg-card">
         <div className="card-header">
           <div className="card-title">Projects &amp; Sub-Processes</div>
-          <button className="btn-sm" onClick={() => openProjectForm()}>+ Add Project</button>
+          <Button size="sm" onClick={() => openProjectForm()}>+ Add Project</Button>
         </div>
         {allProjects.length === 0 ? (
           <p className="text-muted text-sm" style={{ padding: '6px 0' }}>
@@ -552,53 +554,53 @@ export default function TeamMgmt({ user }) {
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th style={{ width: 160 }}>Project</th><th>Sub-Processes</th><th className="right"></th></tr>
+                <tr><th className="tm-proj-col">Project</th><th>Sub-Processes</th><th className="right"></th></tr>
               </thead>
               <tbody>
                 {allProjects.map(proj => (
                   <tr key={proj}>
                     <td className="bold">{proj}</td>
                     <td>
-                      <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                      <div className="tm-pills">
                         {procsByProject[proj].map(name => {
                           const custom = customProcs.find(p => p.name === name && (p.project ?? DEFAULT_PROJECT) === proj);
                           // Built-in processes (home company) can't be edited; custom ones open the edit pop-up
                           return custom ? (
-                            <button key={name} type="button" className="badge badge-yellow" onClick={() => openProcEdit(custom)}
-                              title={`Edit or delete ${name}`} style={{ border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 11 }}>
+                            <button key={name} type="button" className="ui-pill warn tm-pill-btn" onClick={() => openProcEdit(custom)}
+                              title={`Edit or delete ${name}`}>
                               {name}
                             </button>
                           ) : (
-                            <span key={name} className="badge badge-blue" title="Built-in process">{name}</span>
+                            <Pill key={name} tone="accent" title="Built-in process">{name}</Pill>
                           );
                         })}
                       </div>
                     </td>
-                    <td className="right" style={{ whiteSpace: 'nowrap' }}>
-                      <button className="btn-sm" onClick={() => openProjectForm(proj)}>+ Sub-Process</button>{' '}
+                    <td className="right tm-nowrap">
+                      <Button size="xs" onClick={() => openProjectForm(proj)}>+ Sub-Process</Button>{' '}
                       {!(DEF_PROCS.length && proj === DEFAULT_PROJECT) && (
-                        <button className="btn-sm" onClick={() => setProjEdit({ oldName: proj, name: proj, error: '' })}>Edit</button>
+                        <Button size="xs" onClick={() => setProjEdit({ oldName: proj, name: proj, error: '' })}>Edit</Button>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <p className="text-sm text-muted" style={{ marginTop: 8 }}>Click a sub-process to rename, move or delete it.</p>
+            <p className="text-sm text-muted tm-hint">Click a sub-process to rename, move or delete it.</p>
           </div>
         )}
-        {allProjects.length > 0 && <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-          <div className="text-sm bold" style={{ marginBottom: 6 }}>Quality Tracking</div>
-          <div className="text-sm text-muted" style={{ marginBottom: 8 }}>
+        {allProjects.length > 0 && <div className="tm-quality">
+          <div className="text-sm bold tm-quality-t">Quality Tracking</div>
+          <div className="text-sm text-muted tm-quality-s">
             Processes checked below will not show "Pending" in Quality Monitor — they are not subject to quality review.
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="tm-qgroups">
             {allProjects.map(proj => (
               <div key={proj}>
-                <div className="text-sm text-muted" style={{ marginBottom: 3 }}>{proj}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                <div className="text-sm text-muted tm-qproj">{proj}</div>
+                <div className="tm-checks">
                   {procsByProject[proj].map(proc => (
-                    <label key={proc} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, cursor: 'pointer' }}>
+                    <label key={proc} className="tm-check">
                       <input
                         type="checkbox"
                         checked={qualitySkipProcs.has(proc)}
@@ -615,27 +617,27 @@ export default function TeamMgmt({ user }) {
       </div>
 
       {/* User list */}
-      <div className="card">
-        <div className="card-header">
+      <div className="card fg-card tm-dir">
+        <div className="card-header tm-dir-h">
           <div className="card-title">User Directory</div>
-          <div className="row" style={{ gap: 8 }}>
-            <input type="text" placeholder="Search name / ID…" value={search}
-              onChange={e => setSearch(e.target.value)} style={{ maxWidth: 180 }} />
-            <select value={clientFilter} onChange={e => { setClientFilter(e.target.value); setProcFilter('ALL'); }} style={{ maxWidth: 140 }}>
+          <div className="tm-filters">
+            <input type="text" className="fg-search" placeholder="Search name / ID…" aria-label="Search name or ID" value={search}
+              onChange={e => setSearch(e.target.value)} />
+            <select value={clientFilter} onChange={e => { setClientFilter(e.target.value); setProcFilter('ALL'); }} aria-label="Client">
               <option value="ALL">All Clients</option>
               {allProjects.map(p => <option key={p}>{p}</option>)}
             </select>
-            <select value={procFilter} onChange={e => setProcFilter(e.target.value)} style={{ maxWidth: 150 }}>
+            <select value={procFilter} onChange={e => setProcFilter(e.target.value)} aria-label="Sub-process">
               <option value="ALL">All Sub-Processes</option>
               {(clientFilter === 'ALL' ? allProcs : procsByProject[clientFilter] ?? []).map(p => <option key={p}>{p}</option>)}
             </select>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Status">
               <option value="active">Active</option>
               <option value="disabled">Disabled</option>
               <option value="all">All</option>
             </select>
             {hasTeamCols && (
-              <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} style={{ maxWidth: 150 }}>
+              <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} aria-label="Team">
                 <option value="ALL">All Teams</option>
                 {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
                 <option value="QA">QA reviewers</option>
@@ -644,24 +646,21 @@ export default function TeamMgmt({ user }) {
             )}
           </div>
         </div>
-        {loading && <div style={{ textAlign: 'center', padding: 24 }}>Loading…</div>}
+        {loading && <div className="fg-empty">Loading…</div>}
         {!loading && groupedByProject.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No users found</div>
+          <div className="fg-empty">No users found</div>
         )}
         {!loading && groupedByProject.map(([proj, subGroups]) => (
-          <div key={proj} style={{ marginBottom: 22 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0 6px',
-              borderBottom: '2px solid var(--border)', marginBottom: 4,
-            }}>
-              <span style={{ fontWeight: 800, fontSize: 14 }}>{proj === 'Unassigned' ? '⚠️' : '🏢'} {proj}</span>
-              <span className="badge badge-blue">
+          <div key={proj} className="tm-proj">
+            <div className="tm-proj-h">
+              <span className="tm-proj-name">{proj === 'Unassigned' ? '⚠️' : '🏢'} {proj}</span>
+              <span className="ui-pill accent">
                 {subGroups.reduce((s, [, us]) => s + us.length, 0)} user{subGroups.reduce((s, [, us]) => s + us.length, 0) !== 1 ? 's' : ''}
               </span>
             </div>
             {subGroups.map(([groupKey, users]) => (
-              <div key={groupKey} style={{ marginBottom: 18, marginLeft: 14 }}>
-                <div className="text-sm bold text-muted" style={{ margin: '10px 0 4px' }}>{groupKey}</div>
+              <div key={groupKey} className="tm-group">
+                <div className="text-sm bold text-muted tm-group-t">{groupKey}</div>
                 <div className="table-wrap">
                   <DndContext sensors={dndSensors} onDragEnd={e => handleDragEnd(groupKey, e)}>
                     <table>
@@ -685,36 +684,32 @@ export default function TeamMgmt({ user }) {
                               <td className="bold text-sm">{u.emp_id}</td>
                               <td>{u.name ?? '—'}</td>
                               <td>
-                                <span className={`badge ${u.role === 'admin' ? 'badge-blue' : u.role === 'manager' ? 'badge-purple' : u.role === 'supervisor' ? 'badge-yellow' : 'badge-gray'}`}>
-                                  {u.role}
-                                </span>
+                                <Pill tone={ROLE_TONE[u.role] ?? 'neutral'}>{u.role}</Pill>
                               </td>
                               {hasTeamCols && (
                                 <td>
-                                  <div className="row" style={{ gap: 4 }}>
-                                    {u.team ? <span className="badge badge-blue">{u.team}</span> : <span className="text-muted">—</span>}
-                                    {u.is_qa && <span className="badge badge-purple">QA</span>}
+                                  <div className="tm-pills">
+                                    {u.team ? <Pill tone="accent">{u.team}</Pill> : <span className="text-muted">—</span>}
+                                    {u.is_qa && <Pill tone="purple">QA</Pill>}
                                   </div>
                                 </td>
                               )}
                               <td>{u.access || u.process || '—'}</td>
                               <td className="right">{u.target ?? '—'}</td>
                               <td className="center">
-                                <div className="row" style={{ gap: 4, justifyContent: 'center' }}>
-                                  <span className={`badge ${u.active !== false ? 'badge-green' : 'badge-red'}`}>
+                                <div className="tm-pills center">
+                                  <Pill tone={u.active !== false ? 'good' : 'bad'}>
                                     {u.active !== false ? 'Active' : 'Disabled'}
-                                  </span>
-                                  {rampWeek(u) && <span className="badge badge-yellow">Ramp Wk {rampWeek(u).week}/{rampWeek(u).total}</span>}
+                                  </Pill>
+                                  {rampWeek(u) && <Pill tone="warn">Ramp Wk {rampWeek(u).week}/{rampWeek(u).total}</Pill>}
                                 </div>
                               </td>
                               <td>
-                                <div className="row" style={{ gap: 4 }}>
-                                  <button className="btn-sm" onClick={() => openEdit(u)}>Edit</button>
-                                  <button className="btn-sm"
-                                    style={{ color: u.active !== false ? 'var(--danger)' : 'var(--success)' }}
-                                    onClick={() => toggleActive(u)}>
+                                <div className="fg-row-actions">
+                                  <Button size="xs" onClick={() => openEdit(u)}>Edit</Button>
+                                  <Button size="xs" variant={u.active !== false ? 'danger' : 'success'} onClick={() => toggleActive(u)}>
                                     {u.active !== false ? 'Disable' : 'Enable'}
-                                  </button>
+                                  </Button>
                                 </div>
                               </td>
                             </SortableRow>

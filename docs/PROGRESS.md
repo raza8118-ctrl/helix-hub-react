@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 7 — Team (admin) + My Team (supervisor) (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (users, projects,
+**Frost Glass page 7 — Team (admin) + My Team (supervisor) (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Admin Team
+checked in 3Gen (owner, view only): Frost + Daylight at 1440 px, 375 px (no page sideways scroll); 22 users, 2 projects, 14 rows,
+role / status pills; an Edit window opened and was cancelled (nothing saved); no drag-reorder tried. My Team (supervisor) not opened
+in the browser (needs a supervisor login) — lint + build only. Pop-up windows left unchanged (their buttons already follow the
+theme). Owner theme left on Frost. Styling only (users, projects,
 sub-processes, reset approvals, drag-to-reorder, Enable / Disable and every save unchanged; no database change). Old header → small
 summary card + actions; reset requests → amber-edged card; sub-processes / roles / team / QA / status / ramp → `Pill`; action
 buttons themed (Disable red, Enable green); drag handle + faded disabled rows kept; window buttons themed — the big user form keeps
