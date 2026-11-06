@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 7 — Team (admin) + My Team (supervisor) (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Admin Team
+**Frost Glass page 8 — Smart Worklist (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (tabs, uploads, assigning, statuses,
+follow-ups, closing, automatic clearing unchanged; no database change; claim details untouched). Files: `SmartWorklist.jsx`,
+`MyWorklist.jsx`, `Followups.jsx`, `WorklistManage.jsx`, `WorklistUpload.jsx`. Old heading → small intro card; tabs → themed toggles;
+claim cards keep their coloured left edge (theme colours); labels → `Pill`; tables / buttons themed; 🔒 note → notice. Plus: the
+old shared `.badge-*` colours (used on ~20 pages) follow the theme's pill colours (CSS only). Test in 3Gen view only (no upload /
+assign / status change).
+
+**Frost Glass page 7 — Team (admin) + My Team (supervisor) (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Admin Team
 checked in 3Gen (owner, view only): Frost + Daylight at 1440 px, 375 px (no page sideways scroll); 22 users, 2 projects, 14 rows,
 role / status pills; an Edit window opened and was cancelled (nothing saved); no drag-reorder tried. My Team (supervisor) not opened
 in the browser (needs a supervisor login) — lint + build only. Pop-up windows left unchanged (their buttons already follow the
