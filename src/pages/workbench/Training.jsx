@@ -6,6 +6,7 @@ import { loadSopVersionMeta } from '../../lib/sopVersions';
 import TrainingProgress, { ProgressBar, AssignmentDays } from './TrainingProgress';
 import TrainingPathEditor from './TrainingPathEditor';
 import SopPage from './SopPage';
+import { Button } from '../../components/ui';
 
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -72,7 +73,7 @@ export default function Training({ user }) {
         {!sopCtx && <div className="card text-muted">Loading SOP…</div>}
         {sopCtx && !readable && (
           <div className="card">
-            <button className="btn-sm" onClick={closeSop}>← Back to training</button>
+            <Button size="sm" onClick={closeSop}>← Back to training</Button>
             <p className="text-muted">This SOP isn’t published yet. Please ask your trainer.</p>
           </div>
         )}
@@ -92,12 +93,10 @@ export default function Training({ user }) {
   ];
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">🎓 Training</div>
-          <div className="page-subtitle">Day-by-day learning paths: SOPs to read, tasks to practise and links to watch.</div>
-        </div>
+    <div className="fg-page nb-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Day-by-day learning paths: SOPs to read, tasks to practise and links to watch.</span>
       </div>
 
       {data === undefined && <div className="card text-muted">Loading training…</div>}
@@ -111,10 +110,10 @@ export default function Training({ user }) {
       {data && (
         <>
           {tabs.length > 1 && (
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="fg-choices wl-tabs" role="group" aria-label="Training views">
               {tabs.map(t => (
-                <button key={t.id} className={tab === t.id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === t.id}
-                  onClick={() => setTab(t.id)}>{t.label}</button>
+                <Button key={t.id} size="sm" active={tab === t.id} aria-pressed={tab === t.id}
+                  onClick={() => setTab(t.id)}>{t.label}</Button>
               ))}
             </div>
           )}
@@ -136,7 +135,7 @@ function MyTraining({ data, user, onChanged, onOpenSop }) {
     .sort((x, y) => x.s.complete - y.s.complete || (y.a.start_date ?? '').localeCompare(x.a.start_date ?? ''));
 
   if (!mine.length) {
-    return <div className="card text-muted" style={{ textAlign: 'center' }}>You don’t have any learning paths yet.</div>;
+    return <div className="card text-muted fg-empty">You don’t have any learning paths yet.</div>;
   }
   return mine.map(({ a, s }) => (
     <div key={a.id} className="card mb-16" style={s.complete ? { borderLeft: '4px solid var(--success)' } : undefined}>
