@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 2 — Today (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+**Frost Glass page 3 — Prod Monitor (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same numbers, filters, pins, Bypass /
+Quality / Q Bypass / Counts actions + windows, same saves; no database change). Filter card (date + team avg at the end); holiday
+notice; 4 `KpiCard`s; table statuses / Prod % / Auth Y / Quality Pending → `Pill`, deficit ▼▲ kept; action buttons → themed
+`Button` (Remove red); window choice buttons → themed toggles, textareas lose fixed colours. Today's `.td-*` styles renamed to shared
+`.fg-*` names (class names only) so later pages reuse them.
+
+**Frost Glass page 2 — Today (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only) in
 Frost / Daylight / Slate at 1440 px and Frost at 375 px (no sideways scroll); Pinned only on → 0 rows / off → 12; owner theme left on
 Frost. `--col-orange` now follows the theme (amber). AI Email not run (Anthropic account has no credit) — only its text box changed. Styling only (same numbers, filters, buttons, pins, AI Email,
 employee pop-up; no database change). Old page header → one filter / action card (title is in the top bar); holiday banner → themed
