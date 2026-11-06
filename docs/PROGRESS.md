@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 19 — Reports (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+**Frost Glass page 20 — Attendance (Keka) (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (Keka import + mapping, numbers,
+filters, tables unchanged; no database change). `Dashboard.jsx`: old "Dashboard" heading → shared filter card (date / Process /
+Status, "Keka attendance · date", Refresh + Import on the right); table cards in the Today style. Number tiles already themed;
+`.stat-value.col-blue` → theme accent (shell.css). Import window unchanged (already themed). Test in 3Gen, view only.
+
+**Frost Glass page 19 — Reports (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only) in
 Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); both tabs opened (Denial trends: filters, 3 tiles, 4 chart
 cards; Weekly client report: client + week pickers); no export / email / AI summary. 3Gen has no denials, so the charts were not
 seen with data. Owner theme left on Frost. Workbench now done except Ask Helix (floating button). Styling only (reports, numbers, charts, exports, email
