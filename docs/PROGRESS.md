@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 12 — AR Tools (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+**Frost Glass page 13 — Medicare Trackers (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (trackers, due dates, RTP uploads,
+assigning, 90-day clearing unchanged; no database change). `MedicareTrackers.jsx`: old heading → intro card; tabs → themed toggles
+(open counts kept). The four parts already themed — no changes. Test in 3Gen, view only (each tab opened).
+
+**Frost Glass page 12 — AR Tools (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only) in
 Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all 8 tools opened (each picker button stays 30 px high when
 selected); nothing copied, saved or opened. Owner theme left on Frost. Styling only (tools, calculations, notes, portal links
 unchanged; nothing typed is saved; no database change). `ARTools.jsx`: old heading → intro card; tool picker → same-size themed
