@@ -23,7 +23,9 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 21 — Feed Monitor (PO "Go" 2026-11-06) — IN PROGRESS.** PO: skip the switched-off pages (Alloc Monitor, Work
+**Frost Glass page 21 — Feed Monitor (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner, view
+only) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): 1 post card with Hide / Delete; search "zzzz" → themed
+"No posts found.", cleared → post back; nothing hidden / deleted. A hidden (faded) post was not seen. Test Co theme left on Daylight. PO: skip the switched-off pages (Alloc Monitor, Work
 Alloc) for now. Styling only (loading, search, Hide / Unhide, Delete + confirm unchanged; no database change). `FeedMonitor.jsx`: old
 heading → shared filter card (search, Refresh, "All Team Feed posts … N total"); post cards themed, hidden posts stay faded; Hide /
 Delete → compact themed buttons (Delete red); empty message centred. Test in 3Gen, view only.

@@ -691,3 +691,10 @@ body[class*="theme-"] button.card { color: var(--text); font: inherit; }
 /* Blue values in the shared number tiles use the theme accent (Attendance etc.) */
 body[class*="theme-"] .stat-value.col-blue { color: var(--accent); }
 .fg-page > .grid-5 { margin: 0; gap: 18px; }
+
+/* ─── Feed Monitor (Frost Glass page 21) ─── */
+.fm-post { margin: 0; }
+.fm-post.hidden-post { opacity: 0.55; }
+.fm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.fm-name { font-size: 14px; }
+.fm-text { font-size: 14px; margin-bottom: 8px; white-space: pre-wrap; }
