@@ -27,7 +27,7 @@ export default function HandoverInbox({ user, ctx, people, names, handovers, sho
       {handovers.map(h => {
         const read = h.reads.includes(user.emp_id);
         return (
-          <div key={h.id} className="card mb-16" style={read ? undefined : { borderLeft: '4px solid var(--primary, #3b82f6)' }}>
+          <div key={h.id} className="card mb-16" style={read ? undefined : { borderLeft: '4px solid var(--accent)' }}>
             <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
               <div className="card-title">
                 {names[h.emp_id] ?? h.emp_id} <span className="text-sm text-muted">· {fmtDate(h.shift_date)}{h.team ? ` · ${h.team}` : ''}</span>

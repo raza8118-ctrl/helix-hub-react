@@ -8,6 +8,7 @@ import HandoverInbox from './HandoverInbox';
 import EscalationList from './EscalationList';
 import HandoverOverview from './HandoverOverview';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { Button } from '../../components/ui';
 
 /**
  * 🔁 Handover & Escalations (roadmap 7.4): end-of-shift handover per person (read by the team next shift, carry-over
@@ -56,18 +57,16 @@ export default function HandoverEscalations({ user }) {
   const assigned = escalations.filter(e => e.assigned_to === user.emp_id && isOpenEsc(e)).length;
   const others = users.filter(u => u.emp_id !== user.emp_id);
 
+  // Intro (the page title is in the top bar)
   const header = (
-    <div className="page-header">
-      <div>
-        <div className="page-title">🔁 Handover & Escalations</div>
-        <div className="page-subtitle">End-of-shift handover for the next shift, and issues escalated until they are resolved.</div>
-      </div>
+    <div className="fg-bar">
+      <span className="fg-date">End-of-shift handover for the next shift, and issues escalated until they are resolved.</span>
     </div>
   );
-  if (ready === undefined) return <div style={{ maxWidth: 1100, margin: '0 auto' }}>{header}<div className="card text-muted">Loading…</div></div>;
+  if (ready === undefined) return <div className="fg-page wl-page">{header}<div className="card text-muted">Loading…</div></div>;
   if (!ready) {
     return (
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>{header}
+      <div className="fg-page wl-page">{header}
         <div className="card text-muted">
           Handover & Escalations aren’t set up yet. An admin needs to run the database update
           (<code>20261021p_handover_escalations.sql</code>) in Supabase.
@@ -84,11 +83,11 @@ export default function HandoverEscalations({ user }) {
   ];
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div className="fg-page wl-page">
       {header}
-      <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div className="fg-choices wl-tabs" role="group" aria-label="Handover views">
         {tabs.map(([id, label]) => (
-          <button key={id} className={tab === id ? 'btn-primary btn-sm' : 'btn-sm'} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+          <Button key={id} size="sm" active={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</Button>
         ))}
       </div>
       {tab === 'mine' && <HandoverForm user={user} ctx={ctx} names={names} onSaved={reload} />}
