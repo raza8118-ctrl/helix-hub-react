@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 15 — SOP Library (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (tree, search / filters, opening SOPs,
+**Frost Glass page 15 — SOP Library (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll): intro card + "+ Category", filters, 7 category cards with
+105 compact row buttons, a software row expanded ("No tasks yet."); nothing edited / moved. 3Gen has no SOPs and nothing to
+acknowledge, so an opened SOP page and the amber "To acknowledge" card were not seen. Owner theme left on Frost. Styling only (tree, search / filters, opening SOPs,
 versions / acknowledgements, editing, reordering, starter categories / software, Print / PDF unchanged; no database change).
 `SopLibrary.jsx`: old heading → intro card with the editor buttons on the right; "To acknowledge" card keeps its amber edge (theme
 amber); filters sized consistently; tree layout kept, row buttons → compact themed buttons. SOP page, editors unchanged (already

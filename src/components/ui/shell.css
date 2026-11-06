@@ -680,3 +680,10 @@ body[class*="theme-"] input[type="checkbox"], body[class*="theme-"] input[type="
 /* Buttons styled as cards (e.g. Medicare Overview tiles): browsers don't pass the text colour into buttons, so numbers turned
    near-black on dark themes — use the theme text colour (every page) */
 body[class*="theme-"] button.card { color: var(--text); font: inherit; }
+
+/* ─── SOP Library (Frost Glass page 15) ─── */
+.sop-ack { margin: 0; border: 1px solid color-mix(in srgb, var(--warn-fg, #f59e0b) 60%, transparent) !important; }
+.sop-ack-t { margin-bottom: 8px; }
+.sop-filters { margin: 0; }
+.nb-page > .card { margin: 0; }
+.nb-search select { max-width: 200px; }

@@ -8,6 +8,7 @@ import { peekRecord, clearRecord } from '../../lib/navigate';
 import SopPage from './SopPage';
 import { toggleSopActive, moveSopItem, addStarterCategories } from './sopActions';
 import CopyButton from '../../components/shared/CopyButton';
+import { Button } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const inactiveStyle = row => row.active === false ? { opacity: 0.55 } : undefined;
@@ -84,17 +85,17 @@ export default function SopLibrary({ user }) {
   function controls({ level, row, list, index, addLevel, addLabel }) {
     if (!canEdit) return null;
     return (
-      <span className="row" style={{ gap: 4, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
-        {addLevel && <button className="btn-sm" onClick={() => edit(addLevel, null, row.id)}>+ {addLabel}</button>}
-        <button className="btn-sm" title="Move up" disabled={index === 0}
-          onClick={async () => afterChange(await moveSopItem(level, list, index, -1, user))}>▲</button>
-        <button className="btn-sm" title="Move down" disabled={index === list.length - 1}
-          onClick={async () => afterChange(await moveSopItem(level, list, index, 1, user))}>▼</button>
-        <button className="btn-sm" title="Edit" onClick={() => edit(level, row)}>✎</button>
-        <button className="btn-sm" title={row.active === false ? 'Reactivate' : 'Make inactive'}
+      <span className="fg-row-actions" onClick={e => e.stopPropagation()}>
+        {addLevel && <Button size="xs" onClick={() => edit(addLevel, null, row.id)}>+ {addLabel}</Button>}
+        <Button size="xs" title="Move up" aria-label="Move up" disabled={index === 0}
+          onClick={async () => afterChange(await moveSopItem(level, list, index, -1, user))}>▲</Button>
+        <Button size="xs" title="Move down" aria-label="Move down" disabled={index === list.length - 1}
+          onClick={async () => afterChange(await moveSopItem(level, list, index, 1, user))}>▼</Button>
+        <Button size="xs" title="Edit" aria-label="Edit" onClick={() => edit(level, row)}>✎</Button>
+        <Button size="xs" title={row.active === false ? 'Reactivate' : 'Make inactive'} aria-label={row.active === false ? 'Reactivate' : 'Make inactive'}
           onClick={async () => afterChange(await toggleSopActive(level, row, user))}>
           {row.active === false ? '↺' : '⊘'}
-        </button>
+        </Button>
       </span>
     );
   }
@@ -111,25 +112,23 @@ export default function SopLibrary({ user }) {
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">📚 SOP Library</div>
-          <div className="page-subtitle">Step-by-step guides, organised by software and task.</div>
-        </div>
+    <div className="fg-page nb-page">
+      {/* Intro + editor actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Step-by-step guides, organised by software and task.</span>
         {canEdit && lib && (
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          <div className="fg-actions">
             {missingStarters && (
-              <button className="btn-sm" onClick={async () => afterChange(await addStarterCategories(lib, user))}>
+              <Button size="sm" onClick={async () => afterChange(await addStarterCategories(lib, user))}>
                 Add standard categories
-              </button>
+              </Button>
             )}
             {missingSoftware.length > 0 && (
-              <button className="btn-sm" onClick={() => setStarterSoftware(true)}>
+              <Button size="sm" onClick={() => setStarterSoftware(true)}>
                 Add standard software ({missingSoftware.length})
-              </button>
+              </Button>
             )}
-            <button className="btn-sm" onClick={() => edit('category')}>+ Category</button>
+            <Button size="sm" onClick={() => edit('category')}>+ Category</Button>
           </div>
         )}
       </div>
@@ -143,15 +142,15 @@ export default function SopLibrary({ user }) {
       )}
 
       {lib && pending.length > 0 && (
-        <div className="card mb-16" style={{ border: '2px solid var(--warning)' }}>
-          <div className="bold" style={{ marginBottom: 6 }}>
+        <div className="card sop-ack">
+          <div className="bold sop-ack-t">
             📌 You have {pending.length} SOP{pending.length > 1 ? 's' : ''} to acknowledge
           </div>
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          <div className="fg-row-actions">
             {pending.map(p => (
-              <button key={p.sop.id} className="btn-sm" onClick={() => setOpenSopId(p.sop.id)}>
+              <Button key={p.sop.id} size="sm" onClick={() => setOpenSopId(p.sop.id)}>
                 {p.sop.title} (v{p.version.version_no}) ›
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -159,32 +158,31 @@ export default function SopLibrary({ user }) {
 
       {lib && (
         <>
-          <div className="card mb-16">
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <div className="card sop-filters">
+            <div className="nb-search">
               <input type="search" value={query} onChange={e => setQuery(e.target.value)} autoFocus
-                placeholder="Search software, task or SOP (e.g. “Waystar”, “claim status”)"
-                style={{ flex: '1 1 260px', minWidth: 0 }} />
-              <select value={categoryId} onChange={e => setCategoryId(e.target.value)} style={{ maxWidth: 200 }}>
+                placeholder="Search software, task or SOP (e.g. “Waystar”, “claim status”)" aria-label="Search SOPs" />
+              <select value={categoryId} onChange={e => setCategoryId(e.target.value)} aria-label="Category">
                 <option value="ALL">All categories</option>
                 {lib.categories.filter(c => c.active !== false).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
                   .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               {lib.versionsReady && lib.clients.length > 0 && (
-                <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ maxWidth: 200 }}
+                <select value={clientId} onChange={e => setClientId(e.target.value)} aria-label="Client"
                   title="A client shows its own SOPs plus the common ones">
                   <option value="ALL">All clients</option>
                   {lib.clients.filter(c => c.active !== false).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               )}
               {canEdit && (
-                <select value={status} onChange={e => setStatus(e.target.value)} style={{ maxWidth: 160 }}>
+                <select value={status} onChange={e => setStatus(e.target.value)} aria-label="Status">
                   <option value="ALL">All statuses</option>
                   <option value="published">Published</option>
                   <option value="draft">Drafts</option>
                 </select>
               )}
               {canEdit && (
-                <label className="row text-sm text-muted" style={{ gap: 4, cursor: 'pointer' }}>
+                <label className="row text-sm text-muted wl-closed-toggle">
                   <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} />
                   Show inactive
                 </label>
@@ -193,7 +191,7 @@ export default function SopLibrary({ user }) {
           </div>
 
           {tree.length === 0 && (
-            <div className="card text-muted" style={{ textAlign: 'center' }}>
+            <div className="card text-muted fg-empty">
               {searching ? 'Nothing matches your search.'
                 : canEdit ? 'No categories yet — add one to get started.' : 'No SOPs have been added yet.'}
             </div>
