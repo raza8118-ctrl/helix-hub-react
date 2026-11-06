@@ -23,6 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Frost Glass page 4 — Quality (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same dates, ranges, process filter, colour
+limits 98 / 90, averages, click-to-enter window and save; no database change; no new number cards). In-page heading removed (top
+bar has it); filters → shared `.fg-bar` with range / process as toggle buttons; pending line → themed notice; grid in a solid card
+(frozen name column), cell values / Leave / Bypassed / Pending → small `Pill`s, holiday column tinted; edit box loses fixed colours.
+
 **Fix — Prod Monitor "NaN%" (PO "Approved, fix NaN%" 2026-11-06) — DONE.** People with no report showed "NaN%" Prod % and
 "Below Target": the page's `p()` divided an empty total. Now `p()` returns null when there is no total → "—" and "No Data". Real
 percentages unchanged (45/50 → 90 %, 60/50 → 120 %); averages and "On track" already skipped these rows. Side effect: a saved row
