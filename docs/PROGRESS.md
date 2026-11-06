@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 14 — Payer Updates (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only)
+**Frost Glass page 15 — SOP Library (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (tree, search / filters, opening SOPs,
+versions / acknowledgements, editing, reordering, starter categories / software, Print / PDF unchanged; no database change).
+`SopLibrary.jsx`: old heading → intro card with the editor buttons on the right; "To acknowledge" card keeps its amber edge (theme
+amber); filters sized consistently; tree layout kept, row buttons → compact themed buttons. SOP page, editors unchanged (already
+themed); the print / PDF page keeps its fixed light colours on purpose. Test in 3Gen, view only.
+
+**Frost Glass page 14 — Payer Updates (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only)
 in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all five tabs opened (For my team, All updates, By bulletin,
 Upload bulletin, Directory suggestions); nothing uploaded / approved / marked read. 3Gen has no updates in the last 30 days and no
 upload was made, so the unread edge and warning-row tint were not seen. Owner theme left on Frost. Styling only (bulletins, AI reading, patient-info
