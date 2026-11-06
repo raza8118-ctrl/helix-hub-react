@@ -12,6 +12,7 @@ import PaymentCalc from './PaymentCalc';
 import CodeLookup from './CodeLookup';
 import PortalLaunchpad from './PortalLaunchpad';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { Button, Notice } from '../../components/ui';
 
 /**
  * 🧮 AR Tools (roadmap Phase 6): everyday helpers for AR callers. 6.1 = Claim Note Generator
@@ -49,23 +50,21 @@ export default function ARTools({ user }) {
   ];
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-title">🧮 AR Tools</div>
-          <div className="page-subtitle">Everyday helpers to work claims faster — nothing you type here is saved.</div>
-        </div>
+    <div className="fg-page wl-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Everyday helpers to work claims faster — nothing you type here is saved.</span>
       </div>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+      <div className="fg-choices wl-tabs" role="group" aria-label="AR tools">
         {tools.map(t => (
-          <button key={t.id} className={tool === t.id ? 'btn-primary' : 'btn-sm'} aria-pressed={tool === t.id} onClick={() => setTool(t.id)}>{t.label}</button>
+          <Button key={t.id} size="sm" active={tool === t.id} aria-pressed={tool === t.id} onClick={() => setTool(t.id)}>{t.label}</Button>
         ))}
       </div>
       {formats === null && tool === 'notes' && (
-        <div className="card mb-16 text-sm text-muted">
+        <Notice>
           Using the built-in standard note format. Client-specific formats need the note formats database update
           (<code>20261021h_note_formats.sql</code>).
-        </div>
+        </Notice>
       )}
       {tool === 'notes' && <ClaimNoteGenerator user={user} ctx={ctx} formats={Array.isArray(formats) ? formats : []} codes={codes} />}
       {tool === 'deadlines' && <DeadlineTool ctx={ctx} />}
