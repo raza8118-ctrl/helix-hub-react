@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 18 — QA Audits (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view only) in
+**Frost Glass page 19 — Reports (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (reports, numbers, charts, exports, email
+text, access unchanged; no database change). `Reports.jsx`: old heading → intro card; tabs → themed toggles. Both reports already
+themed — no changes. Test in 3Gen, view only (no export / email / AI summary).
+
+**Frost Glass page 18 — QA Audits (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view only) in
 Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all six tabs opened (Audit, My audits, Mistakes & fixes,
 Sampling, Results, Scorecards & categories); nothing started / scored / skipped. 3Gen has no queued / draft / disputed audits, so the
 To-do lists and their buttons were not seen. Owner theme left on Frost. Styling only (audits, scoring, critical fails, disputes,
