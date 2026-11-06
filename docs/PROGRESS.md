@@ -23,7 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass redesign — Sidebar + Team Dashboard first (PO request 2026-11-06, "Go") — BUILT, waiting for PO approval.**
+**Frost Glass page 2 — Today (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (same numbers, filters, buttons, pins, AI Email,
+employee pop-up; no database change). Old page header → one filter / action card (title is in the top bar); holiday banner → themed
+amber notice; 5 stat cards → `KpiCard` (new optional `valueClass` keeps the green / amber / red value colour); chart in a glass card
+(shared `BarChart` unchanged — 4 other pages use it); Submission Tracker statuses, Prod % and the count → `Pill`; AI Email text box
+themed; phones: filters wrap, cards 2 per row. Next pages after approval: Prod Monitor → Quality → Hourly → Weekly / Monthly → Team →
+Workbench pages, one plan + "go" each.
+
+**Frost Glass redesign — Sidebar + Team Dashboard first (PO request 2026-11-06, "Go") — APPROVED by PO 2026-11-06.**
 Styling only: no logic, data, calculations or permissions change; no database change. PO screenshots (Frost / Slate / Daylight)
 are the reference. Other pages follow page by page after the PO approves these two.
 Built + checked 2026-11-06 in Test Co (owner): all four themes on the Team Dashboard (1440 px) and on phone (375 px, no sideways
