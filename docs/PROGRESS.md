@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 13 — Medicare Trackers (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in 3Gen (owner, view
+**Frost Glass page 14 — Payer Updates (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (bulletins, AI reading, patient-info
+checks, read counts, directory suggestions, approvals, saving unchanged; no database change). `PayerUpdates.jsx`: old heading →
+intro card; tabs → themed toggles. `UpdatesForTeam.jsx`: unread edge `var(--primary, #3b82f6)` → `var(--accent)`.
+`BulletinUpload.jsx`: warning-row tint `var(--warning-bg, …)` (no such variable) → `var(--warn-bg, …)`. Test in 3Gen, view only.
+
+**Frost Glass page 13 — Medicare Trackers (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in 3Gen (owner, view
 only) in Frost + Daylight at 1440 px and at 375 px (no page sideways scroll); all four tabs opened; nothing added / uploaded /
 closed. Fixed while testing (every page, CSS only): buttons styled as cards (Medicare Overview tiles, also Training path editor)
 showed near-black numbers on dark themes — browsers don't pass the text colour into buttons — now they use the theme text colour.
