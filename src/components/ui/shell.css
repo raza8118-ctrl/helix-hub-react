@@ -687,3 +687,7 @@ body[class*="theme-"] button.card { color: var(--text); font: inherit; }
 .sop-filters { margin: 0; }
 .nb-page > .card { margin: 0; }
 .nb-search select { max-width: 200px; }
+
+/* Blue values in the shared number tiles use the theme accent (Attendance etc.) */
+body[class*="theme-"] .stat-value.col-blue { color: var(--accent); }
+.fg-page > .grid-5 { margin: 0; gap: 18px; }

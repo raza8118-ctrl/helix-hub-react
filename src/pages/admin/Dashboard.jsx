@@ -8,6 +8,7 @@ import {
   KEKA_TARGET_FIELDS, LATE_LOGIN_THRESHOLD, BREAK_LIMIT_MINUTES,
 } from '../../lib/constants';
 import Modal from '../../components/shared/Modal';
+import { Button } from '../../components/ui';
 
 // ── Field-mapping heuristics ──────────────────────────────────────────────────
 // Best-effort guesses from header text — the user confirms/adjusts these in
@@ -410,31 +411,37 @@ export default function Dashboard({ user }) {
   }, [allUsers, logs, user, customProcs, filterProc, statusFilter]);
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Dashboard</div>
-          <div className="page-subtitle">Keka Attendance Overview · {fmtD(date)}</div>
+    <div className="fg-page">
+      {/* Filters + actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <label className="fg-f"><span>Date</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </label>
+          <label className="fg-f"><span>Process</span>
+            <select value={filterProc} onChange={e => setProc(e.target.value)}>
+              {ACCESSES.map(a => <option key={a}>{a}</option>)}
+            </select>
+          </label>
+          <label className="fg-f"><span>Status</span>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <span className="fg-date">Keka attendance · {fmtD(date)}</span>
         </div>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
-          <select value={filterProc} onChange={e => setProc(e.target.value)} style={{ maxWidth: 130 }}>
-            {ACCESSES.map(a => <option key={a}>{a}</option>)}
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ maxWidth: 120 }}>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="all">All</option>
-          </select>
-          <button className="btn-sm" onClick={load}>↺ Refresh</button>
+        <div className="fg-actions">
+          <Button size="sm" onClick={load}>↺ Refresh</Button>
           {canImport && (
-            <button className="btn-primary" onClick={() => setShowImport(true)}>⬆ Import Keka File</button>
+            <Button size="sm" variant="primary" onClick={() => setShowImport(true)}>⬆ Import Keka File</Button>
           )}
         </div>
       </div>
 
       {/* KPI cards */}
-      <div className="grid-5 mb-16">
+      <div className="grid-5">
         {[
           { label: 'Team Leave Avg', value: teamSize > 0 ? `${((leaveCount / teamSize) * 100).toFixed(1)}%` : '—', sub: `${leaveCount} on leave`, cls: 'col-blue' },
           { label: 'Attendance',     value: attendancePct != null ? attendancePct.toFixed(1) + '%' : '—', sub: 'present today', cls: 'col-green' },
@@ -451,7 +458,7 @@ export default function Dashboard({ user }) {
       </div>
 
       {/* Per-employee Keka data */}
-      <div className="card mb-16">
+      <div className="card fg-card fg-tracker">
         <div className="card-header">
           <div className="card-title">Attendance Detail</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
@@ -471,7 +478,7 @@ export default function Dashboard({ user }) {
             </thead>
             <tbody>
               {tableRows.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 28, color: 'var(--text-muted)' }}>No data for this date</td></tr>
+                <tr><td colSpan={7} className="fg-empty">No data for this date</td></tr>
               )}
               {tableRows.map(row => (
                 <tr key={row.emp_id}>
@@ -496,7 +503,7 @@ export default function Dashboard({ user }) {
       </div>
 
       {/* Recent imports */}
-      <div className="card">
+      <div className="card fg-card fg-tracker">
         <div className="card-header">
           <div className="card-title">Recent Keka Imports</div>
         </div>
@@ -507,7 +514,7 @@ export default function Dashboard({ user }) {
             </thead>
             <tbody>
               {imports.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No imports yet</td></tr>
+                <tr><td colSpan={7} className="fg-empty">No imports yet</td></tr>
               )}
               {imports.map(imp => (
                 <tr key={imp.id}>

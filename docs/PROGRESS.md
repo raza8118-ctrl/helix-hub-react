@@ -23,7 +23,9 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 20 — Attendance (Keka) (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (Keka import + mapping, numbers,
+**Frost Glass page 20 — Attendance (Keka) (PO "Go" 2026-11-06) — BUILT, NOT seen in the browser, waiting for PO approval.** Lint
+(only the old warning) + build pass. The page is switched off for both 3Gen and Test Co (Owner Console → Manage), so it could not be
+opened; company settings were not changed to look. Alloc Monitor and Work Alloc are switched off in both companies too. Styling only (Keka import + mapping, numbers,
 filters, tables unchanged; no database change). `Dashboard.jsx`: old "Dashboard" heading → shared filter card (date / Process /
 Status, "Keka attendance · date", Refresh + Import on the right); table cards in the Today style. Number tiles already themed;
 `.stat-value.col-blue` → theme accent (shell.css). Import window unchanged (already themed). Test in 3Gen, view only.
