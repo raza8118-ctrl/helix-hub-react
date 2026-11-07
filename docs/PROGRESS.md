@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 24 — Audit Log (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner) in Daylight +
+**Frost Glass page 25 — Announcements (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (sending, picture uploads, priorities,
+read tracking, replies, picture viewer unchanged; no database change). `AdminFeedback.jsx` + `EmpFeedback.jsx`: old heading → intro
+card with the unread pill + Refresh; sender avatars → theme accent (was a fixed purple gradient); upload error → theme red. Priority
+edges, number tiles, send form, dark picture viewer unchanged. Admin page tested in Test Co (nothing sent); employee page code +
+build only.
+
+**Frost Glass page 24 — Audit Log (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in Test Co (owner) in Daylight +
 Frost at 1440 px and at 375 px (no page sideways scroll): all filters on one row; 70 entries; search for a made-up term → centred
 "No activity found…", cleared → 70 again; no export. Test Co theme left on Daylight. Styling only (read-only log, date range, Everyone / All
 actions filters, search, row limit, Export CSV unchanged; no database change). `AuditLog.jsx`: old heading → intro card; log →
