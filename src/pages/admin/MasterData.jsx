@@ -5,6 +5,7 @@ import { logAudit } from '../../lib/audit';
 import { hasAccess } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { Button } from '../../components/ui';
 
 const PAYER_TYPES = ['Medicare', 'Medicare Advantage', 'Medicaid', 'Managed Medicaid (MCO)', 'Commercial', 'Workers’ Comp', 'Other'];
 
@@ -103,52 +104,50 @@ export default function MasterData({ user }) {
 
   if (!allowed) {
     return (
-      <div className="card" style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+      <div className="card text-muted fg-empty">
         You don’t have access to Clients &amp; Payers. Ask an admin if you need it.
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Clients &amp; Payers</div>
-          <div className="page-subtitle">Master lists used across the Workbench. Entries are never deleted — make them inactive instead.</div>
-        </div>
+    <div className="fg-page nb-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Master lists used across the Workbench. Entries are never deleted — make them inactive instead.</span>
       </div>
 
-      <div className="row" style={{ gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div className="fg-choices wl-tabs" role="group" aria-label="Lists">
         {Object.entries(KINDS).map(([k, v]) => (
-          <button key={k} className={kind === k ? 'btn-primary' : 'btn-sm'} onClick={() => { setKind(k); setSearch(''); }}>
+          <Button key={k} size="sm" active={kind === k} aria-pressed={kind === k} onClick={() => { setKind(k); setSearch(''); }}>
             {v.icon} {v.many}{data[k] ? ` (${data[k].filter(r => r.active !== false).length})` : ''}
-          </button>
+          </Button>
         ))}
       </div>
 
-      <div className="card">
-        <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <input type="text" placeholder={kind === 'payers' ? 'Search name or alias…' : 'Search name, code, project…'}
-              value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 220 }} />
-            <select value={status} onChange={e => setStatus(e.target.value)} style={{ maxWidth: 120 }}>
+      <div className="card fg-card fg-tracker">
+        <div className="card-header tm-dir-h">
+          <div className="tm-filters">
+            <input type="text" className="fg-search" placeholder={kind === 'payers' ? 'Search name or alias…' : 'Search name, code, project…'}
+              aria-label="Search" value={search} onChange={e => setSearch(e.target.value)} />
+            <select value={status} onChange={e => setStatus(e.target.value)} aria-label="Status">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="all">All</option>
             </select>
           </div>
-          <button className="btn-primary" onClick={openAdd} disabled={rows == null}>+ Add {K.one}</button>
+          <Button size="sm" variant="primary" onClick={openAdd} disabled={rows == null}>+ Add {K.one}</Button>
         </div>
 
-        {loading && <div style={{ textAlign: 'center', padding: 24 }}>Loading…</div>}
+        {loading && <div className="fg-empty">Loading…</div>}
         {!loading && rows == null && (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
+          <div className="fg-empty">
             The {K.many.toLowerCase()} table isn’t set up yet. Run supabase/migrations/20261018c_clients_payers.sql in Supabase,
             then “Sync structure” in the Owner Console.
           </div>
         )}
         {!loading && rows != null && shown.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
+          <div className="fg-empty">
             {rows.length ? 'Nothing matches these filters.' : `No ${K.many.toLowerCase()} yet — click “+ Add ${K.one}”.`}
           </div>
         )}
@@ -165,7 +164,7 @@ export default function MasterData({ user }) {
               </thead>
               <tbody>
                 {shown.map(r => (
-                  <tr key={r.id} style={{ opacity: r.active === false ? 0.55 : undefined }}>
+                  <tr key={r.id} className={r.active === false ? 'tm-faded' : undefined}>
                     <td>
                       <div className="bold">{r.name}</div>
                       {r.notes && <div className="text-sm text-muted">{r.notes}</div>}
@@ -175,7 +174,7 @@ export default function MasterData({ user }) {
                       : <>
                           <td>{r.payer_type || '—'}</td>
                           <td>
-                            <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                            <div className="tm-pills">
                               {(r.aliases ?? []).length ? r.aliases.map(a => <span key={a} className="badge badge-gray">{a}</span>) : '—'}
                             </div>
                           </td>
@@ -184,12 +183,11 @@ export default function MasterData({ user }) {
                       <span className={`badge ${r.active !== false ? 'badge-green' : 'badge-red'}`}>{r.active !== false ? 'Active' : 'Inactive'}</span>
                     </td>
                     <td>
-                      <div className="row" style={{ gap: 4 }}>
-                        <button className="btn-sm" onClick={() => openEdit(r)}>Edit</button>
-                        <button className="btn-sm" style={{ color: r.active !== false ? 'var(--danger)' : 'var(--success)' }}
-                          onClick={() => toggleActive(r)}>
+                      <div className="fg-row-actions">
+                        <Button size="xs" onClick={() => openEdit(r)}>Edit</Button>
+                        <Button size="xs" variant={r.active !== false ? 'danger' : 'success'} onClick={() => toggleActive(r)}>
                           {r.active !== false ? 'Make Inactive' : 'Reactivate'}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>

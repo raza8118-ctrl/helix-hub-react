@@ -23,7 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 23 — Clients & Payers (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (lists, search, status filter, add /
+**Frost Glass page 23 — Clients & Payers (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner, view
+only) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): Clients (1) and Payers (13) toggles stay 30 px high;
+table card with alias pills and Edit / Make Inactive; nothing added / edited / made inactive. Fixed while testing: the search box and
+status filter in the card header stacked on two rows — the filter group now fills the header and its fields sit side by side (same
+rule as Team; Team's 5 filters re-checked, one row). Test Co theme left on Daylight. Styling only (lists, search, status filter, add /
 edit / make inactive unchanged; never deleted; no database change). `MasterData.jsx`: old heading → intro card; Clients / Payers →
 same-size themed toggles; list → table card; Edit compact, Make inactive red / Reactivate green; no-access message centred. Add /
 Edit window unchanged. Test in Test Co, view only.

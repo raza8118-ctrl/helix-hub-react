@@ -701,3 +701,6 @@ body[class*="theme-"] .stat-value.col-blue { color: var(--accent); }
 
 /* ─── Settings (Frost Glass page 22): direct cards use the page gap instead of their own margins ─── */
 .st-page > .card, .st-page > .card.mb-16 { margin: 0; }
+/* Filter rows in card headers (Team, Clients & Payers): inputs / selects sit side by side instead of each taking a full row */
+.tm-filters > input, .tm-filters > select { width: auto; flex: 0 1 200px; min-width: 120px; }
+.tm-dir-h .tm-filters { flex: 1 1 320px; }
