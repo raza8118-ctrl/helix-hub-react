@@ -23,7 +23,9 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 24 — Audit Log (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (read-only log, date range, Everyone / All
+**Frost Glass page 24 — Audit Log (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner) in Daylight +
+Frost at 1440 px and at 375 px (no page sideways scroll): all filters on one row; 70 entries; search for a made-up term → centred
+"No activity found…", cleared → 70 again; no export. Test Co theme left on Daylight. Styling only (read-only log, date range, Everyone / All
 actions filters, search, row limit, Export CSV unchanged; no database change). `AuditLog.jsx`: old heading → intro card; log →
 table card with the shared side-by-side filter row; Export themed; loading / error / empty messages centred (error stays red);
 no-access message centred. Test in Test Co (filters only, no export).

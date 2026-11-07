@@ -3,6 +3,7 @@ import { db } from '../../lib/supabase';
 import { today, dlCSV } from '../../lib/helpers';
 import { canViewAudit } from '../../lib/audit';
 import { actionLabel } from '../../lib/auditLabels';
+import { Button } from '../../components/ui';
 
 const ROW_LIMIT = 2000;
 
@@ -95,51 +96,49 @@ export default function AuditLog({ user }) {
 
   if (!allowed) {
     return (
-      <div className="card" style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+      <div className="card text-muted fg-empty">
         You don’t have access to the Audit Log. Ask an admin if you need it.
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Audit Log</div>
-          <div className="page-subtitle">Who did what, when, and on which record. Read-only.</div>
-        </div>
+    <div className="fg-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Who did what, when, and on which record. Read-only.</span>
       </div>
 
-      <div className="card">
-        <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <label className="row text-sm text-muted" style={{ gap: 4 }}>
-              From <input type="date" value={from} max={to} onChange={e => setFrom(e.target.value)} style={{ maxWidth: 150 }} />
+      <div className="card fg-card fg-tracker">
+        <div className="card-header tm-dir-h">
+          <div className="tm-filters">
+            <label className="fg-f"><span>From</span>
+              <input type="date" value={from} max={to} onChange={e => setFrom(e.target.value)} />
             </label>
-            <label className="row text-sm text-muted" style={{ gap: 4 }}>
-              To <input type="date" value={to} min={from} onChange={e => setTo(e.target.value)} style={{ maxWidth: 150 }} />
+            <label className="fg-f"><span>To</span>
+              <input type="date" value={to} min={from} onChange={e => setTo(e.target.value)} />
             </label>
-            <select value={actor} onChange={e => setActor(e.target.value)} style={{ maxWidth: 180 }}>
+            <select value={actor} onChange={e => setActor(e.target.value)} aria-label="Who">
               <option value="ALL">Everyone</option>
               {actors.map(([id, name]) => <option key={id} value={id}>{name} ({id})</option>)}
             </select>
-            <select value={action} onChange={e => setAction(e.target.value)} style={{ maxWidth: 200 }}>
+            <select value={action} onChange={e => setAction(e.target.value)} aria-label="Action">
               <option value="ALL">All actions</option>
               {actions.map(a => <option key={a} value={a}>{actionLabel(a)}</option>)}
             </select>
-            <input type="text" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 160 }} />
+            <input type="text" placeholder="Search…" aria-label="Search" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <button className="btn-sm" onClick={exportCSV} disabled={!shown.length}>⬇ Export CSV</button>
+          <Button size="sm" onClick={exportCSV} disabled={!shown.length}>⬇ Export CSV</Button>
         </div>
 
-        {loading && <div style={{ textAlign: 'center', padding: 24 }}>Loading…</div>}
-        {!loading && error && <div style={{ textAlign: 'center', padding: 24, color: 'var(--danger)' }}>{error}</div>}
+        {loading && <div className="fg-empty">Loading…</div>}
+        {!loading && error && <div className="fg-empty al-error">{error}</div>}
         {!loading && !error && shown.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>No activity found for these filters.</div>
+          <div className="fg-empty">No activity found for these filters.</div>
         )}
         {!loading && !error && shown.length > 0 && (
           <>
-            <div className="text-sm text-muted" style={{ marginBottom: 8 }}>
+            <div className="text-sm text-muted al-count">
               {shown.length.toLocaleString()} entr{shown.length === 1 ? 'y' : 'ies'}
               {rows.length >= ROW_LIMIT && ` · showing the latest ${ROW_LIMIT.toLocaleString()} — narrow the dates to see older entries`}
             </div>

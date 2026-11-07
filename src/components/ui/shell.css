@@ -704,3 +704,9 @@ body[class*="theme-"] .stat-value.col-blue { color: var(--accent); }
 /* Filter rows in card headers (Team, Clients & Payers): inputs / selects sit side by side instead of each taking a full row */
 .tm-filters > input, .tm-filters > select { width: auto; flex: 0 1 200px; min-width: 120px; }
 .tm-dir-h .tm-filters { flex: 1 1 320px; }
+
+/* ─── Audit Log (Frost Glass page 24) ─── */
+.al-error { color: var(--bad-fg, var(--danger)); }
+.al-count { margin: 0 0 8px; padding: 0 22px; }
+.tm-filters > .fg-f input { width: auto; max-width: 160px; }
+@media (max-width: 768px) { .al-count { padding: 0 14px; } }
