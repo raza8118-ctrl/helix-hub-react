@@ -23,7 +23,9 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 22 — Settings (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (API key on the server, shift timing, task
+**Frost Glass page 22 — Settings (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner, view only) in
+Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): intro card + Anthropic API Key, Shift Timing, Productivity Tasks &
+Weightage cards; nothing typed / saved. Lint: one old error in Settings.jsx (unchanged). Test Co theme left on Daylight. Styling only (API key on the server, shift timing, task
 targets / weightage, task add / edit / delete unchanged; no database change). `Settings.jsx`: old heading → intro card; cards in the
 shared page layout (even spacing). Cards, labels, buttons already themed. Test in Test Co, view only (no key typed / saved).
 

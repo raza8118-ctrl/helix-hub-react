@@ -698,3 +698,6 @@ body[class*="theme-"] .stat-value.col-blue { color: var(--accent); }
 .fm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
 .fm-name { font-size: 14px; }
 .fm-text { font-size: 14px; margin-bottom: 8px; white-space: pre-wrap; }
+
+/* ─── Settings (Frost Glass page 22): direct cards use the page gap instead of their own margins ─── */
+.st-page > .card, .st-page > .card.mb-16 { margin: 0; }

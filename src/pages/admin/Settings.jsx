@@ -264,12 +264,10 @@ export default function Settings({ user }) {
   const thR = { ...thStyle, textAlign: 'right' };
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Settings</div>
-          <div className="page-subtitle">Configure API keys, shift timing, and task productivity targets</div>
-        </div>
+    <div className="fg-page st-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Configure API keys, shift timing, and task productivity targets</span>
       </div>
 
       {/* Anthropic API Key */}
