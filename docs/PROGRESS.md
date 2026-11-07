@@ -23,7 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 26 — Team Feed (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (posting, photos / GIFs, visibility,
+**Frost Glass redesign — status 2026-11-06:** every main-menu page people can open now has the new look (Sidebar, top bar,
+Team Dashboard, Today, Prod Monitor, Quality, Hourly, Weekly / Monthly, Team / My Team, all Workbench pages, Feed Monitor, Settings,
+Clients & Payers, Audit Log, Announcements, Team Feed). Attendance (Keka) is restyled but switched off in both companies (not seen).
+Not restyled (switched off in both companies, PO "skip"): Alloc Monitor, Work Alloc. Other screens not part of the main menu (sign-in,
+Owner Console, employee Daily Report / My Reports / Progress / My Allocation, Ask Helix) keep their current look — colours already
+follow the theme where they use the shared styles. Shared fixes made along the way (every page): old badges / number tiles follow the
+theme, checkboxes no longer stretch, card-style buttons readable on dark themes, header filters sit side by side.
+
+**Frost Glass page 26 — Team Feed (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner, view only)
+in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): intro card + Refresh / Friends, post box, 1 post card; Friends
+panel opened ("No friends yet") and closed; nothing posted / reacted / shared / deleted. Lint: same old warnings. The amber
+close-friend button and the red upload / GIF error texts were not seen (no friends, no failed upload). Test Co theme left on Daylight. Styling only (posting, photos / GIFs, visibility,
 reactions, comments, sharing, deleting, Friends panel unchanged; no database change). `TeamFeed.jsx`: old heading → intro card with
 Refresh + Friends; upload / GIF error text → theme red; composer in the shared page layout. `FriendsPanel.jsx`: close-friend button
 fixed orange → theme amber. Test in Test Co, view only (Friends panel opened + closed).

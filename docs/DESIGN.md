@@ -16,9 +16,7 @@ import { PageHeader, Card, CardSection, Item, Button, Tabs, Field, Check, FormAc
   Inline styles are fine for one-off layout (a `maxWidth`, a grid column count).
 - Restyling a page changes **markup and classes only**: never state, handlers, saves, wording or file output.
 
-Pages using it today: **Payer Directory**, **Denial Navigator**, **Appeal Builder** and **File Tools** — plus the pieces they
-share with other pages (the payer card in Credentialing / Ask Helix, the deadline helper in AR Tools). Every other page still uses
-the older `.card` / `.btn-*` styles; move them over with the checklist in section 8.
+Which pages use the new look, and the shared page pieces, are listed in section 0 (Frost Glass).
 
 Extra building blocks added while restyling (all in `ui.css`): `.ui-disclose` (collapsible card header), `.ui-layer` / `.hl`
 (steps layers), `.ui-result` (status row with a coloured left edge), `.ui-paper` + `.ui-token` (letter preview and placeholder
@@ -45,6 +43,28 @@ Helix Hub has four themes. Each person picks one in the **top bar** (or Profile)
   takes the theme colours. Pages get the new **layout** one at a time (checklist in section 8).
 - **Performance:** `backdrop-filter` only on the sidebar (`.sb-glass`) and the top bar (`.tb-glass`) — use `var(--blur)`, which
   is `none` in Slate. Cards are see-through fills (`--panel`) without blur. Never add blur to cards, tables or lists.
+
+**Status (2026-11-06):** every main-menu page has the Frost Glass layout except Alloc Monitor and Work Alloc (switched off in both
+companies, skipped). The page title now lives in the **top bar** — pages start with an intro / filter card instead of a
+`page-header`.
+
+**Shared page pieces in `shell.css`** (reuse these for any new page):
+
+| Class | What it is |
+|---|---|
+| `.fg-page` | Page wrapper: a column with even 18 px gaps (direct child cards lose their own margins) |
+| `.fg-bar` · `.fg-filters` · `.fg-f` · `.fg-date` · `.fg-actions` | Intro / filter card: labelled filters on the left, a muted info line, buttons on the right |
+| `.fg-choices` (+ `Button active`) | A row of toggle buttons — tabs, ranges, modes (`.wl-tabs` when it sits under the intro card) |
+| `.fg-kpis` (`-4`, `-6`) + `KpiCard` | Row of big number cards (from `components/dash/DashParts`) |
+| `.fg-card.fg-tracker` | Table card: themed header row, roomy cells, hover rows |
+| `.fg-grid` · `.fg-scroll` · `.fg-sticky` | Wide grid in a solid card with a frozen first column (Hourly, Quality) |
+| `.tm-dir-h` + `.tm-filters` | Search / selects side by side in a card header |
+| `.fg-row-actions` | Small buttons in a table row |
+| `.fg-empty` | Centred empty / loading message |
+| `.wl-page` / `.nb-page` | Same as `.fg-page`, capped at 1100 / 960 px wide |
+
+**Every-page fixes** (so older pages look right too): `.badge-*` labels and `.stat-card` tiles use the theme colours; checkboxes
+/ radios size to themselves (accent colour); `button.card` uses the theme text colour.
 
 **Theme tokens** (use these in new styles; never a hex value):
 

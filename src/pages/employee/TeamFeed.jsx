@@ -202,20 +202,18 @@ export default function TeamFeed({ user }) {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Team Feed</div>
-          <div className="page-subtitle">Share updates, photos, and GIFs with your team</div>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
+    <div className="fg-page nb-page">
+      {/* Intro + actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">Share updates, photos, and GIFs with your team</span>
+        <div className="fg-actions">
           <button className="btn-sm" onClick={() => load()}>↺ Refresh</button>
-          <button className="btn-primary" onClick={() => setShowFriends(true)}>👥 Friends</button>
+          <button className="btn-primary btn-sm" onClick={() => setShowFriends(true)}>👥 Friends</button>
         </div>
       </div>
 
       {/* Composer */}
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card">
         <textarea
           rows={3} value={content} onChange={e => setContent(e.target.value)}
           placeholder="Share an update or a quote…"
@@ -234,7 +232,7 @@ export default function TeamFeed({ user }) {
             <button className="btn-sm" onClick={() => setGifUrl('')} style={{ position: 'absolute', top: 4, right: 4 }}>✕</button>
           </div>
         )}
-        {uploadErr && <div style={{ color: '#dc2626', fontSize: 12, marginBottom: 8 }}>{uploadErr}</div>}
+        {uploadErr && <div style={{ color: 'var(--danger)', fontSize: 12, marginBottom: 8 }}>{uploadErr}</div>}
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
           <label className="btn-sm" style={{ cursor: 'pointer' }}>
@@ -256,7 +254,7 @@ export default function TeamFeed({ user }) {
           </button>
         </div>
 
-        {gifErr && <div style={{ color: '#dc2626', fontSize: 12, marginBottom: 8 }}>{gifErr}</div>}
+        {gifErr && <div style={{ color: 'var(--danger)', fontSize: 12, marginBottom: 8 }}>{gifErr}</div>}
 
         {gifResults.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>

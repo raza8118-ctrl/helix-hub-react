@@ -115,7 +115,7 @@ export default function FriendsPanel({ user, onClose }) {
                   <button
                     className="btn-sm"
                     onClick={() => toggleClose(id)}
-                    style={isClose ? { background: '#f59e0b', color: '#fff', border: 'none' } : {}}
+                    style={isClose ? { background: 'var(--warn-fg, #f59e0b)', color: 'var(--on-accent, #fff)', border: 'none' } : {}}
                     title="Close Friend — sees your Close Friends-only posts"
                   >
                     ⭐ {isClose ? 'Close Friend' : 'Mark Close'}
