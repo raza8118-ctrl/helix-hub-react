@@ -105,20 +105,20 @@ export default function EmpFeedback({ user }) {
   const unread = feedbacks.filter(f => !isAcked(f)).length;
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            My Announcements
-            {unread > 0 && <span className="badge badge-red">{unread} unread</span>}
-          </div>
-          <div className="page-subtitle">Updates and priorities from your team lead and supervisor</div>
+    <div className="fg-page">
+      {/* Intro + action (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <span className="fg-date">Updates and priorities from your team lead and supervisor</span>
+          {unread > 0 && <span className="badge badge-red">{unread} unread</span>}
         </div>
-        <button className="btn-sm" onClick={() => load()}>↺ Refresh</button>
+        <div className="fg-actions">
+          <button className="btn-sm" onClick={() => load()}>↺ Refresh</button>
+        </div>
       </div>
 
       {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 20 }}>
+      <div className="an-kpis">
         <div className="stat-card">
           <div className="stat-label">Total Messages</div>
           <div className="stat-value">{feedbacks.length}</div>
@@ -159,7 +159,7 @@ export default function EmpFeedback({ user }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, #7c3aed, #4338ca)', color: '#fff',
+                    background: 'var(--accent)', color: 'var(--on-accent, #fff)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 700,
                   }}>

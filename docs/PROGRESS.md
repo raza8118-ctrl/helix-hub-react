@@ -23,7 +23,10 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 25 — Announcements (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (sending, picture uploads, priorities,
+**Frost Glass page 25 — Announcements (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Admin page checked in Test Co
+(owner, nothing sent) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): intro card + Refresh, send form, Filter
+& Stats, history card with the accent avatar. Employee page (My Announcements): lint (same 3 old warnings) + build only — not opened
+(needs an employee login). Test Co theme left on Daylight. Styling only (sending, picture uploads, priorities,
 read tracking, replies, picture viewer unchanged; no database change). `AdminFeedback.jsx` + `EmpFeedback.jsx`: old heading → intro
 card with the unread pill + Refresh; sender avatars → theme accent (was a fixed purple gradient); upload error → theme red. Priority
 edges, number tiles, send form, dark picture viewer unchanged. Admin page tested in Test Co (nothing sent); employee page code +

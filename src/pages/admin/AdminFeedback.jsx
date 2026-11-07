@@ -177,16 +177,16 @@ export default function AdminFeedback({ user }) {
   const unread = feedbacks.filter(f => !f.acknowledged).length;
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            Announcements
-            {unread > 0 && <span className="badge badge-red">{unread} unread</span>}
-          </div>
-          <div className="page-subtitle">Send updates and priorities to your team</div>
+    <div className="fg-page">
+      {/* Intro + action (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <span className="fg-date">Send updates and priorities to your team</span>
+          {unread > 0 && <span className="badge badge-red">{unread} unread</span>}
         </div>
-        <button className="btn-sm" onClick={() => loadAll()}>↺ Refresh</button>
+        <div className="fg-actions">
+          <button className="btn-sm" onClick={() => loadAll()}>↺ Refresh</button>
+        </div>
       </div>
 
       <div className="grid-2" style={{ gap: 20, alignItems: 'start' }}>
@@ -246,7 +246,7 @@ export default function AdminFeedback({ user }) {
                   <input type="file" accept="image/*" onChange={pickImage} disabled={uploading} style={{ display: 'none' }} />
                 </label>
               )}
-              {uploadErr && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{uploadErr}</div>}
+              {uploadErr && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{uploadErr}</div>}
             </div>
             <button className="btn-primary" type="submit" disabled={sending || !message.trim()}>
               {sending ? 'Sending…' : '✉ Send Announcement'}
@@ -305,7 +305,7 @@ export default function AdminFeedback({ user }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                      background: 'linear-gradient(135deg, #7c3aed, #4338ca)', color: '#fff',
+                      background: 'var(--accent)', color: 'var(--on-accent, #fff)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 700,
                     }}>

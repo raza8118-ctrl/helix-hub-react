@@ -710,3 +710,8 @@ body[class*="theme-"] .stat-value.col-blue { color: var(--accent); }
 .al-count { margin: 0 0 8px; padding: 0 22px; }
 .tm-filters > .fg-f input { width: auto; max-width: 160px; }
 @media (max-width: 768px) { .al-count { padding: 0 14px; } }
+
+/* ─── Announcements (Frost Glass page 25) ─── */
+.an-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.fg-page > .grid-2 { margin: 0; }
+@media (max-width: 768px) { .an-kpis { grid-template-columns: 1fr; gap: 10px; } }
