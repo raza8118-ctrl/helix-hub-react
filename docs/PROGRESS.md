@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 22 — Settings (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Checked in Test Co (owner, view only) in
+**Frost Glass page 23 — Clients & Payers (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (lists, search, status filter, add /
+edit / make inactive unchanged; never deleted; no database change). `MasterData.jsx`: old heading → intro card; Clients / Payers →
+same-size themed toggles; list → table card; Edit compact, Make inactive red / Reactivate green; no-access message centred. Add /
+Edit window unchanged. Test in Test Co, view only.
+
+**Frost Glass page 22 — Settings (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Checked in Test Co (owner, view only) in
 Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): intro card + Anthropic API Key, Shift Timing, Productivity Tasks &
 Weightage cards; nothing typed / saved. Lint: one old error in Settings.jsx (unchanged). Test Co theme left on Daylight. Styling only (API key on the server, shift timing, task
 targets / weightage, task add / edit / delete unchanged; no database change). `Settings.jsx`: old heading → intro card; cards in the
