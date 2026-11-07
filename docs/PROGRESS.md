@@ -23,7 +23,12 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Frost Glass page 25 — Announcements (PO "Go" 2026-11-06) — BUILT, waiting for PO approval.** Admin page checked in Test Co
+**Frost Glass page 26 — Team Feed (PO "Go" 2026-11-06) — IN PROGRESS.** Styling only (posting, photos / GIFs, visibility,
+reactions, comments, sharing, deleting, Friends panel unchanged; no database change). `TeamFeed.jsx`: old heading → intro card with
+Refresh + Friends; upload / GIF error text → theme red; composer in the shared page layout. `FriendsPanel.jsx`: close-friend button
+fixed orange → theme amber. Test in Test Co, view only (Friends panel opened + closed).
+
+**Frost Glass page 25 — Announcements (PO "Go" 2026-11-06) — APPROVED by PO 2026-11-06.** Admin page checked in Test Co
 (owner, nothing sent) in Daylight + Frost at 1440 px and at 375 px (no page sideways scroll): intro card + Refresh, send form, Filter
 & Stats, history card with the accent avatar. Employee page (My Announcements): lint (same 3 old warnings) + build only — not opened
 (needs an employee login). Test Co theme left on Daylight. Styling only (sending, picture uploads, priorities,
