@@ -927,3 +927,13 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .op-actions { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 .op-off td { opacity: 0.72; }
 .op-off td:last-child { opacity: 1; }
+/* Owner Command Center → Performance + Master Data */
+.opf-table th.opf-group { text-align: center; border-bottom: 1px solid var(--divider, var(--border)); }
+.opf-cell { display: flex; flex-direction: column; gap: 4px; min-width: 90px; }
+.opf-bar { display: block; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.opf-bar i { display: block; height: 100%; border-radius: 3px; background: currentColor; }
+.omd-co { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.fg-page .omd-co.card { margin: 0; }
+.omd-stat { border: 1px solid transparent; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.omd-stat:hover { border-color: var(--border); }
+.omd-stat.on { border-color: var(--accent); }

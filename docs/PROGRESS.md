@@ -23,7 +23,15 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 2 BUILT + migration 46 run (2026-11-09), waiting for PO look + approval.** People: every user in every company (24),
+**Stage 3 BUILT (2026-11-09), waiting for PO look + approval — last stage.** No database change. Performance: Prod % + Quality %
+per company for this week (Mon–today) and this month (1st–today) with report / people counts and colour bars (Prod Monitor
+colours). Checked: function gives Test Co 2 reports, Prod 30.9 %, Quality 100 % for Aug–Nov; November shows 0 reports for both
+companies (true: home's last daily report is 2026-07-27, Test Co's 2026-10-31), so the page shows dashes today. Master Data
+(read-only): card per company with active clients / payers / processes (3Gen 0 / 12 / 1, Test Co 1 / 13 / 1; click a count to
+list it), list with Clients / Payers / Processes, search, company, status (checked: 25 payers, search "aetna" → 2), "Open to
+edit" opens that company's Clients & Payers page. Rows loaded 1000 at a time (Supabase limit). Lint 51 before and after.
+
+**Stage 2 APPROVED (PO "Approved, start Stage 3" 2026-11-09).** Stage 2 built + migration 46 run (2026-11-09), waiting for PO look + approval.** People: every user in every company (24),
 search name / ID, filters company / role / status (checked: Test Co 2, Test Co admins 1, search 1010 → 1, 375 px no sideways
 scroll); Sign in as / Change role / Reset password / Switch off on each row; Change role box opens + Cancel (no real user changed).
 Code pushed first (f233da0), then migration 46. Rolled-back database test (throwaway owner + users in Test Co and home, nothing

@@ -144,6 +144,48 @@ export async function companyActivity(prefix) {
   return { recent: recent.data ?? [], daily: [...byDay].map(([date, n]) => ({ date, n })) };
 }
 
+// ── Owner Command Center: Performance + Master Data (Stage 3, no database change) ───────────
+
+/** Every row of a query, 1000 at a time (Supabase returns at most 1000 per request). */
+async function fetchAll(build) {
+  const out = [];
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data, error } = await build().range(from, from + 999);
+    if (error) return null;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+
+const mean = xs => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+
+/**
+ * Prod % and Quality % for a company between two dates (yyyy-mm-dd, inclusive).
+ * Prod % = Prod Monitor's formula per daily report (work done ÷ adjusted target), averaged; reports with no target are left out.
+ * Quality % = average of the quality scores entered. → { reports, people, prod, prodN, quality, qualityN } or null.
+ */
+export async function companyPerformance(prefix, from, to) {
+  const rows = await fetchAll(() => supabase.from(prefix + 'daily_logs').select('emp_id,date,total,target,adj_target,quality')
+    .gte('date', from).lte('date', to).order('date'));
+  if (!rows) return null;
+  const prods = [];
+  const quals = [];
+  for (const l of rows) {
+    const t = l.adj_target ?? l.target;
+    if (l.total != null && t) prods.push((Number(l.total) / Number(t)) * 100);
+    if (l.quality != null && l.quality !== '') quals.push(Number(l.quality));
+  }
+  return { reports: rows.length, people: new Set(rows.map(l => l.emp_id)).size, prod: mean(prods), prodN: prods.length, quality: mean(quals), qualityN: quals.length };
+}
+
+/** A company's clients, payers and processes (read-only view; editing stays in the company). Null = table not there. */
+export async function companyMasters(prefix) {
+  const [clients, payers, processes] = await Promise.all(['clients', 'payers', 'processes']
+    .map(t => fetchAll(() => supabase.from(prefix + t).select('*').order('name'))));
+  return { clients, payers, processes };
+}
+
 /** Random temporary password (shown once to the owner). */
 export function tempPassword() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';

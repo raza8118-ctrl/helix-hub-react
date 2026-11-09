@@ -12,23 +12,20 @@ import { OwnerBroadcasts, OwnerSecurity, OwnerPlatform } from './OwnerTabs';
 import OwnerSidebar from './OwnerSidebar';
 import OwnerOverview from './OwnerOverview';
 import OwnerPeople from './OwnerPeople';
+import OwnerPerformance from './OwnerPerformance';
+import OwnerMasterData from './OwnerMasterData';
 import { OWNER_PAGES, healthOf } from '../../lib/ownerCenter';
 import NavIcon from '../../components/ui/NavIcon';
 import ThemeSwitcher from '../../components/ui/ThemeSwitcher';
-import EmptyState from '../../components/ui/EmptyState';
 
 // Helix Hub owner only — reached from the /owner sign-in, never from a company login.
 // Owner Console 2.0 (PO request 2026-10-29): Overview (watch every company), Companies (add / rename / Manage: plan,
 // seats, pages on-off, pause, sign everyone out, banner, users + sign in as, activity, delete), Broadcasts, Owners &
 // security (owner accounts, owner activity log, password), Platform (structure check, sync, version history).
 // Owner Command Center (PO 2026-11-09): Frost Glass layout with a left menu — Overview, Companies, People, Master Data,
-// Performance, Broadcasts, Security, Platform. Stage 1: layout + Overview health; People / Performance / Master Data follow.
+// Performance, Broadcasts, Security, Platform.
 const EMPTY = { name: '', code: '', adminId: 'ADMIN', adminName: 'Administrator', adminPassword: '' };
 const OLD_TABS = { owners: 'security' };   // tab names saved before the Command Center
-const SOON = {
-  masters: ['Master Data', 'Clients, payers and processes for each company, side by side. Coming in Stage 3.'],
-  performance: ['Performance', 'Prod % and Quality % per company for this week and this month. Coming in Stage 3.'],
-};
 const START_PAGES = [['', 'Default page'], ['teamdash', 'Team Dashboard'], ['today', 'Today'], ['team', 'Team'], ['settings', 'Settings'], ['auditlog', 'Audit Log']];
 
 const fmtDate = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -251,11 +248,8 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
             onNotice={(ok, text) => (ok ? setMsg({ ok, text }) : alertDialog({ title: 'Could not do that', message: text, tone: 'warning' }))} />
         )}
 
-        {SOON[tab] && (
-          <div className="card fg-card">
-            <EmptyState title={SOON[tab][0]}>{SOON[tab][1]}</EmptyState>
-          </div>
-        )}
+        {tab === 'performance' && companies !== undefined && rows.length > 0 && <OwnerPerformance rows={rows} />}
+        {tab === 'masters' && companies !== undefined && rows.length > 0 && <OwnerMasterData rows={rows} onOpen={open} />}
 
         {/* ── Companies ── */}
         {tab === 'companies' && companies !== undefined && (
