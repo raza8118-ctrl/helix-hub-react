@@ -46,7 +46,7 @@ export default function OwnerMasterData({ owner, rows, onOpen }) {
 
   return (
     <div className="fg-page">
-      <OwnerMasterCopy owner={owner} home={rows.find(c => c.isHome)} onOpen={onOpen} />
+      <OwnerMasterCopy owner={owner} rows={rows} home={rows.find(c => c.isHome)} onOpen={onOpen} />
 
       <div className="grid-3">
         {rows.map(c => {

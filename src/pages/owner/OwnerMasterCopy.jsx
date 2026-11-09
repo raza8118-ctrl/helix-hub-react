@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { masterStatus, masterSeed } from '../../lib/owner';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 import NavIcon from '../../components/ui/NavIcon';
+import OwnerMasterPush from './OwnerMasterPush';
 
 /**
  * Master copy card (PO 2026-11-09, Stage 1): the hidden workspace the owner edits once and later pushes to companies.
@@ -13,9 +14,10 @@ const LISTS = [
   ['sops', 'SOPs'], ['task_configs', 'Task targets'],
 ];
 
-export default function OwnerMasterCopy({ owner, home, onOpen }) {
+export default function OwnerMasterCopy({ owner, rows, home, onOpen }) {
   const [st, setSt] = useState(undefined);   // undefined = loading · null = migration 47 not run · { exists, counts… }
   const [busy, setBusy] = useState(false);
+  const [pushing, setPushing] = useState(false);
 
   const load = useCallback(async () => {
     const r = await masterStatus(owner);
@@ -75,11 +77,13 @@ export default function OwnerMasterCopy({ owner, home, onOpen }) {
               Edit master copy
             </button>
             {empty && <button type="button" className="btn-sm" onClick={seed} disabled={busy}>{busy ? 'Copying…' : `Start from ${homeName}'s lists`}</button>}
-            <button type="button" className="btn-sm" disabled title="Coming in Stage 2">Push to companies</button>
+            <button type="button" className="btn-sm" onClick={() => setPushing(p => !p)} disabled={empty} aria-expanded={pushing}
+              title={empty ? 'The master copy is empty' : 'Pick sections and companies, preview, then push'}>Push to companies…</button>
             <span className="text-sm text-muted">Opens the master with the normal pages: Payer Directory, Denial Navigator, SOP Library, Code Lookup, Settings → task targets.</span>
           </div>
         </>
       )}
+      {pushing && st?.exists && !empty && <OwnerMasterPush owner={owner} rows={rows} onClose={() => { setPushing(false); load(); }} />}
     </div>
   );
 }

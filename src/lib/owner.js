@@ -40,6 +40,10 @@ export const demoRemove = (owner, code) => rpc('owner_demo_remove', { ...byOwner
 // Master copy (migration 47): status (rows per list) and the one-time "Start from 3Gen's lists"
 export const masterStatus = owner => rpc('owner_master_status', byOwner(owner));
 export const masterSeed = owner => rpc('owner_master_seed', byOwner(owner));
+// Push to companies (migration 48): preview = the real push, cancelled; push = one company per call
+export const masterPreview = (owner, code, sections) => rpc('owner_master_preview', { ...byOwner(owner), p_code: code, p_sections: sections });
+export const masterPush = (owner, code, sections) => rpc('owner_master_push', { ...byOwner(owner), p_code: code, p_sections: sections });
+export const masterPushHistory = (owner, limit = 50) => rpc('owner_master_push_history', { ...byOwner(owner), p_limit: limit });
 // Owner Command Center → People: role change, sign-out and both log entries happen in the database (migration 46)
 export const setUserRole = (owner, code, empId, role) => rpc('owner_set_user_role', { ...byOwner(owner), p_code: code, p_emp_id: empId, p_role: role });
 export const openOwnerSession = (owner, prefix, empId) => rpc('owner_open_session', { ...byOwner(owner), p_prefix: prefix, p_emp_id: empId });

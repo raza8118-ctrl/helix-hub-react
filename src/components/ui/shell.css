@@ -942,3 +942,19 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .oc-viewbar-master .oc-viewbar-badge { color: var(--col-yellow); }
 .omd-master { margin: 0; }
 .omd-master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 12px; }
+/* Master copy → Push to companies */
+.omp { margin: 14px 0 0; }
+.fg-page .omp.card { margin-top: 14px; }
+.omp-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.omp-pick fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px 10px; margin: 0; min-width: 0; }
+.omp-pick legend { font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 0 4px; }
+.omp-check { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: 13px; cursor: pointer; }
+.omp-check input { width: auto; margin-top: 3px; flex-shrink: 0; }
+.omp-co { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+.omp-co-head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 6px; }
+.omp-table th, .omp-table td { white-space: nowrap; }
+.omp-table td:first-child { white-space: normal; min-width: 160px; }
+.omp-names { font-size: 12px; margin-top: 4px; }
+.omp-names summary { cursor: pointer; color: var(--accent); }
+.omp-names div { margin-top: 3px; white-space: normal; }
+.omp-history { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 14px; }

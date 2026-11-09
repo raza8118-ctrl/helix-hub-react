@@ -7,6 +7,7 @@ const ACTION_LABELS = {
   owner_reset_password:  'Helix Hub owner reset a password',
   owner_set_pages:       'Helix Hub owner changed which pages are switched on',
   owner_change_role:     'Helix Hub owner changed a role',
+  master_push:           'Helix Hub master copy pushed (payers, denial guides, codes, SOPs or task targets)',
   create_user:           'Created user',
   edit_user:             'Edited user',
   activate_user:         'Activated user',
