@@ -23,6 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Frost Glass — employee pages (PO "Go" 2026-11-09) — IN PROGRESS.** Styling only (formula, targets, downtime, hourly counts,
+saving, 24-hour edit window, reports, exports, allocations unchanged; no database change). Two parts, each for PO approval. Part 1 —
+Daily Report (`ProdReport.jsx`, 44 fixed colours): old heading → filter card with date, name / processes / target / shift, Export +
+Save; attendance / leave choices → themed toggles; banners → themed notices (same wording); KPI panel + hourly slots + call strip in
+theme colours. Part 2 — My Reports, My Progress, My Allocation: old headings → intro card; fixed purple → accent; table cards; My
+Progress tiles wrap on phones. Test: PO signs in as a test employee in Test Co; no report saved.
+
 **Frost Glass redesign — status 2026-11-06:** every main-menu page people can open now has the new look (Sidebar, top bar,
 Team Dashboard, Today, Prod Monitor, Quality, Hourly, Weekly / Monthly, Team / My Team, all Workbench pages, Feed Monitor, Settings,
 Clients & Payers, Audit Log, Announcements, Team Feed). Attendance (Keka) is restyled but switched off in both companies (not seen).
