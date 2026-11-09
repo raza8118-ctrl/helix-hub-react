@@ -23,7 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 1 BUILT, waiting for PO look + approval.** Checked in a signed-out tab: company step, wrong company message, step 2, Forgot
+**Stage 2 BUILT + migration 45 run (2026-11-09), waiting for PO look + approval.** Code pushed first (c923ee5), then migration 45
+run by Claude. Checked: RFC 6238 vectors (5/5) + base32; new tables and internal functions not readable by the app; a failed
+sign-in shows in the log with IP; the PO's own owner session survived. Full checklist run by Claude in ONE rolled-back database
+transaction with two throwaway owners (29/29 passed, nothing left behind): password-only sign-in, password no longer works as a
+session key, setup (wrong password refused, off until confirmed), confirm (wrong code refused, 8 recovery codes), sign-in asks for a
+code, wrong / reused / made-up codes refused, recovery code works once (lower case + no dash accepted), password change needs the
+code, other owner sees "2-step on" and can reset (needs own password), lockout after 5 wrong passwords (right password refused while
+locked, other owner unaffected), turn off needs the right code; every action logged. NOT done: scanning a real QR with a phone app and
+clicking through the screens with 2-step on — PO to do when turning it on for their own account (add a second owner first, so
+"Reset 2-step" is possible).
+
+**Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-09).** Checked in a signed-out tab: company step, wrong company message, step 2, Forgot
 Password view, wrong owner sign-in message, eye button (aria-label + aria-pressed flip; input type switches), themed colours for all
 four themes (computed), 375 px no sideways scroll. Screenshots unreliable (window not drawing) — PO to look. Real sign-in not run by
 Claude. `/owner` on the live site to be checked after deploy.
@@ -2170,6 +2181,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
     for logs, company setup, reference libraries, rcm_store) — run 2026-11-01 by Claude. Switch: Test Co ON, 3Gen ON (2026-11-01).
 44. `supabase/migrations/20261109_payer_source_verified.sql` (payers.source / source_links / verified_at / verified_by /
     verification_note, home + companies) — run 2026-11-04 by Claude.
+45. `supabase/migrations/20261110_owner_two_step.sql` (owner 2-step TOTP, recovery codes, lockout, sign-in log with IP;
+    `_is_owner` session keys only) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
 
