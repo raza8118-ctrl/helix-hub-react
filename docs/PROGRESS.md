@@ -23,7 +23,23 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 1 BUILT + migration 47 run (2026-11-09), waiting for PO look + approval.** Code pushed first (7f89ea8), then migration 47:
+**Stage 2 BUILT + migration 48 run (2026-11-09), waiting for PO look + approval.** Code pushed first (7dd0daf), then migration 48
+(master_hash column, helix_master_pushes, owner_master_preview / owner_master_push / owner_master_push_history). Master Data →
+Master copy → "Push to companies…": tick sections (Payer Directory, Denial guides, Code lists, SOP Library, Task targets) and
+companies → Preview (the real push run in the database and cancelled) → per company a table New / Updated / Unchanged / Kept:
+company's own / Kept: changed here / Skipped: payer is company's own / Could not apply, with names → Push (one company per call,
+all or nothing; button only after a fresh preview) → Push history. Rule refined while building: payer details are not added under
+a company's own payer, but containers (SOP categories / software / tasks, denial codes) take master children under the company's
+own same-named row (otherwise denial steps / SOPs could never reach companies that already have the standard codes). Rolled-back
+database test with Test Co (seeded master + a QA payer, code, step, published SOP, task target): preview = push and leaves
+nothing; preview 0.3 s, push 0.2 s; Test Co: 12 own payers kept (their 25 contacts / 9 IDs / 25 limits / 28 notes skipped),
+34 denial codes + 8 steps + 24 codes + SOP tree + SOP version + task target added; second push changes nothing; Test Co edit kept
+("changed here"); master change updated; Test Co's own rows byte-for-byte unchanged; history / owner log / Test Co Audit Log 3 / 3 / 3;
+wrong key, MASTER as target, unknown section refused; nothing left behind. Home preview: 12 payers, 49 codes, 24 codes, all
+categories / software kept as home's own. Not seen in the browser with data: the master is still empty (PO to click "Start from
+3Gen Consulting's lists"), so Push to companies… is greyed out ("The master copy is empty"). Lint 51 before and after.
+
+**Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-09).** Stage 1 built + migration 47 run (2026-11-09). Code pushed first (7f89ea8), then migration 47:
 hidden workspace "Master copy" (code MASTER, prefix co_master__, companies.is_master, 77 tables, no users); master_id +
 master_pushed_at on the 17 master tables in home, Test Co and the master. App: listCompanies() never returns the master (checked:
 Overview, People, Master Data cards show only 3Gen + Test Co); Master Data → "Master copy" card (rows per list, Edit master copy,
@@ -2248,7 +2264,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 46. `supabase/migrations/20261111_owner_people.sql` (`owner_set_user_role`: owner changes a role → sessions ended, company Audit
     Log + owner log) — run 2026-11-09 by Claude (re-run the same day with the FOUND fix).
 47. `supabase/migrations/20261112_master_copy.sql` (hidden Master copy workspace co_master__ + companies.is_master; master_id /
-    master_pushed_at on 17 tables; owner_master_status / owner_master_seed) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    master_pushed_at on 17 tables; owner_master_status / owner_master_seed) — run 2026-11-09 by Claude.
+48. `supabase/migrations/20261113_master_push.sql` (master_hash on 17 tables, helix_master_pushes, preview / push / history
+    functions) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
