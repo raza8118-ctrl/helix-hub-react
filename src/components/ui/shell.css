@@ -958,3 +958,7 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .omp-names summary { cursor: pointer; color: var(--accent); }
 .omp-names div { margin-top: 3px; white-space: normal; }
 .omp-history { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 14px; }
+.omp-table tr.omp-has-names td { border-bottom: 0; }
+.omp-table tr.omp-names-row td { padding-top: 0; white-space: normal; }
+.omp-names-row details { position: sticky; left: 12px; max-width: min(900px, calc(100vw - 110px)); }
+@media (min-width: 769px) { .omp-names-row details { max-width: min(900px, calc(100vw - 380px)); } }

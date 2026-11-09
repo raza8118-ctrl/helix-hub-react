@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { masterPreview, masterPush, masterPushHistory, codeOf, HOME_CODE } from '../../lib/owner';
 import { confirmDialog } from '../../components/shared/Dialog';
 
@@ -41,20 +41,24 @@ function Result({ res }) {
             const e = res[t];
             const named = KINDS.filter(([k]) => e.names?.[k]?.length);
             return (
-              <tr key={t}>
-                <td>
-                  <div className="bold">{TABLES[t] ?? t}</div>
-                  {named.length > 0 && (
-                    <details className="omp-names">
-                      <summary>Show names</summary>
-                      {named.map(([k, l]) => (
-                        <div key={k}><span className="text-muted">{l}:</span> {e.names[k].join(' · ')}{(e[k] ?? 0) > e.names[k].length ? ` … and ${e[k] - e.names[k].length} more` : ''}</div>
-                      ))}
-                    </details>
-                  )}
-                </td>
-                {KINDS.map(([k, , badge]) => <td key={k} className="right">{e[k] ? <span className={`badge ${badge}`}>{e[k]}</span> : <span className="text-muted">—</span>}</td>)}
-              </tr>
+              <Fragment key={t}>
+                <tr className={named.length ? 'omp-has-names' : ''}>
+                  <td className="bold">{TABLES[t] ?? t}</td>
+                  {KINDS.map(([k, , badge]) => <td key={k} className="right">{e[k] ? <span className={`badge ${badge}`}>{e[k]}</span> : <span className="text-muted">—</span>}</td>)}
+                </tr>
+                {named.length > 0 && (
+                  <tr className="omp-names-row">
+                    <td colSpan={KINDS.length + 1}>
+                      <details className="omp-names">
+                        <summary>Show names</summary>
+                        {named.map(([k, l]) => (
+                          <div key={k}><span className="text-muted">{l}:</span> {e.names[k].join(' · ')}{(e[k] ?? 0) > e.names[k].length ? ` … and ${e[k] - e.names[k].length} more` : ''}</div>
+                        ))}
+                      </details>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             );
           })}
         </tbody>

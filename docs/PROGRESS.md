@@ -36,8 +36,11 @@ nothing; preview 0.3 s, push 0.2 s; Test Co: 12 own payers kept (their 25 contac
 34 denial codes + 8 steps + 24 codes + SOP tree + SOP version + task target added; second push changes nothing; Test Co edit kept
 ("changed here"); master change updated; Test Co's own rows byte-for-byte unchanged; history / owner log / Test Co Audit Log 3 / 3 / 3;
 wrong key, MASTER as target, unknown section refused; nothing left behind. Home preview: 12 payers, 49 codes, 24 codes, all
-categories / software kept as home's own. Not seen in the browser with data: the master is still empty (PO to click "Start from
-3Gen Consulting's lists"), so Push to companies… is greyed out ("The master copy is empty"). Lint 51 before and after.
+categories / software kept as home's own. Master filled for real 2026-11-09 (PO asked): "Start from 3Gen Consulting's lists" → 12 payers, 9 IDs, 25 contacts, 25 limits,
+28 notes, 49 denial codes, 23 steps, 24 codes, 6 SOP categories, 15 software. Preview of Test Co in the browser (NOT pushed):
+85 new · 0 updated · 44 kept (payers 12 kept as Test Co's own → their 87 details skipped; categories 6 + software 15 + denial
+codes 33 + steps 7 + codes 24 new; 16 codes + 16 steps kept as Test Co's own); database checked after: no push, no Test Co rows
+changed. Names list moved to a full-width line under each row. Lint 51 before and after.
 
 **Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-09).** Stage 1 built + migration 47 run (2026-11-09). Code pushed first (7f89ea8), then migration 47:
 hidden workspace "Master copy" (code MASTER, prefix co_master__, companies.is_master, 77 tables, no users); master_id +
