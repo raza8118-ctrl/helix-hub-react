@@ -23,6 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Stage 1 BUILT, waiting for PO look + approval.** Checked in the browser (owner session): menu of 8 pages with line icons,
+top bar titles, Overview totals (5 KPI cards), alerts (all clear today), company cards with health (both Good), other pages open
+(People / Master Data / Performance show "coming in Stage 2 / 3"); Open Test Co → owner bar → switch to 3Gen and back (sidebar
+name + pages-off count follow; shell remounts per company; old company session ended); Back to Command Center → Overview, Frost;
+switches logged as "Opened a company as admin"; 375 px: ☰ menu slides in, no sideways scroll. Lint: no new problems (51 before
+and after). Emoji removed from owner pages (log labels, broadcast types, Sign in as, Pause / Resume).
+
 **Owner Command Center (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** Owner Console redesigned in Frost Glass, 3 stages, PO
 approval after each. Stage 1 (no database): left sidebar (Overview, Companies, People, Master Data, Performance, Broadcasts,
 Security, Platform; line icons, no emoji; ☰ on phones); Overview = platform totals, alert list, card per company with health

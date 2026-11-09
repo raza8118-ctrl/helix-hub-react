@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense, lazy } from 'react';
 import Login       from './components/Login';
 import Sidebar     from './components/Sidebar';
 import OwnerLogin  from './components/OwnerLogin';
+import OwnerCompanyBar from './components/OwnerCompanyBar';
 import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import FollowupNudge from './components/shared/FollowupNudge';
@@ -54,6 +55,8 @@ const OwnerConsole  = lazy(() => import('./pages/owner/OwnerConsole'));
 const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars', ...THEMES.map(th => `theme-${th.id}`)];
 
 const LAST_THEME_KEY = 'hh_last_theme';   // this browser's last theme, for the sign-in page (no personal data)
+const OWNER_THEME_KEY = 'hh_owner_theme';  // Owner Command Center theme on this browser (Frost by default)
+const readOwnerTheme = () => { try { return resolveTheme(localStorage.getItem(OWNER_THEME_KEY) || 'frost'); } catch { return 'frost'; } };
 const isOwnerPath = () => window.location.pathname.replace(/\/+$/, '') === '/owner';
 
 /** Frost Glass (2026-11-06): one body class per theme (colours in components/ui/themes.css); Frost / Violet keep `dark`. */
@@ -146,6 +149,7 @@ function withGrantedTabs(roleTabs, user) {
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [owner, setOwner]             = useState(getOwnerSession);   // Helix Hub owner, if signed in
+  const [ownerTheme, setOwnerTheme]   = useState(readOwnerTheme);   // Owner Command Center theme
   const [theme, setTheme]             = useState(THEMES[0].id);
   const [activeTab, setActiveTab]     = useState('today');
   const [showProfile, setShowProfile] = useState(false);
@@ -223,14 +227,15 @@ export default function App() {
     })();
   }, []);
 
-  // Signed out: the sign-in page uses this browser's last theme (Frost by default). The Owner Console keeps its own look.
+  // Signed out: the sign-in page uses this browser's last theme (Frost by default). The Owner Command Center uses its own
+  // saved theme (Frost Glass, PO 2026-11-09).
   useEffect(() => {
     if (currentUser) return;
-    if (owner) { THEME_CLASSES.forEach(c => document.body.classList.remove(c)); return; }
+    if (owner) { applyTheme(ownerTheme); return; }
     let last = null;
     try { last = localStorage.getItem(LAST_THEME_KEY); } catch { /* storage unavailable */ }
     applyTheme(last);
-  }, [currentUser, owner]);
+  }, [currentUser, owner, ownerTheme]);
 
   // ── Unread feedback count (employees only) ──────────────────────────────────
   useEffect(() => {
@@ -406,6 +411,21 @@ export default function App() {
     handleLogin(ownerUser, opts.startTab);
   }
 
+  // Company switcher (Owner Command Center): open another company straight from the owner bar, keeping the same page
+  async function switchCompanyAsOwner(c) {
+    const oldToken = getSessionToken();
+    setCompanyRow(null);
+    setHomeFeatures(null);
+    sessionStorage.removeItem(SESSION_VERSION_KEY);
+    await openCompanyAsOwner(c, { startTab: activeTab });
+    if (oldToken) supabase.rpc('user_logout', { p_token: oldToken }).then(() => {}, () => {});
+  }
+
+  function handleOwnerTheme(t) {
+    setOwnerTheme(t);
+    try { localStorage.setItem(OWNER_THEME_KEY, t); } catch { /* storage unavailable */ }
+  }
+
   function handleOwnerSignOut() {
     ownerLogout(owner);
     setOwnerSession(null);
@@ -464,7 +484,8 @@ export default function App() {
   if (!currentUser && owner) {
     return (
       <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
-        <OwnerConsole owner={owner} onOpenCompany={openCompanyAsOwner} onSignOut={handleOwnerSignOut} onOwnerUpdate={o => { setOwnerSession(o); setOwner(o); }} />
+        <OwnerConsole owner={owner} onOpenCompany={openCompanyAsOwner} onSignOut={handleOwnerSignOut} onOwnerUpdate={o => { setOwnerSession(o); setOwner(o); }}
+          theme={ownerTheme} onTheme={handleOwnerTheme} />
       </Suspense>
     );
   }
@@ -498,7 +519,8 @@ export default function App() {
     : tabs;
 
   return (
-    <div className="app-shell">
+    // key: the owner switching company remounts the shell, so names and lists load fresh for the new company
+    <div className="app-shell" key={getActiveCompany()?.prefix || 'home'}>
       <Starfield />
       <FollowupNudge user={currentUser} onCount={setFollowupDue} />
       <PayerUpdatesBadge user={currentUser} onCount={setUpdatesNew} />
@@ -543,27 +565,7 @@ export default function App() {
         </header>
 
         {currentUser.isOwner && (
-          <div style={{
-            background: '#4c1d95', color: '#fff',
-            padding: '5px 16px', fontSize: 12.5, fontWeight: 600,   // calm navigation: thin banner
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-          }}>
-            <span>
-              {currentUser.viewingAs
-                ? <>👑 Owner signed in as {currentUser.name ?? currentUser.emp_id} ({currentUser.emp_id}) at {currentUser.viewing} — actions are logged as the owner</>
-                : <>👑 Helix Hub owner — viewing {currentUser.viewing} with full admin access</>}
-              {offTabs.size > 0 && <span style={{ fontWeight: 400, opacity: 0.85 }}> · {offTabs.size} page{offTabs.size === 1 ? '' : 's'} switched off for this company</span>}
-            </span>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: '#fff', color: '#4c1d95', border: 'none', borderRadius: 6,
-                padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              ← Back to Owner Console
-            </button>
-          </div>
+          <OwnerCompanyBar user={currentUser} offCount={offTabs.size} onSwitch={switchCompanyAsOwner} onBack={handleLogout} />
         )}
 
         <PlatformBanners code={addedCompanyCode()} banner={companyRow?.banner} />

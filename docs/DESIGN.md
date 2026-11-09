@@ -48,6 +48,11 @@ Helix Hub has four themes. Each person picks one in the **top bar** (or Profile)
 companies, skipped). The page title now lives in the **top bar** — pages start with an intro / filter card instead of a
 `page-header`.
 
+**Owner Command Center (2026-11-09):** the Owner Console uses the same app shell — `OwnerSidebar` (`.sidebar.sb-glass`, menu
+in `lib/ownerCenter.js`), top bar `.tb-glass`, its own saved theme (`hh_owner_theme`, Frost by default). Line icons come from
+`NavIcon` (`icon="crown"` etc. — no emoji in owner pages). Classes: `.oc-*` (page, alerts, company cards, `.oc-viewbar` = the
+"Viewing as Owner · [Company ▼] · Back to Command Center" bar inside a company, which replaced the purple banner).
+
 **Shared page pieces in `shell.css`** (reuse these for any new page):
 
 | Class | What it is |

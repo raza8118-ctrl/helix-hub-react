@@ -139,7 +139,7 @@ export default function CompanyManage({ owner, company: c, stats, priv, ready, o
 
   async function signInAs(u) {
     const reason = await promptDialog({
-      title: `🔑 Sign in as ${u.name ?? u.emp_id}?`,
+      title: `Sign in as ${u.name ?? u.emp_id}?`,
       message: `You'll see ${c.name} exactly as ${u.name ?? u.emp_id} does. A purple banner stays on screen, and everything you do is logged as "via Helix Hub owner ${owner.username}" in ${c.name}'s Audit Log and in your owner log.\n\nReason (optional):`,
       placeholder: 'e.g. Checking a reported problem',
       confirmText: 'Sign in as',
@@ -220,7 +220,7 @@ It is shown only now — note it down. You can also use “Open as admin →”.
                 <label htmlFor="cm-banner">Banner for this company's users</label>
                 <div className="row" style={{ gap: 8 }}>
                   <select value={p.bannerKind} onChange={setF('bannerKind')} style={{ maxWidth: 150 }} aria-label="Banner type">
-                    <option value="info">ℹ️ Info</option><option value="warning">⚠️ Warning</option><option value="maintenance">🛠️ Maintenance</option>
+                    <option value="info">Info</option><option value="warning">Warning</option><option value="maintenance">Maintenance</option>
                   </select>
                   <input id="cm-banner" value={p.bannerText} onChange={setF('bannerText')} placeholder="Empty = no banner. e.g. Invoice overdue — please contact 3Gen" />
                 </div>
@@ -287,7 +287,7 @@ It is shown only now — note it down. You can also use “Open as admin →”.
                       <td><span className={`badge ${u.active === false ? 'badge-gray' : 'badge-green'}`}>{u.active === false ? 'Off' : 'Active'}</span></td>
                       <td className="text-sm text-muted">{fmtWhen(u.last_sign_in)}</td>
                       <td className="right" style={{ whiteSpace: 'nowrap' }}>
-                        <button className="btn-sm" onClick={() => signInAs(u)} disabled={u.active === false} title="Master key: see the app as this person">🔑 Sign in as</button>{' '}
+                        <button className="btn-sm" onClick={() => signInAs(u)} disabled={u.active === false} title="Master key: see the app as this person">Sign in as</button>{' '}
                         <button className="btn-sm" onClick={() => resetPassword(u)}>Reset password</button>{' '}
                         <button className="btn-sm" onClick={() => toggleUser(u)} style={u.active === false ? {} : { color: 'var(--danger)' }}>{u.active === false ? 'Switch on' : 'Switch off'}</button>
                       </td>
@@ -361,7 +361,7 @@ It is shown only now — note it down. You can also use “Open as admin →”.
                 <p className="text-sm text-muted">{c.active
                   ? 'Blocks sign-in with your message and signs out anyone signed in (≈2 min). No data is touched; you can still open it.'
                   : `Paused${c.pause_message ? ` — “${c.pause_message}”` : ''}. Resuming lets its users sign in again.`}</p>
-                <button className="btn-sm" onClick={() => onTogglePause(c)} style={c.active ? { color: 'var(--danger)' } : {}}>{c.active ? '⏸ Pause' : '▶ Resume'}</button>
+                <button className="btn-sm" onClick={() => onTogglePause(c)} style={c.active ? { color: 'var(--danger)' } : {}}>{c.active ? 'Pause' : 'Resume'}</button>
               </div>
               <div className="card" style={{ margin: 0 }}>
                 <div className="bold">Sign everyone out now</div>

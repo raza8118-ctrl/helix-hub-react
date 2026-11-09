@@ -35,6 +35,13 @@ async function loadHomeProfile() {
   return c;
 }
 
+/** Home company's name / code without touching the cached profile (owner company switcher, used while inside a company). */
+export async function loadHomeCompanyInfo() {
+  const { data } = await supabase.from('rcm_store').select('value').eq('key', KV_KEY).maybeSingle();
+  const saved = data?.value;
+  return saved?.name ? { name: saved.name, code: saved.code || '', prefix: '' } : DEFAULT_COMPANY;
+}
+
 // Profile of the company the current tab is signed in to
 export async function loadCompany() {
   const active = getActiveCompany();

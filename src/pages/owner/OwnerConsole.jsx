@@ -6,31 +6,37 @@ import {
 import {
   ownerConsoleReady, companyStats, structureStatus, loadPrivate, pauseCompany, ownerLog, codeOf, HOME_CODE, twoStepStatus,
 } from '../../lib/owner';
-import { countOff } from '../../lib/companyFeatures';
 import { confirmDialog, promptDialog, alertDialog } from '../../components/shared/Dialog';
 import CompanyManage from './CompanyManage';
 import { OwnerBroadcasts, OwnerSecurity, OwnerPlatform } from './OwnerTabs';
+import OwnerSidebar from './OwnerSidebar';
+import OwnerOverview from './OwnerOverview';
+import { OWNER_PAGES, healthOf } from '../../lib/ownerCenter';
+import NavIcon from '../../components/ui/NavIcon';
+import ThemeSwitcher from '../../components/ui/ThemeSwitcher';
+import EmptyState from '../../components/ui/EmptyState';
 
 // Helix Hub owner only — reached from the /owner sign-in, never from a company login.
 // Owner Console 2.0 (PO request 2026-10-29): Overview (watch every company), Companies (add / rename / Manage: plan,
 // seats, pages on-off, pause, sign everyone out, banner, users + sign in as, activity, delete), Broadcasts, Owners &
 // security (owner accounts, owner activity log, password), Platform (structure check, sync, version history).
+// Owner Command Center (PO 2026-11-09): Frost Glass layout with a left menu — Overview, Companies, People, Master Data,
+// Performance, Broadcasts, Security, Platform. Stage 1: layout + Overview health; People / Performance / Master Data follow.
 const EMPTY = { name: '', code: '', adminId: 'ADMIN', adminName: 'Administrator', adminPassword: '' };
-const TABS = [['overview', '🛰️ Overview'], ['companies', '🏢 Companies'], ['broadcasts', '📣 Broadcasts'], ['owners', '👑 Owners & security'], ['platform', '⚙️ Platform']];
+const OLD_TABS = { owners: 'security' };   // tab names saved before the Command Center
+const SOON = {
+  people: ['People', 'Every user in every company in one table — search, filter, reset password, switch off, change role, sign in as. Coming in Stage 2.'],
+  masters: ['Master Data', 'Clients, payers and processes for each company, side by side. Coming in Stage 3.'],
+  performance: ['Performance', 'Prod % and Quality % per company for this week and this month. Coming in Stage 3.'],
+};
 const START_PAGES = [['', 'Default page'], ['teamdash', 'Team Dashboard'], ['today', 'Today'], ['team', 'Team'], ['settings', 'Settings'], ['auditlog', 'Audit Log']];
 
 const fmtDate = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-const ago = iso => {
-  if (!iso) return 'never';
-  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 60) return `${Math.max(1, m)} min ago`;
-  if (m < 1440) return `${Math.round(m / 60)} h ago`;
-  return `${Math.round(m / 1440)} d ago`;
-};
 const n = v => (v == null ? '—' : v.toLocaleString());
 
-export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerUpdate }) {
-  const [tab, setTab]             = useState(() => sessionStorage.getItem('hh_owner_tab') || 'overview');
+export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerUpdate, theme, onTheme }) {
+  const [tab, setTab]             = useState(() => { const t = sessionStorage.getItem('hh_owner_tab') || 'overview'; return OLD_TABS[t] ?? (OWNER_PAGES[t] ? t : 'overview'); });
+  const [navOpen, setNavOpen]     = useState(false);
   const [home, setHome]           = useState(null);
   const [companies, setCompanies] = useState(undefined);   // undefined = loading, null = not installed
   const [ready, setReady]         = useState(true);        // migration 34 run?
@@ -174,38 +180,39 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
   const structOf = c => (c.isHome ? null : structure[c.code]);
   const needsSync = c => { const s = structOf(c); return !!s && (s.missing_tables + s.missing_columns) > 0; };
 
-  // Platform totals + alerts
-  const sum = k => rows.reduce((t, c) => t + (statOf(c)[k] ?? 0), 0);
-  const alerts = rows.flatMap(c => {
-    const s = statOf(c);
-    const out = [];
-    if (!c.active) out.push({ c, tone: 'gray', text: `${c.name} is paused` });
-    if (s.signIns7 === 0) out.push({ c, tone: 'yellow', text: `${c.name}: nobody signed in for 7 days` });
-    if (c.seat_limit && s.activeUsers != null && s.activeUsers > c.seat_limit) out.push({ c, tone: 'red', text: `${c.name}: ${s.activeUsers} active users, plan allows ${c.seat_limit}` });
-    if (needsSync(c)) out.push({ c, tone: 'blue', text: `${c.name}: structure out of date — run Sync (Platform tab)` });
-    return out;
-  });
+  // Companies that need attention → count next to Overview in the menu
+  const attention = rows.filter(c => healthOf(c, statOf(c), needsSync(c)).level !== 'good').length;
+  const page = OWNER_PAGES[tab] ?? OWNER_PAGES.overview;
 
   return (
-    <div className="main-content" style={{ minHeight: '100vh' }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-        <div className="page-header">
-          <div>
-            <div className="page-title">👑 Helix Hub · Owner Console</div>
-            <div className="page-subtitle">
-              Signed in as {owner.name} ({owner.username}). Company admins can't see this page.
+    <div className="app-shell oc-shell">
+      <OwnerSidebar owner={owner} active={tab} onPick={pickTab} counts={{ overview: attention }} onSignOut={onSignOut}
+        mobileOpen={navOpen} onCloseMobile={() => setNavOpen(false)} />
+      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
+
+      <div className="content-col">
+        <header className="page-topbar topbar-blur tb-glass">
+          <div className="tb-left">
+            <button className="nav-menu-btn" onClick={() => setNavOpen(true)} aria-label="Open menu" title="Menu">☰</button>
+            <div className="tb-titles">
+              <span className="tb-title">{page.label}</span>
+              <span className="tb-sub">Owner Command Center</span>
             </div>
           </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn-sm" onClick={reload} disabled={busy}>↻ Refresh</button>
-            <button className="btn btn-ghost btn-sm" onClick={onSignOut}>Sign out</button>
+          <div className="tb-right">
+            <button type="button" className="btn-sm oc-refresh" onClick={reload} disabled={busy} title="Load the latest numbers">
+              <NavIcon icon="refresh" size={15} /> Refresh
+            </button>
+            {onTheme && <ThemeSwitcher value={theme} onChange={onTheme} />}
           </div>
-        </div>
+        </header>
 
+      <main className="main-content">
+      <div className="oc-page">
         {twoStepOff && (
           <div className="ot-warn" role="alert">
-            <span>⚠ <strong>2-step verification is off.</strong> Right now your password alone opens every company.</span>
-            {tab !== 'owners' && <button type="button" className="btn-sm" onClick={() => pickTab('owners')}>Set it up</button>}
+            <span><strong>2-step verification is off.</strong> Right now your password alone opens every company.</span>
+            {tab !== 'security' && <button type="button" className="btn-sm" onClick={() => pickTab('security')}>Set it up</button>}
           </div>
         )}
 
@@ -213,7 +220,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
           <div className="card mb-16" style={{ borderLeft: '4px solid var(--warning)' }}>
             <strong>One database update needed for the new owner controls.</strong>{' '}
             <span className="text-sm">Run <code>supabase/migrations/20261029_owner_console.sql</code> in Supabase → SQL Editor,
-            then click ↻ Sync structure (Platform tab). Until then: overview numbers, users, sign in as, rename, pause / resume
+            then click Sync structure (Platform page). Until then: overview numbers, users, sign in as, rename, pause / resume
             and delete work; plan, seats, page on-off, banners, broadcasts, owner accounts and the owner log are not set up yet.</span>
           </div>
         )}
@@ -225,12 +232,6 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
           </div>
         )}
 
-        <div className="tabs mb-16" role="tablist">
-          {TABS.map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={`tab-btn${tab === id ? ' active' : ''}`} onClick={() => pickTab(id)}>{label}</button>
-          ))}
-        </div>
-
         {msg && (
           <div className="card mb-16" role="status" style={{ padding: '10px 14px', color: msg.ok ? 'var(--success)' : 'var(--danger)', fontSize: 13, lineHeight: 1.5 }}>
             {msg.text} <button className="btn-link" style={{ width: 'auto', marginLeft: 8 }} onClick={() => setMsg(null)}>Dismiss</button>
@@ -241,83 +242,20 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
 
         {/* ── Overview ── */}
         {tab === 'overview' && companies !== undefined && (
-          <>
-            <div className="grid-4 mb-16">
-              {[
-                ['Companies', rows.length, `${rows.filter(c => !c.active).length} paused`],
-                ['Active users', n(sum('activeUsers')), `${n(sum('users'))} accounts in total`],
-                ['Sign-ins today', n(sum('signInsToday')), `${n(sum('signIns7'))} in the last 7 days`],
-                ['Daily reports this week', n(sum('reportsWeek')), 'Submitted, all companies'],
-              ].map(([label, value, sub]) => (
-                <div key={label} className="stat-card"><div className="stat-label">{label}</div><div className="stat-value">{value}</div><div className="stat-sub">{sub}</div></div>
-              ))}
-            </div>
+          <OwnerOverview rows={rows} statOf={statOf} needsSync={needsSync} startPage={startPage} startPages={START_PAGES}
+            onStartPage={setStartPage} onOpen={open} onManage={setManage} onTogglePause={togglePause} onPick={pickTab} busy={busy} />
+        )}
 
-            {alerts.length > 0 && (
-              <div className="card mb-16">
-                <div className="card-title" style={{ marginBottom: 8 }}>⚠️ Needs your attention</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {alerts.map((a, i) => (
-                    <button key={i} className={`badge badge-${a.tone}`} style={{ border: 0, cursor: 'pointer', padding: '5px 10px' }} onClick={() => setManage(a.c)}>{a.text}</button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="row mb-16" style={{ gap: 8, flexWrap: 'wrap' }}>
-              <label className="text-sm text-muted" htmlFor="ow-start">Open companies at</label>
-              <select id="ow-start" value={startPage} onChange={e => setStartPage(e.target.value)} style={{ maxWidth: 200 }}>
-                {START_PAGES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-
-            <div className="grid-3 mb-16">
-              {rows.map(c => {
-                const s = statOf(c);
-                const st = structOf(c);
-                return (
-                  <div key={c.prefix || 'home'} className="card" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10, borderTop: `3px solid ${c.active ? 'var(--success)' : 'var(--text-subtle)'}` }}>
-                    <div className="row" style={{ justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div className="bold" style={{ fontSize: 15 }}>{c.name}</div>
-                        <div className="text-sm text-muted"><code>{c.code || '—'}</code>{c.plan ? ` · ${c.plan}` : ''}</div>
-                      </div>
-                      <span className={`badge ${c.isHome ? 'badge-blue' : c.active ? 'badge-green' : 'badge-gray'}`}>{c.isHome ? 'Home' : c.active ? 'Active' : 'Paused'}</span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, fontSize: 12 }}>
-                      {[
-                        ['Users', `${n(s.activeUsers)}${c.seat_limit ? ` / ${c.seat_limit}` : ''}`],
-                        ['Sign-ins today', n(s.signInsToday)],
-                        ['Last 7 days', n(s.signIns7)],
-                        ['Reports (week)', n(s.reportsWeek)],
-                        ['Prod % (week)', s.prodWeek == null ? '—' : `${Math.round(s.prodWeek)}%`],
-                        ['Pages off', c.isHome ? '—' : countOff(c.features)],
-                      ].map(([l, v]) => (
-                        <div key={l} style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '6px 8px' }}>
-                          <div className="text-muted" style={{ fontSize: 10.5 }}>{l}</div><div className="bold">{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="text-sm text-muted">
-                      Last activity: {s.lastActivity ? `${ago(s.lastActivity.created_at)} · ${s.lastActivity.actor_name ?? ''}` : 'none yet'}
-                      {st && (st.missing_tables + st.missing_columns > 0) && <span className="badge badge-blue" style={{ marginLeft: 6 }}>Needs sync</span>}
-                    </div>
-                    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 'auto' }}>
-                      <button className="btn-sm btn-primary" onClick={() => open(c)}>Open →</button>
-                      <button className="btn-sm" onClick={() => setManage(c)}>Manage</button>
-                      {!c.isHome && <button className="btn-sm" onClick={() => togglePause(c)} disabled={busy} style={c.active ? { color: 'var(--danger)' } : {}}>{c.active ? 'Pause' : 'Resume'}</button>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
+        {SOON[tab] && (
+          <div className="card fg-card">
+            <EmptyState title={SOON[tab][0]}>{SOON[tab][1]}</EmptyState>
+          </div>
         )}
 
         {/* ── Companies ── */}
         {tab === 'companies' && companies !== undefined && (
           <>
-            <div className="card mb-16">
+            <div className="card fg-card mb-16">
               <div className="card-header"><div className="card-title">Companies</div></div>
               <p className="text-muted text-sm" style={{ marginBottom: 14 }}>
                 Every company has its own completely separate users, task targets, processes, reports and settings.
@@ -361,7 +299,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
                               </>
                             ) : (
                               <>
-                                <button className="btn-sm btn-primary" onClick={() => open(c)}>Open →</button>{' '}
+                                <button className="btn-sm btn-primary" onClick={() => open(c)}>Open</button>{' '}
                                 <button className="btn-sm" onClick={() => setManage(c)}>Manage</button>{' '}
                                 <button className="btn-sm" onClick={() => setEditing({ code: c.code, name: c.name, newCode: c.code, isHome: !!c.isHome })}>Rename</button>
                                 {!c.isHome && (
@@ -384,7 +322,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
             </div>
 
             {Array.isArray(companies) && (
-              <form className="card mb-16" onSubmit={add}>
+              <form className="card fg-card mb-16" onSubmit={add}>
                 <div className="card-header"><div className="card-title">Add a company</div></div>
                 <div className="grid-2" style={{ gap: 12 }}>
                   <div className="field">
@@ -418,7 +356,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
         )}
 
         {tab === 'broadcasts' && <OwnerBroadcasts owner={owner} rows={rows} ready={ready} />}
-        {tab === 'owners' && <OwnerSecurity owner={owner} rows={rows} ready={ready} onOwnerUpdate={onOwnerUpdate} onTwoStepChange={checkTwoStep} />}
+        {tab === 'security' && <OwnerSecurity owner={owner} rows={rows} ready={ready} onOwnerUpdate={onOwnerUpdate} onTwoStepChange={checkTwoStep} />}
         {tab === 'platform' && <OwnerPlatform rows={rows} structure={structure} ready={ready} busy={busy} onSync={sync} />}
 
         {manage && (
@@ -437,6 +375,8 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
             onNotice={(ok, text) => (ok ? setMsg({ ok, text }) : alertDialog({ title: 'Could not do that', message: text, tone: 'warning' }))}
           />
         )}
+      </div>
+      </main>
       </div>
     </div>
   );

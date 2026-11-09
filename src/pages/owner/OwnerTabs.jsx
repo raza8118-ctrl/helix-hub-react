@@ -19,19 +19,19 @@ const OWNER_ACTIONS = {
   company_create: 'Added a company', company_rename: 'Renamed a company', company_delete: 'Deleted a company',
   company_settings: 'Changed company settings', company_pause: 'Paused a company', company_resume: 'Resumed a company',
   company_signout_all: 'Signed everyone out', company_private_save: 'Saved contact / notes',
-  owner_open_company: 'Opened a company as admin', owner_sign_in_as: '🔑 Signed in as a user',
+  owner_open_company: 'Opened a company as admin', owner_sign_in_as: 'Signed in as a user',
   owner_reset_password: 'Reset a user’s password', owner_user_activate: 'Switched a user on', owner_user_deactivate: 'Switched a user off',
   owner_add: 'Added an owner', owner_activate: 'Switched an owner on', owner_deactivate: 'Switched an owner off',
   broadcast_add: 'Sent a broadcast', broadcast_edit: 'Changed a broadcast', structure_sync: 'Synced structure',
   owner_password_change: 'Changed own owner password',
-  owner_sign_in: '✅ Signed in', owner_sign_in_recovery: '⚠ Signed in with a recovery code', owner_sign_in_password_ok: 'Password OK, code asked',
-  owner_sign_in_bad_password: '❌ Sign-in: wrong password', owner_sign_in_bad_code: '❌ Sign-in: wrong code',
-  owner_sign_in_unknown: '❌ Sign-in: unknown username', owner_sign_in_locked: '🔒 Sign-in blocked: locked',
+  owner_sign_in: 'Signed in', owner_sign_in_recovery: 'Signed in with a recovery code', owner_sign_in_password_ok: 'Password OK, code asked',
+  owner_sign_in_bad_password: 'Failed sign-in: wrong password', owner_sign_in_bad_code: 'Failed sign-in: wrong code',
+  owner_sign_in_unknown: 'Failed sign-in: unknown username', owner_sign_in_locked: 'Sign-in blocked: locked',
   owner_2fa_on: 'Turned on 2-step', owner_2fa_off: 'Turned off 2-step', owner_2fa_reset: 'Reset another owner’s 2-step',
-  owner_2fa_bad_password: '❌ 2-step change: wrong password', owner_2fa_bad_code: '❌ Wrong 2-step code',
-  owner_password_bad_current: '❌ Password change: wrong current password',
+  owner_2fa_bad_password: 'Failed 2-step change: wrong password', owner_2fa_bad_code: 'Wrong 2-step code',
+  owner_password_bad_current: 'Failed password change: wrong current password',
 };
-const KINDS = { info: 'ℹ️ Info', warning: '⚠️ Warning', maintenance: '🛠️ Maintenance' };
+const KINDS = { info: 'Info', warning: 'Warning', maintenance: 'Maintenance' };
 const EMPTY_B = { id: null, title: '', body: '', kind: 'info', companies: [], starts_at: '', ends_at: '', active: true };
 
 function Notice({ msg }) {
@@ -103,7 +103,7 @@ export function OwnerBroadcasts({ owner, rows, ready }) {
           </div>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <button type="submit" className="btn-primary" disabled={busy || !ready || !b.title.trim()}>{b.id ? 'Save' : '📣 Send'}</button>
+          <button type="submit" className="btn-primary" disabled={busy || !ready || !b.title.trim()}>{b.id ? 'Save' : 'Send'}</button>
           {b.id && <button type="button" className="btn-sm" onClick={() => setB(EMPTY_B)}>Cancel</button>}
         </div>
         {!ready && <p className="text-sm" style={{ color: 'var(--warning)' }}>{NOT_SET_UP}</p>}
@@ -290,7 +290,7 @@ export function OwnerSecurity({ owner, rows, ready, onTwoStepChange }) {
           <div className="card-title">Owner activity log</div>
           <input type="search" placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} style={{ maxWidth: 220 }} aria-label="Search the owner log" />
         </div>
-        <p className="text-sm text-muted" style={{ marginTop: 0 }}>Every owner action and sign-in, including failed ones — opening companies, 🔑 sign in as, pauses, page changes, password resets, broadcasts. Only owners can see it.</p>
+        <p className="text-sm text-muted" style={{ marginTop: 0 }}>Every owner action and sign-in, including failed ones — opening companies, sign in as, pauses, page changes, password resets, broadcasts. Only owners can see it.</p>
         {log === undefined && <div className="loading-row"><div className="spinner" /> Loading…</div>}
         {log === null && <p className="text-sm text-muted">{NOT_SET_UP}</p>}
         {log && (

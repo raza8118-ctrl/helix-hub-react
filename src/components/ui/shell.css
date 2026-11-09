@@ -881,3 +881,43 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ot-reset { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
 .ol-code { font-size: 20px; letter-spacing: 0.2em; text-align: center; }
 .ol-back-btn { background: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; }
+
+/* ─── Owner Command Center (PO 2026-11-09): app shell + Frost Glass sidebar, owner bar inside a company ─── */
+.oc-page { max-width: 1240px; margin: 0 auto; }
+.oc-brand-badge { flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--accent); background: var(--accent-soft, color-mix(in srgb, var(--accent) 16%, transparent)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.oc-avatar { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+.oc-me-text { cursor: default; }
+.oc-refresh { display: inline-flex; align-items: center; gap: 6px; }
+.oc-allclear { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--col-green); padding: 4px 0; }
+.oc-alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.oc-alert { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; font-size: 13px;
+  background: var(--surface-2); border-left: 3px solid var(--col-yellow); }
+.oc-alert.oc-problem { border-left-color: var(--col-red); }
+.oc-alert-icon { display: inline-flex; color: var(--col-yellow); }
+.oc-alert.oc-problem .oc-alert-icon { color: var(--col-red); }
+.oc-alert-text { flex: 1; min-width: 180px; }
+.oc-page .oc-co.card { margin: 0; }
+.oc-kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.oc-co { display: flex; flex-direction: column; gap: 10px; border-top: 3px solid var(--col-green); }
+.oc-co-watch { border-top-color: var(--col-yellow); }
+.oc-co-problem { border-top-color: var(--col-red); }
+.oc-co-reasons { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+.oc-co-reasons .oc-problem { color: var(--col-red); }
+.oc-co-reasons .oc-watch { color: var(--col-yellow); }
+.oc-co-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px; }
+.oc-co-stat { background: var(--surface-2); border-radius: 8px; padding: 6px 8px; }
+.oc-co-stat-l { color: var(--text-muted); font-size: 10.5px; }
+
+.oc-viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 16px; font-size: 12.5px; color: var(--text);
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel-solid, #10182b)); border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.oc-viewbar-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--accent); }
+.oc-viewbar-select { width: auto; max-width: 240px; padding: 3px 8px; font-size: 12.5px; font-weight: 600; min-height: 0; }
+.oc-viewbar-note { color: var(--text-muted); }
+.oc-viewbar-back { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; border: 0; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--on-accent); background: var(--accent); flex-shrink: 0; }
+.oc-viewbar-back:hover { filter: brightness(1.08); }
+@media (max-width: 768px) {
+  .oc-viewbar-back { margin-left: 0; }
+  .oc-co-stats { grid-template-columns: repeat(2, 1fr); }
+}

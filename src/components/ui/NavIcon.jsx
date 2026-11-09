@@ -26,6 +26,15 @@ const P = {
   book: <path d="M5 4.5h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18.5a2 2 0 0 1 2-2h11" />,
   bookmark: <path d="M6.5 3.5h11v17L12 16.5l-5.5 4z" />,
   shield: <path d="M12 3.5 19.5 6v6c0 4.5-3.2 7.5-7.5 8.5-4.3-1-7.5-4-7.5-8.5V6z" />,
+  // Owner Command Center (2026-11-09)
+  crown: <><path d="M4 17.5 3 7.5l5 4 4-6.5 4 6.5 5-4-1 10z" /><path d="M4.5 20.5h15" /></>,
+  database: <><ellipse cx="12" cy="6" rx="7.5" ry="2.75" /><path d="M4.5 6v12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75V6M4.5 12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75" /></>,
+  server: <><rect x="3.5" y="4" width="17" height="7" rx="1.75" /><rect x="3.5" y="13" width="17" height="7" rx="1.75" /><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6" /></>,
+  power: <><path d="M12 3.5v8" /><path d="M7 6.5a7.5 7.5 0 1 0 10 0" /></>,
+  refresh: <><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" /><path d="M19.5 4v4.5H15" /></>,
+  alert: <><path d="M12 3.8 21 19.5H3z" /><path d="M12 10v4.2M12 17h.01" /></>,
+  chevron: <path d="m9 6 6 6-6 6" />,
+  arrowLeft: <path d="M19 12H5M11 6l-6 6 6 6" />,
   mail: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="m4 7 8 6 8-6" /></>,
   calc: <><rect x="5" y="3.5" width="14" height="17" rx="2" /><path d="M8.5 7.5h7M8.5 12h1M12 12h1M15 12h.5M8.5 16h1M12 16h1M15 16h.5" /></>,
   clipboard: <><rect x="5" y="4.5" width="14" height="16" rx="2" /><path d="M9 4.5V3.5h6v1M9 10h6M9 14h6M9 17.5h3" /></>,
@@ -62,8 +71,8 @@ const BY_GROUP = {
   wb_daily: 'clipboard', wb_claims: 'shield', wb_reference: 'bookmark', wb_specialist: 'puzzle', wb_more: 'folder',
 };
 
-export default function NavIcon({ tab, group, fallback, size = 18 }) {
-  const name = tab ? BY_TAB[tab] : BY_GROUP[group];
+export default function NavIcon({ tab, group, icon, fallback, size = 18 }) {
+  const name = icon ?? (tab ? BY_TAB[tab] : BY_GROUP[group]);
   if (!name) return <span className="ui-navicon-emoji" aria-hidden="true">{fallback ?? '•'}</span>;
   return (
     <svg className="ui-navicon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
