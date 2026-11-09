@@ -23,7 +23,16 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 1 BUILT, waiting for PO look + approval.** Checked in the browser (owner session): menu of 8 pages with line icons,
+**Stage 2 BUILT + migration 46 run (2026-11-09), waiting for PO look + approval.** People: every user in every company (24),
+search name / ID, filters company / role / status (checked: Test Co 2, Test Co admins 1, search 1010 → 1, 375 px no sideways
+scroll); Sign in as / Change role / Reset password / Switch off on each row; Change role box opens + Cancel (no real user changed).
+Code pushed first (f233da0), then migration 46. Rolled-back database test (throwaway owner + users in Test Co and home, nothing
+left behind): wrong key refused, bad role, unknown company, unknown person, same role, change works, sessions ended, company
+Audit Log + owner log rows (home logged as __home__). The test caught a bug (EXECUTE … INTO doesn't set FOUND → unknown person
+not refused, home users "not found"); fixed in the migration file and re-run. Switch off / reset password already end sessions
+(existing triggers), so no extra sign-out function was needed.
+
+**Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-09).** Checked in the browser (owner session): menu of 8 pages with line icons,
 top bar titles, Overview totals (5 KPI cards), alerts (all clear today), company cards with health (both Good), other pages open
 (People / Master Data / Performance show "coming in Stage 2 / 3"); Open Test Co → owner bar → switch to 3Gen and back (sidebar
 name + pages-off count follow; shell remounts per company; old company session ended); Back to Command Center → Overview, Frost;
@@ -2201,7 +2210,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 44. `supabase/migrations/20261109_payer_source_verified.sql` (payers.source / source_links / verified_at / verified_by /
     verification_note, home + companies) — run 2026-11-04 by Claude.
 45. `supabase/migrations/20261110_owner_two_step.sql` (owner 2-step TOTP, recovery codes, lockout, sign-in log with IP;
-    `_is_owner` session keys only) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    `_is_owner` session keys only) — run 2026-11-09 by Claude.
+46. `supabase/migrations/20261111_owner_people.sql` (`owner_set_user_role`: owner changes a role → sessions ended, company Audit
+    Log + owner log) — run 2026-11-09 by Claude (re-run the same day with the FOUND fix). Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.

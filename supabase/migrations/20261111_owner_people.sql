@@ -38,7 +38,8 @@ begin
 
   execute format('select name, coalesce(role, ''employee'') from rcm.%I where upper(emp_id) = $1', v_prefix || 'users')
      into v_name, v_old using v_emp;
-  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  -- (EXECUTE … INTO does not set FOUND; v_old is never null when the person exists)
+  if v_old is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
   if v_old = v_role then return jsonb_build_object('ok', true, 'from', v_old, 'to', v_role, 'unchanged', true); end if;
 
   execute format('update rcm.%I set role = $1 where upper(emp_id) = $2', v_prefix || 'users') using v_role, v_emp;
