@@ -149,7 +149,12 @@ export function setOwnerSession(owner) {
   } catch { /* storage unavailable */ }
 }
 
-// → { data: { username, name, token }, error }
+const OWNER_ERRORS = {
+  invalid: 'Invalid owner username or password.',
+  locked: 'Too many attempts. Try again in 15 minutes.',
+};
+
+// → { data: { username, name, token }, error } or, when 2-step is on, { pass } for ownerVerifyCode
 export async function ownerLogin(username, password) {
   const { data, error } = await supabase.rpc('owner_login', { p_username: username, p_password: password });
   if (error) {
@@ -158,8 +163,22 @@ export async function ownerLogin(username, password) {
       data: null,
       error: notInstalled
         ? "Owner sign-in isn't set up yet. Run supabase/multi_company_setup.sql in Supabase first."
-        : 'Invalid owner username or password.',
+        : OWNER_ERRORS.invalid,
     };
+  }
+  if (data?.ok === false) return { data: null, error: OWNER_ERRORS[data.error] ?? OWNER_ERRORS.invalid };
+  if (data?.needs_code) return { data: null, error: null, pass: data.pass };
+  return { data, error: null };
+}
+
+// Second step: the code is checked in the database. → { data: { username, name, token }, error, expired }
+export async function ownerVerifyCode(pass, code) {
+  const { data, error } = await supabase.rpc('owner_verify_code', { p_pass: pass, p_code: code });
+  if (error) return { data: null, error: 'Connection error. Please try again.' };
+  if (data?.ok === false) {
+    if (data.error === 'expired') return { data: null, expired: true, error: 'That took too long. Please sign in again.' };
+    if (data.error === 'locked') return { data: null, error: OWNER_ERRORS.locked };
+    return { data: null, error: 'That code isn’t right. Check your authenticator app and try again.' };
   }
   return { data, error: null };
 }
@@ -170,7 +189,17 @@ export function ownerLogout(owner) {
 }
 
 // Needs the current password typed again — the session key alone can't change it
-export async function ownerChangePassword(owner, currentPassword, newPassword) {
+export async function ownerChangePassword(owner, currentPassword, newPassword, code = null) {
+  const checked = await supabase.rpc('owner_change_password_checked', {
+    p_by_user: owner.username, p_by_password: owner.token, p_password: currentPassword, p_new_password: newPassword, p_code: code,
+  });
+  if (!checked.error) {
+    const why = { password: 'Current password is incorrect', too_short: 'New password must be at least 8 characters', invalid: 'That code isn’t right.', locked: OWNER_ERRORS.locked };
+    return { error: checked.data?.ok === false ? (why[checked.data.error] ?? 'That didn’t work.') : null };
+  }
+  if (!/schema cache|does not exist|could not find the function/i.test(checked.error.message)) {
+    return { error: checked.error.message.replace(/^.*?: /, '') };
+  }
   const { error } = await supabase.rpc('owner_change_password', {
     p_username: owner.username, p_password: currentPassword, p_new_password: newPassword,
   });

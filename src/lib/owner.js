@@ -22,6 +22,11 @@ export const forceSignOut = (owner, code) => rpc('owner_force_signout', { ...byO
 export const loadPrivate = owner => rpc('owner_private_list', byOwner(owner));
 export const savePrivate = (owner, code, data) => rpc('owner_private_save', { ...byOwner(owner), p_code: code, p_data: data });
 export const loadOwnerLog = (owner, limit = 300) => rpc('owner_log_list', { ...byOwner(owner), p_limit: limit });
+export const twoStepStatus = owner => rpc('owner_2fa_status', byOwner(owner));
+export const twoStepBegin = (owner, password) => rpc('owner_2fa_begin', { ...byOwner(owner), p_password: password });
+export const twoStepConfirm = (owner, code) => rpc('owner_2fa_confirm', { ...byOwner(owner), p_code: code });
+export const twoStepDisable = (owner, password, code) => rpc('owner_2fa_disable', { ...byOwner(owner), p_password: password, p_code: code });
+export const twoStepReset = (owner, password, username) => rpc('owner_2fa_reset', { ...byOwner(owner), p_password: password, p_username: username });
 export const listOwners = owner => rpc('owner_list_owners', byOwner(owner));
 export const addOwner = (owner, { username, name, password }) => rpc('owner_add_owner', { ...byOwner(owner), p_username: username, p_name: name, p_password: password });
 export const setOwnerActive = (owner, username, active) => rpc('owner_set_owner_active', { ...byOwner(owner), p_username: username, p_active: active });

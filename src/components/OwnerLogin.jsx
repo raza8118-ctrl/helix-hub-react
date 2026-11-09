@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ownerLogin, setOwnerSession } from '../lib/company';
+import { ownerLogin, ownerVerifyCode, setOwnerSession } from '../lib/company';
 import PasswordInput from './ui/PasswordInput';
 
 function OwnerBadge() {
@@ -16,6 +16,8 @@ function OwnerBadge() {
 export default function OwnerLogin({ onOwnerLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [pass, setPass] = useState(null);   // after the password, when 2-step is on: a short-lived pass (not a session)
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,11 +25,45 @@ export default function OwnerLogin({ onOwnerLogin }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { data, error: err } = await ownerLogin(username.trim(), password);
+    const { data, pass: nextPass, error: err } = await ownerLogin(username.trim(), password);
     setLoading(false);
+    if (err) { setError(err); return; }
+    setPassword('');
+    if (nextPass) { setPass(nextPass); return; }
+    setOwnerSession(data);
+    onOwnerLogin(data);
+  }
+
+  async function submitCode(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { data, expired, error: err } = await ownerVerifyCode(pass, code.trim());
+    setLoading(false);
+    setCode('');
+    if (expired) { setPass(null); setError(err); return; }
     if (err) { setError(err); return; }
     setOwnerSession(data);
     onOwnerLogin(data);
+  }
+
+  if (pass) {
+    return (
+      <main className="ol-shell">
+        <form className="ol-card fade-in-scale" onSubmit={submitCode}>
+          <OwnerBadge />
+          <h1 className="ol-title">Enter your code</h1>
+          <p className="ol-sub">Open your authenticator app and type the 6-digit code. Lost your phone? Use a recovery code.</p>
+          <div className="form-group">
+            <label htmlFor="owner-code">Code</label>
+            <input id="owner-code" className="ol-code" type="text" value={code} onChange={e => setCode(e.target.value)} required autoFocus autoComplete="one-time-code" maxLength={9} />
+          </div>
+          {error && <div className="ol-error" role="alert">{error}</div>}
+          <button type="submit" className="ol-submit" disabled={loading || !code.trim()}>{loading ? 'Checking…' : 'Verify'}</button>
+          <button type="button" className="ol-back ol-back-btn" onClick={() => { setPass(null); setCode(''); setError(''); }}>← Start again</button>
+        </form>
+      </main>
+    );
   }
 
   return (
@@ -35,7 +71,7 @@ export default function OwnerLogin({ onOwnerLogin }) {
       <form className="ol-card fade-in-scale" onSubmit={submit}>
         <OwnerBadge />
         <h1 className="ol-title">Owner Command Center</h1>
-        <p className="ol-sub">Helix Hub owners only.</p>
+        <p className="ol-sub">Helix Hub owners only. Every sign-in is logged.</p>
 
         <div className="form-group">
           <label htmlFor="owner-id">Owner username</label>

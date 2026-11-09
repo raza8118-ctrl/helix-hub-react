@@ -4,14 +4,14 @@ import {
   loadCompany, saveCompany,
 } from '../../lib/company';
 import {
-  ownerConsoleReady, companyStats, structureStatus, loadPrivate, pauseCompany, ownerLog, codeOf, HOME_CODE,
+  ownerConsoleReady, companyStats, structureStatus, loadPrivate, pauseCompany, ownerLog, codeOf, HOME_CODE, twoStepStatus,
 } from '../../lib/owner';
 import { countOff } from '../../lib/companyFeatures';
 import { confirmDialog, promptDialog, alertDialog } from '../../components/shared/Dialog';
 import CompanyManage from './CompanyManage';
 import { OwnerBroadcasts, OwnerSecurity, OwnerPlatform } from './OwnerTabs';
 
-// Helix Hub owner only — reached from the "Helix Hub owner" link on the login screen, never from a company login.
+// Helix Hub owner only — reached from the /owner sign-in, never from a company login.
 // Owner Console 2.0 (PO request 2026-10-29): Overview (watch every company), Companies (add / rename / Manage: plan,
 // seats, pages on-off, pause, sign everyone out, banner, users + sign in as, activity, delete), Broadcasts, Owners &
 // security (owner accounts, owner activity log, password), Platform (structure check, sync, version history).
@@ -64,6 +64,11 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
     Promise.resolve().then(() => alive && reload());
     return () => { alive = false; };
   }, [reload]);
+
+  // 2-step is optional for now: show a red warning until this owner has turned it on (hidden before migration 45)
+  const [twoStepOff, setTwoStepOff] = useState(false);
+  const checkTwoStep = useCallback(() => { twoStepStatus(owner).then(r => setTwoStepOff(r.data?.enabled === false)); }, [owner]);
+  useEffect(() => { checkTwoStep(); }, [checkTwoStep]);
 
   const pickTab = t => { setTab(t); try { sessionStorage.setItem('hh_owner_tab', t); } catch { /* storage unavailable */ } };
 
@@ -196,6 +201,13 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
             <button className="btn btn-ghost btn-sm" onClick={onSignOut}>Sign out</button>
           </div>
         </div>
+
+        {twoStepOff && (
+          <div className="ot-warn" role="alert">
+            <span>⚠ <strong>2-step verification is off.</strong> Right now your password alone opens every company.</span>
+            {tab !== 'owners' && <button type="button" className="btn-sm" onClick={() => pickTab('owners')}>Set it up</button>}
+          </div>
+        )}
 
         {!ready && companies !== null && (
           <div className="card mb-16" style={{ borderLeft: '4px solid var(--warning)' }}>
@@ -406,7 +418,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
         )}
 
         {tab === 'broadcasts' && <OwnerBroadcasts owner={owner} rows={rows} ready={ready} />}
-        {tab === 'owners' && <OwnerSecurity owner={owner} rows={rows} ready={ready} onOwnerUpdate={onOwnerUpdate} />}
+        {tab === 'owners' && <OwnerSecurity owner={owner} rows={rows} ready={ready} onOwnerUpdate={onOwnerUpdate} onTwoStepChange={checkTwoStep} />}
         {tab === 'platform' && <OwnerPlatform rows={rows} structure={structure} ready={ready} busy={busy} onSync={sync} />}
 
         {manage && (

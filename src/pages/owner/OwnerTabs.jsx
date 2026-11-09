@@ -3,8 +3,10 @@ import Changelog from '../admin/Changelog';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { ownerChangePassword } from '../../lib/company';
 import {
-  loadBroadcasts, saveBroadcast, listOwners, addOwner, setOwnerActive, loadOwnerLog, ownerLog, codeOf, HOME_CODE,
+  loadBroadcasts, saveBroadcast, listOwners, addOwner, setOwnerActive, loadOwnerLog, ownerLog, codeOf, HOME_CODE, twoStepStatus, twoStepReset,
 } from '../../lib/owner';
+
+import OwnerTwoStep from './OwnerTwoStep';
 
 // Owner Console 2.0 tabs: 📣 Broadcasts · 👑 Owners & security · ⚙️ Platform
 const fmtWhen = iso => (iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
@@ -22,6 +24,12 @@ const OWNER_ACTIONS = {
   owner_add: 'Added an owner', owner_activate: 'Switched an owner on', owner_deactivate: 'Switched an owner off',
   broadcast_add: 'Sent a broadcast', broadcast_edit: 'Changed a broadcast', structure_sync: 'Synced structure',
   owner_password_change: 'Changed own owner password',
+  owner_sign_in: '✅ Signed in', owner_sign_in_recovery: '⚠ Signed in with a recovery code', owner_sign_in_password_ok: 'Password OK, code asked',
+  owner_sign_in_bad_password: '❌ Sign-in: wrong password', owner_sign_in_bad_code: '❌ Sign-in: wrong code',
+  owner_sign_in_unknown: '❌ Sign-in: unknown username', owner_sign_in_locked: '🔒 Sign-in blocked: locked',
+  owner_2fa_on: 'Turned on 2-step', owner_2fa_off: 'Turned off 2-step', owner_2fa_reset: 'Reset another owner’s 2-step',
+  owner_2fa_bad_password: '❌ 2-step change: wrong password', owner_2fa_bad_code: '❌ Wrong 2-step code',
+  owner_password_bad_current: '❌ Password change: wrong current password',
 };
 const KINDS = { info: 'ℹ️ Info', warning: '⚠️ Warning', maintenance: '🛠️ Maintenance' };
 const EMPTY_B = { id: null, title: '', body: '', kind: 'info', companies: [], starts_at: '', ends_at: '', active: true };
@@ -139,7 +147,7 @@ export function OwnerBroadcasts({ owner, rows, ready }) {
 
 // ── 👑 Owners & security ──────────────────────────────────────────────────────
 
-export function OwnerSecurity({ owner, rows, ready }) {
+export function OwnerSecurity({ owner, rows, ready, onTwoStepChange }) {
   const [owners, setOwners] = useState(undefined);
   const [log, setLog] = useState(undefined);
   const [nw, setNw] = useState({ username: '', name: '', password: '' });
@@ -148,6 +156,16 @@ export function OwnerSecurity({ owner, rows, ready }) {
   const [pwMsg, setPwMsg] = useState(null);
   const [q, setQ] = useState('');
   const [reload, setReload] = useState(0);
+  const [twoStep, setTwoStep] = useState(undefined);   // undefined = loading, null = migration 45 not run
+  const [pwCode, setPwCode] = useState('');
+  const [resetFor, setResetFor] = useState(null);      // another owner whose 2-step is being reset
+  const [resetPw, setResetPw] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    twoStepStatus(owner).then(r => { if (alive) setTwoStep(r.data ?? null); });
+    return () => { alive = false; };
+  }, [owner, reload]);
 
   const load = useCallback(() => Promise.all([listOwners(owner), loadOwnerLog(owner, 300)]), [owner]);
   useEffect(() => {
@@ -163,7 +181,7 @@ export function OwnerSecurity({ owner, rows, ready }) {
     if (!await confirmDialog({ title: 'Add this owner?', message: `${nw.name || 'New owner'} (${nw.username.trim().toUpperCase()}) gets FULL owner access: every company, pause, delete, sign in as anyone.`, tone: 'warning', confirmText: 'Add owner' })) return;
     const r = await addOwner(owner, nw);
     if (r.error) { setMsg({ ok: false, text: errText(r.error) }); return; }
-    setMsg({ ok: true, text: `✓ Owner ${nw.username.trim().toUpperCase()} added. They sign in with “Helix Hub owner sign in” on the login screen.` });
+    setMsg({ ok: true, text: `✓ Owner ${nw.username.trim().toUpperCase()} added. They sign in at the /owner address (or the small “Owner” link on the sign-in page).` });
     setNw({ username: '', name: '', password: '' });
     setReload(x => x + 1);
   }
@@ -182,17 +200,31 @@ export function OwnerSecurity({ owner, rows, ready }) {
     setPwMsg(null);
     if (pw.next !== pw.confirm) { setPwMsg({ ok: false, text: 'New passwords do not match.' }); return; }
     if (!await confirmDialog({ title: 'Change your owner password?', message: 'Use the new password the next time you sign in.', tone: 'warning', confirmText: 'Change Password' })) return;
-    const { error } = await ownerChangePassword(owner, pw.current, pw.next);
+    const { error } = await ownerChangePassword(owner, pw.current, pw.next, pwCode.trim() || null);
+    setPwCode('');
     if (error) { setPwMsg({ ok: false, text: error }); return; }
     ownerLog(owner, 'owner_password_change', null);
     setPw({ current: '', next: '', confirm: '' });
     setPwMsg({ ok: true, text: '✓ Password changed.' });
   }
 
+  async function doReset(e) {
+    e.preventDefault();
+    const r = await twoStepReset(owner, resetPw, resetFor);
+    setResetPw('');
+    if (r.error) { setMsg({ ok: false, text: errText(r.error) }); return; }
+    if (r.data?.ok === false) { setMsg({ ok: false, text: r.data.error === 'locked' ? 'Too many attempts. Try again in 15 minutes.' : 'That password isn’t right.' }); return; }
+    setMsg({ ok: true, text: `✓ 2-step verification reset for ${resetFor}. They can sign in with their password and set it up again.` });
+    setResetFor(null);
+    setReload(x => x + 1);
+  }
+
   const shownLog = (log ?? []).filter(l => !q.trim() || `${l.owner} ${OWNER_ACTIONS[l.action] ?? l.action} ${coName(l.company_code)} ${l.target ?? ''} ${l.details?.reason ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
     <>
+      <OwnerTwoStep owner={owner} status={twoStep} onChanged={() => { setReload(x => x + 1); onTwoStepChange?.(); }} />
+
       <div className="grid-2 mb-16" style={{ alignItems: 'start' }}>
         <div className="card" style={{ margin: 0 }}>
           <div className="card-title" style={{ marginBottom: 8 }}>Owner accounts</div>
@@ -204,12 +236,25 @@ export function OwnerSecurity({ owner, rows, ready }) {
                 {owners.map(o => (
                   <tr key={o.username}>
                     <td><div className="bold">{o.name}</div><div className="text-sm text-muted">{o.username}{o.username === owner.username ? ' · you' : ''}</div></td>
-                    <td><span className={`badge ${o.active ? 'badge-green' : 'badge-gray'}`}>{o.active ? 'Active' : 'Off'}</span></td>
-                    <td className="right">{o.username !== owner.username && <button className="btn-sm" onClick={() => toggle(o)}>{o.active ? 'Switch off' : 'Switch on'}</button>}</td>
+                    <td>
+                      <span className={`badge ${o.active ? 'badge-green' : 'badge-gray'}`}>{o.active ? 'Active' : 'Off'}</span>{' '}
+                      {o.two_step !== undefined && <span className={`badge ${o.two_step ? 'badge-green' : 'badge-red'}`}>{o.two_step ? '2-step on' : '2-step off'}</span>}
+                    </td>
+                    <td className="right">{o.username !== owner.username && o.two_step && <button className="btn-sm" style={{ marginRight: 4 }} onClick={() => { setResetFor(o.username); setResetPw(''); setMsg(null); }}>Reset 2-step</button>}{o.username !== owner.username && <button className="btn-sm" onClick={() => toggle(o)}>{o.active ? 'Switch off' : 'Switch on'}</button>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          )}
+          {resetFor && (
+            <form onSubmit={doReset} className="ot-reset">
+              <label htmlFor="ot-reset-pw" className="text-sm">Reset 2-step for <strong>{resetFor}</strong> (lost phone). Enter <strong>your</strong> password:</label>
+              <div className="row" style={{ gap: 8, marginTop: 6 }}>
+                <input id="ot-reset-pw" type="password" value={resetPw} onChange={e => setResetPw(e.target.value)} required autoComplete="current-password" />
+                <button type="button" className="btn-sm" onClick={() => setResetFor(null)}>Cancel</button>
+                <button type="submit" className="btn-sm btn-danger">Reset</button>
+              </div>
+            </form>
           )}
           <form onSubmit={add} style={{ marginTop: 12 }}>
             <div className="text-sm bold" style={{ marginBottom: 6 }}>Add an owner</div>
@@ -231,6 +276,10 @@ export function OwnerSecurity({ owner, rows, ready }) {
             <input id="ow-pw" type="password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} required minLength={8} autoComplete="new-password" /></div>
           <div className="field"><label htmlFor="ow-pw2">Confirm new password</label>
             <input id="ow-pw2" type="password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} required minLength={8} autoComplete="new-password" /></div>
+          {twoStep?.enabled && (
+            <div className="field"><label htmlFor="ow-pw-code">Code from your authenticator app</label>
+              <input id="ow-pw-code" value={pwCode} onChange={e => setPwCode(e.target.value)} required autoComplete="one-time-code" /></div>
+          )}
           <button type="submit" className="btn-primary">Change password</button>
           <Notice msg={pwMsg} />
         </form>
@@ -241,7 +290,7 @@ export function OwnerSecurity({ owner, rows, ready }) {
           <div className="card-title">Owner activity log</div>
           <input type="search" placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} style={{ maxWidth: 220 }} aria-label="Search the owner log" />
         </div>
-        <p className="text-sm text-muted" style={{ marginTop: 0 }}>Every owner action — opening companies, 🔑 sign in as, pauses, page changes, password resets, broadcasts. Only owners can see it.</p>
+        <p className="text-sm text-muted" style={{ marginTop: 0 }}>Every owner action and sign-in, including failed ones — opening companies, 🔑 sign in as, pauses, page changes, password resets, broadcasts. Only owners can see it.</p>
         {log === undefined && <div className="loading-row"><div className="spinner" /> Loading…</div>}
         {log === null && <p className="text-sm text-muted">{NOT_SET_UP}</p>}
         {log && (
@@ -256,7 +305,7 @@ export function OwnerSecurity({ owner, rows, ready }) {
                     <td className="text-sm">{OWNER_ACTIONS[l.action] ?? l.action.replace(/_/g, ' ')}</td>
                     <td className="text-sm">{coName(l.company_code)}</td>
                     <td className="text-sm">{l.target ?? ''}</td>
-                    <td className="text-sm text-muted">{l.details?.reason ?? l.details?.message ?? (l.details?.changed ? `Changed: ${l.details.changed.join(', ')}` : '')}</td>
+                    <td className="text-sm text-muted">{l.details?.reason ?? l.details?.message ?? (l.details?.changed ? `Changed: ${l.details.changed.join(', ')}` : '')}{l.details?.ip ? `IP ${l.details.ip}` : ''}</td>
                   </tr>
                 ))}
                 {!shownLog.length && <tr><td colSpan={6} className="center text-muted">Nothing logged yet</td></tr>}
