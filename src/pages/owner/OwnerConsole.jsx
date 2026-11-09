@@ -11,6 +11,7 @@ import CompanyManage from './CompanyManage';
 import { OwnerBroadcasts, OwnerSecurity, OwnerPlatform } from './OwnerTabs';
 import OwnerSidebar from './OwnerSidebar';
 import OwnerOverview from './OwnerOverview';
+import OwnerPeople from './OwnerPeople';
 import { OWNER_PAGES, healthOf } from '../../lib/ownerCenter';
 import NavIcon from '../../components/ui/NavIcon';
 import ThemeSwitcher from '../../components/ui/ThemeSwitcher';
@@ -25,7 +26,6 @@ import EmptyState from '../../components/ui/EmptyState';
 const EMPTY = { name: '', code: '', adminId: 'ADMIN', adminName: 'Administrator', adminPassword: '' };
 const OLD_TABS = { owners: 'security' };   // tab names saved before the Command Center
 const SOON = {
-  people: ['People', 'Every user in every company in one table — search, filter, reset password, switch off, change role, sign in as. Coming in Stage 2.'],
   masters: ['Master Data', 'Clients, payers and processes for each company, side by side. Coming in Stage 3.'],
   performance: ['Performance', 'Prod % and Quality % per company for this week and this month. Coming in Stage 3.'],
 };
@@ -244,6 +244,11 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
         {tab === 'overview' && companies !== undefined && (
           <OwnerOverview rows={rows} statOf={statOf} needsSync={needsSync} startPage={startPage} startPages={START_PAGES}
             onStartPage={setStartPage} onOpen={open} onManage={setManage} onTogglePause={togglePause} onPick={pickTab} busy={busy} />
+        )}
+
+        {tab === 'people' && companies !== undefined && rows.length > 0 && (
+          <OwnerPeople owner={owner} rows={rows} onOpen={open}
+            onNotice={(ok, text) => (ok ? setMsg({ ok, text }) : alertDialog({ title: 'Could not do that', message: text, tone: 'warning' }))} />
         )}
 
         {SOON[tab] && (

@@ -24,6 +24,7 @@ const OWNER_ACTIONS = {
   owner_add: 'Added an owner', owner_activate: 'Switched an owner on', owner_deactivate: 'Switched an owner off',
   broadcast_add: 'Sent a broadcast', broadcast_edit: 'Changed a broadcast', structure_sync: 'Synced structure',
   owner_password_change: 'Changed own owner password',
+  owner_change_role: 'Changed a user’s role',
   owner_sign_in: 'Signed in', owner_sign_in_recovery: 'Signed in with a recovery code', owner_sign_in_password_ok: 'Password OK, code asked',
   owner_sign_in_bad_password: 'Failed sign-in: wrong password', owner_sign_in_bad_code: 'Failed sign-in: wrong code',
   owner_sign_in_unknown: 'Failed sign-in: unknown username', owner_sign_in_locked: 'Sign-in blocked: locked',
@@ -305,7 +306,7 @@ export function OwnerSecurity({ owner, rows, ready, onTwoStepChange }) {
                     <td className="text-sm">{OWNER_ACTIONS[l.action] ?? l.action.replace(/_/g, ' ')}</td>
                     <td className="text-sm">{coName(l.company_code)}</td>
                     <td className="text-sm">{l.target ?? ''}</td>
-                    <td className="text-sm text-muted">{l.details?.reason ?? l.details?.message ?? (l.details?.changed ? `Changed: ${l.details.changed.join(', ')}` : '')}{l.details?.ip ? `IP ${l.details.ip}` : ''}</td>
+                    <td className="text-sm text-muted">{l.details?.reason ?? l.details?.message ?? (l.details?.changed ? `Changed: ${l.details.changed.join(', ')}` : l.details?.to ? `${l.details.from ?? '?'} → ${l.details.to}` : '')}{l.details?.ip ? `IP ${l.details.ip}` : ''}</td>
                   </tr>
                 ))}
                 {!shownLog.length && <tr><td colSpan={6} className="center text-muted">Nothing logged yet</td></tr>}

@@ -921,3 +921,9 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
   .oc-viewbar-back { margin-left: 0; }
   .oc-co-stats { grid-template-columns: repeat(2, 1fr); }
 }
+/* Owner Command Center → People */
+.op-table td { vertical-align: middle; }
+.op-id { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 12px; color: var(--text-muted); }
+.op-actions { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.op-off td { opacity: 0.72; }
+.op-off td:last-child { opacity: 1; }

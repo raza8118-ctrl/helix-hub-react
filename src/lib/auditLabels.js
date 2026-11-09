@@ -6,6 +6,7 @@ const ACTION_LABELS = {
   owner_sign_in_as:      'Helix Hub owner signed in as this user',
   owner_reset_password:  'Helix Hub owner reset a password',
   owner_set_pages:       'Helix Hub owner changed which pages are switched on',
+  owner_change_role:     'Helix Hub owner changed a role',
   create_user:           'Created user',
   edit_user:             'Edited user',
   activate_user:         'Activated user',

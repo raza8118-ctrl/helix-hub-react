@@ -37,6 +37,8 @@ export const demoStatus = (owner, code) => rpc('owner_demo_status', { ...byOwner
 export const demoLoad   = (owner, code) => rpc('owner_demo_load',   { ...byOwner(owner), p_code: code });
 export const demoRemove = (owner, code) => rpc('owner_demo_remove', { ...byOwner(owner), p_code: code });
 /** Security stage 2: a session for "Open →" (empId null = full admin) or "Sign in as" → { data: session key } */
+// Owner Command Center → People: role change, sign-out and both log entries happen in the database (migration 46)
+export const setUserRole = (owner, code, empId, role) => rpc('owner_set_user_role', { ...byOwner(owner), p_code: code, p_emp_id: empId, p_role: role });
 export const openOwnerSession = (owner, prefix, empId) => rpc('owner_open_session', { ...byOwner(owner), p_prefix: prefix, p_emp_id: empId });
 
 /** Record an owner action done in the app (sign in as, password reset…). Fire-and-forget. */
