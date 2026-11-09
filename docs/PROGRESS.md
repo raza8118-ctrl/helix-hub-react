@@ -23,6 +23,20 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Stage 1 BUILT + migration 50 run (2026-11-09), waiting for PO look + approval.** Code pushed first (30c307b), then migration 50.
+access.js: page_team, page_settings, masters_edit, audit_view = ADMINS; App shows a role only the tabs it may open (and falls back
+from a blocked saved tab); sidebar footer role badge (Owner gold / Admin accent / Manager accent outline / Supervisor green /
+Employee grey) with the team beside it. Migration 50: _may (manager passes every rule except page_settings, page_team,
+masters_edit, audit_view), users guard (admin or page_team grant), _can_manage_ai_key (admin, Settings grant, owner), rcm_store
+change rules re-created (shift_dst + quality_skip_procs need page_settings|page_team; other keys unchanged). Rolled-back test with
+throwaway admin / manager / manager+Team grant / supervisor / employee sessions in Test Co (settings checked as the app's anon
+role): admin everything; manager refused Settings / targets / clients / other accounts / shift timing / AI key, keeps payers, SOPs,
+denials, MONITORS, allocation, other settings; Team grant gives Team + other accounts (+ shift timing, because that rule takes
+Settings or Team); supervisor and employee as before except supervisors can no longer save shift timing (they never had the
+page). Browser: owner in Test Co sees badge "Owner" and Team / Settings / Clients & Payers / Audit Log; access logic for a manager
+gives Team Dashboard, Today, Prod, Quality, Hourly, Weekly, Work Alloc, Feed Monitor (no Team / Settings / Clients / Audit).
+No manager account exists to sign in with. Lint 51 before and after.
+
 **Company Admin vs Manager + Admin Centre (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** Checked first (read-only): no
 managers in either company (3Gen: 1 admin, 1 supervisor, 20 employees; Test Co: 1 admin) → nobody loses access; no user data
 changes. Stage 1: Settings, Team (users + roles), Access grants, Clients & Payers ("Master Data") and Audit Log become admin-only
@@ -2296,7 +2310,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 48. `supabase/migrations/20261113_master_push.sql` (master_hash on 17 tables, helix_master_pushes, preview / push / history
     functions) — run 2026-11-09 by Claude.
 49. `supabase/migrations/20261114_master_files.sql` (payer forms + SOP media in the push, paths to the company folder,
-    owner_master_files) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    owner_master_files) — run 2026-11-09 by Claude.
+50. `supabase/migrations/20261115_admin_only.sql` (admin-only Settings / Team / Clients / Audit for managers: _may, users guard,
+    AI key, rcm_store change rules) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
