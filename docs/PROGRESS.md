@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 3 BUILT (2026-11-09), waiting for PO look + approval — last stage.** No database change. Performance: Prod % + Quality %
+**Stage 3 APPROVED (PO 2026-11-09) — step DONE.** Built 2026-11-09. No database change. Performance: Prod % + Quality %
 per company for this week (Mon–today) and this month (1st–today) with report / people counts and colour bars (Prod Monitor
 colours). Checked: function gives Test Co 2 reports, Prod 30.9 %, Quality 100 % for Aug–Nov; November shows 0 reports for both
 companies (true: home's last daily report is 2026-07-27, Test Co's 2026-10-31), so the page shows dashes today. Master Data
@@ -47,7 +47,7 @@ name + pages-off count follow; shell remounts per company; old company session e
 switches logged as "Opened a company as admin"; 375 px: ☰ menu slides in, no sideways scroll. Lint: no new problems (51 before
 and after). Emoji removed from owner pages (log labels, broadcast types, Sign in as, Pause / Resume).
 
-**Owner Command Center (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** Owner Console redesigned in Frost Glass, 3 stages, PO
+**Owner Command Center (PO "Go" 2026-11-09) — DONE (all 3 stages approved 2026-11-09).** Performance shows numbers once November daily reports are submitted. Owner Console redesigned in Frost Glass, 3 stages, PO
 approval after each. Stage 1 (no database): left sidebar (Overview, Companies, People, Master Data, Performance, Broadcasts,
 Security, Platform; line icons, no emoji; ☰ on phones); Overview = platform totals, alert list, card per company with health
 (Problem: paused / over seat limit / needs sync · Watch: no sign-ins 7 days / no reports this week · Good); purple banner → bar
