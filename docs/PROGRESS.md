@@ -23,6 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Company Admin vs Manager + Admin Centre (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** Checked first (read-only): no
+managers in either company (3Gen: 1 admin, 1 supervisor, 20 employees; Test Co: 1 admin) → nobody loses access; no user data
+changes. Stage 1: Settings, Team (users + roles), Access grants, Clients & Payers ("Master Data") and Audit Log become admin-only
+by default (managers keep monitoring, Team Dashboard, Quality, Work Alloc, Feed Monitor and library editing — Payer Directory,
+SOPs, denial guides, code lists, templates); app shows a role only the pages it may open; migration 50 changes the database rule
+(_may / users guard) so managers can't save Settings, targets, processes, clients or other people's accounts — everything else a
+manager saves keeps working (tested as a manager in a rolled-back run); role badge pill in the sidebar footer (Owner / Admin /
+Manager / Supervisor / Employee). Stage 2: Admin Centre page (admins + owner) with cards Users & roles, Access & permissions,
+Targets & processes, Pages on/off (read-only, set by Helix Hub), Company data imports, AI & integrations, Audit log — each opens
+the existing page / section; old tabs stay until the PO approves removing them (later step). PO accepted: "Master Data" = Clients
+& Payers only; Pages on/off read-only; individual grants still count.
+
 **Stage 3 APPROVED (PO 2026-11-09) — step DONE.** Built + migration 49 run 2026-11-09. Code pushed first (22b6d9b),
 then migration 49: payer forms (section Payer Directory) and SOP screenshots / videos (sop_media + pictures / videos inside SOP
 steps + walk-through video, section SOP Library) are in the push; paths move from co_master/… to the company's folder (home: no
