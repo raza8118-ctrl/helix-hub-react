@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Part 2 (My Reports, My Progress, My Allocation) BUILT, waiting for PO approval.** Checked as test employee 1010 in Test Co: My
+**Part 2 (My Reports, My Progress, My Allocation) APPROVED by PO 2026-11-09.** Checked as test employee 1010 in Test Co: My
 Reports in Daylight (week ‹ › and Productivity / Quality switches work), My Progress in Frost, both at 375 px (no page sideways
 scroll; Progress tiles 2 per row). My Announcements (employee) also opened: looks right. My Allocation NOT seen in the browser (Work
 Alloc is switched off in Test Co) — lint + build only; day-detail window not seen (no reports logged). Lint: same old problems as
@@ -34,7 +34,7 @@ themes at 1440 px and at 375 px (no page sideways scroll; KPI + slots 2 per row,
 (requests were reads): Present / First Half / Absent choices and their notes; deficit alert with a typed count; call strip. Not seen
 (need saved data or other dates): holiday, Auth, submitted, editing-expired banners. Test employee's theme left on Daylight.
 
-**Frost Glass — employee pages (PO "Go" 2026-11-09) — IN PROGRESS.** Styling only (formula, targets, downtime, hourly counts,
+**Frost Glass — employee pages (PO "Go" 2026-11-09) — DONE, both parts approved.** Styling only (formula, targets, downtime, hourly counts,
 saving, 24-hour edit window, reports, exports, allocations unchanged; no database change). Two parts, each for PO approval. Part 1 —
 Daily Report (`ProdReport.jsx`, 44 fixed colours): old heading → filter card with date, name / processes / target / shift, Export +
 Save; attendance / leave choices → themed toggles; banners → themed notices (same wording); KPI panel + hourly slots + call strip in
