@@ -23,6 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Owner Command Center (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** Owner Console redesigned in Frost Glass, 3 stages, PO
+approval after each. Stage 1 (no database): left sidebar (Overview, Companies, People, Master Data, Performance, Broadcasts,
+Security, Platform; line icons, no emoji; ☰ on phones); Overview = platform totals, alert list, card per company with health
+(Problem: paused / over seat limit / needs sync · Watch: no sign-ins 7 days / no reports this week · Good); purple banner → bar
+"Viewing as Owner · [Company ▼] · Back to Command Center" (switch company directly, logged like Open). Existing tabs keep working
+inside the new layout. Stage 2 (migration 46, additive: functions only): People = every user in every company, search name / ID,
+filter company / role / status; reset password, sign in as, switch off (+ signed out within ~2 min), change role (employee /
+supervisor / manager / admin; signs them out so it applies); every action in the owner log AND the company's Audit Log. Stage 3:
+Performance = Prod % (Prod Monitor formula) and Quality % (average of daily-report quality) per company, this week (Mon–today) and
+this month, with report counts; Master Data = per-company counts + read-only search of clients / payers / processes with "Open in
+company" to edit (PO accepted read-only).
+
 **Stage 2 APPROVED (PO 2026-11-09) — step DONE.** Built + migration 45 run 2026-11-09. Code pushed first (c923ee5), then migration 45
 run by Claude. Checked: RFC 6238 vectors (5/5) + base32; new tables and internal functions not readable by the app; a failed
 sign-in shows in the log with IP; the PO's own owner session survived. Full checklist run by Claude in ONE rolled-back database
