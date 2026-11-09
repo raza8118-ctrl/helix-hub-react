@@ -175,7 +175,9 @@ export default function Sidebar({
     );
   };
 
-  const roleLine = [user?.role, user?.team].filter(Boolean).join(' · ');
+  // Role badge (PO 2026-11-09): Owner / Admin / Manager / Supervisor / Employee; the team stays underneath
+  const roleKey = user?.isOwner && !user?.viewingAs ? 'owner' : (user?.role || 'employee');
+  const roleLabel = { owner: 'Owner', admin: 'Admin', manager: 'Manager', supervisor: 'Supervisor', employee: 'Employee' }[roleKey] ?? roleKey;
 
   return (
     <aside className={`sidebar sb-glass${compact ? ' compact' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Main menu">
@@ -236,7 +238,10 @@ export default function Sidebar({
           {!compact && (
             <button type="button" className="sb-me-text" onClick={() => { onOpenProfile(); onCloseMobile?.(); }} title="My Profile">
               <span className="sb-me-name">{user?.name || user?.emp_id}</span>
-              {roleLine && <span className="sb-me-role">{roleLine}</span>}
+              <span className="sb-me-role">
+                <span className={`sb-role sb-role-${roleKey}`}>{roleLabel}</span>
+                {user?.team && <span className="sb-role-team">{user.team}</span>}
+              </span>
             </button>
           )}
           <button className="nav-icon-btn" onClick={onLogout} title="Sign out" aria-label="Sign out">⏻</button>

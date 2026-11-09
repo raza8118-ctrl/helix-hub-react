@@ -5,6 +5,9 @@
 // Page role defaults match what each role saw before per-user access existed.
 const MONITORS = ['admin', 'manager', 'supervisor'];
 const MANAGERS = ['admin', 'manager'];
+// Company Admin only (PO 2026-11-09): Settings, Team (users + roles + access), Clients & Payers, Audit Log.
+// Managers keep monitoring, team pages and library editing; an admin can still grant any of these to a person.
+const ADMINS = ['admin'];
 
 export const FEATURES = [
   { group: 'Pages', key: 'page_dashboard',     label: 'Attendance (Keka)',      defaultRoles: MONITORS },
@@ -17,12 +20,12 @@ export const FEATURES = [
   { group: 'Pages', key: 'page_quality',       label: 'Quality Monitor',        defaultRoles: MANAGERS },
   { group: 'Pages', key: 'page_allocation',    label: 'Work Allocation',        defaultRoles: MANAGERS },
   { group: 'Pages', key: 'page_feedmonitor',   label: 'Feed Monitor',           defaultRoles: MANAGERS },
-  { group: 'Pages', key: 'page_team',          label: 'Team management',        defaultRoles: MANAGERS,
+  { group: 'Pages', key: 'page_team',          label: 'Team management',        defaultRoles: ADMINS,
     warning: 'Can add users, change roles and reset passwords for the whole company' },
-  { group: 'Pages', key: 'page_settings',      label: 'Settings',               defaultRoles: MANAGERS,
+  { group: 'Pages', key: 'page_settings',      label: 'Settings',               defaultRoles: ADMINS,
     warning: 'Can change productivity targets, shift timing and the AI key' },
-  { group: 'Tools', key: 'masters_edit', label: 'Edit Clients & Payers', defaultRoles: MANAGERS },
-  { group: 'Tools', key: 'audit_view',   label: 'View Audit Log',        defaultRoles: ['admin'] },
+  { group: 'Tools', key: 'masters_edit', label: 'Edit Clients & Payers', defaultRoles: ADMINS },
+  { group: 'Tools', key: 'audit_view',   label: 'View Audit Log',        defaultRoles: ADMINS },
   // Viewing the Payer Directory is open to every signed-in user; editing is gated
   { group: 'Tools', key: 'payers_edit',  label: 'Edit Payer Directory',  defaultRoles: MANAGERS },
   // File Tools are open to everyone; this only controls the company's Appeal Packet file naming convention

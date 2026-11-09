@@ -508,8 +508,10 @@ export default function App() {
   // Owner Console 2.0: pages the owner switched off for this company are hidden for everyone (owner view included,
   // so the owner sees exactly what the company sees); an open page that was switched off falls back to the first one
   const offTabs = disabledTabs(addedCompanyCode() == null ? homeFeatures : companyRow?.features);
-  const tabs = withGrantedTabs(roleTabs, currentUser).filter(t => !offTabs.has(t.id));
-  const shownTab = offTabs.has(activeTab) ? (tabs[0]?.id ?? activeTab) : activeTab;
+  // A role only sees the pages it may open (e.g. Settings / Team are admin-only, PO 2026-11-09)
+  const tabs = withGrantedTabs(roleTabs.filter(t => canOpenTab(currentUser, t.id)), currentUser).filter(t => !offTabs.has(t.id));
+  const blockedTab = offTabs.has(activeTab) || (TAB_FEATURES[activeTab] && !canOpenTab(currentUser, activeTab));
+  const shownTab = blockedTab ? (tabs[0]?.id ?? activeTab) : activeTab;
   const pageTitle = tabs.find(t => t.id === shownTab)?.label ?? '';
   const pageSection = tabs.find(t => t.id === shownTab)?.section ?? '';
   // Counts on Workbench items: 6.5 follow-ups, 8.2 payer updates, 10.3 notice board
