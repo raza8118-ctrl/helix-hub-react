@@ -23,6 +23,17 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Stage 1 BUILT + migration 47 run (2026-11-09), waiting for PO look + approval.** Code pushed first (7f89ea8), then migration 47:
+hidden workspace "Master copy" (code MASTER, prefix co_master__, companies.is_master, 77 tables, no users); master_id +
+master_pushed_at on the 17 master tables in home, Test Co and the master. App: listCompanies() never returns the master (checked:
+Overview, People, Master Data cards show only 3Gen + Test Co); Master Data → "Master copy" card (rows per list, Edit master copy,
+"Start from 3Gen Consulting's lists" while empty, Push to companies = Stage 2); Edit master copy opens Payer Directory with a
+yellow bar "Editing MASTER COPY · [Master copy ▼] · Companies get these changes only when you push them · Back". Rolled-back
+database test of the seed (16 checks): copies 12 payers, 9 payer IDs, 25 contacts, 25 base limits, 28 notes, 49 denial codes,
+23 steps, 24 codes, 6 SOP categories, 15 software (home has 0 SOPs / task_configs); every link points at the right parent
+(9 / 9 payer IDs, 23 / 23 steps, 15 / 15 software); home unchanged; second run refused; wrong key refused; nothing left behind.
+The real "Start from 3Gen's lists" click is left to the PO (one-time). Lint 51 before and after.
+
 **Master copy + Push to companies (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** 3 stages, PO approval after each; database
 additive only. Master copy = a hidden workspace (never on login, company lists, People, Performance, seats) the owner opens from
 Command Center → Master Data → "Edit master copy" and edits with the EXISTING pages (Payer Directory, Denial Navigator admin, SOP
@@ -2235,7 +2246,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 45. `supabase/migrations/20261110_owner_two_step.sql` (owner 2-step TOTP, recovery codes, lockout, sign-in log with IP;
     `_is_owner` session keys only) — run 2026-11-09 by Claude.
 46. `supabase/migrations/20261111_owner_people.sql` (`owner_set_user_role`: owner changes a role → sessions ended, company Audit
-    Log + owner log) — run 2026-11-09 by Claude (re-run the same day with the FOUND fix). Last-resort unlock if an owner loses phone + codes and there is no
+    Log + owner log) — run 2026-11-09 by Claude (re-run the same day with the FOUND fix).
+47. `supabase/migrations/20261112_master_copy.sql` (hidden Master copy workspace co_master__ + companies.is_master; master_id /
+    master_pushed_at on 17 tables; owner_master_status / owner_master_seed) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
