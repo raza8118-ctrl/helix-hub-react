@@ -23,6 +23,21 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Master copy + Push to companies (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** 3 stages, PO approval after each; database
+additive only. Master copy = a hidden workspace (never on login, company lists, People, Performance, seats) the owner opens from
+Command Center → Master Data → "Edit master copy" and edits with the EXISTING pages (Payer Directory, Denial Navigator admin, SOP
+Library, Code Lookup lists, Settings task targets); bar "Editing MASTER COPY". Pushed rows carry a new `master_id` (+ last-pushed
+time) — NOT `source` (already means where a row came from, e.g. Claim.MD). Rows without master_id belong to the company and are
+never touched. Sections: Payer Directory (payers, plans, payer IDs, contacts, notes, auth rules, base limits — never client limits),
+Denial guides (CARC / RARC codes, common + payer steps — never client steps), Code lists (revenue, HIPPS, ICD-10), SOP Library
+(categories, software, tasks, SOP text + steps; an updated SOP gets a new version → staff acknowledge as usual; never client SOPs or
+read history), Task targets (defaults only). Preview runs the real push in the database and cancels it: per company + section New /
+Updated / Unchanged / Kept (company's own: same name or code not from master) / Kept (changed here after the last push); push is one
+step per company; logged in owner log + each company's Audit Log + push history. Stage 1 (migration 47): master workspace,
+master_id columns everywhere, "Edit master copy" bar, master hidden from lists, one-time "Start from 3Gen's lists" (3Gen's rows stay
+as they are). Stage 2: preview + push + history. Stage 3: payer form PDFs + SOP screenshots / videos copied with the push. PO
+accepted: master_id not source; matching company rows kept as theirs; company edits after a push kept; start from 3Gen's lists.
+
 **Stage 3 APPROVED (PO 2026-11-09) — step DONE.** Built 2026-11-09. No database change. Performance: Prod % + Quality %
 per company for this week (Mon–today) and this month (1st–today) with report / people counts and colour bars (Prod Monitor
 colours). Checked: function gives Test Co 2 reports, Prod 30.9 %, Quality 100 % for Aug–Nov; November shows 0 reports for both
