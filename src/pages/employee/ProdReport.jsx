@@ -46,6 +46,9 @@ function calcProd(taskDefs, counts, overallTarget, downtimeHours, attendanceStat
   return { total, adjTarget, prodPct, deficit, deficitPct, isLeave: false, shiftHours, baseTarget };
 }
 
+/** Frost Glass: colour meaning of an attendance choice (leave red, present green, half-day amber). */
+const attendTone = (s, isLeaveOpt) => (isLeaveOpt ? 'bad' : s === 'present' ? 'good' : 'warn');
+
 function pColor(pct) {
   const n = parseFloat(pct);
   if (isNaN(n) || pct == null) return 'var(--col-neutral)';
@@ -421,21 +424,20 @@ export default function ProdReport({ user }) {
     dlCSV(headers, rows, `report-${user.emp_id}-${date}.csv`);
   }
 
-  const headerBg = { background: 'linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%)', borderRadius: 'var(--radius)', padding: '20px 24px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.1)' };
-
   return (
-    <div>
-      {/* Header controls */}
-      <div className="page-header">
-        <div>
-          <div className="page-title">Daily Productivity Report</div>
-          <div className="page-subtitle">
+    <div className="fg-page rp-page">
+      {/* Date + actions (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <label className="fg-f"><span>Date</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </label>
+          <span className="fg-date">
             {user.name ?? user.emp_id} · {userProcs.join(' + ')}
             {!isLegacyAuth && !isLeave ? ` · Target: ${overallTarget}${isHalfDay ? ` (half-day: ${overallTarget * 0.5})` : ''} · Shift: ${maxDowntime}h` : ''}
-          </div>
+          </span>
         </div>
-        <div className="row" style={{ gap: 8 }}>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ maxWidth: 160 }} />
+        <div className="fg-actions">
           <button className="btn-sm" onClick={exportReport}>Export CSV</button>
           <button className="btn-primary" onClick={save} disabled={saving || loading}>
             {saving ? 'Saving…' : saved ? '✓ Report Saved' : isLeave ? 'Mark Absent' : 'Save Report'}
@@ -444,11 +446,11 @@ export default function ProdReport({ user }) {
       </div>
 
       {/* Attendance Status selector */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 10 }}>
+      <div className="card">
+        <div className="rp-label">
           Attendance Status — {fmtD(date)}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="rp-choices">
           {ATTENDANCE_STATUSES.map(s => {
             const isLeaveOpt = LEAVE_STATUSES.includes(s);
             const isSelected = attendanceStatus === s;
@@ -457,15 +459,8 @@ export default function ProdReport({ user }) {
                 key={s}
                 onClick={() => isEditable && setAttendanceStatus(s)}
                 disabled={!isEditable}
-                style={{
-                  padding: '7px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                  border: `1.5px solid ${isSelected ? (isLeaveOpt ? '#ef4444' : s === 'present' ? '#10b981' : '#f59e0b') : 'var(--border)'}`,
-                  background: isSelected ? (isLeaveOpt ? 'rgba(239,68,68,0.12)' : s === 'present' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)') : 'var(--surface)',
-                  color: isSelected ? (isLeaveOpt ? '#ef4444' : s === 'present' ? '#10b981' : '#d97706') : 'var(--text-muted)',
-                  cursor: isEditable ? 'pointer' : 'not-allowed',
-                  opacity: !isEditable ? 0.6 : 1,
-                  transition: 'all 0.15s',
-                }}
+                aria-pressed={isSelected}
+                className={`rp-choice${isSelected ? ` on ${attendTone(s, isLeaveOpt)}` : ''}`}
               >
                 {ATTEND_LABELS[s] ?? s}
               </button>
@@ -473,23 +468,18 @@ export default function ProdReport({ user }) {
           })}
         </div>
         {isLeave && (
-          <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8 }}>
-            <div style={{ fontSize: 13, color: '#ef4444', fontWeight: 600, marginBottom: 10 }}>
+          <div className="rp-note bad rp-note-in">
+            <div className="rp-note-h">
               🚫 Absent — no productivity entry required. Pick a leave type, then Save to record this day.
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="rp-choices">
               {LEAVE_TYPES.map(lt => (
                 <button
                   key={lt.id}
                   onClick={() => isEditable && setLeaveType(lt.id)}
                   disabled={!isEditable}
-                  style={{
-                    padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                    border: `1.5px solid ${leaveType === lt.id ? '#ef4444' : 'var(--border)'}`,
-                    background: leaveType === lt.id ? 'rgba(239,68,68,0.12)' : 'var(--surface)',
-                    color: leaveType === lt.id ? '#ef4444' : 'var(--text-muted)',
-                    cursor: isEditable ? 'pointer' : 'not-allowed',
-                  }}
+                  aria-pressed={leaveType === lt.id}
+                  className={`rp-choice${leaveType === lt.id ? ' on bad' : ''}`}
                 >
                   {lt.label}
                 </button>
@@ -498,7 +488,7 @@ export default function ProdReport({ user }) {
           </div>
         )}
         {isHalfDay && (
-          <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, fontSize: 13, color: '#d97706' }}>
+          <div className="rp-note warn rp-note-in">
             ⏱ Half-day: target halved to <strong>{overallTarget * 0.5}</strong>, shift capped at <strong>4.5 hours</strong>, downtime max 4.5h.
           </div>
         )}
@@ -506,53 +496,53 @@ export default function ProdReport({ user }) {
 
       {/* Holiday banner */}
       {holiday && (
-        <div style={{ background: 'linear-gradient(135deg,#faf5ff,#f5f3ff)', border: '1.5px solid #c4b5fd', borderRadius: 8, padding: '14px 18px', marginBottom: 16, fontSize: 13, color: '#7c3aed', fontWeight: 600 }}>
+        <div className="rp-note accent">
           🏖️ <strong>{fmtD(date)} is a Holiday</strong> — No productivity counted for this day.
         </div>
       )}
 
       {/* Auth banner (legacy path only) */}
       {isLegacyAuth && (
-        <div style={{ background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', border: '1.5px solid #a78bfa', borderRadius: 8, padding: '12px 18px', marginBottom: 16, fontSize: 13, color: '#5b21b6' }}>
+        <div className="rp-note accent">
           <strong>🔐 PMB Auth — Legacy Formula</strong> (dates before 16 Jun 2026): Quality 100% by default. Prod% = total ÷ 50 × 100. No downtime adjustment.
         </div>
       )}
       {isOnlyAuth && !isLegacyAuth && (
-        <div style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', border: '1.5px solid #86efac', borderRadius: 8, padding: '12px 18px', marginBottom: 16, fontSize: 13, color: '#15803d' }}>
+        <div className="rp-note good">
           <strong>🔐 PMB Auth Process</strong> — Standard formula applies from 16 Jun 2026. Quality 100% by default. Downtime field active.
         </div>
       )}
 
       {/* Submission / edit-window banner */}
       {submittedAt && isEditable && (
-        <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-          <span style={{ fontSize: 16 }}>✅</span>
-          <span style={{ color: '#10b981', fontWeight: 600 }}>Submitted at {new Date(submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-          <span style={{ color: 'var(--text-muted)' }}>— You can edit and re-save within 24 hours of submission.</span>
+        <div className="rp-note good rp-note-row">
+          <span className="rp-note-i">✅</span>
+          <span className="rp-note-strong">Submitted at {new Date(submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="text-muted">— You can edit and re-save within 24 hours of submission.</span>
         </div>
       )}
       {submittedAt && !isEditable && (
-        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-          <span style={{ fontSize: 16 }}>🔒</span>
-          <span style={{ color: '#ef4444', fontWeight: 600 }}>Editing period expired</span>
-          <span style={{ color: 'var(--text-muted)' }}>— Report submitted {new Date(submittedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}. Contact admin to make changes.</span>
+        <div className="rp-note bad rp-note-row">
+          <span className="rp-note-i">🔒</span>
+          <span className="rp-note-strong">Editing period expired</span>
+          <span className="text-muted">— Report submitted {new Date(submittedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}. Contact admin to make changes.</span>
         </div>
       )}
 
       {/* Deficit alert — not shown for leave or legacy auth */}
       {!isLeave && !isLegacyAuth && prodPct != null && prodPct < 100 && total > 0 && (
-        <div style={{ background: 'linear-gradient(135deg,#fff1f2,#fef2f2)', border: '1.5px solid #fca5a5', borderRadius: 8, padding: '16px 20px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 28 }}>⚠️</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 15 }}>Productivity Deficit Alert</div>
-              <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 4 }}>
+        <div className="rp-note bad">
+          <div className="rp-deficit">
+            <span className="rp-deficit-i">⚠️</span>
+            <div className="rp-deficit-t">
+              <div className="rp-deficit-h">Productivity Deficit Alert</div>
+              <div className="rp-deficit-s">
                 You are <strong>{deficit.toFixed(1)} units short</strong> — {deficitPct.toFixed(1)}% below target.
               </div>
             </div>
-            <div style={{ textAlign: 'center', background: 'white', borderRadius: 8, padding: '12px 18px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontSize: 30, fontWeight: 900, color: pColor(prodPct) }}>{prodPct.toFixed(1)}%</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Current</div>
+            <div className="rp-tile">
+              <div className="rp-tile-v" style={{ color: pColor(prodPct) }}>{prodPct.toFixed(1)}%</div>
+              <div className="rp-tile-l">Current</div>
             </div>
           </div>
         </div>
@@ -560,35 +550,35 @@ export default function ProdReport({ user }) {
 
       {/* Dark KPI header */}
       {!isLeave && (
-        <div style={headerBg}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
+        <div className="card rp-kpi">
+          <div className="rp-kpi-head">
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: 6 }}>Daily Productivity Report</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: 'white' }}>{user.name ?? user.emp_id}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+              <div className="rp-label">Daily Productivity Report</div>
+              <div className="rp-kpi-name">{user.name ?? user.emp_id}</div>
+              <div className="text-sm text-muted">
                 {user.emp_id} · {userProcs.join(' + ')}
                 {!isLegacyAuth && ` · Target: ${overallTarget}${isHalfDay ? ` → ${overallTarget * 0.5}` : ''} · ${maxDowntime}h shift`}
               </div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+          <div className="rp-kpi-grid">
             {[
               { l: 'TOTAL',       v: String(displayTotal),                                        c: pColor(prodPct) },
-              { l: 'ADJ. TARGET', v: isLegacyAuth ? '50 (fixed)' : adjTarget.toFixed(1),         c: 'rgba(255,255,255,0.9)' },
+              { l: 'ADJ. TARGET', v: isLegacyAuth ? '50 (fixed)' : adjTarget.toFixed(1),         c: 'var(--text)' },
               { l: 'PROD %',      v: prodPct != null ? prodPct.toFixed(1) + '%' : '—',            c: pColor(prodPct) },
               { l: isLegacyAuth ? 'STATUS' : 'DEFICIT',
                 v: isLegacyAuth ? 'Legacy Auth' : deficit > 0 ? '-' + deficit.toFixed(1) : '✅ Met',
-                c: isLegacyAuth ? '#6ee7b7' : deficit > 0 ? '#fca5a5' : '#6ee7b7' },
+                c: isLegacyAuth ? 'var(--success)' : deficit > 0 ? 'var(--danger)' : 'var(--success)' },
             ].map(({ l, v, c }) => (
-              <div key={l} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '14px 18px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 5 }}>{l}</div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: c }}>{v}</div>
+              <div key={l} className="rp-tile">
+                <div className="rp-tile-l rp-tile-top">{l}</div>
+                <div className="rp-tile-v" style={{ color: c }}>{v}</div>
               </div>
             ))}
           </div>
           {!isLegacyAuth && dt > 0 && (
-            <div style={{ marginTop: 12, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-              Formula: {isHalfDay ? overallTarget * 0.5 : overallTarget} × ({maxDowntime} − {dt}) ÷ {maxDowntime} = <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{adjTarget.toFixed(1)}</strong>
+            <div className="text-sm text-muted rp-formula">
+              Formula: {isHalfDay ? overallTarget * 0.5 : overallTarget} × ({maxDowntime} − {dt}) ÷ {maxDowntime} = <strong className="rp-strong">{adjTarget.toFixed(1)}</strong>
             </div>
           )}
         </div>
@@ -599,33 +589,28 @@ export default function ProdReport({ user }) {
       ) : isLeave ? null : (
         <>
           {/* ── Hourly Tracker ── */}
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-header">
+          <div className="card">
+            <div className="card-header rp-wrap">
               <div className="card-title">⏰ Hourly Tracker — {fmtD(date)}</div>
               <span className="text-sm text-muted">Shift: <strong>6:30 PM → 2:30 AM</strong> · Select {isOnlyAuth ? 'request type' : 'task'} and enter count at each hour end</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 14 }}>
+            <div className="rp-slots">
               {slots.map((sl, i) => {
-                const night = true;
                 const delta = slotDeltas[i];
                 return (
-                  <div key={i} style={{
-                    background: night ? 'rgba(124,58,237,0.07)' : 'var(--surface)',
-                    border: `1.5px solid ${night ? '#c4b5fd' : 'var(--border)'}`,
-                    borderRadius: 8, padding: 10, textAlign: 'center', transition: 'border-color 0.2s',
-                  }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: night ? 'var(--accent)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 5 }}>
+                  <div key={i} className="rp-slot">
+                    <div className="rp-slot-h">
                       {sl.slot}
                     </div>
                     <select value={sl.task} onChange={e => updateSlot(i, 'task', e.target.value)}
-                      style={{ border: `1px solid ${night ? '#c4b5fd' : 'var(--border)'}`, borderRadius: 4, padding: '4px 5px', width: '100%', fontSize: 10, marginBottom: 5, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }}>
+                      className="rp-slot-task">
                       <option value="">Select…</option>
                       {slotTaskOptions.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                     <input type="number" min="0" value={sl.count} onChange={e => updateSlot(i, 'count', e.target.value)}
-                      style={{ border: `1px solid ${night ? '#c4b5fd' : 'var(--border)'}`, borderRadius: 4, padding: 6, width: '100%', fontSize: 15, fontWeight: 800, textAlign: 'center', color: night ? '#7c3aed' : 'var(--text)', background: 'var(--surface)', outline: 'none' }} />
-                    <div style={{ fontSize: 10, marginTop: 4, color: delta === null ? 'var(--text-muted)' : delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                      className="rp-slot-count" aria-label={`Count for ${sl.slot}`} />
+                    <div className={`rp-slot-d${delta === null ? '' : delta >= 0 ? ' up' : ' down'}`}>
                       {delta === null ? '—' : (delta >= 0 ? '+' : '') + delta}
                     </div>
                   </div>
@@ -666,12 +651,12 @@ export default function ProdReport({ user }) {
                   onChange={e => toggleAutoSave(e.target.checked)} />
                 Auto-save while entering counts
               </label>
-              {hourlyMsg && <span style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>{hourlyMsg}</span>}
+              {hourlyMsg && <span className="rp-ok">{hourlyMsg}</span>}
             </div>
           </div>
 
           {/* ── Downtime + Task Entry ── */}
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card">
             {!isLegacyAuth ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 20, padding: 16, background: 'var(--surface-2)', borderRadius: 8 }}>
                 <div>
@@ -686,13 +671,13 @@ export default function ProdReport({ user }) {
                   <strong>Formula:</strong> Adj. Target = {isHalfDay ? overallTarget * 0.5 : overallTarget} × ({maxDowntime} − downtime) ÷ {maxDowntime}<br />
                   <strong>Current:</strong> {isHalfDay ? overallTarget * 0.5 : overallTarget} × ({maxDowntime} − {dt}) ÷ {maxDowntime} = <strong style={{ color: 'var(--text)' }}>{adjTarget.toFixed(1)}</strong>
                 </div>
-                <div style={{ textAlign: 'center', background: 'var(--surface)', borderRadius: 8, padding: '12px 18px', boxShadow: 'var(--shadow)' }}>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: pColor(prodPct) }}>{prodPct != null ? prodPct.toFixed(1) + '%' : '—'}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Live Prod %</div>
+                <div className="rp-tile">
+                  <div className="rp-tile-v" style={{ color: pColor(prodPct) }}>{prodPct != null ? prodPct.toFixed(1) + '%' : '—'}</div>
+                  <div className="rp-tile-l">Live Prod %</div>
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '12px 16px', background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: '#5b21b6' }}>
+              <div className="rp-note accent rp-note-gap">
                 <strong>Legacy Auth:</strong> Prod% = (total requests ÷ 50) × 100. No downtime formula.
               </div>
             )}
@@ -740,7 +725,7 @@ export default function ProdReport({ user }) {
                     const weight = (50 / t.target).toFixed(3);
                     const contrib = (cnt * (50 / t.target)).toFixed(2);
                     return (
-                      <tr key={t.name} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
+                      <tr key={t.name} className={i % 2 === 0 ? undefined : 'rp-alt'}>
                         <td className="bold">
                           {t.name}
                           {userProcs.length > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>[{t.process}]</span>}
@@ -771,7 +756,7 @@ export default function ProdReport({ user }) {
           </div>
 
           {/* ── Remark + Quality ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div className="rp-two">
             <div className="card">
               <div className="card-title" style={{ marginBottom: 8 }}>
                 📝 {!isLegacyAuth && deficit > 0 ? '⚠️ Reason for Deficit' : 'Remark / Highlights'}
@@ -780,7 +765,7 @@ export default function ProdReport({ user }) {
                 placeholder={!isLegacyAuth && deficit > 0 ? 'Explain: VDI issues, DDE downtime, complex claims, TAT pressure…' : 'Highlights or context for today'}
                 style={{
                   width: '100%', padding: '8px 12px', marginTop: 6,
-                  border: `1px solid ${!isLegacyAuth && deficit > 0 ? 'rgba(245,158,11,0.4)' : 'var(--border)'}`,
+                  border: `1px solid ${!isLegacyAuth && deficit > 0 ? 'var(--warning)' : 'var(--border)'}`,
                   background: 'var(--surface)',
                   borderRadius: 6, color: 'var(--text)', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit',
                 }} />
@@ -789,10 +774,7 @@ export default function ProdReport({ user }) {
             <div className="card">
               <div className="card-title" style={{ marginBottom: 8 }}>⭐ Quality Entry</div>
               {isSkipQuality ? (
-                <div style={{
-                  padding: '10px 14px', marginBottom: 12, borderRadius: 8, fontSize: 13,
-                  background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981',
-                }}>
+                <div className="rp-note good rp-note-gap">
                   ✓ Quality isn't tracked for {userProcs.join(' + ')} — automatically recorded as <strong>100%</strong>.
                 </div>
               ) : (
@@ -826,14 +808,14 @@ export default function ProdReport({ user }) {
           </div>
 
           {/* ── Call Tracker ── */}
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card">
             <div className="card-header">
               <div className="card-title">📞 Call Tracker — {fmtD(date)}</div>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
               Track daily calls to monitor calling vs non-calling productivity
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 14 }}>
+            <div className="rp-three">
               <div className="field" style={{ marginBottom: 0 }}>
                 <label>Total Calls Made</label>
                 <input type="number" value={calls} onChange={e => setCalls(e.target.value)} placeholder="e.g. 45"
@@ -859,11 +841,11 @@ export default function ProdReport({ user }) {
                 style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, width: '100%', outline: 'none' }} />
             </div>
             {(calls || callHours) && (
-              <div style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)', borderRadius: 8, padding: '12px 16px', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                {calls && <div><span style={{ fontSize: 22, fontWeight: 900, color: '#0284c7' }}>{calls}</span><span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>calls</span></div>}
-                {callHours && <div><span style={{ fontSize: 22, fontWeight: 900, color: '#7c3aed' }}>{callHours}h</span><span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>on calls</span></div>}
+              <div className="rp-calls">
+                {calls && <div><span className="rp-calls-v">{calls}</span><span className="rp-calls-l">calls</span></div>}
+                {callHours && <div><span className="rp-calls-v">{callHours}h</span><span className="rp-calls-l">on calls</span></div>}
                 {calls && callHours && (
-                  <div><span style={{ fontSize: 22, fontWeight: 900, color: '#10b981' }}>{(parseInt(calls) / (parseFloat(callHours) || 1)).toFixed(1)}</span><span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>calls/hr</span></div>
+                  <div><span className="rp-calls-v good">{(parseInt(calls) / (parseFloat(callHours) || 1)).toFixed(1)}</span><span className="rp-calls-l">calls/hr</span></div>
                 )}
               </div>
             )}
@@ -871,7 +853,7 @@ export default function ProdReport({ user }) {
 
           {/* Save / Export */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-            {saveError && <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 700 }}>{saveError}</span>}
+            {saveError && <span className="rp-err">{saveError}</span>}
             <button className="btn-sm" onClick={exportReport}>Export CSV</button>
             <button className="btn-primary" onClick={save} disabled={saving || loading || !isEditable}
               style={{ padding: '9px 24px', fontSize: 14, opacity: !isEditable ? 0.5 : 1 }}>

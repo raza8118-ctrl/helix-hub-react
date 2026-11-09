@@ -23,6 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Part 1 (Daily Report) BUILT, waiting for PO approval.** Checked as test employee 1010 in Test Co (owner sign-in as) in all four
+themes at 1440 px and at 375 px (no page sideways scroll; KPI + slots 2 per row, sections stack). On screen only, nothing saved
+(requests were reads): Present / First Half / Absent choices and their notes; deficit alert with a typed count; call strip. Not seen
+(need saved data or other dates): holiday, Auth, submitted, editing-expired banners. Test employee's theme left on Daylight.
+
 **Frost Glass — employee pages (PO "Go" 2026-11-09) — IN PROGRESS.** Styling only (formula, targets, downtime, hourly counts,
 saving, 24-hour edit window, reports, exports, allocations unchanged; no database change). Two parts, each for PO approval. Part 1 —
 Daily Report (`ProdReport.jsx`, 44 fixed colours): old heading → filter card with date, name / processes / target / shift, Export +
