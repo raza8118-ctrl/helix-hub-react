@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useCallback } from 'react';
-import { masterPreview, masterPush, masterPushHistory, codeOf, HOME_CODE } from '../../lib/owner';
+import { masterPreview, masterPush, masterPushHistory, copyMasterFiles, codeOf, HOME_CODE } from '../../lib/owner';
 import { confirmDialog } from '../../components/shared/Dialog';
 
 /**
@@ -8,16 +8,16 @@ import { confirmDialog } from '../../components/shared/Dialog';
  * A push only adds or updates master rows; a company's own rows, client-specific rows and later company edits are kept.
  */
 const SECTIONS = [
-  ['payers', 'Payer Directory', 'Payers, plans, payer IDs, contacts, filing limits (not client limits), notes, auth rules'],
+  ['payers', 'Payer Directory', 'Payers, plans, payer IDs, contacts, filing limits (not client limits), notes, auth rules, payer forms (files too)'],
   ['denials', 'Denial guides', 'CARC / RARC codes and their common + payer steps (not client steps)'],
   ['codes', 'Code lists', 'Revenue, HIPPS and ICD-10 codes'],
-  ['sops', 'SOP Library', 'Categories, software, tasks and SOP text + steps (not client SOPs; screenshots in Stage 3)'],
+  ['sops', 'SOP Library', 'Categories, software, tasks, SOPs with their screenshots and videos (not client SOPs)'],
   ['targets', 'Task targets', 'Default targets per process and task'],
 ];
 const TABLES = {
   payers: 'Payers', payer_plans: 'Plans', payer_ids: 'Payer IDs', payer_contacts: 'Contacts', payer_limits: 'Filing limits',
-  payer_notes: 'Payer notes', payer_auth_rules: 'Auth rules', sop_categories: 'SOP categories', sop_software: 'Software',
-  sop_tasks: 'Tasks', sops: 'SOPs', denial_codes: 'Denial codes', denial_steps: 'Denial steps', ref_codes: 'Codes', task_configs: 'Task targets',
+  payer_notes: 'Payer notes', payer_auth_rules: 'Auth rules', payer_forms: 'Payer forms', sop_categories: 'SOP categories', sop_software: 'Software',
+  sop_tasks: 'Tasks', sops: 'SOPs', sop_media: 'SOP screenshots / videos', denial_codes: 'Denial codes', denial_steps: 'Denial steps', ref_codes: 'Codes', task_configs: 'Task targets',
 };
 const ORDER = Object.keys(TABLES);
 const KINDS = [
@@ -73,6 +73,7 @@ export default function OwnerMasterPush({ owner, rows, onClose }) {
   const [preview, setPreview] = useState(null);   // { key, byCode: { code → { ok, result | error } } }
   const [pushed, setPushed] = useState(null);     // same shape, after pushing
   const [busy, setBusy] = useState('');
+  const [files, setFiles] = useState({});        // code → { total, copied, failed } | { error }
   const [history, setHistory] = useState(undefined);
 
   const nameOf = code => rows.find(c => codeOf(c) === code)?.name ?? code;
@@ -102,7 +103,19 @@ export default function OwnerMasterPush({ owner, rows, onClose }) {
     return byCode;
   }
 
+  // Files (payer forms, SOP screenshots / videos) are copied by the app after the rows are pushed; this also retries
+  async function copyFiles(codes) {
+    const out = {};
+    for (const code of codes) {
+      setBusy(`Copying files to ${nameOf(code)}…`);
+      out[code] = await copyMasterFiles(owner, code);
+    }
+    setBusy('');
+    setFiles(f => ({ ...f, ...out }));
+  }
+
   async function doPreview() {
+    setFiles({});
     setPushed(null);
     setPreview({ key, byCode: await runAll(masterPreview, 'Previewing') });
   }
@@ -115,8 +128,10 @@ export default function OwnerMasterPush({ owner, rows, onClose }) {
       message: `${adds} row${adds === 1 ? '' : 's'} will be added or updated, as in the preview. Nothing is deleted, and each company's own rows and later edits stay as they are. Logged in your owner log and each company's Audit Log.`,
       confirmText: 'Push',
     })) return;
-    setPushed(await runAll(masterPush, 'Pushing to'));
+    const done = await runAll(masterPush, 'Pushing to');
+    setPushed(done);
     setPreview(null);
+    await copyFiles(Object.keys(done).filter(code => done[code].ok));
     loadHistory();
   }
 
@@ -161,8 +176,10 @@ export default function OwnerMasterPush({ owner, rows, onClose }) {
           title={!preview ? 'Preview first' : stale ? 'The choices changed — preview again' : ''}>
           Push to {picked.length} compan{picked.length === 1 ? 'y' : 'ies'}
         </button>
+        <button type="button" className="btn-sm" onClick={() => copyFiles(picked)} disabled={!!busy || !picked.length}
+          title="Copies any pushed payer forms and SOP screenshots / videos these companies don't have yet">Copy missing files</button>
         <span className="text-sm text-muted" role="status">
-          {busy || (stale ? 'The choices changed since the preview — preview again before pushing.' : pushed ? 'Pushed. Results below.' : preview ? 'Preview below — nothing has changed yet.' : 'Preview first: it shows exactly what a push will do, then changes nothing.')}
+          {busy || (Object.values(files).some(f => f.failed || f.error) ? 'Some files could not be copied — use Copy missing files to try again.' : stale ? 'The choices changed since the preview — preview again before pushing.' : pushed ? 'Pushed. Results below.' : preview ? 'Preview below — nothing has changed yet.' : 'Preview first: it shows exactly what a push will do, then changes nothing.')}
         </span>
       </div>
 
@@ -170,6 +187,12 @@ export default function OwnerMasterPush({ owner, rows, onClose }) {
         <div key={code} className="omp-co">
           <div className="omp-co-head">
             <span className="bold">{nameOf(code)}</span>
+            {files[code] && (
+              <span className={`text-sm ${files[code].failed || files[code].error ? 'ot-err' : 'text-muted'}`} style={{ margin: 0 }}>
+                {files[code].error ? `Files: ${files[code].error}`
+                  : files[code].total ? `Files: ${files[code].copied} copied${files[code].failed ? `, ${files[code].failed} could not be copied` : ''}` : 'Files: none needed'}
+              </span>
+            )}
             {shown[code].ok && <span className="text-sm text-muted">{pushed ? 'Pushed' : 'Would'}: {total(shown[code].result, 'new')} new · {total(shown[code].result, 'updated')} updated · {total(shown[code].result, 'kept_own') + total(shown[code].result, 'kept_changed')} kept</span>}
           </div>
           {shown[code].ok ? <Result res={shown[code].result} /> : <p className="ot-err" role="alert">{shown[code].error}</p>}

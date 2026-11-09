@@ -44,6 +44,23 @@ export const masterSeed = owner => rpc('owner_master_seed', byOwner(owner));
 export const masterPreview = (owner, code, sections) => rpc('owner_master_preview', { ...byOwner(owner), p_code: code, p_sections: sections });
 export const masterPush = (owner, code, sections) => rpc('owner_master_push', { ...byOwner(owner), p_code: code, p_sections: sections });
 export const masterPushHistory = (owner, limit = 50) => rpc('owner_master_push_history', { ...byOwner(owner), p_limit: limit });
+
+/**
+ * Copies the payer forms and SOP screenshots / videos a company is still missing after a push (migration 49), from the
+ * master's folder into the company's folder. Safe to run again: it only lists files that aren't there yet.
+ * → { total, copied, failed } or { error }
+ */
+export async function copyMasterFiles(owner, code) {
+  const r = await rpc('owner_master_files', { ...byOwner(owner), p_code: code });
+  if (r.error) return r.error === 'NOT_SET_UP' ? { total: 0, copied: 0, failed: 0 } : { error: r.error };
+  let copied = 0;
+  let failed = 0;
+  for (const f of r.data ?? []) {
+    const { error } = await supabase.storage.from(f.bucket).copy(f.from, f.to);
+    if (error && !/exist|duplicate/i.test(error.message ?? '')) failed++; else copied++;
+  }
+  return { total: (r.data ?? []).length, copied, failed };
+}
 // Owner Command Center → People: role change, sign-out and both log entries happen in the database (migration 46)
 export const setUserRole = (owner, code, empId, role) => rpc('owner_set_user_role', { ...byOwner(owner), p_code: code, p_emp_id: empId, p_role: role });
 export const openOwnerSession = (owner, prefix, empId) => rpc('owner_open_session', { ...byOwner(owner), p_prefix: prefix, p_emp_id: empId });
