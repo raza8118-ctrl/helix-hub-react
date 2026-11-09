@@ -1,6 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import Login       from './components/Login';
 import Sidebar     from './components/Sidebar';
+import OwnerLogin  from './components/OwnerLogin';
 import Profile     from './components/shared/Profile';
 import Starfield   from './components/shared/Starfield';
 import FollowupNudge from './components/shared/FollowupNudge';
@@ -52,6 +53,9 @@ const OwnerConsole  = lazy(() => import('./pages/owner/OwnerConsole'));
 // ── Theme helper ──────────────────────────────────────────────────────────────
 const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars', ...THEMES.map(th => `theme-${th.id}`)];
 
+const LAST_THEME_KEY = 'hh_last_theme';   // this browser's last theme, for the sign-in page (no personal data)
+const isOwnerPath = () => window.location.pathname.replace(/\/+$/, '') === '/owner';
+
 /** Frost Glass (2026-11-06): one body class per theme (colours in components/ui/themes.css); Frost / Violet keep `dark`. */
 function applyTheme(themeId) {
   const found = THEMES.find(t => t.id === resolveTheme(themeId));
@@ -60,6 +64,7 @@ function applyTheme(themeId) {
   THEME_CLASSES.forEach(c => document.body.classList.remove(c));
   document.body.classList.add(`theme-${found.id}`);
   if (found.dark) document.body.classList.add('dark');
+  try { localStorage.setItem(LAST_THEME_KEY, found.id); } catch { /* storage unavailable */ }
 }
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
@@ -217,6 +222,15 @@ export default function App() {
       } catch { /* ignore corrupt session */ }
     })();
   }, []);
+
+  // Signed out: the sign-in page uses this browser's last theme (Frost by default). The Owner Console keeps its own look.
+  useEffect(() => {
+    if (currentUser) return;
+    if (owner) { THEME_CLASSES.forEach(c => document.body.classList.remove(c)); return; }
+    let last = null;
+    try { last = localStorage.getItem(LAST_THEME_KEY); } catch { /* storage unavailable */ }
+    applyTheme(last);
+  }, [currentUser, owner]);
 
   // ── Unread feedback count (employees only) ──────────────────────────────────
   useEffect(() => {
@@ -454,7 +468,7 @@ export default function App() {
       </Suspense>
     );
   }
-  if (!currentUser) return <Login onLogin={handleLogin} onOwnerLogin={setOwner} />;
+  if (!currentUser) return isOwnerPath() ? <OwnerLogin onOwnerLogin={setOwner} /> : <Login onLogin={handleLogin} />;
 
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
   const isSupervisor = currentUser.role === 'supervisor';

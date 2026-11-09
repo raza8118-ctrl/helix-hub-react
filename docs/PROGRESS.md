@@ -23,6 +23,11 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Stage 1 BUILT, waiting for PO look + approval.** Checked in a signed-out tab: company step, wrong company message, step 2, Forgot
+Password view, wrong owner sign-in message, eye button (aria-label + aria-pressed flip; input type switches), themed colours for all
+four themes (computed), 375 px no sideways scroll. Screenshots unreliable (window not drawing) — PO to look. Real sign-in not run by
+Claude. `/owner` on the live site to be checked after deploy.
+
 **Login redesign + owner entrance + owner 2-step (PO "Go" 2026-11-09) — IN PROGRESS.** Sign-in behaviour for employees unchanged.
 Stage 1 (no database): Frost Glass Login on theme variables (last theme on this browser, default Frost); owner link removed from the
 company step → very small "Owner" footer link + `/owner` address (dark "Owner Command Center", crown / shield; `vercel.json` rewrite;

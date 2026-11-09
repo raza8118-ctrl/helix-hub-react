@@ -792,3 +792,79 @@ body[class*="theme-"] .rp-alt td { background: var(--panel-2); }
 body[class*="theme-"] .em-hol td { background: var(--accent-soft); }
 .em-hol-t { text-align: center; color: var(--accent); font-size: 12px; font-weight: 600; }
 .em-day { margin-bottom: 16px; }
+
+/* ─── Sign-in page (Frost Glass; employee Login) ─── */
+body[class*="theme-"] .login-brand-panel {
+  background: var(--sb-bg); border-right: 1px solid var(--sb-border);
+}
+body[class*="theme-"] .login-brand-panel::before { display: none; }
+body[class*="theme-"] .login-form-panel { background: transparent; min-width: 0; flex-direction: column; gap: 14px; }
+body[class*="theme-"] .login-feature { color: var(--sb-muted); }
+body[class*="theme-"] .login-feature-icon { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent); }
+.lg-brand-name { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: var(--sb-text); margin-top: 20px; }
+.lg-brand-sub { max-width: 380px; margin-top: 6px; font-size: 14px; line-height: 1.6; color: var(--sb-muted); }
+.lg-credit { margin-top: 48px; font-size: 11px; color: var(--sb-heading); }
+.lg-card {
+  display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; padding: 36px 32px;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 22px; box-shadow: var(--card-shadow);
+}
+.lg-title { margin-top: 12px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.lg-sub { margin: 3px 0 24px; font-size: 12.5px; color: var(--text-muted); }
+.lg-form { width: 100%; }
+.lg-intro { margin-bottom: 18px; font-size: 13px; line-height: 1.5; text-align: center; color: var(--text-muted); }
+.lg-gap { margin-bottom: 12px; }
+.lg-msg { margin-bottom: 14px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; line-height: 1.45; }
+.lg-msg.bad { background: var(--bad-bg); color: var(--bad-fg); }
+.lg-msg.good { background: var(--good-bg); color: var(--good-fg); }
+.lg-company {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 18px; padding: 10px 12px; border-radius: 12px;
+  background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.lg-company-i { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px; color: var(--accent); background: var(--panel-2); }
+.lg-company-t { flex: 1; min-width: 0; }
+.lg-company-l { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.lg-company-n { font-size: 13.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-change { width: auto; font-weight: 600; }
+.lg-owner-link { font-size: 10.5px; color: var(--text-subtle); text-decoration: none; }
+.lg-owner-link:hover { color: var(--text-muted); text-decoration: underline; }
+body[class*="theme-"] .btn-login { background: var(--accent); color: var(--on-accent); }
+body[class*="theme-"] .btn-link { color: var(--accent); }
+
+/* Password box with a show / hide button (employee + owner sign-in) */
+.pw-input { position: relative; }
+.pw-input input { padding-right: 42px; }
+.pw-eye {
+  position: absolute; top: 50%; right: 5px; transform: translateY(-50%); display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.pw-eye:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.pw-eye:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ─── Owner Command Center sign-in (/owner): its own fixed dark look in every theme ─── */
+.ol-shell {
+  --ol-accent: #e7b84b; --ol-on-accent: #1c1405; --ol-badge-bg: rgba(231, 184, 75, 0.12);
+  --accent: #e7b84b; --text: #f1eee6; --text-muted: #a8a294; --surface: #161510; --border: #3a372c; --border-focus: #e7b84b; --accent-dim: rgba(231, 184, 75, 0.18);
+  --text-subtle: #7b766a; --input-bg: #161510; --input-border: #3a372c;
+  position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 24px 16px; overflow-y: auto;
+  color: var(--text);
+  background: radial-gradient(900px 600px at 50% -10%, rgba(231, 184, 75, 0.14), transparent 60%), linear-gradient(170deg, #0d0c09 0%, #12110c 60%, #0a0907 100%);
+}
+.ol-card {
+  display: flex; flex-direction: column; width: 100%; max-width: 400px; padding: 34px 32px 26px;
+  background: rgba(28, 26, 20, 0.92); border: 1px solid rgba(231, 184, 75, 0.28); border-radius: 22px; box-shadow: 0 30px 70px -30px #000;
+}
+.ol-badge { align-self: center; }
+.ol-title { margin: 14px 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; text-align: center; color: var(--text); }
+.ol-sub { margin: 0 0 24px; font-size: 13px; text-align: center; color: var(--text-muted); }
+.ol-card label { color: var(--text-muted); }
+.ol-card input { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.ol-error { margin-bottom: 14px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; background: rgba(248, 113, 113, 0.14); color: #f87171; }
+.ol-submit {
+  width: 100%; padding: 11px; border: 0; border-radius: 11px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  background: var(--ol-accent); color: var(--ol-on-accent);
+}
+.ol-submit:hover:not(:disabled) { filter: brightness(1.07); }
+.ol-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.ol-submit:focus-visible, .ol-back:focus-visible { outline: 2px solid var(--ol-accent); outline-offset: 2px; }
+.ol-back { margin-top: 14px; font-size: 12.5px; text-align: center; text-decoration: none; color: var(--text-muted); }
+.ol-back:hover { color: var(--text); text-decoration: underline; }

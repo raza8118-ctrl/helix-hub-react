@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/owner",
+      "destination": "/index.html"
+    }
+  ]
+}
