@@ -23,6 +23,19 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Login redesign + owner entrance + owner 2-step (PO "Go" 2026-11-09) — IN PROGRESS.** Sign-in behaviour for employees unchanged.
+Stage 1 (no database): Frost Glass Login on theme variables (last theme on this browser, default Frost); owner link removed from the
+company step → very small "Owner" footer link + `/owner` address (dark "Owner Command Center", crown / shield; `vercel.json` rewrite;
+check on the live site); show / hide eye = real button with aria-label; Owner Console keeps its look. Stage 2 (migration 45): TOTP
+checked in the database (password → 5-minute pass → code → session key; codes not reusable); setup with QR in Owners & security (QR
+drawn in the browser, one small library); 8 one-time recovery codes (stored scrambled); another owner can reset (logged); turning off
+needs password + code. Security gaps closed: `_is_owner` accepts session keys only (password no longer works there);
+`owner_change_password` needs a verified session (+ code when on); owner lockout 15 min after 5 wrong passwords / codes; failed
+sign-ins returned as results (a raised error would roll back the log row). Log: success, wrong password, wrong code, lockout, recovery
+code used, 2-step on / off / reset, with IP; unknown usernames logged as "(unknown)", never the typed text. PO decision: optional
+first, red warning until set up; required switch is a follow-up after all owners enrol. Rollout: code first, then migration (new
+screen works with the old function). Test with RFC 6238 vectors in a rolled-back transaction + a PO-created test owner.
+
 **Part 2 (My Reports, My Progress, My Allocation) APPROVED by PO 2026-11-09.** Checked as test employee 1010 in Test Co: My
 Reports in Daylight (week ‹ › and Productivity / Quality switches work), My Progress in Frost, both at 375 px (no page sideways
 scroll; Progress tiles 2 per row). My Announcements (employee) also opened: looks right. My Allocation NOT seen in the browser (Work
