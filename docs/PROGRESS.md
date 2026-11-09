@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 2 BUILT + migration 45 run (2026-11-09), waiting for PO look + approval.** Code pushed first (c923ee5), then migration 45
+**Stage 2 APPROVED (PO 2026-11-09) — step DONE.** Built + migration 45 run 2026-11-09. Code pushed first (c923ee5), then migration 45
 run by Claude. Checked: RFC 6238 vectors (5/5) + base32; new tables and internal functions not readable by the app; a failed
 sign-in shows in the log with IP; the PO's own owner session survived. Full checklist run by Claude in ONE rolled-back database
 transaction with two throwaway owners (29/29 passed, nothing left behind): password-only sign-in, password no longer works as a
@@ -39,7 +39,7 @@ Password view, wrong owner sign-in message, eye button (aria-label + aria-presse
 four themes (computed), 375 px no sideways scroll. Screenshots unreliable (window not drawing) — PO to look. Real sign-in not run by
 Claude. `/owner` on the live site to be checked after deploy.
 
-**Login redesign + owner entrance + owner 2-step (PO "Go" 2026-11-09) — IN PROGRESS.** Sign-in behaviour for employees unchanged.
+**Login redesign + owner entrance + owner 2-step (PO "Go" 2026-11-09) — DONE (approved 2026-11-09).** Follow-ups: PO turns on 2-step for own account (add a second owner first); later "2-step required" switch; check `/owner` on the live site. Sign-in behaviour for employees unchanged.
 Stage 1 (no database): Frost Glass Login on theme variables (last theme on this browser, default Frost); owner link removed from the
 company step → very small "Owner" footer link + `/owner` address (dark "Owner Command Center", crown / shield; `vercel.json` rewrite;
 check on the live site); show / hide eye = real button with aria-label; Owner Console keeps its look. Stage 2 (migration 45): TOTP
