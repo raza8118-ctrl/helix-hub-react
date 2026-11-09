@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { companyMasters } from '../../lib/owner';
+import OwnerMasterCopy from './OwnerMasterCopy';
 
 /**
  * Owner Command Center → Master Data (PO 2026-11-09, read-only): each company's clients, payers and processes side by side.
@@ -12,7 +13,7 @@ const detailOf = (kind, r) => (kind === 'clients' ? [r.code, r.project]
     : [r.project, r.target != null ? `Target ${r.target}` : null]).filter(Boolean).join(' · ');
 const MAX_ROWS = 300;
 
-export default function OwnerMasterData({ rows, onOpen }) {
+export default function OwnerMasterData({ owner, rows, onOpen }) {
   const [data, setData] = useState(undefined);   // key → { clients, payers, processes }
   const [kind, setKind] = useState('payers');
   const [company, setCompany] = useState('all');
@@ -45,6 +46,8 @@ export default function OwnerMasterData({ rows, onOpen }) {
 
   return (
     <div className="fg-page">
+      <OwnerMasterCopy owner={owner} home={rows.find(c => c.isHome)} onOpen={onOpen} />
+
       <div className="grid-3">
         {rows.map(c => {
           const m = data?.[keyOf(c)];

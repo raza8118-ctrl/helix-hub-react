@@ -37,6 +37,9 @@ export const demoStatus = (owner, code) => rpc('owner_demo_status', { ...byOwner
 export const demoLoad   = (owner, code) => rpc('owner_demo_load',   { ...byOwner(owner), p_code: code });
 export const demoRemove = (owner, code) => rpc('owner_demo_remove', { ...byOwner(owner), p_code: code });
 /** Security stage 2: a session for "Open →" (empId null = full admin) or "Sign in as" → { data: session key } */
+// Master copy (migration 47): status (rows per list) and the one-time "Start from 3Gen's lists"
+export const masterStatus = owner => rpc('owner_master_status', byOwner(owner));
+export const masterSeed = owner => rpc('owner_master_seed', byOwner(owner));
 // Owner Command Center → People: role change, sign-out and both log entries happen in the database (migration 46)
 export const setUserRole = (owner, code, empId, role) => rpc('owner_set_user_role', { ...byOwner(owner), p_code: code, p_emp_id: empId, p_role: role });
 export const openOwnerSession = (owner, prefix, empId) => rpc('owner_open_session', { ...byOwner(owner), p_prefix: prefix, p_emp_id: empId });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listCompanies, loadHomeCompanyInfo } from '../lib/company';
+import { listCompanies, loadHomeCompanyInfo, isMasterCompany } from '../lib/company';
 import { getActiveCompany } from '../lib/supabase';
 import NavIcon from './ui/NavIcon';
 
@@ -9,7 +9,9 @@ import NavIcon from './ui/NavIcon';
  */
 export default function OwnerCompanyBar({ user, offCount = 0, onSwitch, onBack }) {
   const [list, setList] = useState(null);
-  const current = getActiveCompany()?.prefix ?? '';
+  const active = getActiveCompany();
+  const current = active?.prefix ?? '';
+  const editingMaster = isMasterCompany(active);
 
   useEffect(() => {
     let alive = true;
@@ -19,11 +21,14 @@ export default function OwnerCompanyBar({ user, offCount = 0, onSwitch, onBack }
     return () => { alive = false; };
   }, []);
 
-  const options = list ?? [{ prefix: current, name: user.viewing }];
+  const options = [
+    ...(editingMaster ? [{ prefix: current, name: 'Master copy', code: active.code, is_master: true }] : []),
+    ...(list ?? (editingMaster ? [] : [{ prefix: current, name: user.viewing }])),
+  ];
 
   return (
-    <div className="oc-viewbar" role="region" aria-label="Owner view">
-      <span className="oc-viewbar-badge"><NavIcon icon="crown" size={14} /> Viewing as Owner</span>
+    <div className={`oc-viewbar${editingMaster ? ' oc-viewbar-master' : ''}`} role="region" aria-label="Owner view">
+      <span className="oc-viewbar-badge"><NavIcon icon={editingMaster ? 'database' : 'crown'} size={14} /> {editingMaster ? 'Editing MASTER COPY' : 'Viewing as Owner'}</span>
       <select
         className="oc-viewbar-select"
         aria-label="Switch company"
@@ -36,8 +41,9 @@ export default function OwnerCompanyBar({ user, offCount = 0, onSwitch, onBack }
         ))}
       </select>
       {user.viewingAs && <span className="oc-viewbar-note">as {user.name ?? user.emp_id} ({user.emp_id}) · actions logged as the owner</span>}
-      {!user.viewingAs && <span className="oc-viewbar-note">full admin access</span>}
-      {offCount > 0 && <span className="oc-viewbar-note">· {offCount} page{offCount === 1 ? '' : 's'} switched off here</span>}
+      {editingMaster && <span className="oc-viewbar-note">Companies get these changes only when you push them</span>}
+      {!user.viewingAs && !editingMaster && <span className="oc-viewbar-note">full admin access</span>}
+      {offCount > 0 && !editingMaster && <span className="oc-viewbar-note">· {offCount} page{offCount === 1 ? '' : 's'} switched off here</span>}
       <button type="button" className="oc-viewbar-back" onClick={onBack}>
         <NavIcon icon="arrowLeft" size={14} /> Back to Command Center
       </button>

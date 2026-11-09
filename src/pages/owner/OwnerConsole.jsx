@@ -249,7 +249,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
         )}
 
         {tab === 'performance' && companies !== undefined && rows.length > 0 && <OwnerPerformance rows={rows} />}
-        {tab === 'masters' && companies !== undefined && rows.length > 0 && <OwnerMasterData rows={rows} onOpen={open} />}
+        {tab === 'masters' && companies !== undefined && rows.length > 0 && <OwnerMasterData owner={owner} rows={rows} onOpen={open} />}
 
         {/* ── Companies ── */}
         {tab === 'companies' && companies !== undefined && (

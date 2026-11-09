@@ -67,11 +67,21 @@ export function matchesCompany(input, company) {
   return !!n && [company.name, company.code].some(v => v && norm(v) === n);
 }
 
-// All added companies, or null if the registry isn't installed yet
+// All added companies, or null if the registry isn't installed yet. The hidden master copy (migration 47) is never listed.
 export async function listCompanies() {
   const { data, error } = await supabase.from('companies').select('*').order('created_at');
   if (error) return null;
-  return data;
+  return data.filter(c => !c.is_master);
+}
+
+/** Owner Command Center: the code of the hidden master copy workspace (migration 47). */
+export const MASTER_CODE = 'MASTER';
+export const isMasterCompany = c => !!c && (c.is_master === true || c.code === MASTER_CODE);
+
+/** The master copy's registry row, or null (not set up yet). */
+export async function loadMasterCompany() {
+  const { data, error } = await supabase.from('companies').select('*').eq('is_master', true).maybeSingle();
+  return error ? null : data;
 }
 
 // Resolve what a user typed at the login company step → { name, code, prefix } or null

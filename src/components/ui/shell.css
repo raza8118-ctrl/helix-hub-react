@@ -937,3 +937,8 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .omd-stat { border: 1px solid transparent; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .omd-stat:hover { border-color: var(--border); }
 .omd-stat.on { border-color: var(--accent); }
+/* Master copy (migration 47): the owner bar says "Editing MASTER COPY" */
+.oc-viewbar-master { background: color-mix(in srgb, var(--col-yellow) 16%, var(--panel-solid, #10182b)); border-bottom-color: color-mix(in srgb, var(--col-yellow) 45%, transparent); }
+.oc-viewbar-master .oc-viewbar-badge { color: var(--col-yellow); }
+.omd-master { margin: 0; }
+.omd-master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 12px; }
