@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 3 BUILT + migration 49 run (2026-11-09), waiting for PO look + approval — last stage.** Code pushed first (22b6d9b),
+**Stage 3 APPROVED (PO 2026-11-09) — step DONE.** Built + migration 49 run 2026-11-09. Code pushed first (22b6d9b),
 then migration 49: payer forms (section Payer Directory) and SOP screenshots / videos (sop_media + pictures / videos inside SOP
 steps + walk-through video, section SOP Library) are in the push; paths move from co_master/… to the company's folder (home: no
 folder); the app copies the files right after the push (storage copy, owner key) and "Copy missing files" retries
@@ -66,7 +66,7 @@ database test of the seed (16 checks): copies 12 payers, 9 payer IDs, 25 contact
 (9 / 9 payer IDs, 23 / 23 steps, 15 / 15 software); home unchanged; second run refused; wrong key refused; nothing left behind.
 The real "Start from 3Gen's lists" click is left to the PO (one-time). Lint 51 before and after.
 
-**Master copy + Push to companies (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** 3 stages, PO approval after each; database
+**Master copy + Push to companies (PO "Go" 2026-11-09) — DONE (all 3 stages approved 2026-11-09).** Master filled from 3Gen; nothing pushed to any company yet. Follow-ups: first real file copy when the PO adds a form / screenshot to the master; optional "link matching rows to the master" (set aside by the PO). 3 stages, PO approval after each; database
 additive only. Master copy = a hidden workspace (never on login, company lists, People, Performance, seats) the owner opens from
 Command Center → Master Data → "Edit master copy" and edits with the EXISTING pages (Payer Directory, Denial Navigator admin, SOP
 Library, Code Lookup lists, Settings task targets); bar "Editing MASTER COPY". Pushed rows carry a new `master_id` (+ last-pushed
