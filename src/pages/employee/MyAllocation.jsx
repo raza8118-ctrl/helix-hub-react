@@ -94,19 +94,17 @@ export default function MyAllocation({ user }) {
   const downloaded = allocs.filter(a => a.status === 'downloaded').length;
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            My Allocation
-            {pending > 0 && <span className="badge badge-yellow">{pending} pending</span>}
-          </div>
-          <div className="page-subtitle">Work batches assigned to you</div>
+    <div className="fg-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <span className="fg-date">Work batches assigned to you</span>
+          {pending > 0 && <span className="badge badge-yellow">{pending} pending</span>}
         </div>
       </div>
 
       {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 20 }}>
+      <div className="an-kpis">
         <div className="stat-card">
           <div className="stat-label">Total Batches</div>
           <div className="stat-value">{allocs.length}</div>

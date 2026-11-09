@@ -69,16 +69,14 @@ export default function Progress({ user }) {
   const monthLabel  = `${MONTHS[month.m - 1]} ${month.y}`;
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">My Progress</div>
-          <div className="page-subtitle">{user.name ?? user.emp_id}</div>
-        </div>
+    <div className="fg-page">
+      {/* Intro (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <span className="fg-date">{user.name ?? user.emp_id}</span>
       </div>
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 12, marginBottom: 16 }}>
+      <div className="fg-kpis fg-kpis-6">
         {[
           { label: 'Week Avg',   value: weekAvg != null ? weekAvg.toFixed(1) + '%' : '—', cls: pCol(weekAvg) },
           { label: 'Total Done', value: weekTotal.toLocaleString(), cls: '' },
@@ -95,7 +93,7 @@ export default function Progress({ user }) {
       </div>
 
       {/* Weekly chart */}
-      <div className="card mb-16">
+      <div className="card fg-card">
         <div className="card-header">
           <div className="card-title">Weekly Productivity</div>
           <div className="row" style={{ gap: 4 }}>
@@ -113,7 +111,7 @@ export default function Progress({ user }) {
       </div>
 
       {/* Monthly chart */}
-      <div className="card">
+      <div className="card fg-card">
         <div className="card-header">
           <div className="card-title">Monthly Productivity</div>
           <div className="row" style={{ gap: 4 }}>
@@ -136,7 +134,7 @@ export default function Progress({ user }) {
         const tasks = dayDetail.tasks || {};
         return (
           <Modal title={`${fmtD(dayDetail.date)} — Day Detail`} onClose={() => setDayDetail(null)}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+            <div className="rp-kpi-grid em-day">
               {[
                 { label: 'Total',   value: dayDetail.total ?? '—' },
                 { label: 'Target',  value: dayDetail.adj_target ?? dayDetail.target ?? '—' },
@@ -154,7 +152,7 @@ export default function Progress({ user }) {
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Task Breakdown</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {Object.entries(tasks).map(([name, val]) => (
-                    <span key={name} className="badge" style={{ fontSize: 13 }}>{name}: <strong>{val}</strong></span>
+                    <span key={name} className="badge badge-gray" style={{ fontSize: 13 }}>{name}: <strong>{val}</strong></span>
                   ))}
                 </div>
               </div>

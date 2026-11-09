@@ -23,7 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Part 1 (Daily Report) BUILT, waiting for PO approval.** Checked as test employee 1010 in Test Co (owner sign-in as) in all four
+**Part 2 (My Reports, My Progress, My Allocation) BUILT, waiting for PO approval.** Checked as test employee 1010 in Test Co: My
+Reports in Daylight (week ‹ › and Productivity / Quality switches work), My Progress in Frost, both at 375 px (no page sideways
+scroll; Progress tiles 2 per row). My Announcements (employee) also opened: looks right. My Allocation NOT seen in the browser (Work
+Alloc is switched off in Test Co) — lint + build only; day-detail window not seen (no reports logged). Lint: same old problems as
+before in all three files. Theme left on Daylight.
+
+**Part 1 (Daily Report) APPROVED by PO 2026-11-09.** Checked as test employee 1010 in Test Co (owner sign-in as) in all four
 themes at 1440 px and at 375 px (no page sideways scroll; KPI + slots 2 per row, sections stack). On screen only, nothing saved
 (requests were reads): Present / First Half / Absent choices and their notes; deficit alert with a typed count; call strip. Not seen
 (need saved data or other dates): holiday, Auth, submitted, editing-expired banners. Test employee's theme left on Daylight.
@@ -37,9 +43,9 @@ Progress tiles wrap on phones. Test: PO signs in as a test employee in Test Co; 
 
 **Frost Glass redesign — status 2026-11-06:** every main-menu page people can open now has the new look (Sidebar, top bar,
 Team Dashboard, Today, Prod Monitor, Quality, Hourly, Weekly / Monthly, Team / My Team, all Workbench pages, Feed Monitor, Settings,
-Clients & Payers, Audit Log, Announcements, Team Feed). Attendance (Keka) is restyled but switched off in both companies (not seen).
+Clients & Payers, Audit Log, Announcements, Team Feed; employee Daily Report, My Reports, My Progress added 2026-11-09). Attendance (Keka) is restyled but switched off in both companies (not seen).
 Not restyled (switched off in both companies, PO "skip"): Alloc Monitor, Work Alloc. Other screens not part of the main menu (sign-in,
-Owner Console, employee Daily Report / My Reports / Progress / My Allocation, Ask Helix) keep their current look — colours already
+Owner Console, Ask Helix) keep their current look — colours already
 follow the theme where they use the shared styles. Shared fixes made along the way (every page): old badges / number tiles follow the
 theme, checkboxes no longer stretch, card-style buttons readable on dark themes, header filters sit side by side.
 

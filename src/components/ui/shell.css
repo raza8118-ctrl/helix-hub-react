@@ -786,3 +786,9 @@ body[class*="theme-"] .rp-alt td { background: var(--panel-2); }
   .rp-tile { padding: 10px 12px; }
   .rp-tile-v { font-size: 22px; }
 }
+
+/* ─── My Reports / My Progress / My Allocation (Frost Glass, employee pages) ─── */
+.fg-page > .an-kpis { margin: 0; }
+body[class*="theme-"] .em-hol td { background: var(--accent-soft); }
+.em-hol-t { text-align: center; color: var(--accent); font-size: 12px; font-weight: 600; }
+.em-day { margin-bottom: 16px; }

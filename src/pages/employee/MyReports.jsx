@@ -3,6 +3,7 @@ import { S } from '../../lib/supabase';
 import { today, addDays, getMon, wDays, fmtD, fmtSh, avg, pCol } from '../../lib/helpers';
 import LineChart from '../../components/shared/LineChart';
 import Modal from '../../components/shared/Modal';
+import { Button } from '../../components/ui';
 
 const pp = (total, adjT) => (!adjT || adjT === 0) ? null : Math.round((total / adjT) * 100);
 
@@ -56,34 +57,25 @@ export default function MyReports({ user }) {
   const chartColor = view === 'prod' ? 'var(--accent)' : 'var(--col-green)';
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">My Reports</div>
-          <div className="page-subtitle">{periodLabel}</div>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          {/* View toggle */}
-          <div className="row" style={{ background: 'var(--surface-2)', borderRadius: 6, padding: 2, gap: 2 }}>
+    <div className="fg-page">
+      {/* Period + switches (the page title is in the top bar) */}
+      <div className="fg-bar">
+        <div className="fg-filters">
+          <div className="fg-choices fg-choices-tight" role="group" aria-label="View">
             {[['prod', 'Productivity'], ['quality', 'Quality']].map(([id, label]) => (
-              <button key={id} onClick={() => setView(id)} style={{
-                padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 4, border: 'none',
-                background: view === id ? 'var(--accent)' : 'transparent',
-                color: view === id ? '#fff' : 'var(--text-muted)',
-                cursor: 'pointer',
-              }}>{label}</button>
+              <Button key={id} size="sm" active={view === id} aria-pressed={view === id} onClick={() => setView(id)}>{label}</Button>
             ))}
           </div>
-          {/* Week nav */}
-          <div className="row" style={{ gap: 4 }}>
-            <button className="btn-sm" onClick={() => setWeekStart(d => addDays(d, -7))} style={{ fontWeight: 700, fontSize: 15 }}>‹</button>
-            <button className="btn-sm" onClick={() => setWeekStart(d => addDays(d, 7))} style={{ fontWeight: 700, fontSize: 15 }}>›</button>
-          </div>
+          <span className="fg-date">{periodLabel}</span>
+        </div>
+        <div className="fg-actions">
+          <Button size="sm" aria-label="Previous week" onClick={() => setWeekStart(d => addDays(d, -7))}>‹</Button>
+          <Button size="sm" aria-label="Next week" onClick={() => setWeekStart(d => addDays(d, 7))}>›</Button>
         </div>
       </div>
 
       {/* Avg KPI */}
-      <div className="grid-4 mb-16" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+      <div className="an-kpis">
         <div className="stat-card">
           <div className="stat-label">Week Avg {view === 'prod' ? 'Prod%' : 'Quality%'}</div>
           <div className={`stat-value ${pCol(avgVal)}`}>{avgVal != null ? avgVal.toFixed(1) + '%' : '—'}</div>
@@ -94,14 +86,14 @@ export default function MyReports({ user }) {
         </div>
         <div className="stat-card">
           <div className="stat-label">Holidays</div>
-          <div className="stat-value" style={{ color: '#7c3aed' }}>
+          <div className="stat-value col-blue">
             {weekDays.filter(d => holidayDates.has(d)).length}
           </div>
         </div>
       </div>
 
       {/* Line chart */}
-      <div className="card mb-16">
+      <div className="card fg-card">
         <div className="card-header">
           <div className="card-title">{view === 'prod' ? 'Productivity Trend' : 'Quality Trend'}</div>
           {loading && <span className="text-muted text-sm">Loading…</span>}
@@ -114,7 +106,7 @@ export default function MyReports({ user }) {
       </div>
 
       {/* Daily detail table */}
-      <div className="card">
+      <div className="card fg-card fg-tracker">
         <div className="card-header"><div className="card-title">Daily Details</div></div>
         <div className="table-wrap">
           <table>
@@ -137,11 +129,11 @@ export default function MyReports({ user }) {
                 const prod  = l ? pp(l.total, l.adj_target ?? l.target) : null;
                 const dayName = new Date(d + 'T00:00').toLocaleDateString('en-US', { weekday: 'short' });
                 return (
-                  <tr key={d} style={isHol ? { background: 'rgba(124,58,237,0.06)' } : undefined}>
+                  <tr key={d} className={isHol ? 'em-hol' : undefined}>
                     <td className="bold">{fmtD(d)}</td>
                     <td className="center text-sm text-muted">{dayName}</td>
                     {isHol ? (
-                      <td colSpan={6} style={{ textAlign: 'center', color: '#7c3aed', fontSize: 12, fontWeight: 600 }}>
+                      <td colSpan={6} className="em-hol-t">
                         🏖 Holiday
                       </td>
                     ) : (
@@ -170,7 +162,7 @@ export default function MyReports({ user }) {
         const tasks = dayDetail.tasks || {};
         return (
           <Modal title={`${fmtD(dayDetail.date)} — Day Detail`} onClose={() => setDayDetail(null)}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+            <div className="rp-kpi-grid em-day">
               {[
                 { label: 'Total',   value: dayDetail.total ?? '—' },
                 { label: 'Target',  value: dayDetail.adj_target ?? dayDetail.target ?? '—' },
@@ -188,7 +180,7 @@ export default function MyReports({ user }) {
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Task Breakdown</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {Object.entries(tasks).map(([name, val]) => (
-                    <span key={name} className="badge" style={{ fontSize: 13 }}>{name}: <strong>{val}</strong></span>
+                    <span key={name} className="badge badge-gray" style={{ fontSize: 13 }}>{name}: <strong>{val}</strong></span>
                   ))}
                 </div>
               </div>
