@@ -23,7 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 1 BUILT + migration 50 run (2026-11-09), waiting for PO look + approval.** Code pushed first (30c307b), then migration 50.
+**Stage 2 BUILT (2026-11-09), waiting for PO look + approval.** No database change. New tab "Admin Centre" (System, first;
+admins + Settings grant; can't be switched off) — src/pages/admin/AdminCentre.jsx: cards Users & roles (counts per role,
+active / switched off → Team), Access & permissions (people with extra access and what → Team), Targets & processes (processes,
+saved targets → Settings scrolled to targets), Pages on/off (read-only, "set by Helix Hub"), Company data imports (Payer Directory,
+Denial codes, Code lists → AR Tools opened on Code lookup, Keka attendance, Clients & Payers), AI & integrations (AI on/off, key
+saved or not, Keka page → Settings scrolled to AI key), Audit log (last 5 → Audit Log). Settings sections got anchors
+(settings-ai / -shift / -targets). Old tabs unchanged. Checked in Test Co as owner: all 7 cards with real numbers (1 admin,
+1 employee, 1 process, 2 targets, 26 / 29 pages on — Keka, Work Allocation, Ask Helix off; AI key not saved), "Open targets"
+lands on the targets card, "Code lists" opens Code lookup; access logic: admin yes, manager no, manager + Settings grant yes,
+supervisor no; no console errors. Lint 51.
+
+**Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-09).** Stage 1 built + migration 50 run (2026-11-09). Code pushed first (30c307b), then migration 50.
 access.js: page_team, page_settings, masters_edit, audit_view = ADMINS; App shows a role only the tabs it may open (and falls back
 from a blocked saved tab); sidebar footer role badge (Owner gold / Admin accent / Manager accent outline / Supervisor green /
 Employee grey) with the team beside it. Migration 50: _may (manager passes every rule except page_settings, page_team,

@@ -87,6 +87,7 @@ const ADMIN_TABS = [
   { id: 'feedback',    label: 'Announcements', icon: '📢', section: 'Engagement' },
   { id: 'feed',        label: 'Team Feed',     icon: '💬', section: 'Engagement' },
   { id: 'feedmonitor', label: 'Feed Monitor',  icon: '🖼️', section: 'Engagement' },
+  { id: 'admincentre', label: 'Admin Centre',  icon: '🛡️', section: 'System' },
   { id: 'settings',    label: 'Settings',      icon: '⚙️', section: 'System' },
 ];
 

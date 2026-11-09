@@ -82,6 +82,7 @@ export const TAB_FEATURES = {
   feedbackadmin: 'page_announcements', qualitymon: 'page_quality',
   allocation: 'page_allocation', allocmon: 'page_allocation', feedmonitor: 'page_feedmonitor',
   team: 'page_team', settings: 'page_settings', masters: 'masters_edit', auditlog: 'audit_view',
+  admincentre: 'page_settings',   // Admin Centre (PO 2026-11-09): admins, or someone given Settings
 };
 
 /** Tabs with no feature (e.g. My Reports) are open to whoever the role's tab list includes them for. */

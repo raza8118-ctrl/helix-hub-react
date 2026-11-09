@@ -5,12 +5,21 @@ import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { logAudit } from '../../lib/helpers';
 import { aiKeyStatus, saveAiKey as storeAiKey, clearAiKey as removeAiKey } from '../../lib/ai';
+import { peekRecord, clearRecord } from '../../lib/navigate';
 
 // Company name/code, adding companies and the version history are managed by the
 // Helix Hub owner in the Owner Console, never from a company's own admin login.
 // DEF_PROCS (built-in processes) is empty for added companies — they configure all
 // their processes in the custom process card.
 export default function Settings({ user }) {
+  // Admin Centre can open a section directly (ai · shift · targets)
+  useEffect(() => {
+    const section = peekRecord('settings')?.section;
+    if (!section) return undefined;
+    clearRecord('settings');
+    const id = setTimeout(() => document.getElementById(`settings-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+    return () => clearTimeout(id);
+  }, []);
   const [aiKey, setAiKey]   = useState('');   // a NEW key being typed — the saved key is never loaded (security stage 4)
   const [keyStatus, setKeyStatus] = useState(null);   // { saved, ending }
   const [showKey, setShowKey] = useState(false);
@@ -271,7 +280,7 @@ export default function Settings({ user }) {
       </div>
 
       {/* Anthropic API Key */}
-      <div className="card mb-16">
+      <div className="card mb-16" id="settings-ai">
         <div className="card-header">
           <div className="card-title">Anthropic API Key</div>
           <span className="badge badge-blue">AI Features</span>
@@ -312,7 +321,7 @@ export default function Settings({ user }) {
       </div>
 
       {/* Shift timing */}
-      <div className="card mb-16">
+      <div className="card mb-16" id="settings-shift">
         <div className="card-header">
           <div className="card-title">Shift Timing</div>
           <span className="badge badge-blue">US Daylight Saving</span>
@@ -342,7 +351,7 @@ export default function Settings({ user }) {
       </div>
 
       {/* Built-in process task config (home company only) */}
-      {DEF_PROCS.length > 0 && <div className="card mb-16">
+      {DEF_PROCS.length > 0 && <div className="card mb-16" id="settings-targets">
         <div className="card-header">
           <div className="card-title">Task Target Configuration</div>
           <div className="row" style={{ gap: 8 }}>
@@ -401,7 +410,7 @@ export default function Settings({ user }) {
       </div>}
 
       {/* Custom process task config — every process for added companies */}
-      <div className="card mb-16">
+      <div className="card mb-16" id={DEF_PROCS.length ? 'settings-custom-targets' : 'settings-targets'}>
         <div className="card-header">
           <div className="card-title">{DEF_PROCS.length ? 'Custom Process Task Configuration' : 'Productivity Tasks & Weightage'}</div>
           <div className="row" style={{ gap: 8 }}>

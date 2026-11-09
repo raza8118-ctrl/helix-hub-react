@@ -18,6 +18,7 @@ const TeamFeed       = lazy(() => import('../employee/TeamFeed'));
 const WorkbenchApp   = lazy(() => import('../workbench/WorkbenchApp'));
 const AuditLog       = lazy(() => import('./AuditLog'));
 const MasterData     = lazy(() => import('./MasterData'));
+const AdminCentre    = lazy(() => import('./AdminCentre'));
 
 /**
  * Routes admin tabs to the correct page component.
@@ -44,6 +45,7 @@ export default function AdminApp({ activeTab, user, tabs, onOpenTab }) {
     case 'settings':    return <Settings user={user} />;
     case 'auditlog':    return <AuditLog user={user} />;
     case 'masters':     return <MasterData user={user} />;
+    case 'admincentre': return <AdminCentre user={user} tabs={tabs} onOpenTab={onOpenTab} />;
     default:            return <Today user={user} />;
   }
 }

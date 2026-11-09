@@ -58,7 +58,7 @@ const BY_TAB = {
   dashboard: 'compass', hourlymon: 'timer', allocmon: 'layers', allocation: 'layers', myallocation: 'layers',
   prodreport: 'edit', myreports: 'file', progress: 'trend', myteam: 'users', team: 'users',
   feedback: 'megaphone', feedbackadmin: 'megaphone', feed: 'chat', feedmonitor: 'image', auditlog: 'scroll',
-  masters: 'building', settings: 'gear',
+  masters: 'building', settings: 'gear', admincentre: 'shield',
   wb_payers: 'bookmark', wb_files: 'paperclip', wb_sops: 'book', wb_training: 'grad', wb_denials: 'shield',
   wb_appeals: 'mail', wb_artools: 'calc', wb_worklist: 'clipboard', wb_qa: 'badge', wb_queries: 'chat',
   wb_handover: 'swap', wb_medicare: 'bank', wb_updates: 'news', wb_assistant: 'bot', wb_credentialing: 'card',

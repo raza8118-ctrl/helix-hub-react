@@ -971,3 +971,17 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .sb-role-manager { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .sb-role-supervisor { color: var(--good-fg, #15803d); background: var(--good-bg, #dcfce7); border-color: transparent; }
 .sb-role-team { font-size: 11px; color: var(--sb-muted, var(--text-muted)); }
+/* Admin Centre (PO 2026-11-09) */
+.ac-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.fg-page .ac-grid .card.ac-card { margin: 0; }
+.ac-card { display: flex; flex-direction: column; gap: 10px; }
+.ac-head { display: flex; align-items: center; gap: 10px; }
+.ac-icon { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.ac-title { margin: 0; font-size: 15px; font-weight: 700; }
+.ac-body p { margin: 6px 0 0; }
+.ac-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; font-size: 12px; }
+.ac-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.ac-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ac-links li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; }
+.ac-actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; }
