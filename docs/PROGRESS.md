@@ -23,7 +23,20 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 2 BUILT + migration 48 run (2026-11-09), waiting for PO look + approval.** Code pushed first (7dd0daf), then migration 48
+**Stage 3 BUILT + migration 49 run (2026-11-09), waiting for PO look + approval — last stage.** Code pushed first (22b6d9b),
+then migration 49: payer forms (section Payer Directory) and SOP screenshots / videos (sop_media + pictures / videos inside SOP
+steps + walk-through video, section SOP Library) are in the push; paths move from co_master/… to the company's folder (home: no
+folder); the app copies the files right after the push (storage copy, owner key) and "Copy missing files" retries
+(owner_master_files lists only pushed files the company doesn't have yet). Row fingerprint now taken per row. Rolled-back test
+(QA payer + form, published SOP with a step picture + walk-through video, 2 media rows, stand-in storage records): Test Co gets
+the form under its QA payer at co_testco/payer_…/zzqa.pdf, SOP step picture + video + version snapshot at co_testco/sop_zz/…,
+media rows at co_testco/…; files to copy = exactly the 3 (2 after one is in place); home gets payer_…/sop_… (no folder); third
+push changes nothing (a form that is its own family shows one extra "updated" on the second push, then settles); push 0.2 s;
+nothing left behind. NOT tested: the real storage copy of a file (no real master files exist yet — first real test when the PO
+adds a form or screenshot in the master). Browser: section hints mention files; "Copy missing files" → "Files: none needed".
+Lint 51 before and after.
+
+**Stage 2 APPROVED (PO "Approved, start Stage 3" 2026-11-09).** Stage 2 built + migration 48 run (2026-11-09). Code pushed first (7dd0daf), then migration 48
 (master_hash column, helix_master_pushes, owner_master_preview / owner_master_push / owner_master_push_history). Master Data →
 Master copy → "Push to companies…": tick sections (Payer Directory, Denial guides, Code lists, SOP Library, Task targets) and
 companies → Preview (the real push run in the database and cancelled) → per company a table New / Updated / Unchanged / Kept:
@@ -2269,7 +2282,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 47. `supabase/migrations/20261112_master_copy.sql` (hidden Master copy workspace co_master__ + companies.is_master; master_id /
     master_pushed_at on 17 tables; owner_master_status / owner_master_seed) — run 2026-11-09 by Claude.
 48. `supabase/migrations/20261113_master_push.sql` (master_hash on 17 tables, helix_master_pushes, preview / push / history
-    functions) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    functions) — run 2026-11-09 by Claude.
+49. `supabase/migrations/20261114_master_files.sql` (payer forms + SOP media in the push, paths to the company folder,
+    owner_master_files) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.

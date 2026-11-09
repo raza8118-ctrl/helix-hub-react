@@ -179,7 +179,9 @@ export default function OwnerMasterPush({ owner, rows, onClose }) {
         <button type="button" className="btn-sm" onClick={() => copyFiles(picked)} disabled={!!busy || !picked.length}
           title="Copies any pushed payer forms and SOP screenshots / videos these companies don't have yet">Copy missing files</button>
         <span className="text-sm text-muted" role="status">
-          {busy || (Object.values(files).some(f => f.failed || f.error) ? 'Some files could not be copied — use Copy missing files to try again.' : stale ? 'The choices changed since the preview — preview again before pushing.' : pushed ? 'Pushed. Results below.' : preview ? 'Preview below — nothing has changed yet.' : 'Preview first: it shows exactly what a push will do, then changes nothing.')}
+          {busy || (Object.values(files).some(f => f.failed || f.error) ? 'Some files could not be copied — use Copy missing files to try again.'
+            : !pushed && !preview && Object.keys(files).length ? `Files checked: ${Object.values(files).reduce((t, f) => t + (f.copied ?? 0), 0) || 'none'} copied — every pushed file is in place.`
+              : stale ? 'The choices changed since the preview — preview again before pushing.' : pushed ? 'Pushed. Results below.' : preview ? 'Preview below — nothing has changed yet.' : 'Preview first: it shows exactly what a push will do, then changes nothing.')}
         </span>
       </div>
 
