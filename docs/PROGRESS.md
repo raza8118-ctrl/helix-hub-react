@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 2 BUILT (2026-11-09), waiting for PO look + approval.** No database change. New tab "Admin Centre" (System, first;
+**Stage 2 APPROVED (PO 2026-11-10) — step DONE.** No database change. New tab "Admin Centre" (System, first;
 admins + Settings grant; can't be switched off) — src/pages/admin/AdminCentre.jsx: cards Users & roles (counts per role,
 active / switched off → Team), Access & permissions (people with extra access and what → Team), Targets & processes (processes,
 saved targets → Settings scrolled to targets), Pages on/off (read-only, "set by Helix Hub"), Company data imports (Payer Directory,
@@ -48,7 +48,7 @@ page). Browser: owner in Test Co sees badge "Owner" and Team / Settings / Client
 gives Team Dashboard, Today, Prod, Quality, Hourly, Weekly, Work Alloc, Feed Monitor (no Team / Settings / Clients / Audit).
 No manager account exists to sign in with. Lint 51 before and after.
 
-**Company Admin vs Manager + Admin Centre (PO "Go" 2026-11-09) — IN PROGRESS, Stage 1.** Checked first (read-only): no
+**Company Admin vs Manager + Admin Centre (PO "Go" 2026-11-09) — DONE (both stages approved 2026-11-10).** Follow-up only on PO request: remove the old Team / Settings / Clients & Payers / Audit Log tabs from the sidebar now that the Admin Centre links to them. Checked first (read-only): no
 managers in either company (3Gen: 1 admin, 1 supervisor, 20 employees; Test Co: 1 admin) → nobody loses access; no user data
 changes. Stage 1: Settings, Team (users + roles), Access grants, Clients & Payers ("Master Data") and Audit Log become admin-only
 by default (managers keep monitoring, Team Dashboard, Quality, Work Alloc, Feed Monitor and library editing — Payer Directory,
