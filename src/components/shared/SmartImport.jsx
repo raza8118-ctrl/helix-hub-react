@@ -35,7 +35,10 @@ function NeedPanel({ type }) {
       {type.builtIns?.length > 0 && (
         <p className="text-sm text-muted" style={{ margin: '6px 0 0' }}>Also recognised automatically: {type.builtIns.map(b => b.label).join(' · ')}.</p>
       )}
-      <button type="button" className="btn-sm" onClick={() => downloadSample(type)}>⬇ Download sample file</button>
+      <div className="si-row">
+        <button type="button" className="btn-sm" onClick={() => downloadSample(type)}>⬇ Download sample file</button>
+        {(type.downloads ?? []).map(d => <button key={d.label} type="button" className="btn-sm" onClick={d.run}>{d.label}</button>)}
+      </div>
     </div>
   );
 }
@@ -87,12 +90,12 @@ export default function SmartImport({ typeId, user, onClose, onDone }) {
     try {
       // built-in special files first (they have their own rules)
       for (const b of type.builtIns ?? []) {
-        if (b.detect(f)) {
+        if (await b.detect(f)) {
           const out = await b.parse(f);
           setBusy('');
           if (out.error) { setErr(out.error); return; }
-          setBuiltIn({ label: b.label, records: out.records });
-          await makePreview(out.records, overwrite);
+          setBuiltIn({ label: b.label, out });
+          await makePreview(out, overwrite);
           return;
         }
       }
@@ -112,15 +115,15 @@ export default function SmartImport({ typeId, user, onClose, onDone }) {
 
   const missing = type.fields.filter(f => f.required && mapping[f.key] == null && !constants[f.key]);
 
-  async function makePreview(records, ow) {
+  async function makePreview(input, ow) {
     setBusy('Checking against what is already there…'); setErr('');
     try {
-      const p = await buildPreview(type, records, { overwrite: ow }, msg => setBusy(msg));
+      const p = await buildPreview(type, input, { overwrite: ow }, msg => setBusy(msg));
       setPreview(p); setStep('preview');
     } catch (e) { setErr(e.message); }
     setBusy('');
   }
-  const records = () => (builtIn ? builtIn.records : mapRows(rows, headerRow, mapping, constants));
+  const input = () => (builtIn ? builtIn.out : { records: mapRows(rows, headerRow, mapping, constants) });
 
   async function save() {
     if (!tplName.trim()) return;
@@ -218,7 +221,7 @@ export default function SmartImport({ typeId, user, onClose, onDone }) {
             {missing.length > 0 && <p className="ot-err">Still needed: {missing.map(f => f.label).join(', ')}.</p>}
             <div className="si-actions">
               <button type="button" className="btn-sm" onClick={() => setStep(sheets.length > 1 ? 'sheet' : 'upload')}>Back</button>
-              <button type="button" className="btn-primary" disabled={!!busy || missing.length > 0} onClick={() => makePreview(records(), overwrite)}>Preview</button>
+              <button type="button" className="btn-primary" disabled={!!busy || missing.length > 0} onClick={() => makePreview(input(), overwrite)}>Preview</button>
             </div>
           </>
         )}
@@ -234,10 +237,11 @@ export default function SmartImport({ typeId, user, onClose, onDone }) {
               <div className="oc-co-stat"><div className="oc-co-stat-l">Duplicates skipped</div><div className="bold">{preview.dups.length.toLocaleString()}</div></div>
               <div className="oc-co-stat"><div className="oc-co-stat-l">Errors</div><div className={`bold ${preview.errors.length ? 'col-red' : ''}`}>{preview.errors.length.toLocaleString()}</div></div>
             </div>
-            <label className="omp-check">
-              <input type="checkbox" checked={overwrite} onChange={e => { setOverwrite(e.target.checked); makePreview(records(), e.target.checked); }} />
+            {preview.note && <p className="text-sm si-note">{preview.note}</p>}
+            {!preview.noOverwrite && <label className="omp-check">
+              <input type="checkbox" checked={overwrite} onChange={e => { setOverwrite(e.target.checked); makePreview(input(), e.target.checked); }} />
               <span><strong>Overwrite existing values</strong> <span className="text-muted text-sm">— otherwise only empty fields of existing items are filled</span></span>
-            </label>
+            </label>}
             {(type.options ?? []).map(o => (
               <label key={o.key} className="omp-check">
                 <input type="checkbox" checked={!!options[o.key]} onChange={e => setOptions(x => ({ ...x, [o.key]: e.target.checked }))} />
@@ -250,11 +254,11 @@ export default function SmartImport({ typeId, user, onClose, onDone }) {
             )}
             {preview.adds.length > 0 && (
               <details className="si-sec"><summary>New ({preview.adds.length.toLocaleString()})</summary>
-                {list(preview.adds, a => <>Row {a.rowNum} · {type.labelOf(a.values)}</>)}</details>
+                {list(preview.adds, a => <>Row {a.rowNum} · {a.label ?? type.labelOf(a.values)}</>)}</details>
             )}
             {preview.updates.length > 0 && (
               <details className="si-sec"><summary>Updates to existing items ({preview.updates.length.toLocaleString()})</summary>
-                {list(preview.updates, u => <>Row {u.rowNum} · {type.labelOf(u.values)} — {Object.keys(u.patch).map(k => type.fields.find(f => f.key === k)?.label ?? k).join(', ')}</>)}</details>
+                {list(preview.updates, u => <>Row {u.rowNum} · {u.label ?? type.labelOf(u.values)} — {u.changes ?? Object.keys(u.patch).map(k => type.fields.find(f => f.key === k)?.label ?? k).join(', ')}</>)}</details>
             )}
             {preview.dups.length > 0 && (
               <details className="si-sec"><summary>Duplicates skipped ({preview.dups.length.toLocaleString()})</summary>

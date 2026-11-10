@@ -3,8 +3,8 @@ import { S, db } from '../../lib/supabase';
 import { needsRecheck, PAYER_DETAIL_TABLES } from '../../lib/payers';
 import { hasAccess } from '../../lib/access';
 
-// Loaded only when an editor opens it (brings in the Excel library)
-const PayerImport = lazy(() => import('./PayerImport'));
+// Smart Import (2026-11-10) replaces the old PayerImport screen (file kept); loaded only when an editor opens it
+const SmartImport = lazy(() => import('../../components/shared/SmartImport'));
 import PayerSearch from '../../components/shared/PayerSearch';
 import PayerCard from './PayerCard';
 import { peekRecord, clearRecord } from '../../lib/navigate';
@@ -94,7 +94,7 @@ export default function PayerDirectory({ user }) {
 
       {showImport && (
         <Suspense fallback={null}>
-          <PayerImport user={user} onClose={() => setShowImport(false)} onImported={loadPayers} />
+          <SmartImport typeId="payers" user={user} onClose={() => setShowImport(false)} onDone={loadPayers} />
         </Suspense>
       )}
 

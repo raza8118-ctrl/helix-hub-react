@@ -1030,3 +1030,4 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .si-sec summary { cursor: pointer; font-weight: 600; }
 .si-list { margin: 4px 0; padding-left: 18px; max-height: 220px; overflow: auto; }
 .si-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.si-note { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }

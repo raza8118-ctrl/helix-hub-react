@@ -99,10 +99,13 @@ export async function saveTemplate(typeId, { name, signature, mapping, constants
 
 // ── Preview: new rows, updates, duplicates skipped, errors ──────────────────────────────────
 /**
- * records: [{ rowNum, values }]. type: { normalize, validate, keyOf, fields, loadExisting(records) → Map(key → row) }.
+ * input: { records: [{ rowNum, values }] } (or a built-in file's parse result). type: { normalize, validate, keyOf, fields, loadExisting(records) → Map(key → row) }.
  * → { adds: [{ rowNum, values }], updates: [{ rowNum, values, existing, patch }], dups: [{ rowNum, label, why }], errors: [{ rowNum, label, why }] }
  */
-export async function buildPreview(type, records, { overwrite = false } = {}, onProgress) {
+export async function buildPreview(type, input, { overwrite = false } = {}, onProgress) {
+  // a type with linked tables (payers) builds its own preview in the same shape; input may carry a built-in file's data
+  if (type.preview) return type.preview(input, { overwrite }, onProgress);
+  const records = input.records ?? [];
   const clean = [];
   const errors = [];
   for (const r of records) {
