@@ -23,6 +23,22 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
+(Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
+Client Queries, Worklists, QA, Reports (daily_logs), Medicare ADR / RTP. Modules that may hold patient data: Client Queries,
+Worklists, QA, Medicare ADR / RTP. Stages, PO approval after each: 1 searchable read-only table (pages of 1,000, capped, names
+instead of emp IDs, patient-data banner); every opening of a company + module logged in the owner log + that company's Audit Log
+("via Helix Hub owner") — no DB change. 2 Download Excel (one company, or all with a Company column; payers / denials one sheet per
+table); patient-data modules: warning + typed reason before download; every download logged with row count + reason — no DB change.
+3 "⤴ Save to Master" on payer / denial code / SOP (not client SOPs) / code-list rows: preview → Add / Update the master / Skip;
+migration 54 (20261119_company_data.sql): new rcm._lib_copy_from + rcm.owner_master_copy_from (owner only, reads any company prefix,
+adds the code-list kind); migration 52's functions untouched; logged in owner log + master history + company Audit Log. 4 Edit:
+whitelisted fields per module (never ids / company), before → after, confirm, never delete (Active / Inactive), logged with before /
+after; patient-data modules only work fields (status, owner, follow-up) — never claim numbers / amounts. Files: new
+src/pages/owner/OwnerCompanyData.jsx, src/lib/companyData.js, src/components/owner/CompanyRowEdit.jsx + SaveToMaster.jsx, migration
+54; changed ownerCenter.js (menu), OwnerConsole.jsx (route), owner.js (RPC), shell.css. No PHI to any AI / outside site (Excel
+built in the browser); logs hold company, module, counts, reason, record id — never patient values.
+
 **Smart Import (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
