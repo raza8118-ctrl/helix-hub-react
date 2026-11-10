@@ -36,6 +36,17 @@ saved matchings table, import_file / imported_at columns) · 2 payers · 3 denia
 screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
 Helix_Denial_Guides_More.xlsx before stages 3–4.
 
+**Stage 1 BUILT — waiting for PO approval (2026-11-10).** Code pushed first (da94a71), then migration 53 run (protect_all_tables
+→ 234; Supabase's "Run and enable RLS" was chosen). Checked: 3 import_templates tables (home + both companies incl. master) with RLS
++ policies; import_file / imported_at on all 45 library tables. New: src/lib/smartImport.js (read file in the browser, header-row
+detection, synonym auto-match, saved matchings, preview, import + audit / owner log), src/lib/importTypes.js (data types; Stage 1 =
+Code lists, plus the built-in CMS ICD-10 .txt file and "mark missing codes Retired"), src/components/shared/SmartImport.jsx (upload +
+"What we need in your file" + Download sample → sheet → Match your columns → preview → Import), styles in shell.css. Code Lookup
+"⬆ Import list" now opens Smart Import (old RefImportModal kept in RefCodeEditors.jsx, unused). Browser (Test Co, owner): a test CSV
+with a title row and "Rev Code / Long Description / Comments" headers → header row 3 found, columns matched, "Code set" flagged until
+"Revenue for every row" picked; preview New 3 · Duplicates 1 (row 6, same code earlier) · Errors 1 (row 7 Missing code); Import NOT
+clicked, nothing saved. Lint 51 (no new problems), build OK.
+
 **Stage 4 APPROVED (PO 2026-11-10) — step DONE.** Built + migration 52 run 2026-11-10. Code pushed first (8816052), then
 migration 52 (owner_master_copy_preview / owner_master_copy, _lib_copy, _lib_put_row). Owner-only "⤴ Copy to Master" (owner acting
 as admin, home company only) on the payer card, each company denial code card and the SOP page (not client SOPs): preview → "Add to
