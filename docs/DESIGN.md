@@ -35,6 +35,7 @@ Helix Hub has four themes. Each person picks one in the **top bar** (or Profile)
 | **Daylight** | Light glass | `#4F46E5` | Sidebar + top bar |
 | **Slate** | White workspace, dark solid sidebar | `#0F766E` | None |
 | **Violet** | Dark glass | `#A78BFA` | Sidebar + top bar |
+| **Owner** (owner screens only) | Frost dark glass, gold | `#E5B454` (ink `#1C1405` on gold) | Sidebar + top bar |
 
 - Colours: `src/components/ui/themes.css`. App puts `theme-<id>` on `<body>` (Frost / Violet also get the old `dark` class so
   older dark-mode rules keep working). Old saved theme ids are mapped by `resolveTheme()` in `lib/constants.js`.
@@ -49,7 +50,7 @@ companies, skipped). The page title now lives in the **top bar** — pages start
 `page-header`.
 
 **Owner Command Center (2026-11-09):** the Owner Console uses the same app shell — `OwnerSidebar` (`.sidebar.sb-glass`, menu
-in `lib/ownerCenter.js`), top bar `.tb-glass`, its own saved theme (`hh_owner_theme`, Frost by default). Line icons come from
+in `lib/ownerCenter.js`), top bar `.tb-glass`, the gold `theme-owner` (always; never saved as the browser's last theme, so company users never get it; the owner sign-in uses it too). Line icons come from
 `NavIcon` (`icon="crown"` etc. — no emoji in owner pages). Classes: `.oc-*` (page, alerts, company cards, `.oc-viewbar` = the
 "Viewing as Owner · [Company ▼] · Back to Command Center" bar inside a company, which replaced the purple banner).
 

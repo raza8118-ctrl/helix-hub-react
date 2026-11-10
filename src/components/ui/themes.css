@@ -2,6 +2,7 @@
    Helix Hub themes — "Frost Glass" (PO request 2026-11-06). See docs/DESIGN.md.
    Every colour in the new look comes from these variables. App.jsx puts one class on <body>:
      theme-frost (default) · theme-daylight · theme-slate · theme-violet
+   theme-owner = the Helix Hub owner's own look (owner sign-in, Owner Command Center) — never offered to company users.
    Frost and Violet also get the old `dark` class so the existing dark-mode rules keep working on pages not yet restyled.
    The old variables (--bg, --surface, --text, --accent, --border …) point at the new ones, so every page takes the
    new colours straight away; layouts change page by page.
@@ -55,6 +56,56 @@ body.theme-frost {
   --warn-bg: rgba(251, 191, 36, 0.15);  --warn-fg: #fbbf24;
   --bad-bg:  rgba(248, 113, 113, 0.16); --bad-fg:  #f87171;
   --none-bg: rgba(255, 255, 255, 0.06); --none-fg: #93a3bc;
+}
+
+/* ─── Owner — Frost dark glass with a gold accent (PO 2026-11-10). Owner screens only; never a company user's theme.
+   Contrast: ink #1c1405 on gold 9.5:1 · gold on background 9.9:1 · gold on cards 9.0:1 · gold on soft gold 6.9:1 ─── */
+body.theme-owner {
+  --app-bg: #0a1120;
+  --app-bg-image:
+    radial-gradient(1100px 650px at 85% -10%, rgba(229, 180, 84, 0.13), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(30, 80, 170, 0.18), transparent 60%),
+    linear-gradient(160deg, #0b1324 0%, #0a1120 55%, #0c1428 100%);
+  --panel: rgba(20, 30, 52, 0.62);
+  --panel-solid: #121b30;
+  --panel-2: rgba(255, 255, 255, 0.035);
+  --panel-2-hover: rgba(255, 255, 255, 0.06);
+  --panel-border: rgba(229, 180, 84, 0.16);
+  --text: #e8eef8;
+  --text-muted: #9aa7bb;
+  --text-subtle: #6c7a92;
+  --divider: rgba(148, 178, 230, 0.10);
+  --input-bg: rgba(255, 255, 255, 0.045);
+  --input-border: rgba(229, 180, 84, 0.24);
+  --accent: #e5b454;
+  --accent-strong: #d4a23f;
+  --accent-soft: rgba(229, 180, 84, 0.14);
+  --on-accent: #1c1405;
+  --chart-bar: linear-gradient(180deg, #e5b454 0%, rgba(212, 162, 63, 0.28) 100%);
+  --chart-target: rgba(232, 238, 248, 0.38);
+
+  --sb-bg: rgba(15, 23, 41, 0.74);
+  --sb-border: rgba(229, 180, 84, 0.14);
+  --sb-text: #dce6f5;
+  --sb-muted: #aab7cb;
+  --sb-heading: #8a93a6;
+  --sb-hover: rgba(229, 180, 84, 0.07);
+  --sb-active-bg: rgba(229, 180, 84, 0.14);
+  --sb-active-text: #ffffff;
+  --sb-active-bar: #e5b454;
+  --sb-logo-bg: #e5b454;
+  --sb-logo-text: #1c1405;
+  --sb-gap: 16px;
+  --sb-radius: 22px;
+
+  --topbar-glass: rgba(15, 23, 41, 0.64);
+  --blur: blur(18px) saturate(140%);
+  --card-shadow: 0 12px 32px -20px rgba(0, 0, 0, 0.7);
+
+  --good-bg: rgba(52, 211, 153, 0.15);  --good-fg: #4ade9b;
+  --warn-bg: rgba(251, 146, 60, 0.16);  --warn-fg: #fb923c;   /* amber-orange: Watch badges don't look like the gold accent */
+  --bad-bg:  rgba(248, 113, 113, 0.16); --bad-fg:  #f87171;
+  --none-bg: rgba(255, 255, 255, 0.06); --none-fg: #9aa7bb;
 }
 
 /* ─── Violet — dark glass, violet accent ─── */
@@ -202,7 +253,7 @@ body.theme-slate {
 }
 
 /* ─── Old variables → new ones (every theme) ─── */
-body.theme-frost, body.theme-violet, body.theme-daylight, body.theme-slate {
+body.theme-frost, body.theme-violet, body.theme-daylight, body.theme-slate, body.theme-owner {
   --bg: var(--app-bg);
   --surface: var(--panel-solid);
   --surface-2: color-mix(in srgb, var(--panel-solid) 92%, var(--text) 8%);

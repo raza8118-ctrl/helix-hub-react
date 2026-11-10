@@ -16,7 +16,6 @@ import OwnerPerformance from './OwnerPerformance';
 import OwnerMasterData from './OwnerMasterData';
 import { OWNER_PAGES, healthOf } from '../../lib/ownerCenter';
 import NavIcon from '../../components/ui/NavIcon';
-import ThemeSwitcher from '../../components/ui/ThemeSwitcher';
 
 // Helix Hub owner only — reached from the /owner sign-in, never from a company login.
 // Owner Console 2.0 (PO request 2026-10-29): Overview (watch every company), Companies (add / rename / Manage: plan,
@@ -31,7 +30,7 @@ const START_PAGES = [['', 'Default page'], ['teamdash', 'Team Dashboard'], ['tod
 const fmtDate = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const n = v => (v == null ? '—' : v.toLocaleString());
 
-export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerUpdate, theme, onTheme }) {
+export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerUpdate }) {
   const [tab, setTab]             = useState(() => { const t = sessionStorage.getItem('hh_owner_tab') || 'overview'; return OLD_TABS[t] ?? (OWNER_PAGES[t] ? t : 'overview'); });
   const [navOpen, setNavOpen]     = useState(false);
   const [home, setHome]           = useState(null);
@@ -200,7 +199,6 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
             <button type="button" className="btn-sm oc-refresh" onClick={reload} disabled={busy} title="Load the latest numbers">
               <NavIcon icon="refresh" size={15} /> Refresh
             </button>
-            {onTheme && <ThemeSwitcher value={theme} onChange={onTheme} />}
           </div>
         </header>
 

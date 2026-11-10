@@ -840,24 +840,23 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .pw-eye:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
 .pw-eye:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* ─── Owner Command Center sign-in (/owner): its own fixed dark look in every theme ─── */
+/* ─── Owner sign-in (/owner): the gold Owner theme (body.theme-owner, themes.css) — same look as the Owner Command Center ─── */
 .ol-shell {
-  --ol-accent: #e7b84b; --ol-on-accent: #1c1405; --ol-badge-bg: rgba(231, 184, 75, 0.12);
-  --accent: #e7b84b; --text: #f1eee6; --text-muted: #a8a294; --surface: #161510; --border: #3a372c; --border-focus: #e7b84b; --accent-dim: rgba(231, 184, 75, 0.18);
-  --text-subtle: #7b766a; --input-bg: #161510; --input-border: #3a372c;
+  --ol-accent: var(--accent, #e5b454); --ol-on-accent: var(--on-accent, #1c1405); --ol-badge-bg: var(--accent-soft, rgba(229, 180, 84, 0.14));
   position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 24px 16px; overflow-y: auto;
   color: var(--text);
-  background: radial-gradient(900px 600px at 50% -10%, rgba(231, 184, 75, 0.14), transparent 60%), linear-gradient(170deg, #0d0c09 0%, #12110c 60%, #0a0907 100%);
+  background: var(--app-bg-image), var(--app-bg, #0a1120);
 }
 .ol-card {
   display: flex; flex-direction: column; width: 100%; max-width: 400px; padding: 34px 32px 26px;
-  background: rgba(28, 26, 20, 0.92); border: 1px solid rgba(231, 184, 75, 0.28); border-radius: 22px; box-shadow: 0 30px 70px -30px #000;
+  background: var(--panel, rgba(20, 30, 52, 0.62)); border: 1px solid color-mix(in srgb, var(--ol-accent) 30%, transparent); border-radius: 22px;
+  box-shadow: 0 30px 70px -30px #000; backdrop-filter: var(--blur);
 }
 .ol-badge { align-self: center; }
 .ol-title { margin: 14px 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; text-align: center; color: var(--text); }
 .ol-sub { margin: 0 0 24px; font-size: 13px; text-align: center; color: var(--text-muted); }
 .ol-card label { color: var(--text-muted); }
-.ol-card input { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.ol-card input { background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); }
 .ol-error { margin-bottom: 14px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; background: rgba(248, 113, 113, 0.14); color: #f87171; }
 .ol-submit {
   width: 100%; padding: 11px; border: 0; border-radius: 11px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
@@ -909,14 +908,22 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .oc-co-stat { background: var(--surface-2); border-radius: 8px; padding: 6px 8px; }
 .oc-co-stat-l { color: var(--text-muted); font-size: 10.5px; }
 
-.oc-viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 16px; font-size: 12.5px; color: var(--text);
-  background: color-mix(in srgb, var(--accent) 14%, var(--panel-solid, #10182b)); border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
-.oc-viewbar-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--accent); }
-.oc-viewbar-select { width: auto; max-width: 240px; padding: 3px 8px; font-size: 12.5px; font-weight: 600; min-height: 0; }
-.oc-viewbar-note { color: var(--text-muted); }
+.oc-viewbar {
+  /* gold Owner look on its own (the company page keeps its theme) — ink on gold 9.5:1, gold on the strip 8.6:1 */
+  --ovb-gold: #e5b454; --ovb-ink: #1c1405; --ovb-bg: #161d2c; --ovb-text: #e8eef8; --ovb-muted: #aab4c6;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 16px; font-size: 12.5px; color: var(--ovb-text);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ovb-gold) 14%, var(--ovb-bg)), var(--ovb-bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--ovb-gold) 45%, transparent);
+}
+.oc-viewbar-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ovb-gold); }
+.oc-viewbar-select { width: auto; max-width: 240px; padding: 3px 8px; font-size: 12.5px; font-weight: 600; min-height: 0;
+  color: var(--ovb-text); background: rgba(255, 255, 255, 0.06); border: 1px solid color-mix(in srgb, var(--ovb-gold) 35%, transparent); }
+.oc-viewbar-select option { color: #0f172a; background: #fff; }
+.oc-viewbar-note { color: var(--ovb-muted); }
 .oc-viewbar-back { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; border: 0; cursor: pointer;
-  font: inherit; font-size: 12px; font-weight: 700; color: var(--on-accent); background: var(--accent); flex-shrink: 0; }
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--ovb-ink); background: var(--ovb-gold); flex-shrink: 0; }
 .oc-viewbar-back:hover { filter: brightness(1.08); }
+.oc-viewbar-back:focus-visible, .oc-viewbar-select:focus-visible { outline: 2px solid var(--ovb-gold); outline-offset: 2px; }
 @media (max-width: 768px) {
   .oc-viewbar-back { margin-left: 0; }
   .oc-co-stats { grid-template-columns: repeat(2, 1fr); }
@@ -938,8 +945,7 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .omd-stat:hover { border-color: var(--border); }
 .omd-stat.on { border-color: var(--accent); }
 /* Master copy (migration 47): the owner bar says "Editing MASTER COPY" */
-.oc-viewbar-master { background: color-mix(in srgb, var(--col-yellow) 16%, var(--panel-solid, #10182b)); border-bottom-color: color-mix(in srgb, var(--col-yellow) 45%, transparent); }
-.oc-viewbar-master .oc-viewbar-badge { color: var(--col-yellow); }
+.oc-viewbar-master { border-bottom-style: dashed; }   /* same gold; the label says MASTER COPY */
 .omd-master { margin: 0; }
 .omd-master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 12px; }
 /* Master copy → Push to companies */

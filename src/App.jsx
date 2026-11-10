@@ -52,12 +52,19 @@ const EmployeeApp   = lazy(() => import('./pages/employee/EmployeeApp'));
 const OwnerConsole  = lazy(() => import('./pages/owner/OwnerConsole'));
 
 // ── Theme helper ──────────────────────────────────────────────────────────────
-const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars', ...THEMES.map(th => `theme-${th.id}`)];
+const THEME_CLASSES = ['dark', 'dusk', 'mist', 'stars', 'theme-owner', ...THEMES.map(th => `theme-${th.id}`)];
 
 const LAST_THEME_KEY = 'hh_last_theme';   // this browser's last theme, for the sign-in page (no personal data)
-const OWNER_THEME_KEY = 'hh_owner_theme';  // Owner Command Center theme on this browser (Frost by default)
-const readOwnerTheme = () => { try { return resolveTheme(localStorage.getItem(OWNER_THEME_KEY) || 'frost'); } catch { return 'frost'; } };
 const isOwnerPath = () => window.location.pathname.replace(/\/+$/, '') === '/owner';
+
+/** Owner screens (owner sign-in, Owner Command Center) always use the gold Owner theme (PO 2026-11-10). It is never
+ *  saved as this browser's last theme, so the company sign-in page and company users keep their own theme. */
+function applyOwnerTheme() {
+  document.body.style.background = '';
+  document.body.style.removeProperty('--topbar-bg');
+  THEME_CLASSES.forEach(c => document.body.classList.remove(c));
+  document.body.classList.add('theme-owner', 'dark');
+}
 
 /** Frost Glass (2026-11-06): one body class per theme (colours in components/ui/themes.css); Frost / Violet keep `dark`. */
 function applyTheme(themeId) {
@@ -150,7 +157,6 @@ function withGrantedTabs(roleTabs, user) {
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [owner, setOwner]             = useState(getOwnerSession);   // Helix Hub owner, if signed in
-  const [ownerTheme, setOwnerTheme]   = useState(readOwnerTheme);   // Owner Command Center theme
   const [theme, setTheme]             = useState(THEMES[0].id);
   const [activeTab, setActiveTab]     = useState('today');
   const [showProfile, setShowProfile] = useState(false);
@@ -228,15 +234,15 @@ export default function App() {
     })();
   }, []);
 
-  // Signed out: the sign-in page uses this browser's last theme (Frost by default). The Owner Command Center uses its own
-  // saved theme (Frost Glass, PO 2026-11-09).
+  // Signed out: the sign-in page uses this browser's last theme (Frost by default). The owner sign-in and the Owner
+  // Command Center use the gold Owner theme (PO 2026-11-10).
   useEffect(() => {
     if (currentUser) return;
-    if (owner) { applyTheme(ownerTheme); return; }
+    if (owner || isOwnerPath()) { applyOwnerTheme(); return; }
     let last = null;
     try { last = localStorage.getItem(LAST_THEME_KEY); } catch { /* storage unavailable */ }
     applyTheme(last);
-  }, [currentUser, owner, ownerTheme]);
+  }, [currentUser, owner]);
 
   // ── Unread feedback count (employees only) ──────────────────────────────────
   useEffect(() => {
@@ -422,11 +428,6 @@ export default function App() {
     if (oldToken) supabase.rpc('user_logout', { p_token: oldToken }).then(() => {}, () => {});
   }
 
-  function handleOwnerTheme(t) {
-    setOwnerTheme(t);
-    try { localStorage.setItem(OWNER_THEME_KEY, t); } catch { /* storage unavailable */ }
-  }
-
   function handleOwnerSignOut() {
     ownerLogout(owner);
     setOwnerSession(null);
@@ -485,8 +486,7 @@ export default function App() {
   if (!currentUser && owner) {
     return (
       <Suspense fallback={<div className="loading-row"><div className="spinner" /> Loading…</div>}>
-        <OwnerConsole owner={owner} onOpenCompany={openCompanyAsOwner} onSignOut={handleOwnerSignOut} onOwnerUpdate={o => { setOwnerSession(o); setOwner(o); }}
-          theme={ownerTheme} onTheme={handleOwnerTheme} />
+        <OwnerConsole owner={owner} onOpenCompany={openCompanyAsOwner} onSignOut={handleOwnerSignOut} onOwnerUpdate={o => { setOwnerSession(o); setOwner(o); }} />
       </Suspense>
     );
   }
