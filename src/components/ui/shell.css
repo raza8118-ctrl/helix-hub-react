@@ -991,3 +991,5 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ac-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .ac-links li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; }
 .ac-actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+/* Master Library (PO 2026-11-10) */
+.omd-companies-label { margin: 4px 0 -6px; }

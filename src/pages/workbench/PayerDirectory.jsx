@@ -38,7 +38,7 @@ export default function PayerDirectory({ user }) {
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [reviewFilter, setReviewFilter] = useState('ALL');   // ALL | STALE | REPORTED
   const [summary, setSummary]   = useState({ stale: new Set(), reports: {} });
-  const [showImport, setShowImport] = useState(false);
+  const [showImport, setShowImport] = useState(() => !!peekRecord('wb_payers')?.import);   // Master Library → Import
   const canEdit = hasAccess(user, 'payers_edit');
 
   function loadPayers() {

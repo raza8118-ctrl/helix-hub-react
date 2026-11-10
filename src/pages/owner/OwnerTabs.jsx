@@ -25,7 +25,7 @@ const OWNER_ACTIONS = {
   broadcast_add: 'Sent a broadcast', broadcast_edit: 'Changed a broadcast', structure_sync: 'Synced structure',
   owner_password_change: 'Changed own owner password',
   owner_change_role: 'Changed a user’s role',
-  master_seed: 'Started the master copy from the home company', master_push: 'Pushed the master copy',
+  master_seed: 'Started the master copy from the home company', master_push: 'Pushed the master copy', master_change: 'Changed the Master Library',
   owner_sign_in: 'Signed in', owner_sign_in_recovery: 'Signed in with a recovery code', owner_sign_in_password_ok: 'Password OK, code asked',
   owner_sign_in_bad_password: 'Failed sign-in: wrong password', owner_sign_in_bad_code: 'Failed sign-in: wrong code',
   owner_sign_in_unknown: 'Failed sign-in: unknown username', owner_sign_in_locked: 'Sign-in blocked: locked',

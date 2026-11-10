@@ -91,7 +91,7 @@ export default function DenialNavigator({ user }) {
   const [showInactive, setShowInactive] = useState(false);
   const [onlyUnverified, setOnlyUnverified] = useState(false);
   const [limit, setLimit] = useState(PAGE);
-  const [modal, setModal] = useState(null);           // { kind: 'code' | 'import' | 'starter', row?, presetCode? }
+  const [modal, setModal] = useState(() => (peekRecord('wb_denials')?.import ? { kind: 'import' } : null));   // { kind: 'code' | 'import' | 'starter', row?, presetCode? } — Master Library → Import
   // 4.2 layered steps
   const [steps, setSteps] = useState(undefined);     // undefined = loading, null = not set up
   const [ctx, setCtx] = useState({ clients: [], payers: [], sops: [] });

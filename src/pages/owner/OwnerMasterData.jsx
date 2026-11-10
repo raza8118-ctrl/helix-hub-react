@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { companyMasters } from '../../lib/owner';
-import OwnerMasterCopy from './OwnerMasterCopy';
+import OwnerMasterLibrary from './OwnerMasterLibrary';
 
 /**
  * Owner Command Center → Master Data (PO 2026-11-09, read-only): each company's clients, payers and processes side by side.
@@ -46,7 +46,8 @@ export default function OwnerMasterData({ owner, rows, onOpen }) {
 
   return (
     <div className="fg-page">
-      <OwnerMasterCopy owner={owner} rows={rows} home={rows.find(c => c.isHome)} onOpen={onOpen} />
+      <OwnerMasterLibrary owner={owner} onOpen={onOpen} />
+      <div className="text-sm text-muted omd-companies-label">Each company’s own lists (read-only here — “Open to edit” goes into the company):</div>
 
       <div className="grid-3">
         {rows.map(c => {

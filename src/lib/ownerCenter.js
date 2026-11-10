@@ -2,7 +2,7 @@
 
 export const OWNER_SECTIONS = [
   { name: 'Command Center', items: [['overview', 'Overview', 'grid'], ['companies', 'Companies', 'building'], ['people', 'People', 'users']] },
-  { name: 'Insights', items: [['masters', 'Master Data', 'database'], ['performance', 'Performance', 'trend']] },
+  { name: 'Insights', items: [['masters', 'Master Library', 'database'], ['performance', 'Performance', 'trend']] },
   { name: 'Platform', items: [['broadcasts', 'Broadcasts', 'megaphone'], ['security', 'Security', 'shield'], ['platform', 'Platform', 'server']] },
 ];
 export const OWNER_PAGES = Object.fromEntries(OWNER_SECTIONS.flatMap(s => s.items.map(([id, label, icon]) => [id, { label, icon, section: s.name }])));

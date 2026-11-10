@@ -22,13 +22,13 @@ export default function OwnerCompanyBar({ user, offCount = 0, onSwitch, onBack }
   }, []);
 
   const options = [
-    ...(editingMaster ? [{ prefix: current, name: 'Master copy', code: active.code, is_master: true }] : []),
+    ...(editingMaster ? [{ prefix: current, name: 'Master Library', code: active.code, is_master: true }] : []),
     ...(list ?? (editingMaster ? [] : [{ prefix: current, name: user.viewing }])),
   ];
 
   return (
     <div className={`oc-viewbar${editingMaster ? ' oc-viewbar-master' : ''}`} role="region" aria-label="Owner view">
-      <span className="oc-viewbar-badge"><NavIcon icon={editingMaster ? 'database' : 'crown'} size={14} /> {editingMaster ? 'Editing MASTER COPY' : 'Viewing as Owner'}</span>
+      <span className="oc-viewbar-badge"><NavIcon icon={editingMaster ? 'database' : 'crown'} size={14} /> {editingMaster ? 'Editing MASTER LIBRARY' : 'Viewing as Owner'}</span>
       <select
         className="oc-viewbar-select"
         aria-label="Switch company"
@@ -41,7 +41,7 @@ export default function OwnerCompanyBar({ user, offCount = 0, onSwitch, onBack }
         ))}
       </select>
       {user.viewingAs && <span className="oc-viewbar-note">as {user.name ?? user.emp_id} ({user.emp_id}) · actions logged as the owner</span>}
-      {editingMaster && <span className="oc-viewbar-note">Companies get these changes only when you push them</span>}
+      {editingMaster && <span className="oc-viewbar-note">Shared with every company · every change is recorded in the history and your owner log</span>}
       {!user.viewingAs && !editingMaster && <span className="oc-viewbar-note">full admin access</span>}
       {offCount > 0 && !editingMaster && <span className="oc-viewbar-note">· {offCount} page{offCount === 1 ? '' : 's'} switched off here</span>}
       <button type="button" className="oc-viewbar-back" onClick={onBack}>

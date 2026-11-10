@@ -40,6 +40,35 @@ export const demoRemove = (owner, code) => rpc('owner_demo_remove', { ...byOwner
 // Master copy (migration 47): status (rows per list) and the one-time "Start from 3Gen's lists"
 export const masterStatus = owner => rpc('owner_master_status', byOwner(owner));
 export const masterSeed = owner => rpc('owner_master_seed', byOwner(owner));
+// Master Library (migration 51): change history per area, and an Excel export of an area (owner key reads the master)
+export const masterHistory = (owner, area, limit = 200) => rpc('owner_master_history', { ...byOwner(owner), p_area: area, p_limit: limit });
+const LIBRARY_TABLES = {
+  payers: ['payers', 'payer_plans', 'payer_ids', 'payer_contacts', 'payer_limits', 'payer_forms', 'payer_notes', 'payer_auth_rules'],
+  denials: ['denial_codes', 'denial_steps'],
+  sops: ['sop_categories', 'sop_software', 'sop_tasks', 'sops', 'sop_versions'],
+  codes: ['ref_codes'],
+};
+const NO_EXPORT = ['master_id', 'master_hash', 'master_pushed_at'];
+/** Downloads "Helix Hub Master Library – <area>.xlsx" with one sheet per table (no patient data lives in these tables). */
+export async function exportMasterArea(area) {
+  const tables = LIBRARY_TABLES[area];
+  if (!tables) return { error: 'Unknown area' };
+  const master = await supabase.from('companies').select('prefix').eq('is_master', true).maybeSingle();
+  if (master.error || !master.data) return { error: 'The master copy is not set up.' };
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+  for (const t of tables) {
+    const rows = await fetchAll(() => supabase.from(master.data.prefix + t).select('*').order('id'));
+    if (rows === null) continue;
+    const clean = rows.map(r => Object.fromEntries(Object.entries(r)
+      .filter(([k]) => !NO_EXPORT.includes(k))
+      .map(([k, v]) => [k, v !== null && typeof v === 'object' ? JSON.stringify(v) : v])));
+    XLSX.utils.book_append_sheet(wb, clean.length ? XLSX.utils.json_to_sheet(clean) : XLSX.utils.aoa_to_sheet([['(empty)']]), t.slice(0, 31));
+  }
+  const title = { payers: 'Payers', denials: 'Denials', sops: 'SOPs', codes: 'Code lists' }[area];
+  XLSX.writeFile(wb, `Helix Hub Master Library – ${title} – ${new Date().toISOString().slice(0, 10)}.xlsx`);
+  return { ok: true };
+}
 // Push to companies (migration 48): preview = the real push, cancelled; push = one company per call
 export const masterPreview = (owner, code, sections) => rpc('owner_master_preview', { ...byOwner(owner), p_code: code, p_sections: sections });
 export const masterPush = (owner, code, sections) => rpc('owner_master_push', { ...byOwner(owner), p_code: code, p_sections: sections });
