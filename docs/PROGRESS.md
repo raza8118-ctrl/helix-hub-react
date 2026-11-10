@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Smart Import (PO "Go" 2026-11-10) — ALL 4 STAGES BUILT, Stage 4 waiting for approval.** One reusable import for the Master Library (owner) and company
+**Smart Import (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
 (auto-matched by synonyms, every field a dropdown or "Don't import"), save a matching as a named template, auto-applied when the
@@ -36,7 +36,7 @@ saved matchings table, import_file / imported_at columns) · 2 payers · 3 denia
 screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
 Helix_Denial_Guides_More.xlsx before stages 3–4.
 
-**Stage 4 BUILT — last stage, waiting for PO approval (2026-11-10).** No database change. Code pushed (17f3765). Two types in
+**Stage 4 APPROVED (PO "Approved" 2026-11-10) — step DONE.** No database change. Code pushed (17f3765). Two types in
 src/lib/importTypes.js: "SOPs" (one row per SOP: category, software, task, SOP title required; client name or code; summary,
 purpose, who uses it, before you start, steps, what you should see, if it goes wrong; software vendor + login link used only for
 new software) — missing categories / software / tasks are added (re-read before saving so no doubles), new SOPs come in as
