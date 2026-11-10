@@ -210,7 +210,7 @@ function payersType() {
   };
   let sheets = [];
   const label = (key, d, payerRef, existing) => {
-    const payer = key === 'payers' ? (d.name ?? existing?.name) : payerRef?.name;
+    const payer = key === 'payers' ? (existing?.name ?? d.name) : payerRef?.name;
     switch (key) {
       case 'payers':   return payer;
       case 'plans':    return `${payer} — plan ${d.plan_name}`;
@@ -301,7 +301,7 @@ function payersType() {
       },
       {
         id: 'claimmd', label: 'Claim.MD payer list download (adds new payers only)',
-        detect: async file => /claim\W?md|payer\W?list/i.test(file.name) && (await fileKind(file)) === 'claimmd',
+        detect: async file => /claim[\W_]?md|payer[\W_]?list/i.test(file.name) && (await fileKind(file)) === 'claimmd',
         parse: async file => {
           const res = await (await payerLib()).readClaimMdWorkbook(file);
           return res.error ? res : { parsed: res.parsed, mode: 'claimmd' };
@@ -335,7 +335,7 @@ function payersType() {
         });
         skipped += p.skippedExisting ?? 0;
       }
-      const note = [NEW_ONLY_NOTE[mode], skipped ? `${skipped.toLocaleString()} details (IDs, contacts, limits, notes) of payers already here are left as they are.` : '']
+      const note = [NEW_ONLY_NOTE[mode], skipped ? `${skipped.toLocaleString()} detail${skipped === 1 ? '' : 's'} (IDs, contacts, limits, notes) of payers already here are left as they are.` : '']
         .filter(Boolean).join(' ');
       return { adds, updates, dups, errors, note, noOverwrite: newOnly };
     },

@@ -36,7 +36,23 @@ saved matchings table, import_file / imported_at columns) · 2 payers · 3 denia
 screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
 Helix_Denial_Guides_More.xlsx before stages 3–4.
 
-**Stage 1 BUILT — waiting for PO approval (2026-11-10).** Code pushed first (da94a71), then migration 53 run (protect_all_tables
+**Stage 2 BUILT — waiting for PO approval (2026-11-10).** No database change. Payers type in src/lib/importTypes.js: a flat
+file (one row per payer; payer name required; other names, payer type, payer ID(s), clearinghouse, used for, provider phone, fax,
+portal, claims / appeals mailing address, timely filing + appeal limit as days or text, notes) is turned into the Payer
+Directory tabs and checked with the existing planImport (same payer = name or other name). Rows of the same payer merge (IDs added,
+contacts filled per department); updates fill empty fields only unless Overwrite; other names are only ever added; limit text
+without days becomes a payer note. Built-ins keep their rules: Starter / _More file and Claim.MD list (file name with
+"claim md" / "payer list" + a Payer ID column) add new payers only (Overwrite hidden); multi-tab Helix template (Payers + 2 other
+tabs or Read Me) fills / overwrites. Engine: a type may build its own preview (type.preview); built-in parse results go straight
+to it. Existing rows are read in pages of 1,000 (the old import read only the first 1,000). Payer Directory "⬆ Import from Excel"
+opens Smart Import (old PayerImport.jsx kept, unused); the multi-tab template stays downloadable from the panel. Browser (Test Co,
+owner, nothing imported): flat CSV "Insurance Name / Payer ID / Phone Number / Fax / Timely Filing / Appeal Limit / AKA" → all
+auto-matched; New 7 (QA payer + 2 IDs + 1 merged contact + TFL / AFL, Aetna TFL), Updates 2 (Aetna other name, Aetna contact Fax),
+Duplicate 1 (Aetna 60054), Error 1 (row 5 no name); Starter file → recognised, 12 payers skipped, 87 details left as they are;
+payer_list.csv → Claim.MD, 2 new, Aetna left as it is (first try missed "payer_list" — regex fixed); generated multi-tab workbook
+→ template, 3 new (payer, plan, contact). Lint 51, build OK.
+
+**Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-10).** Code pushed first (da94a71), then migration 53 run (protect_all_tables
 → 234; Supabase's "Run and enable RLS" was chosen). Checked: 3 import_templates tables (home + both companies incl. master) with RLS
 + policies; import_file / imported_at on all 45 library tables. New: src/lib/smartImport.js (read file in the browser, header-row
 detection, synonym auto-match, saved matchings, preview, import + audit / owner log), src/lib/importTypes.js (data types; Stage 1 =
