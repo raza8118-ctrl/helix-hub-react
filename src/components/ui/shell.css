@@ -1031,3 +1031,18 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .si-list { margin: 4px 0; padding-left: 18px; max-height: 220px; overflow: auto; }
 .si-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .si-note { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+
+/* ── Owner → Company Data (2026-11-10) ── */
+.ocd-mods { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.ocd-mod { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+.ocd-mod svg { width: 15px; height: 15px; }
+.ocd-mod.on { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); font-weight: 600; }
+.ocd-phi { font-size: 10px; font-weight: 700; color: var(--danger); }
+.ocd-warn { background: var(--surface-2); border-left: 3px solid var(--danger); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; font-size: 13px; }
+.ocd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ocd-head .fg-search { flex: 1 1 200px; max-width: 360px; }
+.ocd-views { display: flex; gap: 6px; }
+.ocd-table { width: 100%; font-size: 12.5px; }
+.ocd-table td { vertical-align: top; max-width: 320px; overflow-wrap: anywhere; }
+.ocd-sort { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-align: left; }
+.ocd-pager { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; }

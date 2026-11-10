@@ -14,6 +14,7 @@ import OwnerOverview from './OwnerOverview';
 import OwnerPeople from './OwnerPeople';
 import OwnerPerformance from './OwnerPerformance';
 import OwnerMasterData from './OwnerMasterData';
+import OwnerCompanyData from './OwnerCompanyData';
 import { OWNER_PAGES, healthOf } from '../../lib/ownerCenter';
 import NavIcon from '../../components/ui/NavIcon';
 
@@ -248,6 +249,7 @@ export default function OwnerConsole({ owner, onOpenCompany, onSignOut, onOwnerU
 
         {tab === 'performance' && companies !== undefined && rows.length > 0 && <OwnerPerformance rows={rows} />}
         {tab === 'masters' && companies !== undefined && rows.length > 0 && <OwnerMasterData owner={owner} rows={rows} onOpen={open} />}
+        {tab === 'companydata' && companies !== undefined && rows.length > 0 && <OwnerCompanyData owner={owner} rows={rows} />}
 
         {/* ── Companies ── */}
         {tab === 'companies' && companies !== undefined && (
