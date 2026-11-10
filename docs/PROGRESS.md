@@ -23,6 +23,17 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Stage 1 BUILT + migration 51 run (2026-11-10), waiting for PO look + approval.** Code pushed first (3f01615), then migration 51
+(PO signed in to Supabase again). Rolled-back test (throwaway Test Co employee session + throwaway owner): employee reads master
+payers 12 / denial codes 49 / codes 24 / a co_master/ file, master users 0; employee insert refused, update changes 0 rows; no
+sign-in reads 0; owner update of 2 payers + insert + no-op update + delete → history change 2 / add 1 / remove 1 (no-op not
+recorded), 3 owner-log lines with counts; owner_master_history shows names + changed fields; wrong key refused; nothing left
+behind. Browser: Owner Console "Master Library" with Payers (12 / 9 / 25 / 25 / 28), Denials (49 / 23), SOPs (6 / 15 / 0 / 0),
+Code lists (24), each Edit / Import / Export to Excel / History; History "No changes recorded yet"; Payers → Import opens the
+master's Payer Directory with the Excel import open; bar "Editing MASTER LIBRARY · Shared with every company…"; Push panel gone.
+Export to Excel not clicked (it downloads a file) — reads of all 8 payer tables checked instead. Note: the workspace's own name
+is still "Master copy" (sidebar inside it). Lint 51.
+
 **Master Library (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** PO chose to build it on the existing hidden Master copy
 (co_master__ tables, already filled from 3Gen; owner-only writes) instead of new helix_ tables; Push to companies hidden (code kept,
 nothing was ever pushed). Stage 1 (migration 51): every signed-in company user may READ the master tables (+ master files in the
@@ -2347,7 +2358,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 49. `supabase/migrations/20261114_master_files.sql` (payer forms + SOP media in the push, paths to the company folder,
     owner_master_files) — run 2026-11-09 by Claude.
 50. `supabase/migrations/20261115_admin_only.sql` (admin-only Settings / Team / Clients / Audit for managers: _may, users guard,
-    AI key, rcm_store change rules) — run 2026-11-09 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    AI key, rcm_store change rules) — run 2026-11-09 by Claude.
+51. `supabase/migrations/20261116_master_library.sql` (companies read the master library + co_master/ files; helix_master_changes
+    history + one owner-log line per save; owner_master_history) — run 2026-11-10 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.
