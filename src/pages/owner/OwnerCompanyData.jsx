@@ -74,7 +74,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
       <div className="ocd-mods" role="group" aria-label="Module">
         {MODULES.map(m => (
           <button key={m.id} type="button" className={`ocd-mod${m.id === moduleId ? ' on' : ''}`} aria-pressed={m.id === moduleId} onClick={() => pick(m.id)}>
-            <NavIcon name={m.icon} /> {m.label}{m.phi && <span className="ocd-phi" title="May contain patient information"> PHI</span>}
+            <NavIcon icon={m.icon} size={15} /> {m.label}{m.phi && <span className="ocd-phi" title="May contain patient information"> PHI</span>}
           </button>
         ))}
       </div>

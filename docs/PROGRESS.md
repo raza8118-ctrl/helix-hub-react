@@ -39,6 +39,16 @@ src/pages/owner/OwnerCompanyData.jsx, src/lib/companyData.js, src/components/own
 54; changed ownerCenter.js (menu), OwnerConsole.jsx (route), owner.js (RPC), shell.css. No PHI to any AI / outside site (Excel
 built in the browser); logs hold company, module, counts, reason, record id — never patient values.
 
+**Stage 1 BUILT — waiting for PO approval (2026-11-10).** No database change. Code pushed (3f97dc8 + fixes). New
+src/lib/companyData.js (9 modules, columns, patient-data flags, reads in pages of 1,000 up to 20,000 rows with the owner session,
+names for people / clients / payers, logCompanyData → owner log + company Audit Log) and src/pages/owner/OwnerCompanyData.jsx
+(company picker incl. home, module buttons with PHI tag, patient-data banner, search, sortable columns, 100 rows a page, ADR / RTP
+sub-lists); menu item Insights → Company Data; styles in shell.css. Browser (owner): home → 12 payers; Test Co → all 9 modules load
+(payers 13, denial codes 17, SOPs 1, code lists 0, queries 1, worklist claims 4, QA 1, reports 2, ADR 1 / RTP 0); banner only on
+the 4 patient-data modules; search "197" → 1 of 17; names shown (users read by emp_id — first try showed "1010"; fixed); module
+icons fixed (NavIcon takes icon=). Logs checked: owner Security → activity log shows "company data view · Test Co · QA / Reports /
+Denial codes & steps"; Test Co → Manage → Activity shows the same, "Faizan Shah (Helix Hub owner OWNER)". Lint 51, build OK.
+
 **Smart Import (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"

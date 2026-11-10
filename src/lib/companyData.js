@@ -7,10 +7,10 @@ import { ownerLog, companyAudit, codeOf } from './owner';
 export const ROW_CAP = 20000;   // rows read per list; the page says so when a list is longer
 
 /** Reads a whole table of one company, 1,000 rows at a time, up to ROW_CAP. → { rows, capped } or null (no table). */
-async function readAll(prefix, table, select = '*') {
+async function readAll(prefix, table, select = '*', order = 'id') {
   const rows = [];
   for (let from = 0; from < ROW_CAP; from += 1000) {
-    const { data, error } = await supabase.from(prefix + table).select(select).order('id').range(from, from + 999);
+    const { data, error } = await supabase.from(prefix + table).select(select).order(order).range(from, from + 999);
     if (error) return from === 0 ? null : { rows, capped: false };
     rows.push(...(data ?? []));
     if (!data || data.length < 1000) return { rows, capped: false };
@@ -27,7 +27,7 @@ const active = r => (r.active === false ? 'Inactive' : 'Active');
 /** Names for the lookups most lists need (users, clients, payers). */
 async function lookups(prefix) {
   const [users, clients, payers] = await Promise.all([
-    readAll(prefix, 'users', 'id,emp_id,name'), readAll(prefix, 'clients', 'id,name'), readAll(prefix, 'payers', 'id,name'),
+    readAll(prefix, 'users', 'emp_id,name', 'emp_id'), readAll(prefix, 'clients', 'id,name'), readAll(prefix, 'payers', 'id,name'),
   ]);
   const people = new Map(list(users).map(u => [u.emp_id, u.name]));
   const c = byId(list(clients));
