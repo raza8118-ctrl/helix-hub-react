@@ -634,7 +634,7 @@ const SOP_TEXT = [['summary', 'Summary'], ['purpose', 'Purpose'], ['audience_not
 /** "1. Log in\n2) Open claims\nTip: use Chrome" → [{ text, tip, images: [], video: null }] */
 export function stepsFromText(text) {
   const out = [];
-  for (const raw of String(text ?? '').split(/\r?\n|(?:^|\s)(?=\d{1,2}[.)]\s)/)) {
+  for (const raw of String(text ?? '').split(/\r?\n|(?:^|\s)(?=\d{1,2}[.)]\s)|\s(?=tip:\s)/i)) {
     const line = raw.trim().replace(/^(?:\d{1,2}[.)]|[-•*])\s*/, '').trim();
     if (!line) continue;
     const tip = line.match(/^tip:\s*(.+)$/i);

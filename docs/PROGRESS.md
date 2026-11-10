@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Smart Import (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** One reusable import for the Master Library (owner) and company
+**Smart Import (PO "Go" 2026-11-10) — ALL 4 STAGES BUILT, Stage 4 waiting for approval.** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
 (auto-matched by synonyms, every field a dropdown or "Don't import"), save a matching as a named template, auto-applied when the
@@ -36,7 +36,25 @@ saved matchings table, import_file / imported_at columns) · 2 payers · 3 denia
 screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
 Helix_Denial_Guides_More.xlsx before stages 3–4.
 
-**Stage 3 BUILT — waiting for PO approval (2026-11-10).** No database change. Code pushed (d3dc929). Two types in
+**Stage 4 BUILT — last stage, waiting for PO approval (2026-11-10).** No database change. Code pushed (17f3765). Two types in
+src/lib/importTypes.js: "SOPs" (one row per SOP: category, software, task, SOP title required; client name or code; summary,
+purpose, who uses it, before you start, steps, what you should see, if it goes wrong; software vendor + login link used only for
+new software) — missing categories / software / tasks are added (re-read before saving so no doubles), new SOPs come in as
+DRAFTS, an existing SOP (same task + title + client) gets empty sections filled unless Overwrite (preview reminds to publish a new
+version of a published SOP); steps text → one step per line or "1. … 2. …", "Tip: …" becomes the tip of the step above. "Clients"
+(name required, code in capitals, project, notes; same name any case = same client; fill empty unless Overwrite). Screens: SOP
+Library "⬆ Import SOPs" (editors), Admin → Clients & Payers "⬆ Import clients / payers" (the payers tab opens the payers type),
+Master Library → SOPs now has Import. Helix_SOP_Pack.xlsx is still not in samples/ and no code reads it yet, so it has no
+built-in: if it is one row per SOP it goes through "Match your columns" (and a saved matching); if it has its own layout, a
+built-in is added once the file is provided. Browser (Test Co, owner, nothing imported): SOP CSV "Category / System / Task / SOP
+Title / Client / Instructions / Purpose" → all matched; New 2 (drafts; note "adds 2 categories, 2 software, 2 tasks" — Test Co
+has no own Clearinghouse category), Duplicate 1 (same SOP twice), Error 1 (unknown client); clients CSV "Agency Name / Client Code
+/ Comments" → New 1, Update 1 ("review client" = REVIEW Client, empty notes), Duplicate 1, Error 1 (no name). Steps splitter
+checked in Node (numbered on one line, one per line, bullets, inline "Tip:" fixed). Lint 51, build OK.
+Smart Import all 4 stages built. Still open: PO to add samples/Helix_SOP_Pack.xlsx (+ _More files) if their built-ins should be
+checked; removing the old import screens (PayerImport.jsx, RefImportModal, DenialImportModal, StepsImportModal) only when the PO asks.
+
+**Stage 3 APPROVED (PO "Approved, start Stage 4" 2026-11-10).** No database change. Code pushed (d3dc929). Two types in
 src/lib/importTypes.js: "Denial codes" (code type — a column or one value for every row —, code, official description,
 plain-English reason, retired date incl. "Stop: mm/dd/yyyy" inside the description, notes; same code = type + code; fill empty
 unless Overwrite) and "Denial steps" (code type blank = CARC, code, applies to Common / client / payer, client, payer name or other
