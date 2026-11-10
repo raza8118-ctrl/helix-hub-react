@@ -23,13 +23,13 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Owner look BUILT (2026-11-10), waiting for PO look + approval.** Checked in the browser: Command Center body theme-owner, gold active
+**Owner look APPROVED (PO 2026-11-10) — step DONE.** Checked in the browser: Command Center body theme-owner, gold active
 item / count badge / buttons, Watch badges amber-orange, no theme switcher; /owner sign-in Frost navy + gold badge + gold Sign In;
 company sign-in (/) stays Frost blue and hh_last_theme stays "frost"; Test Co keeps Daylight (indigo) with only the owner strip
 gold. Measured contrast: ink on gold 9.54:1 (badge, buttons, Sign In, Back), white on active item 14.75:1, Watch badge 6.5:1,
 gold label on the owner strip 6.69:1, strip note 6.12:1. Lint 51.
 
-**Owner look (PO "Go" 2026-11-10) — IN PROGRESS.** Styling only. New theme-owner in themes.css: Frost dark navy glass + gold
+**Owner look (PO "Go" 2026-11-10) — DONE.** Styling only. New theme-owner in themes.css: Frost dark navy glass + gold
 accent #E5B454 (hover a little darker, soft gold ≈14% for highlights / active item), dark ink #1C1405 on gold buttons (never
 white), Watch / warning badges amber-orange so they differ from the accent. Used on /owner sign-in (+ code step), the whole Owner
 Command Center, and the "Viewing as Owner" / "Editing MASTER COPY" bar (gold strip styled on its own, same in every company
