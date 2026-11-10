@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { S } from '../../lib/supabase';
 import { logAudit } from '../../lib/audit';
 import { checkFormFile, uploadPayerForm, payerFormLink, FORM_EXTENSIONS } from '../../lib/payerForms';
+import { masterGet } from '../../lib/masterLibrary';
 import { alertDialog, confirmDialog } from '../../components/shared/Dialog';
 import { CardSection, Item, Button, LinkButton, Badge, Notice, Field, FormActions, EmptyState, Modal } from '../../components/ui';
 import { VerifiedBadge, ReportWrongInfo } from './PayerAccuracy';
@@ -29,15 +30,15 @@ const newest = (a, b) => String(b.version_date ?? '').localeCompare(String(a.ver
  * "Edit Payer Directory" can upload, add new versions, edit details and make inactive.
  * Old versions are always kept.
  */
-export default function PayerForms({ payer, user, canEdit, showInactive, plans, names = {}, reports, onReported }) {
+export default function PayerForms({ payer, user, canEdit, showInactive, plans, names = {}, reports, onReported, source = 'company' }) {
   const [rows, setRows]       = useState(undefined);   // undefined = loading, null = table missing
   const [open, setOpen]       = useState({});          // family id → older versions expanded
   const [form, setForm]       = useState(null);        // upload / edit pop-up
   const [saving, setSaving]   = useState(false);
 
   const load = useCallback(async () => {
-    setRows(await S.get('payer_forms', { payer_id: payer.id }));
-  }, [payer.id]);
+    setRows(await (source === 'master' ? masterGet : S.get)('payer_forms', { payer_id: payer.id }));   // master forms: read-only
+  }, [payer.id, source]);
 
   useEffect(() => { load(); }, [load]);
 

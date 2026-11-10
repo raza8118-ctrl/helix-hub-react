@@ -23,7 +23,20 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 1 BUILT + migration 51 run (2026-11-10), waiting for PO look + approval.** Code pushed first (3f01615), then migration 51
+**Stage 2 BUILT (2026-11-10), waiting for PO look + approval.** No database change. New src/lib/masterLibrary.js (master reads,
+same payer = same name or name↔alias, same code = type + code, master rows get ids "m-…") + components/shared/LibraryBadge.jsx
+(Master / Company / Company override / 3Gen standard). Payer Directory: master + company payers, badges on the A–Z chips; same payer
+→ company card ("Company override") on top + read-only master card ("3Gen standard") below; master-only payers open read-only
+(PayerCard / PayerForms source="master": read from the master, no edit / verify / report / history). Denial Navigator: master +
+company codes with badges; same code → company reason + "3Gen standard" box; "What to do" = company layers + read-only "3Gen
+standard steps (Master Library)"; master-only codes read-only with only the standard steps; add / import / starter / manage tools
+use the company's own codes only. Nothing merges inside the master itself. Checked in Test Co (owner): payers 13 (12 Company
+override, 1 Company); Aetna opens company card (editable) + 3Gen standard card (no edit buttons; aliases, Starter source, payer ID
+60054, contacts from the master); Denial Navigator 50 codes (16 override, 1 company, 33 master), master cards without edit
+buttons; CARC 50 shows the standard reason box + company and master step boxes; Group CO (master) shows only the standard box.
+Lint 51 (the 4 errors in the touched files were there before).
+
+**Stage 1 APPROVED (PO "Approved, start Stage 2" 2026-11-10).** Stage 1 built + migration 51 run (2026-11-10). Code pushed first (3f01615), then migration 51
 (PO signed in to Supabase again). Rolled-back test (throwaway Test Co employee session + throwaway owner): employee reads master
 payers 12 / denial codes 49 / codes 24 / a co_master/ file, master users 0; employee insert refused, update changes 0 rows; no
 sign-in reads 0; owner update of 2 payers + insert + no-op update + delete → history change 2 / add 1 / remove 1 (no-op not

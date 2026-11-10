@@ -112,7 +112,7 @@ function PayerDirectoryInfo({ payer, client, onOpenPayer, onDeadline }) {
  * "What to do" for one denial code (roadmap 4.2): 🟨 client steps (highlighted, when a client is picked) →
  * 🟦 payer rule + Payer Directory info (when a payer is picked) → ⬜ common 3Gen steps.
  */
-export default function DenialLayers({ code, steps, ctx, client, payer, user, canEdit, onChanged, onOpenSop, onOpenPayer, onDeadline }) {
+export default function DenialLayers({ code, steps, ctx, client, payer, user, canEdit, onChanged, onOpenSop, onOpenPayer, onDeadline, masterEntry = null, masterOnly = false }) {
   const [editing, setEditing] = useState(null);   // { scope, target, entry }
   const clientEntry = client ? layerEntry(steps, code.id, 'client', client.id) : null;
   const payerEntry = payer ? layerEntry(steps, code.id, 'payer', payer.id) : null;
@@ -133,6 +133,16 @@ export default function DenialLayers({ code, steps, ctx, client, payer, user, ca
     onToggle: () => deactivate(entry),
   });
 
+  // Master Library code (company users can't change it): only its 3Gen standard steps
+  if (masterOnly) {
+    return (
+      <div className="ui-stack" style={{ marginTop: 'var(--ui-s3)', gap: 'var(--ui-s2)' }}>
+        <LayerBox scope="common" entry={commonEntry} sops={[]} canEdit={false} onOpenSop={onOpenSop}
+          title="3Gen standard steps (Master Library)" emptyText="No standard steps in the Master Library for this code yet." />
+      </div>
+    );
+  }
+
   return (
     <div className="ui-stack" style={{ marginTop: 'var(--ui-s3)', gap: 'var(--ui-s2)' }}>
       {!client && !payer && (
@@ -148,8 +158,12 @@ export default function DenialLayers({ code, steps, ctx, client, payer, user, ca
           <PayerDirectoryInfo payer={payer} client={client} onOpenPayer={onOpenPayer} onDeadline={onDeadline} />
         </LayerBox>
       )}
-      <LayerBox {...box('common', null, commonEntry)} title="Common 3Gen steps"
+      <LayerBox {...box('common', null, commonEntry)} title={masterEntry ? 'Common steps — your company' : 'Common 3Gen steps'}
         emptyText="No common steps written for this code yet." />
+      {masterEntry && (
+        <LayerBox scope="common" entry={masterEntry} sops={[]} canEdit={false} onOpenSop={onOpenSop}
+          title="3Gen standard steps (Master Library)" emptyText="" />
+      )}
 
       {editing && (
         <DenialStepsModal code={code} scope={editing.scope} target={editing.target} existing={editing.entry}

@@ -993,3 +993,13 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ac-actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; }
 /* Master Library (PO 2026-11-10) */
 .omd-companies-label { margin: 4px 0 -6px; }
+/* Master Library badges (PO 2026-11-10) */
+.lib-badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; line-height: 1.6;
+  white-space: nowrap; vertical-align: middle; margin-left: 4px; border: 1px solid transparent; }
+.lib-master   { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.lib-company  { color: var(--text-muted); background: var(--surface-2); border-color: var(--border); }
+.lib-override { color: var(--good-fg, #15803d); background: var(--good-bg, #dcfce7); }
+.lib-standard { color: var(--accent); background: transparent; border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.lib-standard-box { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent); border-left: 3px solid var(--accent); }
+.lib-standard-box .lib-badge { margin-left: 0; }

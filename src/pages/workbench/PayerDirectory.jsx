@@ -9,6 +9,8 @@ import PayerSearch from '../../components/shared/PayerSearch';
 import PayerCard from './PayerCard';
 import { peekRecord, clearRecord } from '../../lib/navigate';
 import { PageHeader, Card, Button, Chip, Toolbar, EmptyState } from '../../components/ui';
+import { masterGet, mergePayers, inMasterWorkspace, isMasterRow, masterRaw } from '../../lib/masterLibrary';
+import LibraryBadge from '../../components/shared/LibraryBadge';
 
 // Payer ids with an entry needing re-check (1.6), and open report counts per payer
 async function loadAccuracySummary() {
@@ -40,11 +42,13 @@ export default function PayerDirectory({ user }) {
   const [summary, setSummary]   = useState({ stale: new Set(), reports: {} });
   const [showImport, setShowImport] = useState(() => !!peekRecord('wb_payers')?.import);   // Master Library → Import
   const canEdit = hasAccess(user, 'payers_edit');
+  const [libOn, setLibOn] = useState(false);   // Master Library payers shown with the company's (not inside the master itself)
 
   function loadPayers() {
-    S.get('payers').then(rows => {
+    Promise.all([S.get('payers'), inMasterWorkspace() ? Promise.resolve(null) : masterGet('payers')]).then(([rows, master]) => {
       setError(rows == null);
-      setPayers(rows ?? []);
+      setLibOn(rows != null && master != null);
+      setPayers(rows == null ? [] : master ? mergePayers(rows, master) : rows);
     });
     loadAccuracySummary().then(setSummary).catch(() => {});
   }
@@ -106,7 +110,16 @@ export default function PayerDirectory({ user }) {
         )}
       </Card>
 
-      {cardPayer && <PayerCard key={cardPayer.id} payer={cardPayer} user={user} onClose={closeCard} />}
+      {cardPayer && (isMasterRow(cardPayer) ? (
+        <PayerCard key={cardPayer.id} payer={masterRaw(cardPayer)} source="master" libBadge="master" user={user} onClose={closeCard} />
+      ) : (
+        <>
+          <PayerCard key={cardPayer.id} payer={cardPayer} libBadge={libOn ? (cardPayer._master ? 'override' : 'company') : null} user={user} onClose={closeCard} />
+          {cardPayer._master && (
+            <PayerCard key={cardPayer._master.id} payer={masterRaw(cardPayer._master)} source="master" libBadge="standard" user={user} onClose={closeCard} />
+          )}
+        </>
+      ))}
 
       {payers != null && !error && (
         <Card title={`All payers (${browse.length})`}
@@ -141,6 +154,7 @@ export default function PayerDirectory({ user }) {
                       summary.stale.has(p.id) && 'Some details need re-checking',
                       summary.reports[p.id] > 0 && `${summary.reports[p.id]} open report(s)`].filter(Boolean).join(' · ')}>
                     {p.name}
+                    {libOn && <LibraryBadge kind={isMasterRow(p) ? 'master' : p._master ? 'override' : 'company'} />}
                     {flagged(p) && <span aria-label="needs re-check">⚠</span>}
                     {summary.reports[p.id] > 0 && <span aria-label="open reports">🚩</span>}
                   </Chip>

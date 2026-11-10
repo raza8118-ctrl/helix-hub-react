@@ -7,6 +7,8 @@ import { Card, CardSection, Item, Button, Badge, Notice, Check, Field, FormActio
 import { confirmDialog } from '../../components/shared/Dialog';
 import { actionLabel } from '../../lib/auditLabels';
 import PayerForms from './PayerForms';
+import { masterGet } from '../../lib/masterLibrary';
+import LibraryBadge from '../../components/shared/LibraryBadge';
 import { VerifiedBadge, ReportWrongInfo, OpenReports } from './PayerAccuracy';
 import { pendingForPayer, openSuggestions } from '../../lib/payerSuggestions';
 import {
@@ -223,8 +225,10 @@ function Value({ item }) {
  * Everyone can read it and report problems; "Edit Payer Directory" (lib/access.js)
  * can add / edit / verify / make inactive and resolve reports.
  */
-export default function PayerCard({ payer, user, onClose }) {
-  const canEdit = hasAccess(user, 'payers_edit');
+export default function PayerCard({ payer, user, onClose, source = 'company', libBadge = null }) {
+  // source 'master' = a Master Library payer: read from the master, read-only for company users (PO 2026-11-10)
+  const isMaster = source === 'master';
+  const canEdit = !isMaster && hasAccess(user, 'payers_edit');
   const [data, setData]         = useState({});
   const [loading, setLoading]   = useState(true);
   const [showInactive, setShowInactive] = useState(false);
@@ -239,14 +243,14 @@ export default function PayerCard({ payer, user, onClose }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const results = await Promise.all(SECTIONS.map(s => S.get(s.table, { payer_id: payer.id })));
+    const results = await Promise.all(SECTIONS.map(s => (isMaster ? masterGet : S.get)(s.table, { payer_id: payer.id })));
     setData(Object.fromEntries(SECTIONS.map((s, i) => [s.key, results[i]])));   // null = table missing
     setLoading(false);
-  }, [payer.id]);
+  }, [payer.id, isMaster]);
 
   const loadReports = useCallback(async () => {
-    setReports(await S.get('payer_reports', { payer_id: payer.id }));
-  }, [payer.id]);
+    setReports(isMaster ? null : await S.get('payer_reports', { payer_id: payer.id }));   // master payers: no reports here
+  }, [payer.id, isMaster]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadReports(); }, [loadReports]);
@@ -410,6 +414,7 @@ export default function PayerCard({ payer, user, onClose }) {
           <span className="ui-card-t" style={{ fontSize: 'var(--ui-fs-lg)' }}>{payer.name}</span>
           <CopyButton value={payer.name} />
           {payer.payer_type && <Badge tone="info">{payer.payer_type}</Badge>}
+          {libBadge && <LibraryBadge kind={libBadge} />}
         </div>
         <div className="ui-card-a">
           {canEdit && (
@@ -565,7 +570,7 @@ export default function PayerCard({ payer, user, onClose }) {
       })}
 
       {!loading && !tablesMissing && (
-        <PayerForms payer={payer} user={user} canEdit={canEdit} showInactive={showInactive} plans={plans}
+        <PayerForms payer={payer} user={user} canEdit={canEdit} source={source} showInactive={showInactive} plans={plans}
           names={names} reports={reports} onReported={loadReports} />
       )}
 

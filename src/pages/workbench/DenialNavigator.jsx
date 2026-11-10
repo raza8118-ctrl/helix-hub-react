@@ -12,12 +12,14 @@ import { startAppeal } from '../../lib/appeals';
 import SopPage from './SopPage';
 import PayerCard from './PayerCard';
 import PayerSearch from '../../components/shared/PayerSearch';
-import { loadDenialSteps, loadStepContext } from '../../lib/denialSteps';
+import { loadDenialSteps, loadStepContext, layerEntry } from '../../lib/denialSteps';
 import { loadSopLibrary } from '../../lib/sops';
 import { loadSopVersionMeta } from '../../lib/sopVersions';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { peekRecord, clearRecord } from '../../lib/navigate';
+import { masterGet, mergeCodes, inMasterWorkspace, isMasterRow, masterRaw } from '../../lib/masterLibrary';
+import LibraryBadge from '../../components/shared/LibraryBadge';
 import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -26,7 +28,7 @@ const PAGE = 60;
 
 // One code: type, code + copy, badges, plain reason first, official wording below; editor buttons when allowed;
 // "What to do ▾" shows the layered steps (4.2) passed as children
-function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, onStartAppeal, children }) {
+function CodeCard({ row, group, canEdit, libOn, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, onStartAppeal, children }) {
   const t = typeOf(row.code_type);
   return (
     <Card dim={row.active === false} variant={stepsOpen ? 'accent' : 'default'}>
@@ -35,6 +37,7 @@ function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady,
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--ui-fs-lg)', fontWeight: 800 }}>{group ? `${group}-` : ''}{row.code}</span>
         <CopyButton value={row.code} label="Copy" />
         {row.category && <Badge>{row.category}</Badge>}
+        {libOn && <LibraryBadge kind={isMasterRow(row) ? 'master' : row._master ? 'override' : 'company'} />}
         {isRetired(row) && <Badge tone="warn" title={`No longer used after ${fmtDay(row.stopped_on)}`}>Retired {fmtDay(row.stopped_on)}</Badge>}
         {!row.verified_at && row.source === 'starter' && <Badge tone="warn">Starter – please verify</Badge>}
         {row.active === false && <Badge>Inactive</Badge>}
@@ -56,6 +59,12 @@ function CodeCard({ row, group, canEdit, onVerify, onEdit, onToggle, stepsReady,
       )}
       {row.notes && <div className="ui-small" style={{ marginTop: 4 }}>📝 {row.notes}</div>}
       {row.verified_at && <div className="ui-small ui-text-good" style={{ marginTop: 4 }}>Verified {fmtDate(row.verified_at)}</div>}
+      {libOn && row._master && (row._master.plain_reason || row._master.official_text) && (
+        <div className="lib-standard-box">
+          <LibraryBadge kind="standard" />
+          <span>{row._master.plain_reason || row._master.official_text}</span>
+        </div>
+      )}
       <div className="ui-row" style={{ marginTop: 'var(--ui-s3)' }}>
         {stepsReady && (
           <Button size="sm" variant={stepsOpen ? 'primary' : 'secondary'} aria-expanded={stepsOpen}
@@ -104,11 +113,18 @@ export default function DenialNavigator({ user }) {
   const [tab, setTab] = useState('lookup');           // 4.3: 'lookup' | 'manage'
   const [deadlineOpen, setDeadlineOpen] = useState(false);   // 4.4 deadline helper card
 
-  const reload = () => loadDenialCodes().then(setCodes);
+  // Master Library (PO 2026-11-10): master codes + common steps shown with the company's (not inside the master itself)
+  const [masterSteps, setMasterSteps] = useState(undefined);   // array = library on
+  const loadCodes = async () => {
+    const [c, m] = await Promise.all([loadDenialCodes(), inMasterWorkspace() ? null : masterGet('denial_codes')]);
+    return c && m ? mergeCodes(c, m) : c;
+  };
+  const reload = () => loadCodes().then(setCodes);
   const reloadSteps = () => loadDenialSteps().then(setSteps);
   useEffect(() => {
     let alive = true;
-    loadDenialCodes().then(c => { if (alive) setCodes(c); });
+    loadCodes().then(c => { if (alive) setCodes(c); });
+    (inMasterWorkspace() ? Promise.resolve(null) : masterGet('denial_steps')).then(s => { if (alive) setMasterSteps(s); });
     loadDenialSteps().then(s => { if (alive) setSteps(s); });
     loadStepContext().then(c => { if (alive) setCtx(c); });
     return () => { alive = false; };
@@ -140,7 +156,9 @@ export default function DenialNavigator({ user }) {
   const results = useMemo(() => codes && !parsed ? searchCodes(codes, query, {
     type, category, showRetired, showInactive: canEdit && showInactive, onlyUnverified: canEdit && onlyUnverified,
   }) : [], [codes, parsed, query, type, category, showRetired, showInactive, onlyUnverified, canEdit]);
-  const starterCount = codes ? missingStarterCodes(codes).length : 0;
+  const libOn = Array.isArray(masterSteps);
+  const companyCodes = codes ? codes.filter(c => !isMasterRow(c)) : codes;   // editing tools only ever see the company's own codes
+  const starterCount = companyCodes ? missingStarterCodes(companyCodes).length : 0;
 
   const close = () => setModal(null);
   const saved = () => { setModal(null); reload(); };
@@ -167,10 +185,14 @@ export default function DenialNavigator({ user }) {
     requestAnimationFrame(() => document.getElementById('deadline-helper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   // The layered "What to do" panel for one code (children of its card)
-  const layers = row => (
+  const layers = row => (isMasterRow(row) ? (
+    <DenialLayers code={masterRaw(row)} steps={masterSteps ?? []} ctx={{ ...ctx, sops: [] }} client={null} payer={null} user={user} canEdit={false}
+      masterOnly onChanged={reloadSteps} onOpenSop={setSopId} onOpenPayer={setPayerCard} onDeadline={openDeadline} />
+  ) : (
     <DenialLayers code={row} steps={steps} ctx={ctx} client={client} payer={payer} user={user} canEdit={canEdit}
+      masterEntry={row._master && libOn ? layerEntry(masterSteps, row._master._rawId, 'common') : null}
       onChanged={reloadSteps} onOpenSop={setSopId} onOpenPayer={setPayerCard} onDeadline={openDeadline} />
-  );
+  ));
 
   if (sopId != null) {
     const canEditSops = hasAccess(user, 'sops_edit');
@@ -220,7 +242,7 @@ export default function DenialNavigator({ user }) {
         <PageHeader icon="🧩" kicker="Workbench" title="Denial Navigator"
           subtitle="Manage the steps: which codes have common, client and payer steps, and what needs checking." />
         {tabBar}
-        <DenialAdmin codes={codes} steps={steps} ctx={ctx} user={user} onChanged={() => { reload(); reloadSteps(); }} />
+        <DenialAdmin codes={companyCodes} steps={steps} ctx={ctx} user={user} onChanged={() => { reload(); reloadSteps(); }} />
       </div>
     );
   }
@@ -317,7 +339,7 @@ export default function DenialNavigator({ user }) {
               {parsed.map((p, i) => {
                 if (p.type === 'group') {
                   const row = findCode(codes, p);
-                  return row ? <CodeCard key={i} row={row} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
+                  return row ? <CodeCard key={i} row={row} {...cardProps} canEdit={canEdit && !isMasterRow(row)} libOn={libOn} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
                     <Card key={i}><div className="ui-row"><Badge tone="info">Group</Badge> <b>{p.code}</b> — {GROUP_CODES[p.code]}</div></Card>
                   );
                 }
@@ -329,7 +351,7 @@ export default function DenialNavigator({ user }) {
                         <b>{p.group}</b> = {GROUP_CODES[p.group]}
                       </div>
                     )}
-                    {row ? <CodeCard row={row} group={p.group} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
+                    {row ? <CodeCard row={row} group={p.group} {...cardProps} canEdit={canEdit && !isMasterRow(row)} libOn={libOn} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard> : (
                       <Card>
                         <div className="ui-row ui-text-muted">
                           <Badge>{typeOf(p.type).label}</Badge> <b style={{ color: 'var(--text)' }}>{p.code}</b> isn’t in the library yet.
@@ -347,7 +369,7 @@ export default function DenialNavigator({ user }) {
             <>
               <div className="ui-count">{results.length} code{results.length === 1 ? '' : 's'}</div>
               {results.length === 0 && <Card><EmptyState icon="🔎" title="Nothing matches." /></Card>}
-              {results.slice(0, limit).map(row => <CodeCard key={row.id} row={row} {...cardProps} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard>)}
+              {results.slice(0, limit).map(row => <CodeCard key={row.id} row={row} {...cardProps} canEdit={canEdit && !isMasterRow(row)} libOn={libOn} stepsOpen={openSteps.has(row.id)}>{layers(row)}</CodeCard>)}
               {results.length > limit && (
                 <div>
                   <Button size="sm" onClick={() => setLimit(l => l + PAGE)}>
@@ -361,10 +383,10 @@ export default function DenialNavigator({ user }) {
       )}
 
       {modal?.kind === 'code' && (
-        <DenialCodeModal codes={codes} row={modal.row ?? null} presetCode={modal.presetCode} user={user} onClose={close} onSaved={saved} />
+        <DenialCodeModal codes={companyCodes} row={modal.row ?? null} presetCode={modal.presetCode} user={user} onClose={close} onSaved={saved} />
       )}
-      {modal?.kind === 'import' && <DenialImportModal codes={codes} user={user} onClose={close} onSaved={saved} />}
-      {modal?.kind === 'starter' && <DenialStarterModal codes={codes} user={user} onClose={close} onSaved={saved} />}
+      {modal?.kind === 'import' && <DenialImportModal codes={companyCodes} user={user} onClose={close} onSaved={saved} />}
+      {modal?.kind === 'starter' && <DenialStarterModal codes={companyCodes} user={user} onClose={close} onSaved={saved} />}
     </div>
   );
 }
