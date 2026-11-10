@@ -1004,3 +1004,29 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
   background: color-mix(in srgb, var(--accent) 8%, transparent); border-left: 3px solid var(--accent); }
 .lib-standard-box .lib-badge { margin-left: 0; }
 .lib-standard-page { margin-top: 18px; padding-top: 14px; border-top: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* ── Smart Import (2026-11-10) ── */
+.si-target { margin-bottom: 10px; }
+.si-drop { display: block; border: 2px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; margin-bottom: 12px; }
+.si-drop:hover { border-color: var(--primary); }
+.si-drop input { display: block; margin: 0 auto 8px; width: auto; }
+.si-need { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; font-size: 13px; }
+.si-need-t { font-weight: 700; margin-bottom: 6px; }
+.si-need-h { font-weight: 600; margin: 8px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); }
+.si-need-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+.si-need ul, .si-tips { margin: 0 0 6px; padding-left: 18px; }
+.si-need .btn-sm { margin-top: 8px; }
+.si-sheets { display: flex; flex-wrap: wrap; gap: 8px; }
+.si-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.si-hrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.si-hrow input { width: 64px; }
+.si-match { width: 100%; font-size: 13px; }
+.si-match td { vertical-align: top; }
+.si-match select { width: 100%; min-width: 160px; }
+.si-missing td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.si-req { color: var(--danger); }
+.si-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 8px 0 10px; }
+.si-sec { margin: 6px 0; font-size: 13px; }
+.si-sec summary { cursor: pointer; font-weight: 600; }
+.si-list { margin: 4px 0; padding-left: 18px; max-height: 220px; overflow: auto; }
+.si-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }

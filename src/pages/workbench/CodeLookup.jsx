@@ -5,7 +5,8 @@ import {
   missingStarterRevenue, addStarterRevenue,
 } from '../../lib/refCodes';
 import { loadDenialCodes, parseCodeLine, findCode, searchCodes, typeOf } from '../../lib/denials';
-import { RefCodeModal, RefImportModal } from './RefCodeEditors';
+import { RefCodeModal } from './RefCodeEditors';
+import SmartImport from '../../components/shared/SmartImport';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { supabase } from '../../lib/supabase';
@@ -195,7 +196,7 @@ export default function CodeLookup({ user }) {
       )}
 
       {modal?.kind === 'code' && <RefCodeModal row={modal.row ?? null} user={user} onClose={() => setModal(null)} onSaved={done} />}
-      {modal?.kind === 'import' && <RefImportModal user={user} onClose={() => setModal(null)} onSaved={done} />}
+      {modal?.kind === 'import' && <SmartImport typeId="ref_codes" user={user} onClose={() => setModal(null)} onDone={done} />}
     </div>
   );
 }
