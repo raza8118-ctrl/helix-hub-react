@@ -23,7 +23,19 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 3 BUILT (2026-11-10), waiting for PO look + approval.** No database change. SOP Library: master categories / software /
+**Stage 4 BUILT + migration 52 run (2026-11-10), waiting for PO look + approval — last stage.** Code pushed first (8816052), then
+migration 52 (owner_master_copy_preview / owner_master_copy, _lib_copy, _lib_put_row). Owner-only "⤴ Copy to Master" (owner acting
+as admin, home company only) on the payer card, each company denial code card and the SOP page (not client SOPs): preview → "Add to
+Master" or, if the master has it, "Update the master" / "Skip"; nothing in the company is moved or deleted; files copied into
+co_master/ afterwards; owner log "master_copy" + master history. The test caught a bug (SQL alias "c" clashed with the function's
+record "c" in the SOP tree query) — fixed in the file and the function re-run. Rolled-back test (18 checks): existing payer add →
+skipped, update → 9 updated / 0 added, no duplicates; new payer → payer + plan + contact + limit on the MASTER plan + form at
+co_master/payer_…/zz.pdf (+ file listed); existing code update 2; new code + step added; SOP → new master task, published, step /
+version / media paths co_master/…; client SOP refused; home rows identical before / after; 5 owner-log lines; wrong key refused;
+nothing left behind. Browser: 3Gen → Aetna card shows "⤴ Copy to Master" → preview "already has this payer… 1 payer IDs · 3 notes ·
+1 filing limits · 1 contacts", Skip closes (nothing copied); Test Co shows no Copy to Master button. Lint 51.
+
+**Stage 3 APPROVED (PO "Approved, start Stage 4" 2026-11-10).** Stage 3 built (2026-11-10). No database change. SOP Library: master categories / software /
 tasks / SOPs merged in (same name under the same parent → the company's container takes the master's children; same SOP title
 under the same task → company SOP on top + read-only master SOP below as "3Gen standard"); master items read-only with a Master
 badge; master SOPs show their current published version (from the master's sop_versions) on a read-only page — no read tracking /
@@ -2384,7 +2396,9 @@ in the Owner Console. New migrations go at the end of this list, marked “not r
 50. `supabase/migrations/20261115_admin_only.sql` (admin-only Settings / Team / Clients / Audit for managers: _may, users guard,
     AI key, rcm_store change rules) — run 2026-11-09 by Claude.
 51. `supabase/migrations/20261116_master_library.sql` (companies read the master library + co_master/ files; helix_master_changes
-    history + one owner-log line per save; owner_master_history) — run 2026-11-10 by Claude. Last-resort unlock if an owner loses phone + codes and there is no
+    history + one owner-log line per save; owner_master_history) — run 2026-11-10 by Claude.
+52. `supabase/migrations/20261117_copy_to_master.sql` (owner-only Copy to Master: preview + copy of payer / code / SOP from the home
+    company) — run 2026-11-10 by Claude (_lib_copy re-run the same day with the alias fix). Last-resort unlock if an owner loses phone + codes and there is no
     second owner: delete that owner's rows in `helix_owner_2fa` / `helix_owner_recovery` / `helix_owner_attempts` in the SQL Editor.
 
 The app hides/disables a feature until its migration has been run, so code can deploy first.

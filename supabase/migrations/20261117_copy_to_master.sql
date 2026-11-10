@@ -156,9 +156,9 @@ begin
     if src->>'client_id' is not null then return jsonb_build_object('ok', false, 'error', 'client_sop'); end if;
     v_label := src->>'title';
     -- the tree: category → software → task, found in the master by name or added
-    for r in select c.id as cat_id, c.name as cat_name, w.id as sw_id, w.name as sw_name, t.id as task_id, t.name as task_name
-             from rcm.sop_tasks t join rcm.sop_software w on w.id = t.software_id join rcm.sop_categories c on c.id = w.category_id
-             where t.id = (src->>'task_id')::bigint loop
+    for r in select sc.id as cat_id, sc.name as cat_name, sw.id as sw_id, sw.name as sw_name, st.id as task_id, st.name as task_name
+             from rcm.sop_tasks st join rcm.sop_software sw on sw.id = st.software_id join rcm.sop_categories sc on sc.id = sw.category_id
+             where st.id = (src->>'task_id')::bigint loop
       execute format('select id from rcm.%I where lower(name) = lower($1) order by id limit 1', m || 'sop_categories') into v_cat using r.cat_name;
       if v_cat is null then
         v_detail := v_detail || '{"new category": 1}';
