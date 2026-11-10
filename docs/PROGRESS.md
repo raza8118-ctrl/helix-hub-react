@@ -44,6 +44,13 @@ Browser previews in Test Co (nothing imported): SOP Pack → recognised, 12 new 
 Payer Directory More → recognised as Starter / More, 65 new (7 payers + IDs, contacts, limits, notes); Denial Guides More →
 recognised, 78 new (39 codes + 39 Common 3Gen steps). Lint 51, build OK.
 
+**Master Library import (PO "do it now" 2026-11-10).** Claude imported the three files into the Master Library as owner
+(Master Library → Import, each preview checked first): Helix_Payer_Directory_More.xlsx → 65 new (payers 12→19, IDs 9→16, contacts
+25→46, limits 25→36, notes 28→47); Helix_Denial_Guides_More.xlsx → 59 new (codes 49→75, steps 23→56; 6 codes already had
+Common 3Gen steps, left as they were); Helix_SOP_Pack.xlsx → 12 SOPs as DRAFTS (software 15→20, tasks 0→12, SOPs 0→12; no
+new categories). Each logged in the Audit Log + owner log with the file name. To do (PO / seniors): check and publish the 12
+master SOPs; verify the new payers (⚠ flag where not verified).
+
 **Stage 4 APPROVED (PO "Approved" 2026-11-10) — step DONE.** No database change. Code pushed (17f3765). Two types in
 src/lib/importTypes.js: "SOPs" (one row per SOP: category, software, task, SOP title required; client name or code; summary,
 purpose, who uses it, before you start, steps, what you should see, if it goes wrong; software vendor + login link used only for
