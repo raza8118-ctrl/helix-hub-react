@@ -36,6 +36,14 @@ saved matchings table, import_file / imported_at columns) · 2 payers · 3 denia
 screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
 Helix_Denial_Guides_More.xlsx before stages 3–4.
 
+**Follow-up (PO 2026-11-10): sample files added.** Claude copied Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx and
+Helix_Denial_Guides_More.xlsx from the PO's Downloads into samples/ (git-ignored: the files stay on this computer, not in GitHub). New SOP Pack built-in (sheet "SOPs" with SOP title, Steps
+and Source link columns): columns read by name, source link + "verified from official source" + last checked kept as a
+"Source" line under Purpose; SOPs come in as drafts and are NOT marked verified (pack README: a senior checks screens first).
+Browser previews in Test Co (nothing imported): SOP Pack → recognised, 12 new drafts (+5 categories, 6 software, 12 tasks);
+Payer Directory More → recognised as Starter / More, 65 new (7 payers + IDs, contacts, limits, notes); Denial Guides More →
+recognised, 78 new (39 codes + 39 Common 3Gen steps). Lint 51, build OK.
+
 **Stage 4 APPROVED (PO "Approved" 2026-11-10) — step DONE.** No database change. Code pushed (17f3765). Two types in
 src/lib/importTypes.js: "SOPs" (one row per SOP: category, software, task, SOP title required; client name or code; summary,
 purpose, who uses it, before you start, steps, what you should see, if it goes wrong; software vendor + login link used only for

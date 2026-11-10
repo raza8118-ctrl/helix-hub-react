@@ -659,31 +659,68 @@ function sopsType() {
       task: (swId, name) => pick(tasks.filter(t2 => t2.software_id === swId && nn(t2.name) === nn(name))),
     };
   }
+  const SOP_FIELDS = [
+    { key: 'category', label: 'Category', required: true, example: 'Clearinghouse', synonyms: ['category', 'sop category', 'area', 'department'] },
+    { key: 'software', label: 'Software', required: true, example: 'Waystar', synonyms: ['software', 'system', 'application', 'app', 'platform', 'tool', 'portal'] },
+    { key: 'task', label: 'Task', required: true, example: 'Check claim status', synonyms: ['task', 'process', 'activity', 'task name'] },
+    { key: 'title', label: 'SOP title', required: true, example: 'Claim status check in Waystar', synonyms: ['sop title', 'title', 'sop', 'sop name', 'name', 'procedure'] },
+    { key: 'client', label: 'Client', example: '', synonyms: ['client', 'client name', 'agency', 'applies to'], help: 'Blank = a common SOP for every client' },
+    { key: 'summary', label: 'Short summary', example: 'How to check a claim’s status in Waystar', synonyms: ['summary', 'short summary', 'overview', 'description'] },
+    { key: 'purpose', label: 'Purpose', example: 'Use before calling the payer', synonyms: ['purpose', 'why', 'when to use'] },
+    { key: 'audience_notes', label: 'Who uses it', example: 'AR callers', synonyms: ['who uses it', 'audience', 'team', 'used by', 'role'] },
+    { key: 'prerequisites', label: 'Before you start', example: 'Waystar login', synonyms: ['before you start', 'prerequisites', 'prerequisite', 'requirements', 'access needed'] },
+    { key: 'steps', label: 'Steps', example: '1. Log in to Waystar\n2. Open Claim Status\n3. Search the claim', synonyms: ['steps', 'procedure steps', 'instructions', 'how to', 'process steps'] },
+    { key: 'expected_result', label: 'What you should see', example: 'The claim status and date', synonyms: ['what you should see', 'expected result', 'result', 'outcome'] },
+    { key: 'troubleshooting', label: 'If it goes wrong', example: 'No result: check the payer ID', synonyms: ['if it goes wrong', 'troubleshooting', 'problems', 'issues', 'errors'] },
+    { key: 'vendor', label: 'Software vendor', example: 'Claims, claim status, remits', synonyms: ['vendor', 'software vendor', 'also known as'] },
+    { key: 'portal_url', label: 'Software login link', example: 'https://www.waystar.com', synonyms: ['login link', 'login url', 'portal url', 'url', 'link', 'website'] },
+  ];
   return {
     id: 'sops', title: 'SOPs', entity: 'sop', sheetName: 'SOPs',
     intro: 'Step-by-step guides, one row per SOP, with where it belongs (category → software → task) and its sections.',
-    fields: [
-      { key: 'category', label: 'Category', required: true, example: 'Clearinghouse', synonyms: ['category', 'sop category', 'area', 'department'] },
-      { key: 'software', label: 'Software', required: true, example: 'Waystar', synonyms: ['software', 'system', 'application', 'app', 'platform', 'tool', 'portal'] },
-      { key: 'task', label: 'Task', required: true, example: 'Check claim status', synonyms: ['task', 'process', 'activity', 'task name'] },
-      { key: 'title', label: 'SOP title', required: true, example: 'Claim status check in Waystar', synonyms: ['sop title', 'title', 'sop', 'sop name', 'name', 'procedure'] },
-      { key: 'client', label: 'Client', example: '', synonyms: ['client', 'client name', 'agency', 'applies to'], help: 'Blank = a common SOP for every client' },
-      { key: 'summary', label: 'Short summary', example: 'How to check a claim’s status in Waystar', synonyms: ['summary', 'short summary', 'overview', 'description'] },
-      { key: 'purpose', label: 'Purpose', example: 'Use before calling the payer', synonyms: ['purpose', 'why', 'when to use'] },
-      { key: 'audience_notes', label: 'Who uses it', example: 'AR callers', synonyms: ['who uses it', 'audience', 'team', 'used by', 'role'] },
-      { key: 'prerequisites', label: 'Before you start', example: 'Waystar login', synonyms: ['before you start', 'prerequisites', 'prerequisite', 'requirements', 'access needed'] },
-      { key: 'steps', label: 'Steps', example: '1. Log in to Waystar\n2. Open Claim Status\n3. Search the claim', synonyms: ['steps', 'procedure steps', 'instructions', 'how to', 'process steps'] },
-      { key: 'expected_result', label: 'What you should see', example: 'The claim status and date', synonyms: ['what you should see', 'expected result', 'result', 'outcome'] },
-      { key: 'troubleshooting', label: 'If it goes wrong', example: 'No result: check the payer ID', synonyms: ['if it goes wrong', 'troubleshooting', 'problems', 'issues', 'errors'] },
-      { key: 'vendor', label: 'Software vendor', example: 'Claims, claim status, remits', synonyms: ['vendor', 'software vendor', 'also known as'] },
-      { key: 'portal_url', label: 'Software login link', example: 'https://www.waystar.com', synonyms: ['login link', 'login url', 'portal url', 'url', 'link', 'website'] },
-    ],
+    fields: SOP_FIELDS,
     tips: [
       'Steps: one step per line in the Steps cell (1. / 2. numbers are fine). A line starting with “Tip:” becomes a tip for the step above.',
       'Missing categories, software and tasks are added. Software vendor and login link are used only for software that is new.',
       'New SOPs come in as drafts — open each one, check it and publish it. Screenshots and videos are added on the SOP page.',
       'Never put passwords or patient details in an SOP.',
     ],
+    builtIns: [{
+      // Helix_SOP_Pack.xlsx (sheet "SOPs", one row per SOP in the template sections). Its source link and "verified from
+      // official source" note are kept as a "Source" line under Purpose; the SOPs are NOT marked verified (a senior
+      // checks the screens before publishing, as the pack's README says).
+      id: 'sop_pack', label: 'Helix SOP Pack (sheet “SOPs” — added as drafts with their source links)',
+      detect: async file => {
+        if (!/\.xlsx?$/i.test(file.name)) return false;
+        const XLSX = await import('xlsx');
+        const wb = XLSX.read(await file.arrayBuffer(), { sheetRows: 3 });
+        const name = wb.SheetNames.find(s => nn(s) === 'sops');
+        if (!name) return false;
+        const head = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' })[0]?.map(nn) ?? [];
+        return head.includes('sop title') && head.includes('steps') && head.some(h => h.startsWith('source link'));
+      },
+      parse: async file => {
+        const XLSX = await import('xlsx');
+        const wb = XLSX.read(await file.arrayBuffer());
+        const grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s => nn(s) === 'sops')], { header: 1, defval: '', raw: false });
+        const head = (grid[0] ?? []).map(h => nn(h).replace(/[^a-z0-9 ]/g, '').trim());
+        const col = label => head.indexOf(nn(label).replace(/[^a-z0-9 ]/g, '').trim());
+        const C = Object.fromEntries(SOP_FIELDS.map(f => [f.key, [f.label, ...(f.synonyms ?? [])].map(col).find(i => i >= 0) ?? -1]));
+        const src = head.findIndex(h => h.startsWith('source link'));
+        const ver = head.findIndex(h => h.startsWith('verified'));
+        const checked = head.findIndex(h => h.startsWith('last checked'));
+        const records = grid.slice(1).map((r, i) => {
+          if (!r.some(c => t(c))) return null;
+          const values = Object.fromEntries(Object.entries(C).filter(([, c]) => c >= 0).map(([k, c]) => [k, k === 'steps' ? String(r[c] ?? '').trim() : t(r[c])]));
+          const source = [src >= 0 && t(r[src]) ? `Source: ${t(r[src]).replace(/\s*;\s*$/, '')}` : '',
+            ver >= 0 && t(r[ver]) ? `Checked against official source: ${t(r[ver])}${checked >= 0 && t(r[checked]) ? ` (${t(r[checked])})` : ''}` : '']
+            .filter(Boolean).join('\n');
+          if (source) values.purpose = [values.purpose, source].filter(Boolean).join('\n\n');
+          return { rowNum: i + 2, values };
+        }).filter(Boolean);
+        return records.length ? { records, mode: 'sop_pack' } : { error: 'The “SOPs” sheet has no SOPs.' };
+      },
+    }],
     labelOf: v => pathLabel(v),
     preview: async (input, { overwrite }) => {
       tree = await readTree();
