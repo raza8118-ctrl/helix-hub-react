@@ -20,6 +20,7 @@ import { confirmDialog } from '../../components/shared/Dialog';
 import { peekRecord, clearRecord } from '../../lib/navigate';
 import { masterGet, mergeCodes, inMasterWorkspace, isMasterRow, masterRaw } from '../../lib/masterLibrary';
 import LibraryBadge from '../../components/shared/LibraryBadge';
+import CopyToMaster from '../../components/shared/CopyToMaster';
 import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -28,7 +29,7 @@ const PAGE = 60;
 
 // One code: type, code + copy, badges, plain reason first, official wording below; editor buttons when allowed;
 // "What to do ▾" shows the layered steps (4.2) passed as children
-function CodeCard({ row, group, canEdit, libOn, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, onStartAppeal, children }) {
+function CodeCard({ row, group, canEdit, libOn, user, onVerify, onEdit, onToggle, stepsReady, stepsOpen, onToggleSteps, onStartAppeal, children }) {
   const t = typeOf(row.code_type);
   return (
     <Card dim={row.active === false} variant={stepsOpen ? 'accent' : 'default'}>
@@ -73,6 +74,7 @@ function CodeCard({ row, group, canEdit, libOn, onVerify, onEdit, onToggle, step
           </Button>
         )}
         {row.active !== false && <Button size="sm" variant="ghost" onClick={() => onStartAppeal(row, group)}>✉️ Start an appeal</Button>}
+        {!isMasterRow(row) && <CopyToMaster kind="code" id={row.id} label={row.code} user={user} />}
       </div>
       {stepsOpen && children}
     </Card>
@@ -174,7 +176,7 @@ export default function DenialNavigator({ user }) {
     if (await setCodeActive(row, !off, user)) reload();
   }
   const cardProps = {
-    canEdit, onVerify: verify, onEdit: row => setModal({ kind: 'code', row }), onToggle: toggleActive,
+    canEdit, user, onVerify: verify, onEdit: row => setModal({ kind: 'code', row }), onToggle: toggleActive,
     stepsReady: Array.isArray(steps), onToggleSteps: toggleSteps,
     // 5.1: open the Appeal Builder with this code (or the whole pasted ERA line) and the Working-on client / payer
     onStartAppeal: (row, group) => startAppeal({ codes: parsed ? query : `${group ? `${group}-` : ''}${row.code}`, client_id: clientId, payer_id: payerId }),

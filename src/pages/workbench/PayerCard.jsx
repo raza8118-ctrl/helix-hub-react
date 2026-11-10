@@ -9,6 +9,7 @@ import { actionLabel } from '../../lib/auditLabels';
 import PayerForms from './PayerForms';
 import { masterGet } from '../../lib/masterLibrary';
 import LibraryBadge from '../../components/shared/LibraryBadge';
+import CopyToMaster from '../../components/shared/CopyToMaster';
 import { VerifiedBadge, ReportWrongInfo, OpenReports } from './PayerAccuracy';
 import { pendingForPayer, openSuggestions } from '../../lib/payerSuggestions';
 import {
@@ -421,6 +422,7 @@ export default function PayerCard({ payer, user, onClose, source = 'company', li
             <Check inline checked={showInactive} onChange={e => setShowInactive(e.target.checked)}>Show inactive</Check>
           )}
           {canEdit && <Button size="sm" onClick={toggleHistory}>{history ? 'Hide history' : '🕘 History'}</Button>}
+          {!isMaster && <CopyToMaster kind="payer" id={payer.id} label={payer.name} user={user} />}
           {reports != null && (
             <ReportWrongInfo payer={payer} section="Payer (general)" table="payers" entityId={payer.id}
               user={user} onReported={loadReports} />

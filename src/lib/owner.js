@@ -69,6 +69,18 @@ export async function exportMasterArea(area) {
   XLSX.writeFile(wb, `Helix Hub Master Library – ${title} – ${new Date().toISOString().slice(0, 10)}.xlsx`);
   return { ok: true };
 }
+// Copy to Master (migration 52): preview, then copy; the files are copied into the master's folder afterwards
+export const masterCopyPreview = (owner, kind, id) => rpc('owner_master_copy_preview', { ...byOwner(owner), p_kind: kind, p_id: id });
+export async function masterCopy(owner, kind, id, mode) {
+  const r = await rpc('owner_master_copy', { ...byOwner(owner), p_kind: kind, p_id: id, p_mode: mode });
+  const files = { total: 0, copied: 0, failed: 0 };
+  for (const f of r.data?.files ?? []) {
+    files.total++;
+    const { error } = await supabase.storage.from(f.bucket).copy(f.from, f.to);
+    if (error && !/exist|duplicate/i.test(error.message ?? '')) files.failed++; else files.copied++;
+  }
+  return { ...r, files };
+}
 // Push to companies (migration 48): preview = the real push, cancelled; push = one company per call
 export const masterPreview = (owner, code, sections) => rpc('owner_master_preview', { ...byOwner(owner), p_code: code, p_sections: sections });
 export const masterPush = (owner, code, sections) => rpc('owner_master_push', { ...byOwner(owner), p_code: code, p_sections: sections });

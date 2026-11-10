@@ -18,6 +18,7 @@ import { PublishVersionModal, VersionHistory, ClientCopyModal } from './SopVersi
 import { confirmDialog } from '../../components/shared/Dialog';
 import CopyButton from '../../components/shared/CopyButton';
 import LibraryBadge from '../../components/shared/LibraryBadge';
+import CopyToMaster from '../../components/shared/CopyToMaster';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -178,6 +179,7 @@ export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, 
         {!hideBack && <button className="btn-sm" onClick={onBack}>{backLabel}</button>}
         {libBadge && <LibraryBadge kind={libBadge} />}
         <span style={{ marginLeft: 'auto', flexWrap: 'wrap', gap: 6 }} className="row">
+          {!library && sop.client_id == null && <CopyToMaster kind="sop" id={sop.id} label={sop.title} user={user} />}
           {ready && !readerHasNothing && <button className="btn-sm" onClick={() => printSop(display, trail, names)}>🖨 Print</button>}
           {canEdit && ready && <button className="btn-sm" onClick={markVerified} disabled={verifying}>{verifying ? 'Saving…' : '✓ Mark as verified today'}</button>}
           {canEdit && versionsReady && sop.client_id == null && (
