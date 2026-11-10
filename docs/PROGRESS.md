@@ -23,6 +23,14 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Owner look (PO "Go" 2026-11-10) — IN PROGRESS.** Styling only. New theme-owner in themes.css: Frost dark navy glass + gold
+accent #E5B454 (hover a little darker, soft gold ≈14% for highlights / active item), dark ink #1C1405 on gold buttons (never
+white), Watch / warning badges amber-orange so they differ from the accent. Used on /owner sign-in (+ code step), the whole Owner
+Command Center, and the "Viewing as Owner" / "Editing MASTER COPY" bar (gold strip styled on its own, same in every company
+theme). Never saved as the browser's last theme → company sign-in and company users keep their own theme. Theme switcher removed
+from the Command Center top bar (PO accepted). Contrast: ink on gold 9.5:1, gold on background 9.9:1, gold on cards 9.0:1, gold on
+soft gold 6.9:1, white on active item 13.7:1 (white on gold 1.9:1 → not used).
+
 **Stage 2 APPROVED (PO 2026-11-10) — step DONE.** No database change. New tab "Admin Centre" (System, first;
 admins + Settings grant; can't be switched off) — src/pages/admin/AdminCentre.jsx: cards Users & roles (counts per role,
 active / switched off → Team), Access & permissions (people with extra access and what → Team), Targets & processes (processes,
