@@ -23,6 +23,16 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Master Library (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** PO chose to build it on the existing hidden Master copy
+(co_master__ tables, already filled from 3Gen; owner-only writes) instead of new helix_ tables; Push to companies hidden (code kept,
+nothing was ever pushed). Stage 1 (migration 51): every signed-in company user may READ the master tables (+ master files in the
+co_master/ storage folder); change history per master row (before / after, who, when) + ONE owner-log line per save / import;
+Owner Console "Master Data" → "Master Library" with areas Payers, Denials, SOPs, Code lists, each Edit / Import (open the
+master on that page) / Export to Excel / History. Stage 2: Payer Directory + Denial Navigator show master + company together
+(Master / Company badges, master read-only for companies, same payer / code → "Company override" on top, "3Gen standard" below).
+Stage 3: SOP Library + Code Lookup the same way. Stage 4: owner-only "Copy to Master" in the home company (payer + details, code +
+common steps, SOP + tree + current version; preview, update or skip; never moves / deletes; logged). Additive only.
+
 **Owner look APPROVED (PO 2026-11-10) — step DONE.** Checked in the browser: Command Center body theme-owner, gold active
 item / count badge / buttons, Watch badges amber-orange, no theme switcher; /owner sign-in Frost navy + gold badge + gold Sign In;
 company sign-in (/) stays Frost blue and hh_last_theme stays "frost"; Test Co keeps Daylight (indigo) with only the owner strip
