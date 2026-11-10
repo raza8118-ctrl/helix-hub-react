@@ -6,6 +6,7 @@ import { hasAccess } from '../../lib/access';
 import Modal from '../../components/shared/Modal';
 import { confirmDialog } from '../../components/shared/Dialog';
 import { Button } from '../../components/ui';
+import SmartImport from '../../components/shared/SmartImport';
 
 const PAYER_TYPES = ['Medicare', 'Medicare Advantage', 'Medicaid', 'Managed Medicaid (MCO)', 'Commercial', 'Workers’ Comp', 'Other'];
 
@@ -34,6 +35,7 @@ export default function MasterData({ user }) {
   const [status, setStatus]     = useState('active');
   const [form, setForm]         = useState(null);    // { id?, ...fields, error }
   const [saving, setSaving]     = useState(false);
+  const [importing, setImporting] = useState(false);   // Smart Import (clients or payers)
   const allowed = hasAccess(user, 'masters_edit');
   const K = KINDS[kind];
 
@@ -136,7 +138,10 @@ export default function MasterData({ user }) {
               <option value="all">All</option>
             </select>
           </div>
-          <Button size="sm" variant="primary" onClick={openAdd} disabled={rows == null}>+ Add {K.one}</Button>
+          <div className="fg-actions">
+            <Button size="sm" onClick={() => setImporting(true)} disabled={rows == null}>⬆ Import {K.many.toLowerCase()}</Button>
+            <Button size="sm" variant="primary" onClick={openAdd} disabled={rows == null}>+ Add {K.one}</Button>
+          </div>
         </div>
 
         {loading && <div className="fg-empty">Loading…</div>}
@@ -250,6 +255,7 @@ export default function MasterData({ user }) {
           </div>
         </Modal>
       )}
+      {importing && <SmartImport typeId={kind} user={user} onClose={() => setImporting(false)} onDone={load} />}
     </div>
   );
 }

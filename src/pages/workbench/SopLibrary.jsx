@@ -12,6 +12,7 @@ import { Button } from '../../components/ui';
 import { masterGet, mergeSopLibraries, inMasterWorkspace, isMasterRow } from '../../lib/masterLibrary';
 import { sopAsVersion } from '../../lib/sopVersions';
 import LibraryBadge from '../../components/shared/LibraryBadge';
+import SmartImport from '../../components/shared/SmartImport';
 
 // Master Library SOPs as readers see them: active, not client-specific, each showing its current published version
 async function loadMasterSops() {
@@ -49,6 +50,7 @@ export default function SopLibrary({ user }) {
   const [open, setOpen]         = useState(() => new Set());   // expanded software ids
   const [editor, setEditor]     = useState(null);              // { level, row, parentId }
   const [starterSoftware, setStarterSoftware] = useState(false);   // "Add standard software" pop-up (3.7)
+  const [importing, setImporting] = useState(() => !!peekRecord('wb_sops')?.import);   // Smart Import (also from Master Library → Import)
   const [openSopId, setOpenSopId] = useState(null);            // SOP shown as a full page (3.2)
   const [meta, setMeta]         = useState(null);              // 3.4 versions + my reads; null = not set up
   const [clientId, setClientId] = useState('ALL');
@@ -177,6 +179,7 @@ export default function SopLibrary({ user }) {
                 Add standard software ({missingSoftware.length})
               </Button>
             )}
+            <Button size="sm" onClick={() => setImporting(true)}>⬆ Import SOPs</Button>
             <Button size="sm" onClick={() => edit('category')}>+ Category</Button>
           </div>
         )}
@@ -343,6 +346,7 @@ export default function SopLibrary({ user }) {
         <StarterSoftwareModal lib={lib} user={user} onClose={() => setStarterSoftware(false)}
           onSaved={() => { setStarterSoftware(false); load(); }} />
       )}
+      {importing && canEdit && <SmartImport typeId="sops" user={user} onClose={() => setImporting(false)} onDone={load} />}
     </div>
   );
 }

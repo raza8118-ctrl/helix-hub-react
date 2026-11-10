@@ -1,6 +1,6 @@
 // Smart Import data types (PO 2026-11-10). Each type describes the fields a file can fill (with alternative column
 // names for auto-matching and one example each), how a row is checked, how "the same item" is recognised, how
-// existing items are loaded for the preview, and how rows are saved. Stage 1: Code lists. Stage 2: Payers. Stage 3: Denial codes + steps.
+// existing items are loaded for the preview, and how rows are saved. Stage 1: Code lists. Stage 2: Payers. Stage 3: Denial codes + steps. Stage 4: SOPs + clients.
 import { db } from './supabase';
 import { CODE_SETS, normRef, displayRef, setOf } from './refCodes';
 import { stampsReady, basicPreview } from './smartImport';
@@ -624,6 +624,198 @@ function denialStepsType() {
   };
 }
 
+// ── SOPs + clients (Stage 4) ─────────────────────────────────────────────────────────────────
+// SOPs: one row per SOP with its place in the library (category → software → task, each added when missing) and its
+// sections. New SOPs come in as drafts (someone reviews and publishes them); an existing SOP (same task + title +
+// client) only gets empty sections filled unless "Overwrite". Clients: name, code, project, notes; same name = same client.
+const SOP_TEXT = [['summary', 'Summary'], ['purpose', 'Purpose'], ['audience_notes', 'Who uses it'], ['prerequisites', 'Before you start'],
+  ['expected_result', 'What you should see'], ['troubleshooting', 'If it goes wrong']];
+
+/** "1. Log in\n2) Open claims\nTip: use Chrome" → [{ text, tip, images: [], video: null }] */
+export function stepsFromText(text) {
+  const out = [];
+  for (const raw of String(text ?? '').split(/\r?\n|(?:^|\s)(?=\d{1,2}[.)]\s)/)) {
+    const line = raw.trim().replace(/^(?:\d{1,2}[.)]|[-•*])\s*/, '').trim();
+    if (!line) continue;
+    const tip = line.match(/^tip:\s*(.+)$/i);
+    if (tip && out.length) { out[out.length - 1].tip = [out[out.length - 1].tip, tip[1]].filter(Boolean).join(' '); continue; }
+    out.push({ text: line, tip: '', images: [], video: null });
+  }
+  return out;
+}
+const stepsText = steps => (Array.isArray(steps) ? steps : []).map(s => s?.text ?? '').filter(Boolean).join('\n');
+
+function sopsType() {
+  let tree = null;   // what the preview found, re-read before saving
+  const pathLabel = v => [v.category, v.software, v.task, v.title].join(' › ') + (v.client ? ` (client ${v.client})` : '');
+  async function readTree() {
+    const [categories, software, tasks, sops, clients] = await Promise.all(['sop_categories', 'sop_software', 'sop_tasks', 'sops', 'clients'].map(allRows));
+    if (!categories || !software || !tasks || !sops) throw new Error('The SOP Library isn’t set up in this workspace yet.');
+    const pick = list => list.sort((a, b) => (b.active !== false) - (a.active !== false) || a.id - b.id)[0];
+    return {
+      sops, clients: clients ?? [],
+      cat: name => pick(categories.filter(c => nn(c.name) === nn(name))),
+      sw: (catId, name) => pick(software.filter(s => s.category_id === catId && nn(s.name) === nn(name))),
+      task: (swId, name) => pick(tasks.filter(t2 => t2.software_id === swId && nn(t2.name) === nn(name))),
+    };
+  }
+  return {
+    id: 'sops', title: 'SOPs', entity: 'sop', sheetName: 'SOPs',
+    intro: 'Step-by-step guides, one row per SOP, with where it belongs (category → software → task) and its sections.',
+    fields: [
+      { key: 'category', label: 'Category', required: true, example: 'Clearinghouse', synonyms: ['category', 'sop category', 'area', 'department'] },
+      { key: 'software', label: 'Software', required: true, example: 'Waystar', synonyms: ['software', 'system', 'application', 'app', 'platform', 'tool', 'portal'] },
+      { key: 'task', label: 'Task', required: true, example: 'Check claim status', synonyms: ['task', 'process', 'activity', 'task name'] },
+      { key: 'title', label: 'SOP title', required: true, example: 'Claim status check in Waystar', synonyms: ['sop title', 'title', 'sop', 'sop name', 'name', 'procedure'] },
+      { key: 'client', label: 'Client', example: '', synonyms: ['client', 'client name', 'agency', 'applies to'], help: 'Blank = a common SOP for every client' },
+      { key: 'summary', label: 'Short summary', example: 'How to check a claim’s status in Waystar', synonyms: ['summary', 'short summary', 'overview', 'description'] },
+      { key: 'purpose', label: 'Purpose', example: 'Use before calling the payer', synonyms: ['purpose', 'why', 'when to use'] },
+      { key: 'audience_notes', label: 'Who uses it', example: 'AR callers', synonyms: ['who uses it', 'audience', 'team', 'used by', 'role'] },
+      { key: 'prerequisites', label: 'Before you start', example: 'Waystar login', synonyms: ['before you start', 'prerequisites', 'prerequisite', 'requirements', 'access needed'] },
+      { key: 'steps', label: 'Steps', example: '1. Log in to Waystar\n2. Open Claim Status\n3. Search the claim', synonyms: ['steps', 'procedure steps', 'instructions', 'how to', 'process steps'] },
+      { key: 'expected_result', label: 'What you should see', example: 'The claim status and date', synonyms: ['what you should see', 'expected result', 'result', 'outcome'] },
+      { key: 'troubleshooting', label: 'If it goes wrong', example: 'No result: check the payer ID', synonyms: ['if it goes wrong', 'troubleshooting', 'problems', 'issues', 'errors'] },
+      { key: 'vendor', label: 'Software vendor', example: 'Claims, claim status, remits', synonyms: ['vendor', 'software vendor', 'also known as'] },
+      { key: 'portal_url', label: 'Software login link', example: 'https://www.waystar.com', synonyms: ['login link', 'login url', 'portal url', 'url', 'link', 'website'] },
+    ],
+    tips: [
+      'Steps: one step per line in the Steps cell (1. / 2. numbers are fine). A line starting with “Tip:” becomes a tip for the step above.',
+      'Missing categories, software and tasks are added. Software vendor and login link are used only for software that is new.',
+      'New SOPs come in as drafts — open each one, check it and publish it. Screenshots and videos are added on the SOP page.',
+      'Never put passwords or patient details in an SOP.',
+    ],
+    labelOf: v => pathLabel(v),
+    preview: async (input, { overwrite }) => {
+      tree = await readTree();
+      const adds = [], updates = [], dups = [], errors = [];
+      const seen = new Set();
+      const newParts = { categories: new Set(), software: new Set(), tasks: new Set() };
+      for (const { rowNum, values: raw } of input.records ?? []) {
+        const v = Object.fromEntries(Object.entries(raw).map(([k, x]) => [k, k === 'steps' ? String(x ?? '').trim() : t(x)]));
+        const label = pathLabel(v);
+        const missing = ['category', 'software', 'task', 'title'].filter(k => !v[k]);
+        if (missing.length) { errors.push({ rowNum, label, why: `Missing ${missing.join(', ')}` }); continue; }
+        let clientId = null;
+        if (v.client) {
+          const c = tree.clients.find(x => nn(x.name) === nn(v.client) || (x.code && nn(x.code) === nn(v.client)));
+          if (!c) { errors.push({ rowNum, label, why: `Client “${v.client}” isn’t in Clients & Payers` }); continue; }
+          clientId = c.id;
+        }
+        const key = [v.category, v.software, v.task, v.title].map(nn).join('|') + `|${clientId ?? ''}`;
+        if (seen.has(key)) { dups.push({ rowNum, label, why: 'Same SOP appears earlier in this file' }); continue; }
+        seen.add(key);
+        const cat = tree.cat(v.category);
+        const sw = cat && tree.sw(cat.id, v.software);
+        const task = sw && tree.task(sw.id, v.task);
+        if (!cat) newParts.categories.add(nn(v.category));
+        if (!sw) newParts.software.add(`${nn(v.category)}|${nn(v.software)}`);
+        if (!task) newParts.tasks.add(`${nn(v.category)}|${nn(v.software)}|${nn(v.task)}`);
+        const ex = task && tree.sops.find(s => s.task_id === task.id && nn(s.title) === nn(v.title) && (s.client_id ?? null) === clientId);
+        const values = { ...v, clientId };
+        if (!ex) { adds.push({ rowNum, values, label }); continue; }
+        const patch = {}, changes = [];
+        for (const [k, name] of SOP_TEXT) {
+          if (!v[k] || String(ex[k] ?? '') === v[k]) continue;
+          if (!t(ex[k]) || overwrite) { patch[k] = v[k]; changes.push(name); }
+        }
+        if (v.steps) {
+          const steps = stepsFromText(v.steps);
+          const had = stepsText(ex.steps);
+          if (steps.length && had !== stepsText(steps) && (!had || overwrite)) { patch.steps = steps; changes.push('Steps'); }
+        }
+        if (changes.length) updates.push({ rowNum, values, existing: ex, patch, label, changes: changes.join(', ') });
+        else dups.push({ rowNum, label, why: overwrite ? 'Already the same' : 'Already there (empty sections only are filled)' });
+      }
+      const parts = [[newParts.categories.size, 'category', 'categories'], [newParts.software.size, 'software', 'software'], [newParts.tasks.size, 'task', 'tasks']]
+        .filter(([n]) => n).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
+      const note = [adds.length ? 'New SOPs are added as drafts — open each one, check it and publish it.' : '',
+        parts.length ? `Also adds ${parts.join(', ')} to the library.` : '',
+        updates.some(u => u.existing.status === 'published') ? 'Changes to a published SOP: open it and publish a new version so readers see them.' : '']
+        .filter(Boolean).join(' ');
+      return { adds, updates, dups, errors, note };
+    },
+    save: async (preview, { stamp, user }, onProgress) => {
+      const st = (await stampsReady('sops')) ? stamp : {};
+      const who = { updated_by: user.emp_id, updated_at: new Date().toISOString() };
+      const base = { active: true, created_by: user.emp_id, ...who, ...st };
+      const fresh = await readTree();   // re-read so two imports can't add the same category twice
+      const made = new Map();
+      const insertOne = async (table, row) => {
+        const { data, error } = await db(table).insert(row).select();
+        if (error) throw new Error(`Adding to the library stopped (${error.message}). Everything before it was saved.`);
+        return data[0];
+      };
+      const ensure = async (k, find, table, row) => made.get(k) ?? find() ?? made.set(k, await insertOne(table, { ...row, ...base })).get(k);
+      let added = 0, updated = 0, parts = 0;
+      for (const a of preview.adds) {
+        const v = a.values;
+        const before = made.size;
+        const cat = await ensure(`c|${nn(v.category)}`, () => fresh.cat(v.category), 'sop_categories', { name: v.category });
+        const sw = await ensure(`s|${cat.id}|${nn(v.software)}`, () => fresh.sw(cat.id, v.software), 'sop_software',
+          { category_id: cat.id, name: v.software, vendor: v.vendor || null, portal_url: v.portal_url || null });
+        const task = await ensure(`t|${sw.id}|${nn(v.task)}`, () => fresh.task(sw.id, v.task), 'sop_tasks', { software_id: sw.id, name: v.task });
+        parts += made.size - before;
+        if (fresh.sops.some(s => s.task_id === task.id && nn(s.title) === nn(v.title) && (s.client_id ?? null) === v.clientId)) continue;   // added meanwhile
+        await insertOne('sops', {
+          task_id: task.id, title: v.title, client_id: v.clientId, status: 'draft',
+          ...Object.fromEntries(SOP_TEXT.map(([k]) => [k, v[k] || null])), steps: v.steps ? stepsFromText(v.steps) : [], ...base,
+        });
+        added++;
+        onProgress?.(`Adding SOPs… ${added} of ${preview.adds.length}`);
+      }
+      for (const u of preview.updates) {
+        const { error } = await db('sops').update({ ...u.patch, ...who, ...st }).eq('id', u.existing.id);
+        if (error) throw new Error(`Updating “${u.values.title}” stopped (${error.message}). Everything before it was saved.`);
+        updated++;
+      }
+      return { added, updated, library_parts: parts };
+    },
+  };
+}
+
+function clientsType() {
+  const key = v => nn(v.name);
+  return {
+    id: 'clients', title: 'Clients', entity: 'client', sheetName: 'Clients',
+    intro: 'Your clients (agencies / facilities): name, short code, project and notes.',
+    fields: [
+      { key: 'name', label: 'Client name', required: true, example: 'Sunrise Home Health', keyOnly: true,
+        synonyms: ['client', 'client name', 'name', 'agency', 'agency name', 'facility', 'customer', 'account'] },
+      { key: 'code', label: 'Code', example: 'SRHH', synonyms: ['code', 'client code', 'short name', 'abbreviation', 'id'] },
+      { key: 'project', label: 'Project', example: 'PMB', synonyms: ['project', 'process', 'team', 'line'] },
+      { key: 'notes', label: 'Notes', example: '', synonyms: ['notes', 'note', 'comments', 'remarks'] },
+    ],
+    tips: ['A client already in the list is recognised by its name (any letter case).', 'Codes are saved in capitals.'],
+    normalize: v => ({ ...v, name: t(v.name), code: t(v.code).toUpperCase(), project: t(v.project), notes: t(v.notes) }),
+    validate: v => (v.name ? null : 'Missing client name'),
+    keyOf: key,
+    labelOf: v => v.name ?? '',
+    loadExisting: async () => {
+      const rows = await allRows('clients');
+      if (rows == null) throw new Error('The Clients list isn’t set up in this workspace yet.');
+      return new Map(rows.map(r => [key(r), r]));
+    },
+    save: async (preview, { stamp, user }) => {
+      const st = (await stampsReady('clients')) ? stamp : {};
+      const who = { updated_by: user.emp_id, updated_at: new Date().toISOString() };
+      let added = 0, updated = 0;
+      if (preview.adds.length) {
+        const { data, error } = await db('clients').insert(preview.adds.map(({ values: v }) => ({
+          name: v.name, code: v.code || null, project: v.project || null, notes: v.notes || null, active: true, created_by: user.emp_id, ...who, ...st,
+        }))).select();
+        if (error) throw new Error(`Saving clients stopped (${error.message}).`);
+        added = data?.length ?? 0;
+      }
+      for (const u of preview.updates) {
+        const { error } = await db('clients').update({ ...u.patch, ...who, ...st }).eq('id', u.existing.id);
+        if (error) throw new Error(`Updating ${u.values.name} stopped (${error.message}). Everything before it was saved.`);
+        updated++;
+      }
+      return { added, updated };
+    },
+  };
+}
+
 /** A fresh data type by id (each import gets its own, so nothing is shared between two open imports). */
 export function importType(id) {
   switch (id) {
@@ -631,6 +823,8 @@ export function importType(id) {
     case 'payers':    return payersType();
     case 'denial_codes': return denialCodesType();
     case 'denial_steps': return denialStepsType();
+    case 'sops':         return sopsType();
+    case 'clients':      return clientsType();
     default: return null;
   }
 }
