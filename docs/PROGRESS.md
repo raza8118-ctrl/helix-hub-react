@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 4 BUILT + migration 52 run (2026-11-10), waiting for PO look + approval — last stage.** Code pushed first (8816052), then
+**Stage 4 APPROVED (PO 2026-11-10) — step DONE.** Built + migration 52 run 2026-11-10. Code pushed first (8816052), then
 migration 52 (owner_master_copy_preview / owner_master_copy, _lib_copy, _lib_put_row). Owner-only "⤴ Copy to Master" (owner acting
 as admin, home company only) on the payer card, each company denial code card and the SOP page (not client SOPs): preview → "Add to
 Master" or, if the master has it, "Update the master" / "Skip"; nothing in the company is moved or deleted; files copied into
@@ -70,7 +70,7 @@ master's Payer Directory with the Excel import open; bar "Editing MASTER LIBRARY
 Export to Excel not clicked (it downloads a file) — reads of all 8 payer tables checked instead. Note: the workspace's own name
 is still "Master copy" (sidebar inside it). Lint 51.
 
-**Master Library (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** PO chose to build it on the existing hidden Master copy
+**Master Library (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** Follow-ups: first real Copy to Master (e.g. a 3Gen SOP) to see a master SOP page + the SOP override layout; optional rename of the workspace from "Master copy" to "Master Library". PO chose to build it on the existing hidden Master copy
 (co_master__ tables, already filled from 3Gen; owner-only writes) instead of new helix_ tables; Push to companies hidden (code kept,
 nothing was ever pushed). Stage 1 (migration 51): every signed-in company user may READ the master tables (+ master files in the
 co_master/ storage folder); change history per master row (before / after, who, when) + ONE owner-log line per save / import;
