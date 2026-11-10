@@ -36,7 +36,24 @@ saved matchings table, import_file / imported_at columns) · 2 payers · 3 denia
 screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
 Helix_Denial_Guides_More.xlsx before stages 3–4.
 
-**Stage 2 BUILT — waiting for PO approval (2026-11-10).** No database change. Payers type in src/lib/importTypes.js: a flat
+**Stage 3 BUILT — waiting for PO approval (2026-11-10).** No database change. Code pushed (d3dc929). Two types in
+src/lib/importTypes.js: "Denial codes" (code type — a column or one value for every row —, code, official description,
+plain-English reason, retired date incl. "Stop: mm/dd/yyyy" inside the description, notes; same code = type + code; fill empty
+unless Overwrite) and "Denial steps" (code type blank = CARC, code, applies to Common / client / payer, client, payer name or other
+name, steps, linked SOP title, notes; matched with the existing compareStepsImport rules; steps / SOP / notes of an existing entry
+filled only when empty unless Overwrite). Built-in for both: Helix Denial Guides / _More file (sheet "Denial Guides") with its own
+rules — new codes, empty plain-English reasons filled, Common 3Gen steps only where a code has none, never overwrites (now also
+stamps the file name + date). Engine: basicPreview exported so a type can use its own preview for built-ins only;
+compareStepsImport values carry the file line. Denial Navigator "⬆ Import official list" → Smart Import (codes); Manage steps
+"⬆ Import from Excel" → Smart Import (steps); old DenialImportModal / StepsImportModal kept, unused; the steps template stays
+downloadable from the panel. Browser (Test Co, owner, nothing imported): x12-style CSV "Code / Description / Start / Stop" →
+Code + Description + Stop matched, code type set to CARC for every row → New 1 (QA9), Updates 2 (197 and 50 official description,
+were empty), Error 1 (no code); Helix_Denial_Guides.xlsx → recognised, 16 skipped (all already have Common 3Gen steps); steps CSV
+"Denial Code / Applies To / Payer / What to do / Comments" → all matched; New 1 (197 for payer Aetna via other name), Duplicate 1
+(197 common already has steps), errors for unknown codes and empty steps. Helix_Denial_Guides_More.xlsx is still not in samples/ —
+recognised by the same "Denial Guides" sheet once added. Lint 51, build OK.
+
+**Stage 2 APPROVED (PO "Approved, start Stage 3" 2026-11-10).** No database change. Payers type in src/lib/importTypes.js: a flat
 file (one row per payer; payer name required; other names, payer type, payer ID(s), clearinghouse, used for, provider phone, fax,
 portal, claims / appeals mailing address, timely filing + appeal limit as days or text, notes) is turned into the Payer
 Directory tabs and checked with the existing planImport (same payer = name or other name). Rows of the same payer merge (IDs added,
