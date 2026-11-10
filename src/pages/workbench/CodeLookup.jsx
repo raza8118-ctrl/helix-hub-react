@@ -8,6 +8,9 @@ import { loadDenialCodes, parseCodeLine, findCode, searchCodes, typeOf } from '.
 import { RefCodeModal, RefImportModal } from './RefCodeEditors';
 import CopyButton from '../../components/shared/CopyButton';
 import { confirmDialog } from '../../components/shared/Dialog';
+import { supabase } from '../../lib/supabase';
+import { masterGet, mergeCodes, mergeRefCodes, inMasterWorkspace, isMasterRow, MASTER_PREFIX } from '../../lib/masterLibrary';
+import LibraryBadge from '../../components/shared/LibraryBadge';
 
 const CHIPS = [
   { value: 'ALL', label: 'All' }, { value: 'carc', label: 'CARC / RARC' }, { value: 'revenue', label: 'Revenue' },
@@ -38,7 +41,9 @@ export default function CodeLookup({ user }) {
       setReady(ok);
       if (ok && canEdit) missingStarterRevenue().then(m => { if (alive) setStarterCount(m.length); });
     });
-    loadDenialCodes().then(c => { if (alive) setDenialCodes(c ?? []); });
+    // CARC / RARC: the company's codes + the Master Library's (PO 2026-11-10)
+    Promise.all([loadDenialCodes(), inMasterWorkspace() ? null : masterGet('denial_codes')])
+      .then(([c, m]) => { if (alive) setDenialCodes(c && m ? mergeCodes(c, m) : (c ?? [])); });
     return () => { alive = false; };
   }, [canEdit, reloadKey]);
 
@@ -48,15 +53,20 @@ export default function CodeLookup({ user }) {
     let alive = true;
     const q = query.trim();
     const t = setTimeout(async () => {
-      const rows = ready && q && chip !== 'carc'
-        ? await searchRefCodes(q, { set: chip, limit: limit + 1, showInactive: canEdit })
-        : [];
-      if (alive) setFound({ key: searchKey, rows });
+      const want = ready && q && chip !== 'carc';
+      const [rows, master] = await Promise.all([
+        want ? searchRefCodes(q, { set: chip, limit: limit + 1, showInactive: canEdit }) : [],
+        want && !inMasterWorkspace()
+          ? searchRefCodes(q, { set: chip, limit: limit + 1, from: supabase.from(MASTER_PREFIX + 'ref_codes') }).catch(() => [])
+          : null,
+      ]);
+      if (alive) setFound({ key: searchKey, rows: master ? mergeRefCodes(rows, master) : rows, lib: !!master });
     }, 300);
     return () => { alive = false; clearTimeout(t); };
   }, [query, chip, limit, ready, canEdit, searchKey]);
   const searching = found.key !== searchKey;
   const refRows = found.key === searchKey ? found.rows : [];
+  const libOn = !!found.lib || denialCodes.some(isMasterRow);
 
   // CARC / RARC from the Denial library (already in the browser)
   const denialRows = useMemo(() => {
@@ -138,6 +148,7 @@ export default function CodeLookup({ user }) {
             <span className="badge badge-blue">{typeOf(row.code_type).label}</span>
             <span className="bold" style={{ fontSize: 17 }}>{row.code}</span>
             <CopyButton value={row.code} />
+            {libOn && <LibraryBadge kind={isMasterRow(row) ? 'master' : row._master ? 'override' : 'company'} />}
             <button className="btn-sm" style={{ marginLeft: 'auto' }} onClick={openDenials}>Open in Denial Navigator ›</button>
           </div>
           <div style={{ marginTop: 4 }}>{row.plain_reason || <span className="text-muted">No plain-English reason yet.</span>}</div>
@@ -155,7 +166,8 @@ export default function CodeLookup({ user }) {
             {row.list_year && <span className="text-sm text-muted">{row.list_year} list</span>}
             {row.source === 'starter' && !row.verified_at && <span className="badge badge-yellow">Starter – please verify</span>}
             {row.active === false && <span className="badge badge-gray">Inactive</span>}
-            {canEdit && (
+            {libOn && <LibraryBadge kind={isMasterRow(row) ? 'master' : row._master ? 'override' : 'company'} />}
+            {canEdit && !isMasterRow(row) && (
               <span className="row" style={{ gap: 4, marginLeft: 'auto' }}>
                 {!row.verified_at && <button className="btn-sm" onClick={() => verify(row)}>✓ Verified</button>}
                 <button className="btn-sm" title="Edit" onClick={() => setModal({ kind: 'code', row })}>✎</button>
@@ -168,6 +180,9 @@ export default function CodeLookup({ user }) {
             <div className="text-sm text-muted" style={{ marginTop: 2 }}>{decodeHipps(row.code).slice(0, 4).map(p => p.meaning).join(' · ')}</div>
           )}
           {row.notes && <div className="text-sm" style={{ marginTop: 2 }}>📝 {row.notes}</div>}
+          {row._master && row._master.description && row._master.description !== row.description && (
+            <div className="lib-standard-box"><LibraryBadge kind="standard" /><span>{row._master.description}</span></div>
+          )}
         </div>
       ))}
 

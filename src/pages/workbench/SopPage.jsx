@@ -17,6 +17,7 @@ import SopQuiz from './SopQuiz';
 import { PublishVersionModal, VersionHistory, ClientCopyModal } from './SopVersions';
 import { confirmDialog } from '../../components/shared/Dialog';
 import CopyButton from '../../components/shared/CopyButton';
+import LibraryBadge from '../../components/shared/LibraryBadge';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -78,7 +79,9 @@ ${section('If it goes wrong', text(sop.troubleshooting))}
  * and published versions, client SOPs and acknowledgement (3.4).
  * Readers see the current published version; editors can switch to the working copy or any older version.
  */
-export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, onChanged, onOpenSop, forceAck = false, backLabel = '← Back to library' }) {
+export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, onChanged, onOpenSop, forceAck = false, backLabel = '← Back to library',
+  libBadge = null, hideBack = false, library = false }) {
+  // library = a Master Library SOP (read-only, no read tracking / acknowledgement in the company) — PO 2026-11-10
   const versionsReady = meta != null;
   const [versions, setVersions] = useState(undefined);   // full versions with snapshots; undefined = loading
   const [reloadKey, setReloadKey] = useState(0);
@@ -118,14 +121,14 @@ export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, 
   const unpublished = canEdit && versionsReady && !loadingVersions && hasUnpublishedChanges(sop, states.latest);
   const client = sop.client_id != null ? (lib.clients ?? []).find(c => c.id === sop.client_id) : null;
   const copiedFrom = sop.copied_from != null ? lib.sops.find(s => s.id === sop.copied_from) : null;
-  const canTrack = hasAccess(user, 'sops_tracking');
+  const canTrack = !library && hasAccess(user, 'sops_tracking');
 
   // Count this opening of the current version (first/last opened, how many times)
   const currentId = states.current?.id ?? null;
   const empId = user.emp_id;
   useEffect(() => {
-    if (currentId) recordSopRead(sop.id, currentId, { emp_id: empId });
-  }, [sop.id, currentId, empId]);
+    if (currentId && !library) recordSopRead(sop.id, currentId, { emp_id: empId });
+  }, [sop.id, currentId, empId, library]);
 
   if (editing) {
     return (
@@ -172,7 +175,8 @@ export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, 
   return (
     <div>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-        <button className="btn-sm" onClick={onBack}>{backLabel}</button>
+        {!hideBack && <button className="btn-sm" onClick={onBack}>{backLabel}</button>}
+        {libBadge && <LibraryBadge kind={libBadge} />}
         <span style={{ marginLeft: 'auto', flexWrap: 'wrap', gap: 6 }} className="row">
           {ready && !readerHasNothing && <button className="btn-sm" onClick={() => printSop(display, trail, names)}>🖨 Print</button>}
           {canEdit && ready && <button className="btn-sm" onClick={markVerified} disabled={verifying}>{verifying ? 'Saving…' : '✓ Mark as verified today'}</button>}

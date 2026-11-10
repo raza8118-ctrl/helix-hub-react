@@ -1003,3 +1003,4 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .lib-standard-box { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px;
   background: color-mix(in srgb, var(--accent) 8%, transparent); border-left: 3px solid var(--accent); }
 .lib-standard-box .lib-badge { margin-left: 0; }
+.lib-standard-page { margin-top: 18px; padding-top: 14px; border-top: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent); }

@@ -23,7 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Stage 2 BUILT (2026-11-10), waiting for PO look + approval.** No database change. New src/lib/masterLibrary.js (master reads,
+**Stage 3 BUILT (2026-11-10), waiting for PO look + approval.** No database change. SOP Library: master categories / software /
+tasks / SOPs merged in (same name under the same parent → the company's container takes the master's children; same SOP title
+under the same task → company SOP on top + read-only master SOP below as "3Gen standard"); master items read-only with a Master
+badge; master SOPs show their current published version (from the master's sop_versions) on a read-only page — no read tracking /
+acknowledgement in the company (SopPage library mode). Code Lookup: revenue / HIPPS / ICD-10 search runs in the company AND the
+master (searchRefCodes from=master), merged by code set + code (master read-only, override shows the 3Gen standard description);
+CARC / RARC part merges the master denial codes too. Checked in Test Co (owner): SOP Library shows the 6 master categories with
+Master badges and no edit buttons (company "REVIEW Category" keeps its 5), 21 Master badges on categories + software; master has
+no SOPs yet so no SOP override seen; Code Lookup "0001" → Revenue 0001 (Master, no edit buttons), "CO-50" → CARC 50 Company
+override. Lint 51.
+
+**Stage 2 APPROVED (PO "Approved, start Stage 3" 2026-11-10).** Stage 2 built (2026-11-10). No database change. New src/lib/masterLibrary.js (master reads,
 same payer = same name or name↔alias, same code = type + code, master rows get ids "m-…") + components/shared/LibraryBadge.jsx
 (Master / Company / Company override / 3Gen standard). Payer Directory: master + company payers, badges on the A–Z chips; same payer
 → company card ("Company override") on top + read-only master card ("3Gen standard") below; master-only payers open read-only

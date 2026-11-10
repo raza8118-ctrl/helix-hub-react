@@ -69,11 +69,11 @@ export async function refCodesReady() {
  * Database search. set = 'ALL' or a code set. A code-shaped query matches codes starting with it;
  * words match descriptions. Returns up to `limit` rows.
  */
-export async function searchRefCodes(query, { set = 'ALL', limit = 50, showInactive = false } = {}) {
+export async function searchRefCodes(query, { set = 'ALL', limit = 50, showInactive = false, from = null } = {}) {
   const q = String(query ?? '').trim();
   if (!q) return [];
   const detected = detectCode(q);
-  let req = db('ref_codes').select('*');
+  let req = (from ?? db('ref_codes')).select('*');   // from: another table to search (the Master Library's code lists)
   if (set !== 'ALL') req = req.eq('code_set', set);
   if (!showInactive) req = req.eq('active', true);
   if (detected && (set === 'ALL' || set === detected.set)) {
