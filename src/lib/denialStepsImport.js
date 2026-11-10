@@ -93,7 +93,7 @@ export function compareStepsImport(rows, { codes, steps, clients, payers, sops }
     if (seen.has(key)) { fail('The same code + layer + client/payer appears more than once in the file.'); continue; }
     seen.add(key);
 
-    const values = { codeId: code.id, scope: layer, targetId, steps: stepsText, sopId, notes: txt(r.notes) ?? undefined, label: `${typeOf(type).label} ${code.code}` };
+    const values = { line: r.line, codeId: code.id, scope: layer, targetId, steps: stepsText, sopId, notes: txt(r.notes) ?? undefined, label: `${typeOf(type).label} ${code.code}` };
     const existing = layerEntry(steps, code.id, layer, targetId);
     if (!existing) add.push(values);
     else if (mode === 'replace') update.push({ existing, values });

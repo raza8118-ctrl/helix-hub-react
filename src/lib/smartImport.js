@@ -105,7 +105,11 @@ export async function saveTemplate(typeId, { name, signature, mapping, constants
 export async function buildPreview(type, input, { overwrite = false } = {}, onProgress) {
   // a type with linked tables (payers) builds its own preview in the same shape; input may carry a built-in file's data
   if (type.preview) return type.preview(input, { overwrite }, onProgress);
-  const records = input.records ?? [];
+  return basicPreview(type, input.records ?? [], { overwrite }, onProgress);
+}
+
+/** The standard preview for one flat table (normalize → validate → same key = existing item → fill empty / overwrite). */
+export async function basicPreview(type, records, { overwrite = false } = {}, onProgress) {
   const clean = [];
   const errors = [];
   for (const r of records) {

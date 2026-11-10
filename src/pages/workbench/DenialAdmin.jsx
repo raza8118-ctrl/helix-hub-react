@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { CODE_TYPES, CATEGORIES, typeOf, normCode } from '../../lib/denials';
 import { scopeOf, layerEntry, stepsNeedRecheck, verifySteps, setStepsActive } from '../../lib/denialSteps';
 import { exportSteps } from '../../lib/denialStepsImport';
-import { CodeStepsModal, CopyStepsModal, StepsImportModal } from './DenialAdminTools';
+import { CodeStepsModal, CopyStepsModal } from './DenialAdminTools';
+import SmartImport from '../../components/shared/SmartImport';
 import PayerSearch from '../../components/shared/PayerSearch';
 import { confirmDialog, alertDialog } from '../../components/shared/Dialog';
 import { Card, Button, LinkButton, Badge, Tabs, Check, Table, Toolbar, ToolbarSpacer, EmptyState } from '../../components/ui';
@@ -241,7 +242,7 @@ export default function DenialAdmin({ codes, steps, ctx, user, onChanged }) {
           onSaved={() => { setPicked(new Set()); done(); }} />
       )}
       {modal?.kind === 'import' && (
-        <StepsImportModal codes={codes} steps={steps} ctx={ctx} user={user} onClose={() => setModal(null)} onSaved={done} />
+        <SmartImport typeId="denial_steps" user={user} onClose={() => setModal(null)} onDone={done} />
       )}
     </div>
   );

@@ -1,9 +1,10 @@
 // Smart Import data types (PO 2026-11-10). Each type describes the fields a file can fill (with alternative column
 // names for auto-matching and one example each), how a row is checked, how "the same item" is recognised, how
-// existing items are loaded for the preview, and how rows are saved. Stage 1: Code lists. Stage 2: Payers.
+// existing items are loaded for the preview, and how rows are saved. Stage 1: Code lists. Stage 2: Payers. Stage 3: Denial codes + steps.
 import { db } from './supabase';
 import { CODE_SETS, normRef, displayRef, setOf } from './refCodes';
-import { stampsReady } from './smartImport';
+import { stampsReady, basicPreview } from './smartImport';
+import { CODE_TYPES, normCode, typeOf } from './denials';
 import { DEPARTMENTS, LIMIT_TYPES, labelOf } from './payerOptions';
 
 export const COMMON_TIPS = [
@@ -376,11 +377,260 @@ function payersType() {
   };
 }
 
+// ── Denial codes + denial steps (Stage 3) ─────────────────────────────────────────────────────
+// Denial codes: the official CARC / RARC list (or any code list) with official wording, plain-English reason and
+// retired date. Denial steps: what to do for a code — Common 3Gen steps, one client or one payer (matched with the
+// existing steps import rules). Built-in for both: the Helix Denial Guides / _More file (sheet "Denial Guides"), which
+// keeps its own rules — new codes, empty plain-English reasons filled, Common 3Gen steps added only where a code has
+// none; never an overwrite.
+const denialLib = () => import('./denialStepsImport');
+const CODE_TYPE_WORDS = { carc: ['carc', 'reason', 'claim adjustment', 'adjustment'], rarc: ['rarc', 'remark'], group: ['group'], other: ['other', 'fiss', 'payer'] };
+const codeTypeFrom = v => {
+  const s = nn(v);
+  if (!s) return '';
+  return CODE_TYPES.find(c => c.value === s || nn(c.label) === s)?.value
+    ?? Object.entries(CODE_TYPE_WORDS).find(([, words]) => words.some(w => s.includes(w)))?.[0] ?? s;
+};
+const isoDate = v => {
+  const s = t(v);
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) return `${m[3].length === 2 ? `20${m[3]}` : m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+  return s ? null : '';
+};
+const CODE_TYPE_FIELD = {
+  key: 'code_type', label: 'Code type', example: 'CARC', options: CODE_TYPES.map(c => ({ value: c.value, label: `${c.label} — ${c.long}` })),
+  synonyms: ['code type', 'type', 'code list', 'list'], keyOnly: true,
+};
+const GUIDES_NOTE = 'Helix Denial Guides file: codes not in the library are added; a code’s empty plain-English reason is filled; Common 3Gen steps are added only where a code has none. Nothing is overwritten.';
+
+const guidesBuiltIn = {
+  id: 'denial_guides', label: 'Helix Denial Guides / More file (sheet “Denial Guides” — new codes and Common 3Gen steps, never overwrites)',
+  detect: async file => {
+    if (!/\.xlsx?$/i.test(file.name)) return false;
+    const XLSX = await import('xlsx');
+    return XLSX.read(await file.arrayBuffer(), { bookSheets: true }).SheetNames.some(s => nn(s) === 'denial guides');
+  },
+  parse: async file => {
+    const res = await (await denialLib()).readDenialGuides(file);
+    if (!res) return { error: 'This file has no “Denial Guides” sheet.' };
+    return res.error ? res : { mode: 'guides', guides: res.guides };
+  },
+};
+
+async function guidesPreview(input, onProgress) {
+  onProgress?.('Reading the Denial library…');
+  const [codes, steps] = await Promise.all([allRows('denial_codes'), allRows('denial_steps')]);
+  if (codes == null || steps == null) throw new Error('The Denial library isn’t set up in this workspace yet.');
+  const plan = (await denialLib()).planDenialGuides(input.guides, { codes, steps });
+  const lineOf = code => input.guides.find(g => g.codes.includes(code))?.line ?? null;
+  return {
+    mode: 'guides', plan, note: GUIDES_NOTE, noOverwrite: true,
+    adds: [
+      ...plan.newCodes.map(c => ({ rowNum: lineOf(c.code), label: `New code CARC ${c.code}` })),
+      ...plan.add.map(a => ({ rowNum: lineOf(a.code), label: `CARC ${a.code} — Common 3Gen steps` })),
+    ],
+    updates: plan.fillReasons.map(f => ({ rowNum: lineOf(f.code), label: `CARC ${f.code}`, changes: 'Plain-English reason (was empty)', patch: { plain_reason: f.reason } })),
+    dups: plan.skipped.map(s => ({ rowNum: s.line, label: `CARC ${s.code}`, why: s.why === 'already has Common 3Gen steps' ? 'Already has Common 3Gen steps — left as they are' : 'Listed twice in the file' })),
+    errors: plan.errors.map(e => ({ rowNum: e.line, label: '', why: e.message })),
+  };
+}
+
+// Same rules as the Denial Guides import, plus the source file name + date; codes and steps re-read first so an
+// earlier import can't make a duplicate
+async function guidesSave(preview, { stamp, user }, onProgress) {
+  const st = (await stampsReady('denial_codes')) ? stamp : {};
+  const who = { created_by: user.emp_id, updated_by: user.emp_id };
+  const [codes, steps] = await Promise.all([allRows('denial_codes'), allRows('denial_steps')]);
+  const plan = (await denialLib()).planDenialGuides(preview.plan.guides, { codes: codes ?? [], steps: steps ?? [] });
+  let added = 0, updated = 0;
+  if (plan.newCodes.length) {
+    onProgress?.('Adding new codes…');
+    const { data, error } = await db('denial_codes').insert(plan.newCodes.map(c => ({
+      code_type: 'carc', code: c.code, plain_reason: c.reason, source: 'Helix Denial Guides', notes: 'Added from the Helix Denial Guides file', active: true, ...who, ...st,
+    }))).select();
+    if (error) throw new Error(`Adding codes stopped (${error.message}).`);
+    added += data?.length ?? 0;
+  }
+  for (const f of plan.fillReasons) {
+    const { error } = await db('denial_codes').update({ plain_reason: f.reason, updated_by: user.emp_id, updated_at: new Date().toISOString(), ...st }).eq('id', f.codeId);
+    if (!error) updated++;
+  }
+  const carc = new Map();
+  ((await allRows('denial_codes')) ?? []).filter(c => c.code_type === 'carc').forEach(c => { if (!carc.has(normCode(c.code))) carc.set(normCode(c.code), c.id); });
+  const rows = plan.add.map(a => ({ code_id: carc.get(normCode(a.code)), scope: 'common', client_id: null, payer_id: null, steps: a.steps, notes: a.notes, active: true, ...who, ...st }))
+    .filter(r => r.code_id);
+  if (rows.length) {
+    onProgress?.('Adding Common 3Gen steps…');
+    const { data, error } = await db('denial_steps').insert(rows).select();
+    if (error) throw new Error(`Adding steps stopped (${error.message}). The codes were saved.`);
+    added += data?.length ?? 0;
+  }
+  return { added, updated, skipped: plan.skipped.length };
+}
+
+function denialCodesType() {
+  const key = v => `${v.code_type}|${normCode(v.code)}`;
+  const type = {
+    id: 'denial_codes', title: 'Denial codes', entity: 'denial_code', sheetName: 'Codes',
+    intro: 'The official CARC / RARC lists (x12.org) or any denial code list: code, official wording, plain-English reason, retired date.',
+    fields: [
+      { ...CODE_TYPE_FIELD, required: true, help: 'CARC, RARC, Group or Other — or pick one value for every row' },
+      { key: 'code', label: 'Code', required: true, example: '197', keyOnly: true,
+        synonyms: ['code', 'reason code', 'remark code', 'carc', 'rarc', 'adjustment reason code', 'code value', 'denial code'] },
+      { key: 'official_text', label: 'Official description', example: 'Precertification/authorization/notification/pre-treatment absent.',
+        synonyms: ['description', 'official description', 'official text', 'desc', 'long description', 'text', 'code description'] },
+      { key: 'plain_reason', label: 'Plain-English reason', example: 'No auth on file for this service',
+        synonyms: ['plain english', 'plain english reason', 'simple reason', 'what it means', 'explanation', 'reason'] },
+      { key: 'stopped_on', label: 'Retired on', example: '01/01/2026', synonyms: ['stop', 'stop date', 'deactivation date', 'deactivated', 'retired', 'retired on', 'end date'] },
+      { key: 'notes', label: 'Notes', example: '', synonyms: ['notes', 'note', 'comments', 'remarks'] },
+    ],
+    tips: [
+      'From x12.org: save the CARC or RARC list as Excel or CSV with a Code and a Description column, then pick “one value for every row” for the code type.',
+      '“Stop: 01/01/2026” inside a description is read as the retired date.',
+      'A code already in the library gets only its empty fields filled — plain-English reasons you wrote are never changed unless you tick Overwrite.',
+    ],
+    builtIns: [guidesBuiltIn],
+    normalize: v => {
+      const official = t(v.official_text);
+      const inlineStop = official.match(/Stop:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
+      return { ...v, code_type: codeTypeFrom(v.code_type), code: normCode(v.code), official_text: official, plain_reason: t(v.plain_reason),
+        stopped_on: isoDate(v.stopped_on) || (inlineStop ? isoDate(inlineStop) : ''), notes: t(v.notes) };
+    },
+    validate: v => {
+      if (!CODE_TYPES.some(c => c.value === v.code_type)) return v.code_type ? `Unknown code type “${v.code_type}” (use CARC, RARC, Group or Other)` : 'Missing code type';
+      if (!v.code) return 'Missing code';
+      if (v.stopped_on === null) return 'Retired date isn’t a date (use MM/DD/YYYY)';
+      if (!v.official_text && !v.plain_reason) return 'Needs an official description or a plain-English reason';
+      return null;
+    },
+    keyOf: key,
+    labelOf: v => `${typeOf(v.code_type).label} ${v.code ?? ''}`,
+    loadExisting: async () => {
+      const rows = await allRows('denial_codes');
+      if (rows == null) throw new Error('The Denial library isn’t set up in this workspace yet.');
+      return new Map(rows.map(r => [key(r), r]));
+    },
+    save: async (preview, ctx, onProgress) => {
+      if (preview.mode === 'guides') return guidesSave(preview, ctx, onProgress);
+      const { stamp, user } = ctx;
+      const st = (await stampsReady('denial_codes')) ? stamp : {};
+      const who = { updated_by: user.emp_id, updated_at: new Date().toISOString() };
+      let added = 0, updated = 0;
+      const adds = preview.adds.map(r => ({
+        code_type: r.values.code_type, code: r.values.code, official_text: r.values.official_text || null, plain_reason: r.values.plain_reason || null,
+        stopped_on: r.values.stopped_on || null, notes: r.values.notes || null, source: 'import', active: true, created_by: user.emp_id, ...who, ...st,
+      }));
+      for (let i = 0; i < adds.length; i += 500) {
+        const { error } = await db('denial_codes').insert(adds.slice(i, i + 500));
+        if (error) throw new Error(`Saving new codes stopped at row ${i + 1} (${error.message}).`);
+        added += Math.min(500, adds.length - i);
+        onProgress?.(`Adding new codes… ${added} of ${adds.length}`);
+      }
+      for (const u of preview.updates) {
+        const { error } = await db('denial_codes').update({ ...u.patch, ...who, ...st }).eq('id', u.existing.id);
+        if (error) throw new Error(`Updating ${type.labelOf(u.values)} stopped (${error.message}). Everything before it was saved.`);
+        updated++;
+        onProgress?.(`Updating codes… ${updated} of ${preview.updates.length}`);
+      }
+      return { added, updated };
+    },
+  };
+  type.preview = (input, opts, onProgress) => (input.mode === 'guides' ? guidesPreview(input, onProgress) : basicPreview(type, input.records ?? [], opts, onProgress));
+  return type;
+}
+
+function denialStepsType() {
+  const LAYERS = [{ value: 'common', label: 'Common 3Gen steps' }, { value: 'client', label: 'One client' }, { value: 'payer', label: 'One payer' }];
+  const layerFrom = v => { const s = nn(v); return !s || /common|3gen|all|standard/.test(s) ? 'common' : /client|agency/.test(s) ? 'client' : /payer|insurance/.test(s) ? 'payer' : s; };
+  const layerName = { common: 'Common 3Gen steps', client: 'client steps', payer: 'payer steps' };
+  return {
+    id: 'denial_steps', title: 'Denial steps', entity: 'denial_step', sheetName: 'Denial steps',
+    intro: 'What to do for each denial code — Common 3Gen steps, or steps for one client or one payer. The codes must already be in the Denial library.',
+    fields: [
+      { ...CODE_TYPE_FIELD, help: 'Blank = CARC' },
+      { key: 'code', label: 'Code', required: true, example: '197', keyOnly: true, synonyms: ['code', 'denial code', 'reason code', 'carc', 'rarc', 'remark code'] },
+      { key: 'layer', label: 'Applies to', example: 'Common 3Gen steps', options: LAYERS, keyOnly: true,
+        synonyms: ['layer', 'applies to', 'scope', 'level'], help: 'Common 3Gen steps, one client or one payer — blank = Common' },
+      { key: 'client', label: 'Client', example: '', keyOnly: true, synonyms: ['client', 'client name', 'agency', 'facility'], help: 'When the steps are for one client' },
+      { key: 'payer', label: 'Payer', example: '', keyOnly: true, synonyms: ['payer', 'payer name', 'payor', 'insurance'], help: 'When the steps are for one payer (name or other name)' },
+      { key: 'steps', label: 'Steps', required: true, example: '1. Check for an auth on file\n2. If found, send a reconsideration with the auth',
+        synonyms: ['steps', 'what to do', 'action', 'actions', 'resolution', 'next steps', 'work steps', 'instructions'] },
+      { key: 'sop', label: 'Linked SOP title', example: '', synonyms: ['sop', 'linked sop', 'sop title', 'linked sop title'] },
+      { key: 'notes', label: 'Notes', example: '', synonyms: ['notes', 'note', 'comments', 'remarks'] },
+    ],
+    tips: [
+      'The code must already be in the Denial library (import the codes first).',
+      'Steps on several lines in one cell are kept as separate lines; a line starting with “!” is shown as a warning.',
+      'Existing steps for the same code + client / payer are only filled when empty — tick Overwrite to replace them.',
+    ],
+    downloads: [{ label: '⬇ Steps template (same columns as the export)', run: async () => (await denialLib()).downloadStepsTemplate() }],
+    builtIns: [guidesBuiltIn],
+    labelOf: v => `${typeOf(codeTypeFrom(v.code_type) || 'carc').label} ${normCode(v.code)}`,
+    preview: async (input, { overwrite }, onProgress) => {
+      if (input.mode === 'guides') return guidesPreview(input, onProgress);
+      onProgress?.('Reading the Denial library…');
+      const [codes, steps, clients, payers, sops] = await Promise.all(['denial_codes', 'denial_steps', 'clients', 'payers', 'sops'].map(allRows));
+      if (codes == null || steps == null) throw new Error('The Denial library isn’t set up in this workspace yet.');
+      const rows = (input.records ?? []).map(({ rowNum, values: v }) => ({
+        line: rowNum, type: codeTypeFrom(v.code_type) || 'carc', code: v.code, layer: layerFrom(v.layer), client: v.client, payer: v.payer,
+        steps: v.steps, sop: v.sop, notes: v.notes,
+      }));
+      const diff = (await denialLib()).compareStepsImport(rows, { codes, steps, clients: clients ?? [], payers: payers ?? [], sops: sops ?? [] }, 'replace');
+      const label = v => `${v.label} — ${v.scope === 'client' ? `client ${(clients ?? []).find(c => c.id === v.targetId)?.name ?? ''}` : v.scope === 'payer' ? `payer ${(payers ?? []).find(p => p.id === v.targetId)?.name ?? ''}` : layerName.common}`;
+      const updates = [], dups = [];
+      for (const { existing, values } of diff.update) {
+        const patch = {}, changes = [];
+        const fill = (col, v, name) => {
+          if (v === undefined || v === null || String(existing[col] ?? '') === String(v)) return;
+          if (existing[col] == null || existing[col] === '' || overwrite) { patch[col] = v; changes.push(name); }
+        };
+        fill('steps', values.steps, 'Steps');
+        fill('sop_id', values.sopId, 'Linked SOP');
+        fill('notes', values.notes, 'Notes');
+        if (changes.length) updates.push({ rowNum: values.line, values, existing, patch, label: label(values), changes: changes.join(', ') });
+        else dups.push({ rowNum: values.line, label: label(values), why: overwrite ? 'Already the same' : 'Already has steps (empty fields only are filled)' });
+      }
+      return {
+        adds: diff.add.map(v => ({ rowNum: v.line, values: v, label: label(v) })),
+        updates, dups,
+        errors: diff.errors.map(e => ({ rowNum: e.line, label: '', why: e.message })),
+      };
+    },
+    save: async (preview, ctx, onProgress) => {
+      if (preview.mode === 'guides') return guidesSave(preview, ctx, onProgress);
+      const { stamp, user } = ctx;
+      const st = (await stampsReady('denial_steps')) ? stamp : {};
+      const who = { updated_by: user.emp_id, updated_at: new Date().toISOString() };
+      let added = 0, updated = 0;
+      const rows = preview.adds.map(({ values: v }) => ({
+        code_id: v.codeId, scope: v.scope, client_id: v.scope === 'client' ? v.targetId : null, payer_id: v.scope === 'payer' ? v.targetId : null,
+        steps: v.steps, sop_id: v.sopId ?? null, notes: v.notes ?? null, active: true, created_by: user.emp_id, ...who, ...st,
+      }));
+      for (let i = 0; i < rows.length; i += 200) {
+        const { error } = await db('denial_steps').insert(rows.slice(i, i + 200));
+        if (error) throw new Error(`Saving steps stopped (${error.message}). Everything before it was saved.`);
+        added += Math.min(200, rows.length - i);
+        onProgress?.(`Adding steps… ${added} of ${rows.length}`);
+      }
+      for (const u of preview.updates) {
+        const { error } = await db('denial_steps').update({ ...u.patch, ...who, ...st }).eq('id', u.existing.id);
+        if (error) throw new Error(`Updating ${u.label} stopped (${error.message}). Everything before it was saved.`);
+        updated++;
+      }
+      return { added, updated };
+    },
+  };
+}
+
 /** A fresh data type by id (each import gets its own, so nothing is shared between two open imports). */
 export function importType(id) {
   switch (id) {
     case 'ref_codes': return refCodesType();
     case 'payers':    return payersType();
+    case 'denial_codes': return denialCodesType();
+    case 'denial_steps': return denialStepsType();
     default: return null;
   }
 }

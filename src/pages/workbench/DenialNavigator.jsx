@@ -4,7 +4,8 @@ import {
   CODE_TYPES, CATEGORIES, GROUP_CODES, typeOf, loadDenialCodes, parseCodeLine, findCode, searchCodes, isRetired,
   verifyCode, setCodeActive, missingStarterCodes,
 } from '../../lib/denials';
-import { DenialCodeModal, DenialImportModal, DenialStarterModal } from './DenialEditors';
+import { DenialCodeModal, DenialStarterModal } from './DenialEditors';
+import SmartImport from '../../components/shared/SmartImport';
 import DenialLayers from './DenialLayers';
 import DenialAdmin from './DenialAdmin';
 import DeadlineHelper from './DeadlineHelper';
@@ -387,7 +388,7 @@ export default function DenialNavigator({ user }) {
       {modal?.kind === 'code' && (
         <DenialCodeModal codes={companyCodes} row={modal.row ?? null} presetCode={modal.presetCode} user={user} onClose={close} onSaved={saved} />
       )}
-      {modal?.kind === 'import' && <DenialImportModal codes={companyCodes} user={user} onClose={close} onSaved={saved} />}
+      {modal?.kind === 'import' && <SmartImport typeId="denial_codes" user={user} onClose={close} onDone={saved} />}
       {modal?.kind === 'starter' && <DenialStarterModal codes={companyCodes} user={user} onClose={close} onSaved={saved} />}
     </div>
   );
