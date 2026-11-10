@@ -23,6 +23,19 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Smart Import (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** One reusable import for the Master Library (owner) and company
+imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
+Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
+(auto-matched by synonyms, every field a dropdown or "Don't import"), save a matching as a named template, auto-applied when the
+same headers come back; "What we need in your file" panel (required + optional fields with examples, tips, Download sample file);
+preview new / updates / duplicates skipped / errors with reasons, nothing saved until Import; never deletes, updates fill empty fields
+unless "Overwrite existing values"; source file name + date on each row; master imports → master, company imports → that company;
+audit log (+ owner log for master). Types: payers (flat), denial codes, denial steps, code lists, SOPs (new), clients. Left out for now:
+Keka attendance, Smart Worklist claims, Medicare RTP (employee / patient data). Stages: 1 engine + screens + code lists (migration 53:
+saved matchings table, import_file / imported_at columns) · 2 payers · 3 denial codes + steps · 4 SOPs + clients. Old import
+screens stay in the code until the PO approves removing them. PO to add samples/Helix_SOP_Pack.xlsx, Helix_Payer_Directory_More.xlsx,
+Helix_Denial_Guides_More.xlsx before stages 3–4.
+
 **Stage 4 APPROVED (PO 2026-11-10) — step DONE.** Built + migration 52 run 2026-11-10. Code pushed first (8816052), then
 migration 52 (owner_master_copy_preview / owner_master_copy, _lib_copy, _lib_put_row). Owner-only "⤴ Copy to Master" (owner acting
 as admin, home company only) on the payer card, each company denial code card and the SOP page (not client SOPs): preview → "Add to
