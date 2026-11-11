@@ -23,6 +23,20 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**Coding Assistant Phase A (PO "Go" 2026-11-11) — IN PROGRESS, Stage 1.** (Company Data Stage 4 below still waits for the PO's own
+save test.) Workbench → "Coding Assistant" for admins + team Coding (+ grant key coding_assistant). Text box (diagnosis statements
+only) with a red banner; browser check BLOCKS before sending: MBI pattern, dates incl. DOB words, phone, name labels (Patient: /
+Name:), member ID / MRN / SSN words + patterns, 7+ digit runs, email, street address, ages over 89; plus an "No patient identifiers"
+tick. AI step through helix-ai (text only) → JSON {code, reason, phrase, role primary / secondary}, validated. Rules (no AI, Master
+Library ICD-10-CM FY2027): not in FY2027 / retired → Not valid; header → Needs more digits + billable child codes; 7th character
+from category notes → Needs 7th character + choices; Excludes1 between any two codes (refs + ranges in notes) → Conflict; Code first
+/ Use additional code → order + Sequencing note. Result: ordered, editable (edit / remove / add / move, rules re-run), badges, Copy
+codes. Pasted text never stored (not DB, not this computer, not logs / errors), cleared after save; Audit Log counts only. Stages:
+1 page + access + check + AI + rules + list + copy (no DB); 2 save final list — migration 56 coding_results (who, when, codes in
+order + badges, AI vs final, counts; per company, protect_all_tables) + QA stats card (supervisor+); 3 tests on made-up examples +
+polish. Files: new CodingAssistant.jsx, lib/codingAssistant.js, lib/codingRules.js, migration 56; changed modules.js, WorkbenchApp.jsx,
+access.js, shell.css.
+
 **ICD-10-CM FY2027 (PO "Go" 2026-11-11) — DONE (all 4 stages approved 2026-11-11).** (Company Data Stage 4 below still waits for the PO's own save
 test + approval.) Data: Downloads/icd10cm-2027-helix.zip → 1_codes (98,403: code, code with dot, billable, short / long description,
 chapter, section, FY2027 change), 2_coding_notes (25,029: code with dot, note type, note), 3_index_terms (76,455: term path, code,
