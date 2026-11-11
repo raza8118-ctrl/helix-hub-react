@@ -1050,3 +1050,4 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ocd-reason { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .ocd-reason textarea { width: 100%; }
 .ocd-act { white-space: nowrap; }
+.ocd-field { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; } .ocd-field textarea, .ocd-field input, .ocd-field select { width: 100%; }

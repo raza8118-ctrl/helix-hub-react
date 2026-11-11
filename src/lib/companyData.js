@@ -347,3 +347,58 @@ export async function downloadCompanyData({ owner, mod, companies, all, reason, 
   }
   return { file, wb, rows: [...counts.values()].reduce((a, b) => a + b, 0), companies: counts.size };
 }
+
+// ── Stage 4: Edit (owner) ─────────────────────────────────────────────────────────────────────
+// Per list: the table and the fields the owner may change. Never ids, the company, claim numbers or amounts; patient-data
+// lists only work fields (status, owner, dates). "Delete" doesn't exist — Active / Inactive instead.
+const opt = list => list.map(([value, label]) => ({ value, label: label ?? value }));
+const ACTIVE = { key: 'active', label: 'Active', type: 'bool' };
+export const EDITS = {
+  payers: { table: 'payers', fields: [{ key: 'name', label: 'Payer name', type: 'text', required: true }, { key: 'payer_type', label: 'Type', type: 'text' },
+    { key: 'aliases', label: 'Other names (comma-separated)', type: 'list' }, { key: 'notes', label: 'Notes', type: 'textarea' }, ACTIVE] },
+  codes: { table: 'denial_codes', fields: [{ key: 'plain_reason', label: 'Plain-English reason', type: 'textarea' }, { key: 'official_text', label: 'Official description', type: 'textarea' },
+    { key: 'notes', label: 'Notes', type: 'textarea' }, { key: 'stopped_on', label: 'Retired on', type: 'date' }, ACTIVE] },
+  sops: { table: 'sops', fields: [{ key: 'title', label: 'SOP title', type: 'text', required: true }, { key: 'summary', label: 'Short summary', type: 'textarea' }, ACTIVE] },
+  ref_codes: { table: 'ref_codes', fields: [{ key: 'description', label: 'Description', type: 'textarea' }, { key: 'notes', label: 'Notes', type: 'textarea' },
+    { key: 'list_year', label: 'Year', type: 'number' }, { key: 'retired', label: 'Retired', type: 'bool' }, ACTIVE] },
+  client_queries: { table: 'client_queries', fields: [
+    { key: 'status', label: 'Status', type: 'select', options: opt([['open', 'Open'], ['waiting', 'Waiting on client'], ['answered', 'Answered'], ['closed', 'Closed'], ['cancelled', 'Cancelled']]) },
+    { key: 'owner_emp_id', label: 'Owner', type: 'person' }, { key: 'expected_on', label: 'Expected answer by', type: 'date' }] },
+  worklist_items: { table: 'worklist_items', fields: [
+    { key: 'status', label: 'Status', type: 'select', options: opt([['new', 'Not worked yet'], ['followup', 'Worked – follow-up'], ['appealed', 'Appealed'], ['rebilled', 'Rebilled / corrected'],
+      ['paid', 'Paid'], ['denied_final', 'Denied – no further action'], ['closed', 'Closed']]) },
+    { key: 'assigned_to', label: 'Assigned to', type: 'person' }, { key: 'follow_up', label: 'Follow-up date', type: 'date' }] },
+  qa_audits: { table: 'qa_audits', fields: [
+    { key: 'status', label: 'Status', type: 'select', options: opt([['queued', 'To audit'], ['draft', 'Draft'], ['sent', 'Waiting for agent'], ['acknowledged', 'Acknowledged'], ['disputed', 'Disputed'], ['resolved', 'Dispute resolved']]) },
+    { key: 'auditor_emp_id', label: 'Auditor', type: 'person' }] },
+  daily_logs: { table: 'daily_logs', fields: [{ key: 'total', label: 'Total', type: 'number' }, { key: 'quality', label: 'Quality %', type: 'number' }, { key: 'remarks', label: 'Remarks', type: 'textarea' }] },
+  medicare_adrs: { table: 'medicare_adrs', fields: [
+    { key: 'status', label: 'Status', type: 'select', options: opt([['received'], ['requested'], ['records_in', 'records in'], ['submitted'], ['approved'], ['partial'], ['denied'], ['appealed'], ['closed']]) },
+    { key: 'owner_emp_id', label: 'Owner', type: 'person' }, { key: 'due_date', label: 'Due date', type: 'date' }] },
+  medicare_rtp_items: { table: 'medicare_rtp_items', fields: [
+    { key: 'work_status', label: 'Work status', type: 'select', options: opt([['new'], ['working'], ['released'], ['cancelled'], ['no_action', 'no action']]) },
+    { key: 'owner_emp_id', label: 'Owner', type: 'person' }] },
+};
+
+/** The company's people for "owner / assigned to" pick lists. */
+export async function companyPeople(prefix) {
+  return list(await readAll(prefix, 'users', 'emp_id,name,active', 'emp_id')).filter(u => u.active !== false).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+}
+
+const short = v => (v == null ? null : typeof v === 'string' && v.length > 300 ? `${v.slice(0, 300)}…` : v);
+
+/**
+ * Saves the owner's change to one row (only the changed fields), then logs it with before → after in the owner log and
+ * the company's Audit Log. → { ok } or { error }
+ */
+export async function saveCompanyEdit({ owner, company, mod, view, row, patch }) {
+  const edit = EDITS[view.id];
+  const table = (company.prefix ?? '') + edit.table;
+  const stamp = { updated_by: 'HELIX_OWNER', updated_at: new Date().toISOString() };
+  let { error } = await supabase.from(table).update({ ...patch, ...stamp }).eq('id', row.id);
+  if (error && /updated_(by|at)/.test(error.message ?? '')) ({ error } = await supabase.from(table).update(patch).eq('id', row.id));
+  if (error) return { error: error.message };
+  const changes = Object.fromEntries(Object.keys(patch).map(k => [k, { from: short(row._raw[k]), to: short(patch[k]) }]));
+  logCompanyData(owner, company, 'company_data_edit', { module: mod.label, list: view.label, id: row.id, changes });
+  return { ok: true };
+}

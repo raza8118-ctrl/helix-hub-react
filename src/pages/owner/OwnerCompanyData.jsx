@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { MODULES, moduleOf, logCompanyData, ROW_CAP } from '../../lib/companyData';
+import { MODULES, moduleOf, logCompanyData, ROW_CAP, EDITS } from '../../lib/companyData';
 import NavIcon from '../../components/ui/NavIcon';
 import CompanyDownload from '../../components/owner/CompanyDownload';
 import SaveToMaster from '../../components/owner/SaveToMaster';
+import CompanyRowEdit from '../../components/owner/CompanyRowEdit';
 
 /**
  * Owner Console → Company Data (PO 2026-11-10), Stage 1: pick a company and a module, see that company's data in a
@@ -22,6 +23,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
   const [reload, setReload] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(null);   // row being saved to the Master Library
+  const [editing, setEditing] = useState(null);   // row being edited
 
   const company = companies.find(c => keyOf(c) === companyKey) ?? companies[0];
   const mod = moduleOf(moduleId);
@@ -68,7 +70,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
               {companies.map(c => <option key={keyOf(c)} value={keyOf(c)}>{c.name}{c.isHome ? ' (home)' : ''}</option>)}
             </select>
           </label>
-          <span className="fg-date">Read-only (⤴ Save to Master copies into the Master Library). Opening, downloading and saving are recorded in your owner log and the company’s Audit Log.</span>
+          <span className="fg-date">Read-only unless you click Edit (with a confirm step). Opening, downloading, saving to master and edits are recorded in your owner log and the company’s Audit Log.</span>
         </div>
         <div className="fg-actions">
           <button type="button" className="btn-sm" onClick={() => setDownloading(true)}>⬇ Download Excel</button>
@@ -122,15 +124,16 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
                       <th key={k} aria-sort={sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
                         <button type="button" className="ocd-sort" onClick={() => sortBy(k)}>{label}{sort.key === k ? (sort.dir === 1 ? ' ▲' : ' ▼') : ''}</button>
                       </th>
-                    ))}{mod.master && <th>Master</th>}</tr>
+                    ))}{(mod.master || EDITS[view.id]) && <th>Actions</th>}</tr>
                   </thead>
                   <tbody>
                     {shown.slice(page * PAGE, page * PAGE + PAGE).map(r => (
                       <tr key={r.id}>
                         {view.columns.map(([k]) => <td key={k}>{String(r[k] ?? '')}</td>)}
-                        {mod.master && (
+                        {(mod.master || EDITS[view.id]) && (
                           <td className="ocd-act">
-                            {mod.id === 'sops' && r._raw?.client_id != null
+                            {EDITS[view.id] && <button type="button" className="btn-sm" onClick={() => setEditing(r)}>Edit</button>}{' '}
+                            {!mod.master ? null : mod.id === 'sops' && r._raw?.client_id != null
                               ? <span className="text-sm text-muted" title="Client SOPs stay with the company">Client SOP</span>
                               : <button type="button" className="btn-sm" onClick={() => setSaving(r)} title="Add this to the shared Master Library (nothing here is moved or deleted)">⤴ Save to Master</button>}
                           </td>
@@ -150,6 +153,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
           </div>
         )}
       </div>
+      {editing && <CompanyRowEdit owner={owner} company={company} mod={mod} view={view} row={editing} onClose={() => setEditing(null)} onSaved={() => setReload(n => n + 1)} />}
       {saving && <SaveToMaster owner={owner} company={company} mod={mod} row={saving} onClose={() => setSaving(null)} />}
       {downloading && <CompanyDownload owner={owner} mod={mod} company={company} companies={companies} onClose={() => setDownloading(false)} />}
     </div>
