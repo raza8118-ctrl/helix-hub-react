@@ -23,6 +23,25 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**ICD-10-CM FY2027 (PO "Go" 2026-11-11) — IN PROGRESS, Stage 1.** (Company Data Stage 4 below still waits for the PO's own save
+test + approval.) Data: Downloads/icd10cm-2027-helix.zip → 1_codes (98,403: code, code with dot, billable, short / long description,
+chapter, section, FY2027 change), 2_coding_notes (25,029: code with dot, note type, note), 3_index_terms (76,455: term path, code,
+see, see also), 4_fy2027_changes (278: change, code, description). Migration 55 (20261120_icd10cm.sql, additive): ref_codes + billable,
+long_description, chapter, section, fiscal_year, change_flag, valid_from, retired_on; new tables icd_notes, icd_index, icd_changes,
+sop_documents (every prefix + master, library read for companies, protect_all_tables); pg_trgm search indexes; owner-only
+owner_icd_import_batch (1,000 rows a call, no per-row master history; one owner-log line per file) + owner_icd_retire_missing
+(codes missing from the new year → retired with retired_on, never deleted); sop-media bucket allows PDF if needed. Stages, PO approval
+after each: 1 owner import (Master Library → Code lists → "ICD-10-CM yearly update": 4 CSVs parsed in a Web Worker, batches + progress
+bars, resumable, FY 2027, new codes valid from 2026-10-01, the 21 deleted codes kept as retired from 2026-10-01) then import into the
+master; 2 Code Lookup (one search: code with / without dot, words, index terms; card: long description, chapter / section, Billable
+badge or amber header warning + child codes, New FY2027 / Revised badge; notes grouped by type incl. parent codes; "What changed in
+FY2027" tab); 3 "Check the diagnosis code" box (code + optional DOS; header / retired / not yet valid / billable) in Appeal Builder and
+Denial Navigator for CO-146 / CO-167 — nothing saved; 4 ICD-10-CM Official Guidelines FY2027 PDF (PO to save it in Downloads) as a
+published master SOP under Coding → ICD-10-CM → Official guidelines with the PDF in sop_documents (📄 Open, read-only for companies).
+Files: new migration 55, src/lib/icd10.js, src/workers/icdCsv.worker.js, src/components/owner/IcdImport.jsx,
+src/components/shared/IcdCard.jsx, IcdCheck.jsx, SopDocuments.jsx; changed OwnerMasterLibrary.jsx, CodeLookup.jsx, AppealForm.jsx,
+DenialNavigator.jsx, SopPage.jsx, masterLibrary.js, shell.css. Reference data only — no patient data, nothing to any AI.
+
 **Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
 (Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
 Client Queries, Worklists, QA, Reports (daily_logs), Medicare ADR / RTP. Modules that may hold patient data: Client Queries,
