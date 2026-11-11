@@ -12,6 +12,8 @@ import { confirmDialog } from '../../components/shared/Dialog';
 import { supabase } from '../../lib/supabase';
 import { masterGet, mergeCodes, mergeRefCodes, inMasterWorkspace, isMasterRow, MASTER_PREFIX } from '../../lib/masterLibrary';
 import LibraryBadge from '../../components/shared/LibraryBadge';
+import IcdCard from '../../components/shared/IcdCard';
+import { searchIcdIndex, icdChanges, icdLatestYear, icdDot } from '../../lib/icd10';
 
 const CHIPS = [
   { value: 'ALL', label: 'All' }, { value: 'carc', label: 'CARC / RARC' }, { value: 'revenue', label: 'Revenue' },
@@ -34,6 +36,11 @@ export default function CodeLookup({ user }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [starterCount, setStarterCount] = useState(0);
   const [modal, setModal] = useState(null);            // { kind: 'code' | 'import', row? }
+  const [tab, setTab] = useState('search');            // search · changes (ICD-10-CM FY changes)
+  const [fy, setFy] = useState(null);                  // newest ICD-10-CM fiscal year in the Master Library
+  const [index, setIndex] = useState({ key: '', rows: [] });
+  const [changes, setChanges] = useState(undefined);
+  const [changeKind, setChangeKind] = useState('ALL');
 
   useEffect(() => {
     let alive = true;
@@ -47,6 +54,14 @@ export default function CodeLookup({ user }) {
       .then(([c, m]) => { if (alive) setDenialCodes(c && m ? mergeCodes(c, m) : (c ?? [])); });
     return () => { alive = false; };
   }, [canEdit, reloadKey]);
+
+  // ICD-10-CM (migration 55): the newest fiscal year; its changes when the tab opens
+  useEffect(() => { let alive = true; icdLatestYear().then(y => alive && setFy(y)); return () => { alive = false; }; }, []);
+  useEffect(() => {
+    let alive = true;
+    if (tab === 'changes' && fy && changes === undefined) icdChanges(fy).then(c => alive && setChanges(c));
+    return () => { alive = false; };
+  }, [tab, fy, changes]);
 
   // Database search, a moment after typing stops
   const searchKey = JSON.stringify([query.trim(), chip, limit, reloadKey]);
@@ -65,6 +80,19 @@ export default function CodeLookup({ user }) {
     }, 300);
     return () => { alive = false; clearTimeout(t); };
   }, [query, chip, limit, ready, canEdit, searchKey]);
+  // ICD-10-CM index terms for word searches ("heart failure" → Failure > heart …)
+  const indexKey = JSON.stringify([query.trim(), chip]);
+  useEffect(() => {
+    let alive = true;
+    const q = query.trim();
+    const t = setTimeout(async () => {
+      const want = fy && q.length > 2 && !detectCode(q) && (chip === 'ALL' || chip === 'icd10');
+      const rows = want ? await searchIcdIndex(q, 15) : [];
+      if (alive) setIndex({ key: indexKey, rows });
+    }, 350);
+    return () => { alive = false; clearTimeout(t); };
+  }, [query, chip, fy, indexKey]);
+  const indexRows = index.key === indexKey ? index.rows : [];
   const searching = found.key !== searchKey;
   const refRows = found.key === searchKey ? found.rows : [];
   const libOn = !!found.lib || denialCodes.some(isMasterRow);
@@ -129,7 +157,17 @@ export default function CodeLookup({ user }) {
           ))}
         </div>
         <div className="text-sm text-muted" style={{ marginTop: 6 }}>🔒 Searches aren’t saved. Type codes or words only — no patient details.</div>
+        {fy && (
+          <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginTop: 8 }} role="tablist" aria-label="Code lookup views">
+            <button type="button" role="tab" aria-selected={tab === 'search'} className={tab === 'search' ? 'btn-primary btn-sm' : 'btn-sm'} onClick={() => setTab('search')}>🔎 Search</button>
+            <button type="button" role="tab" aria-selected={tab === 'changes'} className={tab === 'changes' ? 'btn-primary btn-sm' : 'btn-sm'} onClick={() => setTab('changes')}>What changed in ICD-10-CM FY{fy}</button>
+          </div>
+        )}
       </div>
+
+      {tab === 'changes' && <IcdChanges fy={fy} changes={changes} kind={changeKind} setKind={setChangeKind} onPick={c => { setTab('search'); setChip('ALL'); setQuery(c); setLimit(PAGE); }} />}
+
+      {tab === 'search' && (<>
 
       {hipps && (
         <div className="card mb-16">
@@ -157,7 +195,16 @@ export default function CodeLookup({ user }) {
         </div>
       ))}
 
-      {refRows.slice(0, limit).map(row => (
+      {refRows.slice(0, limit).map(row => {
+        const icd = row.code_set === 'icd10' && (row.long_description || row.chapter ? row : row._master?.long_description ? row._master : null);
+        if (icd) {
+          return (
+            <IcdCard key={row.id} row={icd} fy={fy} open={detected?.set === 'icd10' && detected.code === row.code && refRows.length <= 3}
+              onPick={c => { setQuery(c); setLimit(PAGE); }}
+              extra={libOn ? <LibraryBadge kind={isMasterRow(row) ? 'master' : row._master ? 'override' : 'company'} /> : null} />
+          );
+        }
+        return (
         <div key={row.id} className="card mb-16" style={row.active === false ? { opacity: 0.6 } : undefined}>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="badge badge-blue" title={setOf(row.code_set).long}>{setOf(row.code_set).label}</span>
@@ -185,18 +232,69 @@ export default function CodeLookup({ user }) {
             <div className="lib-standard-box"><LibraryBadge kind="standard" /><span>{row._master.description}</span></div>
           )}
         </div>
-      ))}
+        );
+      })}
+
+      {indexRows.length > 0 && (
+        <div className="card mb-16">
+          <div className="bold" style={{ marginBottom: 6 }}>ICD-10-CM index</div>
+          {indexRows.map((x, i) => (
+            <div key={i} className="icd-index-row">
+              <span>{x.term_path}</span>
+              {x.code && <button type="button" className="btn-sm" onClick={() => { setQuery(icdDot(x.code)); setLimit(PAGE); }}>{icdDot(x.code)}</button>}
+              {x.see && <span className="text-sm text-muted">see <button type="button" className="icd-from" onClick={() => setQuery(x.see)}>{x.see}</button></span>}
+              {x.see_also && <span className="text-sm text-muted">see also <button type="button" className="icd-from" onClick={() => setQuery(x.see_also)}>{x.see_also}</button></span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {query.trim() && searching && <div className="text-sm text-muted">Searching…</div>}
-      {query.trim() && !searching && !hipps && !denialRows.length && !refRows.length && (
+      {query.trim() && !searching && !hipps && !denialRows.length && !refRows.length && !indexRows.length && (
         <div className="card text-muted" style={{ textAlign: 'center' }}>Nothing found{chip !== 'ALL' ? ' in this list' : ''}.</div>
       )}
       {refRows.length > limit && (
         <button className="btn-sm" style={{ marginBottom: 16 }} onClick={() => setLimit(l => l + PAGE)}>Show more</button>
       )}
+      </>)}
 
       {modal?.kind === 'code' && <RefCodeModal row={modal.row ?? null} user={user} onClose={() => setModal(null)} onSaved={done} />}
       {modal?.kind === 'import' && <SmartImport typeId="ref_codes" user={user} onClose={() => setModal(null)} onDone={done} />}
+    </div>
+  );
+}
+
+/** "What changed in ICD-10-CM FY…" (migration 55): new, revised, deleted and now-a-header codes, from the yearly changes file. */
+function IcdChanges({ fy, changes, kind, setKind, onPick }) {
+  if (changes === undefined) return <div className="card text-sm text-muted">Loading the FY{fy} changes…</div>;
+  if (!changes?.length) return <div className="card text-muted">No changes have been imported for FY{fy}.</div>;
+  const kinds = [...new Set(changes.map(c => c.change))];
+  const count = k => changes.filter(c => c.change === k).length;
+  const shown = changes.filter(c => kind === 'ALL' || c.change === kind);
+  const tone = k => (/^new/i.test(k) ? 'badge-purple' : /delet/i.test(k) ? 'badge-orange' : /header/i.test(k) ? 'badge-yellow' : 'badge-blue');
+  return (
+    <div className="card mb-16">
+      <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+        <button type="button" className={kind === 'ALL' ? 'btn-primary btn-sm' : 'btn-sm'} onClick={() => setKind('ALL')}>All ({changes.length})</button>
+        {kinds.map(k => (
+          <button key={k} type="button" className={kind === k ? 'btn-primary btn-sm' : 'btn-sm'} onClick={() => setKind(k)}>{k} ({count(k)})</button>
+        ))}
+      </div>
+      <p className="text-sm text-muted" style={{ marginTop: 0 }}>FY{fy} starts on Oct 1, {fy - 1}. Deleted codes stay searchable as Retired (valid only for earlier dates of service).</p>
+      <div className="table-wrap">
+        <table className="ocd-table">
+          <thead><tr><th>Change</th><th>Code</th><th>Description</th></tr></thead>
+          <tbody>
+            {shown.map(c => (
+              <tr key={`${c.change}|${c.code}`}>
+                <td><span className={`badge ${tone(c.change)}`}>{c.change}</span></td>
+                <td><button type="button" className="icd-from" style={{ marginLeft: 0 }} onClick={() => onPick(icdDot(c.code))}>{icdDot(c.code)}</button></td>
+                <td>{c.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

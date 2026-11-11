@@ -80,7 +80,8 @@ export async function searchRefCodes(query, { set = 'ALL', limit = 50, showInact
     req = req.ilike('code', `${detected.code}%`);
   } else {
     const words = q.replace(/[%_,()]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 5);
-    for (const w of words) req = req.ilike('description', `%${w}%`);
+    // ICD-10-CM long descriptions too (migration 55): 'unsp' short wording vs 'unspecified'
+    for (const w of words) req = req.or(`description.ilike.%${w}%,long_description.ilike.%${w}%`);
   }
   const { data, error } = await req.order('code').limit(limit);
   if (error) return [];

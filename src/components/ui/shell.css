@@ -1059,3 +1059,15 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .icd-bar i { display: block; height: 100%; background: var(--primary); transition: width .3s; }
 .icd-bar i.ok { background: var(--success, #16a34a); }
 .icd-bar i.bad { background: var(--danger); }
+
+/* ── ICD-10-CM card (2026-11-11) ── */
+.icd-warn { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, #f59e0b 14%, var(--surface)); border-left: 3px solid #f59e0b; font-size: 13px; }
+.icd-kids { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; max-height: 240px; overflow: auto; }
+.icd-kid { text-align: left; background: none; border: 0; padding: 3px 4px; border-radius: 6px; color: var(--text); cursor: pointer; font-size: 13px; }
+.icd-kid:hover { background: var(--surface-2); }
+.icd-notes { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.icd-note-type { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); }
+.icd-note-group ul { margin: 2px 0 0; padding-left: 18px; font-size: 13px; }
+.icd-from { background: none; border: 0; padding: 0 0 0 6px; color: var(--primary); cursor: pointer; font-size: 12px; text-decoration: underline; }
+.icd-index-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.icd-index-row:first-of-type { border-top: 0; }
