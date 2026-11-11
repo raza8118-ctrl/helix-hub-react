@@ -70,6 +70,17 @@ I50"; S72.001A → 7th characters "A = initial encounter…" from S72; I50 → H
 4, New 238, Now a header 15; S23.420 (deleted) → Retired 2026-10-01. (A first try showed "Nothing found" — the page was running the
 old code after the update; a reload fixed it.) Lint 51, build OK.
 
+**Stage 3 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (150b3f5 + race fix). New
+src/components/shared/IcdCheck.jsx ("Check the diagnosis code": ICD-10-CM code + optional date of service; only the code is looked
+up in the master, the date is compared in the browser, nothing saved) using icd10.js checkIcd (ok / header / retired / not_yet /
+unknown / invalid) and isDiagnosisDenial (146 / 167). Appeal Builder: shown under "Denial code(s)" when the codes include 146 / 167
+(CARC or not in library), taking the form's "Date of service — from". Denial Navigator: on the CARC 146 and 167 cards. Browser
+(Test Co, owner): Denial Navigator 146 card → I50 "header — not billable" + I50.1 … I50.9; I50.9 billable; S23.420 + 2026-11-05 →
+"retired on 2026-10-01 — not valid", + 2026-09-15 → billable; C78.31 + 2026-09-15 → "only valid from 2026-10-01", + 2026-10-15 →
+billable; ZZ99 → not an ICD-10-CM code. Race fixed: a slow child-code list of a previous code no longer shows under the next code.
+Appeal Builder: CO-45 → no box; "CO-167 N290" → box with the form's DOS 2026-11-05 → S23.420 retired warning (test values cleared).
+Lint 51, build OK.
+
 **Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
 (Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
 Client Queries, Worklists, QA, Reports (daily_logs), Medicare ADR / RTP. Modules that may hold patient data: Client Queries,

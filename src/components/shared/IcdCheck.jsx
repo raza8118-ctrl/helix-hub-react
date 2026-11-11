@@ -23,7 +23,10 @@ export default function IcdCheck({ dos: dosFromForm = '', compact = false }) {
       const r = await checkIcd(c, dos || null);
       if (!alive) return;
       setRes(r);
-      setKids(r.status === 'header' ? (await icdChildren(r.row.code, 12)).filter(k => !k.retired) : []);
+      setKids([]);
+      if (r.status !== 'header') return;
+      const kids = (await icdChildren(r.row.code, 12)).filter(k => !k.retired);
+      if (alive) setKids(kids);   // a newer code typed meanwhile wins
     }, 350);
     return () => { alive = false; clearTimeout(t); };
   }, [code, dos]);
