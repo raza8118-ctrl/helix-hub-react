@@ -81,6 +81,14 @@ billable; ZZ99 → not an ICD-10-CM code. Race fixed: a slow child-code list of 
 Appeal Builder: CO-45 → no box; "CO-167 N290" → box with the form's DOS 2026-11-05 → S23.420 retired warning (test values cleared).
 Lint 51, build OK.
 
+**Stage 4 IN PROGRESS (2026-11-11).** Code pushed (7ba3575): src/lib/sopDocuments.js (load — company or master table, upload PDF ≤
+25 MB into the company's folder / co_master/ in sop-media, hide = inactive, 1-hour open link, audit log) and
+src/components/shared/SopDocuments.jsx ("Reference documents" card on the SOP page: 📄 Open for readers incl. Master Library SOPs
+shown in a company; 📎 Add PDF / Hide for editors, not on library SOPs). Browser (Test Co): REVIEW SOP shows the card, Add PDF form
+opens / cancels (nothing uploaded). Still to do: the ICD-10-CM Official Guidelines FY2027 PDF is not in Downloads yet; then in the
+Master Library: category "Coding" → software "ICD-10-CM" → task "Official guidelines" → SOP "ICD-10-CM Official Guidelines FY2027",
+publish, add the PDF.
+
 **Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
 (Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
 Client Queries, Worklists, QA, Reports (daily_logs), Medicare ADR / RTP. Modules that may hold patient data: Client Queries,
