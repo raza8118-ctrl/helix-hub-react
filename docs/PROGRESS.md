@@ -49,6 +49,16 @@ the 4 patient-data modules; search "197" → 1 of 17; names shown (users read by
 icons fixed (NavIcon takes icon=). Logs checked: owner Security → activity log shows "company data view · Test Co · QA / Reports /
 Denial codes & steps"; Test Co → Manage → Activity shows the same, "Faizan Shah (Helix Hub owner OWNER)". Lint 51, build OK.
 
+**Stage 2 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (1de846c). companyData.js:
+downloadCompanyData (one company or all with a Company column; one sheet per list; payers + Payer IDs / Contacts / Filing limits /
+Notes sheets; denials + Steps sheet; built in the browser with xlsx) logs "company_data_download" per company (owner log + Audit
+Log: module, rows, scope, phi, reason). New src/components/owner/CompanyDownload.jsx: "⬇ Download Excel" window — only this company
+/ all companies; patient-data modules: warning, "I understand" box and a reason of 10+ characters before Download is enabled.
+Browser (owner; files caught in the page, nothing saved to the PC): Payer Directory, all companies → 5 sheets with Company column,
+Payers 25 (12 home + 13 Test Co), Payer IDs 18, Contacts 51, Filing limits 51, Notes 56; Worklists, Test Co → Download off until
+box ticked + reason ≥ 10 chars, file "Worklist claims" 4 rows; owner activity log shows "company data download · Test Co · Worklists ·
+QA test of the download log" and one line per company for the all-companies file. Lint 51, build OK.
+
 **Smart Import (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
