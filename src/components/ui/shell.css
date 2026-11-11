@@ -1051,3 +1051,11 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ocd-reason textarea { width: 100%; }
 .ocd-act { white-space: nowrap; }
 .ocd-field { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; } .ocd-field textarea, .ocd-field input, .ocd-field select { width: 100%; }
+
+/* ── ICD-10-CM yearly import (2026-11-11) ── */
+.icd-files { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.icd-file { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.icd-bar { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; margin: 6px 0 4px; }
+.icd-bar i { display: block; height: 100%; background: var(--primary); transition: width .3s; }
+.icd-bar i.ok { background: var(--success, #16a34a); }
+.icd-bar i.bad { background: var(--danger); }

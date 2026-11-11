@@ -93,6 +93,10 @@ export async function masterCopyFrom(owner, code, kind, id, mode) {
   }
   return { ...r, files };
 }
+// ICD-10-CM yearly import into the master (migration 55)
+export const icdImportBatch = (owner, kind, fy, file, rows) => rpc('owner_icd_import_batch', { ...byOwner(owner), p_kind: kind, p_fy: fy, p_file: file, p_rows: rows });
+export const icdRetireMissing = (owner, fy) => rpc('owner_icd_retire_missing', { ...byOwner(owner), p_fy: fy });
+export const icdImportDone = (owner, fy, file, details) => rpc('owner_icd_import_done', { ...byOwner(owner), p_fy: fy, p_file: file, p_details: details });
 // Push to companies (migration 48): preview = the real push, cancelled; push = one company per call
 export const masterPreview = (owner, code, sections) => rpc('owner_master_preview', { ...byOwner(owner), p_code: code, p_sections: sections });
 export const masterPush = (owner, code, sections) => rpc('owner_master_push', { ...byOwner(owner), p_code: code, p_sections: sections });

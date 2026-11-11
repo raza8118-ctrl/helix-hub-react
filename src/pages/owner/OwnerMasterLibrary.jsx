@@ -4,6 +4,7 @@ import { alertDialog } from '../../components/shared/Dialog';
 import Modal from '../../components/shared/Modal';
 import NavIcon from '../../components/ui/NavIcon';
 import { setRecord } from '../../lib/navigate';
+import IcdImport from '../../components/owner/IcdImport';
 
 /**
  * Owner Command Center → Master Library (PO 2026-11-10). One shared library every company reads (the master copy
@@ -27,6 +28,7 @@ const ACTIONS = { add: ['Added', 'badge-green'], change: ['Changed', 'badge-blue
 const fmt = iso => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export default function OwnerMasterLibrary({ owner, onOpen }) {
+  const [icd, setIcd] = useState(false);   // ICD-10-CM yearly update (migration 55)
   const [st, setSt] = useState(undefined);       // undefined = loading · null = not set up
   const [busy, setBusy] = useState('');
   const [history, setHistory] = useState(null);  // { area, rows }
@@ -89,6 +91,7 @@ export default function OwnerMasterLibrary({ owner, onOpen }) {
             <div className="ac-actions">
               <button type="button" className="btn-sm btn-primary" onClick={() => openArea(a, a.editRecord)}>Edit</button>
               <button type="button" className="btn-sm" onClick={() => openArea(a, a.importRecord)}>Import</button>
+              {a.id === 'codes' && <button type="button" className="btn-sm" onClick={() => setIcd(true)}>ICD-10-CM yearly update</button>}
               <button type="button" className="btn-sm" onClick={() => doExport(a)} disabled={!!busy}>{busy === `export-${a.id}` ? 'Exporting…' : 'Export to Excel'}</button>
               <button type="button" className="btn-sm" onClick={() => showHistory(a)} disabled={!!busy}>{busy === `history-${a.id}` ? 'Loading…' : 'History'}</button>
             </div>
@@ -118,6 +121,7 @@ export default function OwnerMasterLibrary({ owner, onOpen }) {
           )}
         </Modal>
       )}
+      {icd && <IcdImport owner={owner} onClose={() => { setIcd(false); setSt(undefined); }} />}
     </>
   );
 }
