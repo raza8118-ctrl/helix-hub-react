@@ -139,6 +139,14 @@ export const WORKBENCH_MODULES = [
     ],
   },
   {
+    id: 'wb_coding', label: 'Coding Assistant', icon: '🧠', phase: 9,
+    purpose: 'Paste diagnosis statements — AI suggests ICD-10-CM codes, then rules check them (valid, more digits, Excludes1, sequencing).',
+    planned: [
+      'Patient identifiers are blocked in the browser before anything is sent',
+      'Ordered, editable code list with badges and Copy codes',
+    ],
+  },
+  {
     id: 'wb_credentialing', label: 'Credentialing', icon: '🪪', phase: 9,
     purpose: 'Payer enrollments, CAQH, revalidations and expiring licenses — with what is due next.',
     planned: [

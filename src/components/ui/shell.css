@@ -1086,3 +1086,22 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .sop-doc:first-of-type { border-top: 0; }
 .sop-doc > span:first-child { flex: 1 1 200px; }
 .sop-doc-add { margin-top: 8px; }
+
+/* ── Coding Assistant (2026-11-11) ── */
+.ca-banner { background: color-mix(in srgb, var(--danger) 12%, var(--surface)); border-left: 4px solid var(--danger); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13.5px; }
+.ca-found { margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--danger) 10%, var(--surface)); font-size: 13px; }
+.ca-found ul { margin: 4px 0 0; padding-left: 18px; }
+.ca-found mark { background: color-mix(in srgb, var(--danger) 25%, transparent); color: inherit; padding: 0 2px; border-radius: 3px; }
+.ca-row { border: 1px solid var(--border); border-left-width: 4px; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.ca-row.ca-valid { border-left-color: #16a34a; }
+.ca-row.ca-more_digits { border-left-color: #f59e0b; }
+.ca-row.ca-invalid, .ca-row.ca-conflict { border-left-color: var(--danger); }
+.ca-row-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ca-n { font-weight: 700; color: var(--text-muted); min-width: 16px; }
+.ca-code { width: 110px; font-weight: 700; font-size: 15px; text-transform: uppercase; }
+.ca-tools { margin-left: auto; display: flex; gap: 4px; }
+.ca-desc { margin: 4px 0 2px; }
+.ca-kids { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; max-height: 200px; overflow: auto; }
+.ca-7 { display: inline-block; margin: 0 10px 0 4px; }
+.ca-bad { color: var(--danger); margin-top: 2px; }
+.ca-seq { color: var(--primary); margin-top: 2px; }

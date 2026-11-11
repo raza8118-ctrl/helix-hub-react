@@ -72,6 +72,8 @@ export const FEATURES = [
   { group: 'Tools', key: 'reports_view', label: 'View reports', defaultRoles: MONITORS },
   // Notice Board (10.3): everyone reads; posting is gated (supervisors post to their own team)
   { group: 'Tools', key: 'board_post', label: 'Post to the notice board', defaultRoles: MONITORS },
+  // Coding Assistant (PO 2026-11-11): admins and the Coding team by default; an admin can grant it to anyone
+  { group: 'Tools', key: 'coding_assistant', label: 'Coding Assistant (AI code suggestions)', defaultRoles: ADMINS, defaultTeams: ['Coding'] },
 ];
 
 // Which feature opens each sidebar tab ('feedbackadmin' = Post Announcements for employees,
@@ -83,6 +85,7 @@ export const TAB_FEATURES = {
   allocation: 'page_allocation', allocmon: 'page_allocation', feedmonitor: 'page_feedmonitor',
   team: 'page_team', settings: 'page_settings', masters: 'masters_edit', auditlog: 'audit_view',
   admincentre: 'page_settings',   // Admin Centre (PO 2026-11-09): admins, or someone given Settings
+  wb_coding: 'coding_assistant',  // Coding Assistant (PO 2026-11-11)
 };
 
 /** Tabs with no feature (e.g. My Reports) are open to whoever the role's tab list includes them for. */
@@ -104,5 +107,6 @@ export function grantsOf(user) {
 
 export function hasAccess(user, key) {
   if (!user) return false;
-  return hasRoleDefault(user.role, key) || !!grantsOf(user)[key];
+  return hasRoleDefault(user.role, key) || !!grantsOf(user)[key]
+    || !!FEATURES.find(f => f.key === key)?.defaultTeams?.includes(user.team);   // e.g. the Coding team
 }
