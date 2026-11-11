@@ -50,8 +50,16 @@ export async function searchIcdIndex(query, limit = 15) {
   if (!words.length) return [];
   let req = m('icd_index').select('term_path,code,see,see_also');
   for (const w of words) req = req.ilike('term_path', `%${w}%`);
-  const { data, error } = await req.order('term_path').limit(limit);
-  return error ? [] : data ?? [];
+  const { data, error } = await req.order('term_path').limit(200);
+  if (error) return [];
+  // best first: a main term (before the first ">") that is one of the words, then fewer levels, then shorter
+  const lw = words.map(w => w.toLowerCase());
+  const score = t => {
+    const parts = t.term_path.toLowerCase().split('>').map(s => s.trim());
+    const main = parts[0].replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    return (lw.some(w => main === w || main.startsWith(`${w} `) || main.startsWith(`${w},`)) ? 0 : 100) + parts.length * 10 + t.term_path.length / 100 + (t.code ? 0 : 5);
+  };
+  return (data ?? []).sort((a, b) => score(a) - score(b)).slice(0, limit);
 }
 
 /** "What changed" for one fiscal year (a few hundred rows). */

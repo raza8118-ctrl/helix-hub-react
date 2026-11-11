@@ -56,6 +56,20 @@ retired), billable 74,900, new 238, retired 21, notes 25,028 (1 exact repeat in 
 history rows 0. The 4 CSVs are in samples/icd2027/ (git-ignored). Note: Master Library "Export to Excel" / "Push to companies" for
 Code lists would now include ~98k ICD rows — companies read the master directly, so a push of Code lists isn't needed.
 
+**Stage 2 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (f8a4e7d + index ranking). New
+src/lib/icd10.js (icdCode, icdNotes = notes of the code AND every parent, grouped by type, "from S72" marks; icdChildren = codes one
+character longer, else billable codes below; searchIcdIndex = every word in the term path, main-term matches ranked first;
+icdChanges; icdLatestYear; checkIcd for Stage 3) and src/components/shared/IcdCard.jsx (code with dot + Copy, Billable (green) /
+Header (amber "not billable, pick a more specific code" + clickable child codes) / Retired date, New FY / Revised FY badges, long +
+short description, chapter · section, "Coding notes" grouped by type with inherited ones linked to their parent). refCodes.js word
+search also matches long_description. Code Lookup: ICD-10 rows use the card (notes open for an exact code search), "ICD-10-CM
+index" section for word searches, tabs "🔎 Search" / "What changed in ICD-10-CM FY2027" (filter by change, codes clickable).
+Browser (owner in Test Co, master data): I509 → I50.9 Billable, chapter 9 / I30-I5A, inclusion terms + Code first / Excludes2 "from
+I50"; S72.001A → 7th characters "A = initial encounter…" from S72; I50 → Header warning, codes below I50.1 … I50.9; "heart failure" →
+42 codes + index "Failure, failed > heart … I50.9" first; C78.31 → New FY2027; changes tab: All 278, Deleted 21, Description revised
+4, New 238, Now a header 15; S23.420 (deleted) → Retired 2026-10-01. (A first try showed "Nothing found" — the page was running the
+old code after the update; a reload fixed it.) Lint 51, build OK.
+
 **Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
 (Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
 Client Queries, Worklists, QA, Reports (daily_logs), Medicare ADR / RTP. Modules that may hold patient data: Client Queries,
