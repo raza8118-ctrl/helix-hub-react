@@ -85,9 +85,15 @@ Lint 51, build OK.
 25 MB into the company's folder / co_master/ in sop-media, hide = inactive, 1-hour open link, audit log) and
 src/components/shared/SopDocuments.jsx ("Reference documents" card on the SOP page: 📄 Open for readers incl. Master Library SOPs
 shown in a company; 📎 Add PDF / Hide for editors, not on library SOPs). Browser (Test Co): REVIEW SOP shows the card, Add PDF form
-opens / cancels (nothing uploaded). Still to do: the ICD-10-CM Official Guidelines FY2027 PDF is not in Downloads yet; then in the
-Master Library: category "Coding" → software "ICD-10-CM" → task "Official guidelines" → SOP "ICD-10-CM Official Guidelines FY2027",
-publish, add the PDF.
+opens / cancels (nothing uploaded).
+**Stage 4 BUILT — waiting for PO approval (2026-11-11; PO "Saved, you set it up").** Downloads/ICD-10-CM-October-1-2026-FY27-
+Guidelines.pdf (830 KB, 121 pages; copied to git-ignored samples/). In the Master Library as owner (app functions, HELIX_OWNER):
+category "Coding" (id 25, after Other) → software "ICD-10-CM" (66, CMS link) → task "Official guidelines" (18) → SOP #18 "ICD-10-CM
+Official Guidelines FY2027" (summary, purpose, who uses it, 4 steps pointing to the PDF + Code lookup + the CO-146 / CO-167 check),
+published version 1 effective 2026-11-11 (no acknowledgement), PDF attached as "ICD-10-CM Official Guidelines for Coding and
+Reporting FY2027 (CMS / NCHS)" at co_master/sop_18/…. Checked from Test Co: Coding · 1 software · 1 SOP (Master) in the SOP
+Library; SOP page read-only with Reference documents → Open (no Add / Hide); the 1-hour link returns the PDF (%PDF-). Shows "Needs
+re-check" until someone marks it verified. ICD-10-CM step: all 4 stages built.
 
 **Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
 (Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
