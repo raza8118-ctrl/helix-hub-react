@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**ICD-10-CM FY2027 (PO "Go" 2026-11-11) — IN PROGRESS, Stage 1.** (Company Data Stage 4 below still waits for the PO's own save
+**ICD-10-CM FY2027 (PO "Go" 2026-11-11) — DONE (all 4 stages approved 2026-11-11).** (Company Data Stage 4 below still waits for the PO's own save
 test + approval.) Data: Downloads/icd10cm-2027-helix.zip → 1_codes (98,403: code, code with dot, billable, short / long description,
 chapter, section, FY2027 change), 2_coding_notes (25,029: code with dot, note type, note), 3_index_terms (76,455: term path, code,
 see, see also), 4_fy2027_changes (278: change, code, description). Migration 55 (20261120_icd10cm.sql, additive): ref_codes + billable,
@@ -42,7 +42,7 @@ Files: new migration 55, src/lib/icd10.js, src/workers/icdCsv.worker.js, src/com
 src/components/shared/IcdCard.jsx, IcdCheck.jsx, SopDocuments.jsx; changed OwnerMasterLibrary.jsx, CodeLookup.jsx, AppealForm.jsx,
 DenialNavigator.jsx, SopPage.jsx, masterLibrary.js, shell.css. Reference data only — no patient data, nothing to any AI.
 
-**Stage 1 BUILT + IMPORTED — waiting for PO approval (2026-11-11).** Code pushed first (2a2410b), then migration 55 run
+**Stage 1 APPROVED (PO "Approved, start Stage 2").** Code pushed first (2a2410b), then migration 55 run
 (fingerprint checked; Supabase "Run and enable RLS" chosen; protect_all_tables → 246). New src/workers/icdCsv.worker.js (CSV with
 quotes / line breaks, recognises the 4 files by header, maps columns by name, code without dot), src/components/owner/IcdImport.jsx
 (Master Library → Code lists → "ICD-10-CM yearly update": pick all 4, FY from the header, batches of 1,000 with progress bars, one
@@ -56,7 +56,7 @@ retired), billable 74,900, new 238, retired 21, notes 25,028 (1 exact repeat in 
 history rows 0. The 4 CSVs are in samples/icd2027/ (git-ignored). Note: Master Library "Export to Excel" / "Push to companies" for
 Code lists would now include ~98k ICD rows — companies read the master directly, so a push of Code lists isn't needed.
 
-**Stage 2 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (f8a4e7d + index ranking). New
+**Stage 2 APPROVED (PO "Approved, start Stage 3").** No database change. Code pushed (f8a4e7d + index ranking). New
 src/lib/icd10.js (icdCode, icdNotes = notes of the code AND every parent, grouped by type, "from S72" marks; icdChildren = codes one
 character longer, else billable codes below; searchIcdIndex = every word in the term path, main-term matches ranked first;
 icdChanges; icdLatestYear; checkIcd for Stage 3) and src/components/shared/IcdCard.jsx (code with dot + Copy, Billable (green) /
@@ -70,7 +70,7 @@ I50"; S72.001A → 7th characters "A = initial encounter…" from S72; I50 → H
 4, New 238, Now a header 15; S23.420 (deleted) → Retired 2026-10-01. (A first try showed "Nothing found" — the page was running the
 old code after the update; a reload fixed it.) Lint 51, build OK.
 
-**Stage 3 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (150b3f5 + race fix). New
+**Stage 3 APPROVED (PO "Approved, start Stage 4").** No database change. Code pushed (150b3f5 + race fix). New
 src/components/shared/IcdCheck.jsx ("Check the diagnosis code": ICD-10-CM code + optional date of service; only the code is looked
 up in the master, the date is compared in the browser, nothing saved) using icd10.js checkIcd (ok / header / retired / not_yet /
 unknown / invalid) and isDiagnosisDenial (146 / 167). Appeal Builder: shown under "Denial code(s)" when the codes include 146 / 167
@@ -86,7 +86,7 @@ Lint 51, build OK.
 src/components/shared/SopDocuments.jsx ("Reference documents" card on the SOP page: 📄 Open for readers incl. Master Library SOPs
 shown in a company; 📎 Add PDF / Hide for editors, not on library SOPs). Browser (Test Co): REVIEW SOP shows the card, Add PDF form
 opens / cancels (nothing uploaded).
-**Stage 4 BUILT — waiting for PO approval (2026-11-11; PO "Saved, you set it up").** Downloads/ICD-10-CM-October-1-2026-FY27-
+**Stage 4 APPROVED (PO "Approved" 2026-11-11) — step DONE.** Downloads/ICD-10-CM-October-1-2026-FY27-
 Guidelines.pdf (830 KB, 121 pages; copied to git-ignored samples/). In the Master Library as owner (app functions, HELIX_OWNER):
 category "Coding" (id 25, after Other) → software "ICD-10-CM" (66, CMS link) → task "Official guidelines" (18) → SOP #18 "ICD-10-CM
 Official Guidelines FY2027" (summary, purpose, who uses it, 4 steps pointing to the PDF + Code lookup + the CO-146 / CO-167 check),
