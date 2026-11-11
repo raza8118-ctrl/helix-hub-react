@@ -22,7 +22,8 @@ import { peekRecord, clearRecord } from '../../lib/navigate';
 import { masterGet, mergeCodes, inMasterWorkspace, isMasterRow, masterRaw } from '../../lib/masterLibrary';
 import LibraryBadge from '../../components/shared/LibraryBadge';
 import CopyToMaster from '../../components/shared/CopyToMaster';
-import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
+import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
+
 import IcdCheck from '../../components/shared/IcdCheck';
 import { isDiagnosisDenial } from '../../lib/icd10';
 
