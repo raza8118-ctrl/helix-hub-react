@@ -72,6 +72,19 @@ new code-list row → added, again → skipped; CARC 197 preview → already in 
 left behind (0 / 0 / 0 / 0). Browser: Test Co → Denial codes → 197 → "already has this denial code… With: 1 common steps", Skip
 closes (nothing saved); SOP row has the button; Worklists has no Master column. Lint 51, build OK.
 
+**Stage 4 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (652789f). companyData.js: EDITS
+(per list: table + allowed fields — payers name / type / other names / notes / active; denial codes plain reason / official
+text / notes / retired on / active; SOPs title / summary / active; code lists description / notes / year / retired / active;
+queries status / owner / expected; worklist claims status / assigned to / follow-up; QA status / auditor; reports total /
+quality % / remarks; ADR status / owner / due; RTP work status / owner — never ids, company, claim numbers or amounts),
+companyPeople, saveCompanyEdit (only changed fields, updated_by HELIX_OWNER; logs "company_data_edit" with before → after, text
+cut at 300 characters, in the owner log + company Audit Log). New src/components/owner/CompanyRowEdit.jsx (edit → "Review changes"
+→ before / after table → Save changes; required fields; person pick lists from the company's users). "Edit" button per row
+(Actions column). Browser (Test Co, owner): worklist claim RVW-0001 → only Status / Assigned to / Follow-up date, patient-data
+note, Review off until a change; follow-up → confirm shows "Follow-up date — → 2026-11-20", Back / Cancel, NOT saved; payer
+REVIEW Payer → fields filled, blank name blocked. Saving was not tried in the browser (the session's permission check blocked a
+real data change) — PO to try one edit on Test Co.
+
 **Smart Import (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
