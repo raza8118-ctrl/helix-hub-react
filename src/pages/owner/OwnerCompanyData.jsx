@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { MODULES, moduleOf, logCompanyData, ROW_CAP } from '../../lib/companyData';
 import NavIcon from '../../components/ui/NavIcon';
 import CompanyDownload from '../../components/owner/CompanyDownload';
+import SaveToMaster from '../../components/owner/SaveToMaster';
 
 /**
  * Owner Console → Company Data (PO 2026-11-10), Stage 1: pick a company and a module, see that company's data in a
@@ -20,6 +21,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
   const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(null);   // row being saved to the Master Library
 
   const company = companies.find(c => keyOf(c) === companyKey) ?? companies[0];
   const mod = moduleOf(moduleId);
@@ -66,7 +68,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
               {companies.map(c => <option key={keyOf(c)} value={keyOf(c)}>{c.name}{c.isHome ? ' (home)' : ''}</option>)}
             </select>
           </label>
-          <span className="fg-date">Read-only. Opening or downloading a list is recorded in your owner log and the company’s Audit Log.</span>
+          <span className="fg-date">Read-only (⤴ Save to Master copies into the Master Library). Opening, downloading and saving are recorded in your owner log and the company’s Audit Log.</span>
         </div>
         <div className="fg-actions">
           <button type="button" className="btn-sm" onClick={() => setDownloading(true)}>⬇ Download Excel</button>
@@ -120,11 +122,20 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
                       <th key={k} aria-sort={sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
                         <button type="button" className="ocd-sort" onClick={() => sortBy(k)}>{label}{sort.key === k ? (sort.dir === 1 ? ' ▲' : ' ▼') : ''}</button>
                       </th>
-                    ))}</tr>
+                    ))}{mod.master && <th>Master</th>}</tr>
                   </thead>
                   <tbody>
                     {shown.slice(page * PAGE, page * PAGE + PAGE).map(r => (
-                      <tr key={r.id}>{view.columns.map(([k]) => <td key={k}>{String(r[k] ?? '')}</td>)}</tr>
+                      <tr key={r.id}>
+                        {view.columns.map(([k]) => <td key={k}>{String(r[k] ?? '')}</td>)}
+                        {mod.master && (
+                          <td className="ocd-act">
+                            {mod.id === 'sops' && r._raw?.client_id != null
+                              ? <span className="text-sm text-muted" title="Client SOPs stay with the company">Client SOP</span>
+                              : <button type="button" className="btn-sm" onClick={() => setSaving(r)} title="Add this to the shared Master Library (nothing here is moved or deleted)">⤴ Save to Master</button>}
+                          </td>
+                        )}
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -139,6 +150,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
           </div>
         )}
       </div>
+      {saving && <SaveToMaster owner={owner} company={company} mod={mod} row={saving} onClose={() => setSaving(null)} />}
       {downloading && <CompanyDownload owner={owner} mod={mod} company={company} companies={companies} onClose={() => setDownloading(false)} />}
     </div>
   );

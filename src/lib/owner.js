@@ -81,6 +81,18 @@ export async function masterCopy(owner, kind, id, mode) {
   }
   return { ...r, files };
 }
+// Company Data → Save to Master (migration 54): the same, from any company (by code; '__home__' = home), plus code lists
+export const masterCopyFromPreview = (owner, code, kind, id) => rpc('owner_master_copy_from_preview', { ...byOwner(owner), p_code: code, p_kind: kind, p_id: id });
+export async function masterCopyFrom(owner, code, kind, id, mode) {
+  const r = await rpc('owner_master_copy_from', { ...byOwner(owner), p_code: code, p_kind: kind, p_id: id, p_mode: mode });
+  const files = { total: 0, copied: 0, failed: 0 };
+  for (const f of r.data?.files ?? []) {
+    files.total++;
+    const { error } = await supabase.storage.from(f.bucket).copy(f.from, f.to);
+    if (error && !/exist|duplicate/i.test(error.message ?? '')) files.failed++; else files.copied++;
+  }
+  return { ...r, files };
+}
 // Push to companies (migration 48): preview = the real push, cancelled; push = one company per call
 export const masterPreview = (owner, code, sections) => rpc('owner_master_preview', { ...byOwner(owner), p_code: code, p_sections: sections });
 export const masterPush = (owner, code, sections) => rpc('owner_master_push', { ...byOwner(owner), p_code: code, p_sections: sections });

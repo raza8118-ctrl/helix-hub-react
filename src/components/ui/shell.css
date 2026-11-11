@@ -1049,3 +1049,4 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ocd-scope { border: 0; padding: 0; margin: 0 0 6px; }
 .ocd-reason { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .ocd-reason textarea { width: 100%; }
+.ocd-act { white-space: nowrap; }
