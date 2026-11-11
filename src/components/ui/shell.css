@@ -1046,3 +1046,6 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ocd-table td { vertical-align: top; max-width: 320px; overflow-wrap: anywhere; }
 .ocd-sort { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-align: left; }
 .ocd-pager { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; }
+.ocd-scope { border: 0; padding: 0; margin: 0 0 6px; }
+.ocd-reason { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.ocd-reason textarea { width: 100%; }

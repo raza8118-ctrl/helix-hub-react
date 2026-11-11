@@ -260,3 +260,90 @@ export function logCompanyData(owner, company, action, details) {
   ownerLog(owner, action, codeOf(company), details.module ?? null, details);
   companyAudit(company.prefix ?? '', owner, action, { name: details.module ?? null }, details);
 }
+
+// ── Stage 2: Download Excel ─────────────────────────────────────────────────────────────────────
+// Extra sheets for the modules with linked tables (one row per entry, named, so the file reads on its own)
+const EXTRA_SHEETS = {
+  payers: async prefix => {
+    const [payers, ids, contacts, limits, notes, look] = await Promise.all([readAll(prefix, 'payers', 'id,name'),
+      ...['payer_ids', 'payer_contacts', 'payer_limits', 'payer_notes'].map(t => readAll(prefix, t)), lookups(prefix)]);
+    const p = byId(list(payers));
+    const name = id => p.get(id)?.name ?? `#${id}`;
+    const live = r => list(r).filter(x => x.active !== false);
+    return [
+      { name: 'Payer IDs', columns: [['payer', 'Payer'], ['electronic_payer_id', 'Payer ID'], ['clearinghouse', 'Clearinghouse'], ['transaction_type', 'Used for'], ['enrollment', 'Enrollment required']],
+        rows: live(ids).map(x => ({ ...x, payer: name(x.payer_id), enrollment: yesNo(x.enrollment_required) })) },
+      { name: 'Contacts', columns: [['payer', 'Payer'], ['department', 'Department'], ['phone', 'Phone'], ['phone_ext', 'Ext / IVR'], ['fax', 'Fax'], ['email', 'Email'],
+        ['portal_url', 'Portal'], ['attention_line', 'Attention'], ['mailing_address', 'Mailing address'], ['hours', 'Hours'], ['notes', 'Notes']],
+        rows: live(contacts).map(x => ({ ...x, payer: name(x.payer_id) })) },
+      { name: 'Filing limits', columns: [['payer', 'Payer'], ['limit_type', 'Type'], ['level', 'Level'], ['days', 'Days'], ['measured_from', 'Counted from'], ['client', 'Client'], ['notes', 'Notes']],
+        rows: live(limits).map(x => ({ ...x, payer: name(x.payer_id), client: look.client(x.client_id) || 'Standard' })) },
+      { name: 'Notes', columns: [['payer', 'Payer'], ['category', 'Category'], ['note', 'Note'], ['pinned', 'Pinned']],
+        rows: live(notes).map(x => ({ ...x, payer: name(x.payer_id), pinned: yesNo(x.pinned) })) },
+    ];
+  },
+  denials: async prefix => {
+    const [codes, steps, look] = await Promise.all([readAll(prefix, 'denial_codes', 'id,code_type,code'), readAll(prefix, 'denial_steps'), lookups(prefix)]);
+    const c = byId(list(codes));
+    return [{
+      name: 'Steps', columns: [['type', 'Type'], ['code', 'Code'], ['scope', 'Applies to'], ['client', 'Client'], ['payer', 'Payer'], ['steps', 'Steps'], ['notes', 'Notes'], ['verified', 'Verified']],
+      rows: list(steps).filter(s => s.active !== false).map(s => ({
+        ...s, type: String(c.get(s.code_id)?.code_type ?? '').toUpperCase(), code: c.get(s.code_id)?.code ?? '', scope: s.scope === 'common' ? 'Common 3Gen steps' : s.scope,
+        client: look.client(s.client_id), payer: look.payer(s.payer_id), verified: day(s.verified_at),
+      })),
+    }];
+  },
+};
+
+const sheetName = (name, used) => {
+  let n = name.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31);
+  for (let i = 2; used.has(n); i++) n = `${name.slice(0, 27)} (${i})`;
+  used.add(n);
+  return n;
+};
+
+/**
+ * Builds the Excel file for one module: one company, or every company with a Company column (one sheet per list, plus
+ * the linked tables for payers / denials). Logs each company's download (owner log + its Audit Log) with the row count
+ * and, for patient-data modules, the reason the owner typed. → { file, rows, companies }
+ */
+export async function downloadCompanyData({ owner, mod, companies, all, reason, onProgress, save = true }) {
+  const XLSX = await import('xlsx');
+  const sheets = new Map();   // sheet title → { columns, rows }
+  const counts = new Map();   // company → rows
+  for (const company of companies) {
+    onProgress?.(`Reading ${company.name}…`);
+    const parts = [];
+    for (const v of mod.views) {
+      const out = await v.load(company.prefix ?? '');
+      if (out) parts.push({ name: v.label, columns: v.columns, rows: out.rows });
+    }
+    if (EXTRA_SHEETS[mod.id]) parts.push(...await EXTRA_SHEETS[mod.id](company.prefix ?? ''));
+    let n = 0;
+    for (const p of parts) {
+      const s = sheets.get(p.name) ?? { columns: p.columns, rows: [] };
+      s.rows.push(...p.rows.map(r => (all ? { ...r, _company: company.name } : r)));
+      sheets.set(p.name, s);
+      n += p.rows.length;
+    }
+    counts.set(company, n);
+  }
+  const wb = XLSX.utils.book_new();
+  const used = new Set();
+  for (const [name, s] of sheets) {
+    const cols = all ? [['_company', 'Company'], ...s.columns] : s.columns;
+    const aoa = [cols.map(([, label]) => label), ...s.rows.map(r => cols.map(([k]) => r[k] ?? ''))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = cols.map(([, label]) => ({ wch: Math.min(60, Math.max(10, label.length + 2)) }));
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(name, used));
+  }
+  const who = all ? 'All companies' : companies[0].name;
+  const file = `Helix ${mod.label.replace(/[\\/]/g, '-')} – ${who} – ${new Date().toISOString().slice(0, 10)}.xlsx`;
+  if (save) XLSX.writeFile(wb, file);
+  for (const [company, rows] of counts) {
+    logCompanyData(owner, company, 'company_data_download', {
+      module: mod.label, rows, scope: all ? 'all companies' : 'one company', phi: !!mod.phi, ...(reason ? { reason } : {}),
+    });
+  }
+  return { file, wb, rows: [...counts.values()].reduce((a, b) => a + b, 0), companies: counts.size };
+}

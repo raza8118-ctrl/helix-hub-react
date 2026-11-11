@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MODULES, moduleOf, logCompanyData, ROW_CAP } from '../../lib/companyData';
 import NavIcon from '../../components/ui/NavIcon';
+import CompanyDownload from '../../components/owner/CompanyDownload';
 
 /**
  * Owner Console → Company Data (PO 2026-11-10), Stage 1: pick a company and a module, see that company's data in a
- * searchable, sortable, read-only table. Opening a company + module is logged (owner log + the company's Audit Log).
+ * searchable, sortable, read-only table; Stage 2: Download Excel. Opening a company + module is logged (owner log + the company's Audit Log).
  */
 const keyOf = c => c.prefix || 'home';
 const PAGE = 100;
@@ -18,6 +19,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
   const [sort, setSort] = useState({ key: null, dir: 1 });
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
+  const [downloading, setDownloading] = useState(false);
 
   const company = companies.find(c => keyOf(c) === companyKey) ?? companies[0];
   const mod = moduleOf(moduleId);
@@ -64,9 +66,10 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
               {companies.map(c => <option key={keyOf(c)} value={keyOf(c)}>{c.name}{c.isHome ? ' (home)' : ''}</option>)}
             </select>
           </label>
-          <span className="fg-date">Read-only. Opening a list is recorded in your owner log and the company’s Audit Log.</span>
+          <span className="fg-date">Read-only. Opening or downloading a list is recorded in your owner log and the company’s Audit Log.</span>
         </div>
         <div className="fg-actions">
+          <button type="button" className="btn-sm" onClick={() => setDownloading(true)}>⬇ Download Excel</button>
           <button type="button" className="btn-sm" onClick={() => setReload(n => n + 1)}>Refresh</button>
         </div>
       </div>
@@ -136,6 +139,7 @@ export default function OwnerCompanyData({ owner, rows: companies }) {
           </div>
         )}
       </div>
+      {downloading && <CompanyDownload owner={owner} mod={mod} company={company} companies={companies} onClose={() => setDownloading(false)} />}
     </div>
   );
 }
