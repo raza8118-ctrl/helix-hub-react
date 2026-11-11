@@ -18,6 +18,7 @@ import { PublishVersionModal, VersionHistory, ClientCopyModal } from './SopVersi
 import { confirmDialog } from '../../components/shared/Dialog';
 import CopyButton from '../../components/shared/CopyButton';
 import LibraryBadge from '../../components/shared/LibraryBadge';
+import SopDocuments from '../../components/shared/SopDocuments';
 import CopyToMaster from '../../components/shared/CopyToMaster';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -279,6 +280,7 @@ export default function SopPage({ sop, lib, meta, names, user, canEdit, onBack, 
       {loadingVersions && <div className="card mb-16 text-muted">Loading…</div>}
       {readerHasNothing && <div className="card mb-16 text-muted">This SOP isn’t in effect yet.</div>}
       {ready && !loadingVersions && !readerHasNothing && <SopContent sop={display} showEmpty={canEdit && !shown} />}
+      {!readerHasNothing && <SopDocuments sop={sop} canEdit={canEdit} library={library} user={user} />}
       {ready && !loadingVersions && !readerHasNothing && <SopQuiz key={sop.id} sop={sop} user={user} canEdit={canEdit} />}
 
       {canTrack && states.current && <SopTracking key={states.current.id} sop={sop} version={states.current} />}
