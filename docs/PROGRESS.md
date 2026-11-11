@@ -59,6 +59,19 @@ Payers 25 (12 home + 13 Test Co), Payer IDs 18, Contacts 51, Filing limits 51, N
 box ticked + reason ≥ 10 chars, file "Worklist claims" 4 rows; owner activity log shows "company data download · Test Co · Worklists ·
 QA test of the download log" and one line per company for the all-companies file. Lint 51, build OK.
 
+**Stage 3 BUILT — waiting for PO approval (2026-11-11).** Code pushed first (d391c49), then migration 54
+(20261119_company_data.sql) run 2026-11-11 (fingerprint checked): rcm._lib_copy_from (any company prefix → master; payer / code /
+sop / ref_code; company folder co_xxx/… → co_master/…), rcm._lib_prefix_of (company code → prefix; '__home__' = home; master
+refused), owner_master_copy_from_preview / owner_master_copy_from. App: owner.js masterCopyFromPreview / masterCopyFrom (copies
+files), new src/components/owner/SaveToMaster.jsx (preview → Add to Master / Update the master / Skip; logs
+"company_data_save_to_master" in the owner log + company Audit Log), "⤴ Save to Master" column on Payer Directory, Denial codes,
+SOPs (client SOPs show "Client SOP") and Code lists. Rolled-back test (Test Co): new payer + contact + form → added 3, form path
+co_testco/payer_99/qa.pdf → co_master/payer_99/qa.pdf (file listed); add again → skipped; update → 3 updated, no duplicates;
+new code-list row → added, again → skipped; CARC 197 preview → already in master, 1 common step; Test Co SOP preview → new category
+/ software / task + version 1; client SOP refused; master can't be a source; Test Co payers unchanged; 3 owner-log lines; nothing
+left behind (0 / 0 / 0 / 0). Browser: Test Co → Denial codes → 197 → "already has this denial code… With: 1 common steps", Skip
+closes (nothing saved); SOP row has the button; Worklists has no Master column. Lint 51, build OK.
+
 **Smart Import (PO "Go" 2026-11-10) — DONE (all 4 stages approved 2026-11-10).** One reusable import for the Master Library (owner) and company
 imports: .xlsx / .xls / .csv, pick a sheet, header row found automatically; built-in special files recognised (Starter / _More,
 Claim.MD, Helix template, Helix_Denial_Guides / _More, Helix_SOP_Pack) and handled by their own rules; otherwise "Match your columns"
