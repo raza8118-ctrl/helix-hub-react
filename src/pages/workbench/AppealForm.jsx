@@ -2,6 +2,8 @@ import {
   APPEAL_LEVELS, BASE_FIELDS, PATIENT_FIELDS, DISAGREE_FIELD, DENIAL_TYPES, denialTypeOf,
 } from '../../lib/appeals';
 import { typeOf } from '../../lib/denials';
+import IcdCheck from '../../components/shared/IcdCheck';
+import { isDiagnosisDenial } from '../../lib/icd10';
 import PayerSearch from '../../components/shared/PayerSearch';
 import { Card, Button, Badge, Chip, Notice, Field as UiField } from '../../components/ui';
 
@@ -76,6 +78,7 @@ export default function AppealForm({ form, set, ctx, payer, matched, effectiveTy
             </div>
           )}
         </UiField>
+        {matched.some(m => isDiagnosisDenial(m.parsed.code) && (!m.row || m.row.code_type === 'carc')) && <IcdCheck dos={form.dos_from} />}
         <div style={fieldRow}>
           {BASE_FIELDS.map(f => <Field key={f.key} f={f} value={form[f.key]} onChange={v => set({ [f.key]: v })} />)}
         </div>

@@ -6,6 +6,8 @@ import { MASTER_PREFIX } from './masterLibrary';
 
 const m = t => supabase.from(MASTER_PREFIX + t);
 export const icdDot = code => (code && code.length > 3 ? `${code.slice(0, 3)}.${code.slice(3)}` : code ?? '');
+/** CO-146 / CO-167 (diagnosis inconsistent / not covered): the denials where a diagnosis-code check helps. */
+export const isDiagnosisDenial = code => ['146', '167'].includes(String(code ?? '').replace(/^[A-Z]{2}-/i, '').trim());
 export const icdClean = v => String(v ?? '').trim().toUpperCase().replace(/[.\s]/g, '');
 /** Category → … → the code itself: S72001A → S72, S720, S7200, S72001, S72001A */
 export const icdParents = code => { const c = icdClean(code); const out = []; for (let i = 3; i <= c.length; i++) out.push(c.slice(0, i)); return out; };

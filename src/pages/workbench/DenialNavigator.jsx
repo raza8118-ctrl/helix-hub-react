@@ -22,7 +22,9 @@ import { peekRecord, clearRecord } from '../../lib/navigate';
 import { masterGet, mergeCodes, inMasterWorkspace, isMasterRow, masterRaw } from '../../lib/masterLibrary';
 import LibraryBadge from '../../components/shared/LibraryBadge';
 import CopyToMaster from '../../components/shared/CopyToMaster';
-import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
+import { PageHeader, Card, Button, Badge, Tabs, Check, Toolbar, EmptyState } from '../../components/ui';
+import IcdCheck from '../../components/shared/IcdCheck';
+import { isDiagnosisDenial } from '../../lib/icd10';
 
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const fmtDay = d => d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -60,6 +62,7 @@ function CodeCard({ row, group, canEdit, libOn, user, onVerify, onEdit, onToggle
         <div className="ui-muted" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>Official: {row.official_text}</div>
       )}
       {row.notes && <div className="ui-small" style={{ marginTop: 4 }}>📝 {row.notes}</div>}
+      {row.code_type === 'carc' && isDiagnosisDenial(row.code) && <IcdCheck compact />}
       {row.verified_at && <div className="ui-small ui-text-good" style={{ marginTop: 4 }}>Verified {fmtDate(row.verified_at)}</div>}
       {libOn && row._master && (row._master.plain_reason || row._master.official_text) && (
         <div className="lib-standard-box">

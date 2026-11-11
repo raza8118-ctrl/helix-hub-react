@@ -1071,3 +1071,12 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .icd-from { background: none; border: 0; padding: 0 0 0 6px; color: var(--primary); cursor: pointer; font-size: 12px; text-decoration: underline; }
 .icd-index-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--border); font-size: 13px; }
 .icd-index-row:first-of-type { border-top: 0; }
+
+/* ── ICD-10 diagnosis check (CO-146 / CO-167) ── */
+.icd-check { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.icd-check.compact { margin: 8px 0 0; }
+.icd-check-t { font-weight: 600; font-size: 13.5px; margin-bottom: 6px; }
+.icd-check-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.icd-check-res { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13.5px; }
+.icd-check-res.icd-ok { background: color-mix(in srgb, #16a34a 14%, var(--surface)); border-left: 3px solid #16a34a; }
+.icd-check-res.icd-bad { background: color-mix(in srgb, #f59e0b 16%, var(--surface)); border-left: 3px solid #f59e0b; }
