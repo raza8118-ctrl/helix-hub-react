@@ -42,6 +42,20 @@ Files: new migration 55, src/lib/icd10.js, src/workers/icdCsv.worker.js, src/com
 src/components/shared/IcdCard.jsx, IcdCheck.jsx, SopDocuments.jsx; changed OwnerMasterLibrary.jsx, CodeLookup.jsx, AppealForm.jsx,
 DenialNavigator.jsx, SopPage.jsx, masterLibrary.js, shell.css. Reference data only — no patient data, nothing to any AI.
 
+**Stage 1 BUILT + IMPORTED — waiting for PO approval (2026-11-11).** Code pushed first (2a2410b), then migration 55 run
+(fingerprint checked; Supabase "Run and enable RLS" chosen; protect_all_tables → 246). New src/workers/icdCsv.worker.js (CSV with
+quotes / line breaks, recognises the 4 files by header, maps columns by name, code without dot), src/components/owner/IcdImport.jsx
+(Master Library → Code lists → "ICD-10-CM yearly update": pick all 4, FY from the header, batches of 1,000 with progress bars, one
+retry, Pause, resumes from the last saved row, then retire step), owner.js icdImportBatch / icdRetireMissing / icdImportDone.
+Worker checked in Node on the real files (98,403 codes: 74,879 billable, 23,524 headers, 238 new, 19 revised; 25,029 notes; 76,455
+index terms; 278 changes). Rolled-back test with a temporary owner session: codes upsert (blank skipped), notes / index repeat → 0,
+Deleted → retired from 2026-10-01 (but never a code in FY2027), new → valid from 2026-10-01, 0 history rows, owner-log lines,
+wrong key / bad year / bad kind refused, 4 company read policies, PDF allowed in sop-media, new columns on all 3 ref_codes. Real
+import into the master 2026-11-11 (owner, ~3½ min, page stayed usable): ICD-10 codes 98,424 (98,403 FY2027 + 21 deleted kept as
+retired), billable 74,900, new 238, retired 21, notes 25,028 (1 exact repeat in the file), index terms 76,455, changes 278, master
+history rows 0. The 4 CSVs are in samples/icd2027/ (git-ignored). Note: Master Library "Export to Excel" / "Push to companies" for
+Code lists would now include ~98k ICD rows — companies read the master directly, so a push of Code lists isn't needed.
+
 **Owner "Company Data" (PO "Go" 2026-11-10) — IN PROGRESS, Stage 1.** Owner Console → Insights → Company Data: pick a company
 (Home included) and a module — Payer Directory (payers + IDs / contacts / limits / notes), Denial codes & steps, SOPs, Code lists,
 Client Queries, Worklists, QA, Reports (daily_logs), Medicare ADR / RTP. Modules that may hold patient data: Client Queries,
