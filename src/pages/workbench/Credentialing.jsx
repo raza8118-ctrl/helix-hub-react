@@ -10,6 +10,7 @@ import CredChecklist from './CredChecklist';
 import PayerCard from './PayerCard';
 import { peekRecord, clearRecord } from '../../lib/navigate';
 import { Button } from '../../components/ui';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 const openTab = id => window.dispatchEvent(new CustomEvent('helix:open-tab', { detail: id }));
 
@@ -97,6 +98,7 @@ export default function Credentialing({ user }) {
           {tab === 'due' && <CredDueSoon items={due} ctx={ctx} user={user} canEdit={canEdit} onChanged={reload} onOpenProvider={openProvider} />}
           {tab === 'providers' && <CredProviders data={data} ctx={ctx} user={user} canEdit={canEdit} openId={openId} onOpen={setOpenId} onChanged={reload} />}
           {tab === 'enrollments' && <CredEnrollments data={data} ctx={ctx} user={user} canEdit={canEdit} onOpen={id => { setTab('providers'); setOpenId(id); }} onChanged={reload} />}
+          {tab === 'checklist' && <AiTestingBanner />}
           {tab === 'checklist' && (knowledge
             ? <CredChecklist knowledge={knowledge} user={user} onOpenSource={openSource} />
             : <div className="card text-muted">Loading Helix Hub data…</div>)}

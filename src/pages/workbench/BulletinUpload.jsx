@@ -4,6 +4,7 @@ import {
 } from '../../lib/payerUpdates';
 import { TEAMS } from '../../lib/constants';
 import PayerSearch from '../../components/shared/PayerSearch';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 /**
  * ⬆ Upload bulletin (roadmap 8.1): PDF → local patient-word scan + confirmation → ✨ Extract with AI (or add rows by
@@ -92,6 +93,7 @@ export default function BulletinUpload({ ctx, user, onSaved }) {
             <input type="checkbox" style={{ width: 'auto' }} checked={noPhi} onChange={e => setNoPhi(e.target.checked)} />
             This is a payer bulletin with no patient information
           </label>
+          <AiTestingBanner />
           <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
             <button className="btn-primary" disabled={!cleared || !!busy} onClick={extract}>✨ Extract with AI</button>
             <button className="btn-sm" disabled={!cleared || !!busy} onClick={byHand}>Add rows by hand</button>

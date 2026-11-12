@@ -93,6 +93,24 @@ export async function masterCopyFrom(owner, code, kind, id, mode) {
   }
   return { ...r, files };
 }
+// Owner Console → Platform → AI (migrations 58 + 59): provider / model / mode / BAA, usage, and the providers' model lists
+export const aiConfigGet = owner => rpc('owner_ai_config_get', byOwner(owner));
+export const aiConfigSave = (owner, { provider, model, mode, baa }) =>
+  rpc('owner_ai_config_save', { ...byOwner(owner), p_provider: provider, p_model: model, p_mode: mode, p_baa: !!baa });
+/** → { gemini: [{ id, label }] | null (no key) | { error }, claude: … } — names only, the keys stay on the server. */
+export async function aiModels(owner) {
+  const { SUPABASE_URL, SUPABASE_PUBLIC_KEY } = await import('./supabase');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/ai`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: `Bearer ${SUPABASE_PUBLIC_KEY}`, 'content-type': 'application/json',
+      'x-helix-owner-user': owner.username, 'x-helix-owner': owner.token },
+    body: JSON.stringify({ action: 'models' }),
+  }).catch(() => null);
+  if (!res) return { error: 'The AI function could not be reached.' };
+  if (res.status === 404) return { error: 'The "ai" function is not deployed.' };
+  const data = await res.json().catch(() => null);
+  return res.ok && data ? data : { error: `Could not load the model lists (${res.status}).` };
+}
 // ICD-10-CM yearly import into the master (migration 55)
 export const icdImportBatch = (owner, kind, fy, file, rows) => rpc('owner_icd_import_batch', { ...byOwner(owner), p_kind: kind, p_fy: fy, p_file: file, p_rows: rows });
 export const icdRetireMissing = (owner, fy) => rpc('owner_icd_retire_missing', { ...byOwner(owner), p_fy: fy });

@@ -6,6 +6,7 @@ import { startAppeal } from '../../lib/appeals';
 import { startClaimNote } from '../../lib/claimNotes';
 import { setRecord } from '../../lib/navigate';
 import CopyButton from './CopyButton';
+import AiTestingBanner from './AiTestingBanner';
 
 const EXAMPLES = [
   'What is the appeal fax and appeal filing limit for Aetna?',
@@ -192,6 +193,7 @@ export default function HelixChat({ user, knowledge, initialText = '', compact =
   if (!compact) return <>{list}{input}</>;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <AiTestingBanner style={{ margin: '8px 12px 0' }} />
       <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>{list}</div>
       {input}
     </div>

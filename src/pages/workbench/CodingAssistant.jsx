@@ -5,6 +5,7 @@ import { checkCodes } from '../../lib/codingRules';
 import { icdDot, icdLatestYear } from '../../lib/icd10';
 import { logAudit } from '../../lib/audit';
 import CopyButton from '../../components/shared/CopyButton';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 /**
  * 🧠 Coding Assistant – Phase A (PO 2026-11-11). Diagnosis statements in → AI suggests ICD-10-CM codes (text only, after a
@@ -101,6 +102,7 @@ export default function CodingAssistant({ user }) {
 
   return (
     <div className="ca-page">
+      <AiTestingBanner />
       <div className="ca-banner" role="alert">
         🔒 <strong>Diagnosis statements only.</strong> Do not paste names, DOB, MBI / member ID, MRN or addresses.
         The text is checked here first, never saved, and only the diagnosis wording is sent to the AI.

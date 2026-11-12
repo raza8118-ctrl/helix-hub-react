@@ -9,6 +9,7 @@ import Modal from '../../components/shared/Modal';
 import EmpDetail from '../../components/shared/EmpDetail';
 import { KpiCard } from '../../components/dash/DashParts';
 import { Pill, Button } from '../../components/ui';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 const MEDAL = { 1: '🏆', 2: '🥈', 3: '🥉' };
 
@@ -404,6 +405,7 @@ Write a professional ${mode} recap email (200-250 words). Include subject line, 
       {/* AI Email modal */}
       {showEmail && (
         <Modal title={`AI ${mode.charAt(0).toUpperCase() + mode.slice(1)} Summary Email`} onClose={() => setShowEmail(false)} wide>
+          <AiTestingBanner />
           {emailLoading
             ? <div className="fg-empty">Generating with Claude…</div>
             : (

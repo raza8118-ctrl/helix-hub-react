@@ -4,6 +4,7 @@ import { REQUEST_TYPES, NEEDED, buildChecklist, checklistText, addAuthFollowup }
 import { AUTH_SERVICES } from '../../lib/payerOptions';
 import CopyButton from '../../components/shared/CopyButton';
 import PayerSearch from '../../components/shared/PayerSearch';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 const SOURCE_ICONS = { payer: '📇', sop: '📚', denial: '🧩', updates: '📰' };
 const fmtDate = d => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -67,6 +68,7 @@ export default function AuthChecklist({ knowledge, user, lookupLabels, onOpenSou
 
   return (
     <>
+      <AiTestingBanner />
       <div className="card mb-16">
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <div className="field" style={{ flex: '1 1 240px' }}><label>Payer</label>

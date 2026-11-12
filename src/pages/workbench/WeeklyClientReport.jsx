@@ -3,6 +3,7 @@ import { OUTCOMES, mondayOf, lastWeek, loadWeekly, weeklySummary, weeklyEmail, a
 import { addDays } from '../../lib/helpers';
 import { escHtml } from '../../lib/sopText';
 import CopyButton from '../../components/shared/CopyButton';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 const usd = n => `$${Math.round(n).toLocaleString()}`;
 const fmt = d => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -149,6 +150,7 @@ export default function WeeklyClientReport({ ctx, user }) {
           )}
 
           <div className="card mb-16">
+            <AiTestingBanner style={{ margin: '0 0 8px' }} />
             <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
               <div className="card-title">✉️ Email to the client</div>
               <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>

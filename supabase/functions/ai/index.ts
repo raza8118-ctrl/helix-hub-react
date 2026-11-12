@@ -6,14 +6,18 @@
 //      with the key from a Supabase secret — GEMINI_API_KEY or ANTHROPIC_API_KEY — which never leaves the server,
 //   5. answers in the Anthropic shape the app already reads, and logs who / when / feature / provider / model / tokens
 //      (rcm.ai_log_usage_v2). It never stores or logs the request or the answer.
+//   Gemini busy (503): one retry, then the next Flash model (FALLBACK_MODELS); the answer says which model replied.
+//   Owner Console → Platform → AI: POST { action: 'models' } with x-helix-owner-user + x-helix-owner → the providers' model lists.
 // Deploy: Supabase → Edge Functions → Deploy a new function → name "ai" → paste this file. Secrets: Edge Functions → Secrets.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const MAX_TOKENS = 16000;
 const CLAUDE_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']);
+const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];   // when the chosen Gemini model is busy
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-helix-session',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-helix-session, x-helix-owner, x-helix-owner-user',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const reply = (status: number, body: unknown) =>
@@ -123,6 +127,31 @@ Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reply(405, { code: 'METHOD' });
 
+  // Owner Console: the models each provider offers (owner only; uses the server-side keys, returns names only)
+  const ownerUser = req.headers.get('x-helix-owner-user');
+  if (ownerUser) {
+    const { data: isOwner } = await db.rpc('ai_owner_check', { p_by_user: ownerUser, p_by_password: req.headers.get('x-helix-owner') ?? '' });
+    if (isOwner !== true) return reply(403, { code: 'SESSION' });
+    let action = '';
+    try { action = (await req.json())?.action ?? ''; } catch { /* empty body */ }
+    if (action !== 'models') return reply(400, { code: 'BAD_REQUEST' });
+    const out: any = { gemini: null, claude: null };
+    const gk = Deno.env.get('GEMINI_API_KEY');
+    if (gk) {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=300', { headers: { 'x-goog-api-key': gk } });
+      const j = await r.json().catch(() => ({}));
+      out.gemini = r.ok ? (j.models ?? []).filter((m: any) => (m.supportedGenerationMethods ?? []).includes('generateContent') && /gemini/i.test(m.name))
+        .map((m: any) => ({ id: String(m.name).replace(/^models\//, ''), label: m.displayName ?? m.name })) : { error: j?.error?.message ?? r.status };
+    }
+    const ck = Deno.env.get('ANTHROPIC_API_KEY');
+    if (ck) {
+      const r = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: { 'x-api-key': ck, 'anthropic-version': '2023-06-01' } });
+      const j = await r.json().catch(() => ({}));
+      out.claude = r.ok ? (j.data ?? []).map((m: any) => ({ id: m.id, label: m.display_name ?? m.id })) : { error: j?.error?.message ?? r.status };
+    }
+    return reply(200, out);
+  }
+
   const { data: who, error } = await db.rpc('ai_session_check', { p_token: req.headers.get('x-helix-session') });
   if (error) return reply(500, { code: 'SERVER', message: 'The AI service is not set up correctly (run migration 58).' });
   if (who?.error) return reply(403, { code: who.error });   // SESSION | AI_OFF
@@ -147,9 +176,17 @@ Deno.serve(async req => {
   if (who.provider === 'gemini') {
     const key = Deno.env.get('GEMINI_API_KEY');
     if (!key) return reply(403, { code: 'NO_KEY', message: 'The Gemini key (secret GEMINI_API_KEY) is not set on the server.' });
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST', headers: { 'x-goog-api-key': key, 'content-type': 'application/json' }, body: JSON.stringify(toGemini(body)),
+    const payload = JSON.stringify(toGemini(body));
+    const call = (m: string) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+      method: 'POST', headers: { 'x-goog-api-key': key, 'content-type': 'application/json' }, body: payload,
     });
+    let res = await call(model);
+    if (res.status === 503) { await sleep(1200); res = await call(model); }   // busy: one retry
+    for (const next of FALLBACK_MODELS.filter(m => m !== model)) {         // still busy: the next Flash model
+      if (res.status !== 503) break;
+      model = next;
+      res = await call(model);
+    }
     upstreamStatus = res.status;
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {

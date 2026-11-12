@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { STYLES, buildAIRequest, improveWording, validateAILetter } from '../../lib/appealAI';
 import { Card, Button, Badge, Tabs, Check, Notice } from '../../components/ui';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 /**
  * ✨ Improve wording with AI (roadmap 5.3). Shows exactly what will be sent (the template with placeholders + facts
@@ -49,6 +50,7 @@ export default function AppealAIPanel({ template, form, set, effectiveType, clie
 
       {open && (
         <div className="ui-stack" style={{ marginTop: 'var(--ui-s3)' }}>
+          <AiTestingBanner />
           <div>
             <Tabs value={form.ai_style} onChange={v => set({ ai_style: v })} label="Letter style"
               options={STYLES.map(s => ({ value: s.value, label: s.label, title: s.hint }))} />

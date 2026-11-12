@@ -9,6 +9,7 @@ import EmpDetail from '../../components/shared/EmpDetail';
 import { promptDialog } from '../../components/shared/Dialog';
 import { KpiCard } from '../../components/dash/DashParts';
 import { Pill, Notice, Button } from '../../components/ui';
+import AiTestingBanner from '../../components/shared/AiTestingBanner';
 
 /** Frost Glass: productivity colour band (pCol) → status pill tone. */
 const TONE_OF = { 'col-green': 'good', 'col-orange': 'warn', 'col-red': 'bad' };
@@ -298,6 +299,7 @@ Write a concise professional email (150-200 words) from the RCM Operations Manag
       {/* AI Email modal */}
       {showEmail && (
         <Modal title="AI Generated Email" onClose={() => setShowEmail(false)} wide>
+          <AiTestingBanner />
           {emailLoading
             ? <div className="fg-empty">Generating with Claude…</div>
             : (
