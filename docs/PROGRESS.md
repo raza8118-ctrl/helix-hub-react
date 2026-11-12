@@ -37,6 +37,23 @@ order + badges, AI vs final, counts; per company, protect_all_tables) + QA stats
 polish. Files: new CodingAssistant.jsx, lib/codingAssistant.js, lib/codingRules.js, migration 56; changed modules.js, WorkbenchApp.jsx,
 access.js, shell.css.
 
+**Stage 1 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (e9cab5a, bb175e6, 61c0b3a). New
+src/lib/codingAssistant.js (findIdentifiers — MBI, SSN, dates, DOB words, phone, email, "Patient: / Name: / MRN:" labels, ID words, Mr. /
+Mrs. names, 7+ digit numbers, street address, state + ZIP, age over 89; suggestCodes via helix-ai with a JSON schema, checked again
+before sending, codes validated, one primary first; audit log counts only), src/lib/codingRules.js (checkCodes: Master Library
+ICD-10-CM — not found / retired → Not valid, header → Needs more digits + child codes, 7th-character notes → Needs 7th character +
+choices, Excludes1 refs incl. ranges → Conflict on both, Code first / Use additional code → order + Sequencing note, stable order),
+src/pages/workbench/CodingAssistant.jsx (red banner, text box, "No patient identifiers" tick, Suggest codes, blocked list, ordered
+editable list: edit / ↑ ↓ / remove / add / pick child code, badges, Copy codes, Clear; text only in memory, wiped on sign-out).
+access.js: key coding_assistant (admins + defaultTeams ['Coding'] — hasAccess now also reads defaultTeams), tab wb_coding.
+Tests (made-up text only): identifiers blocked for every pattern; no false block on "MS exacerbation", "Stage 2", "BP 140/90",
+"CVA 2019", S72.001A / Z79.4. Rules on master data: I50.9 + I11.0 → I11.0 first + sequencing note; S72.001 → needs 7th (A…S) +
+S72.001A/B/C…; E11.65 + E10.9 → Excludes1 conflict both; S23.420 / ZZ99 → Not valid; I50 → header + children. Browser (Test Co):
+made-up "Patient: … DOB … MBI …" blocked (5 findings, nothing sent); Test Co has no AI key → clear message; hand coding I50.9, I11.0,
+S72.001 → reordered, pick S72.001D → Valid; Clear empties. 3Gen: the AI call reached Anthropic but the company's account is out of
+credit (400 "credit balance is too low") — now shown as "The company’s AI account is out of credit…". The AI suggestions themselves
+are NOT verified yet (needs credit). Lint 51, build OK.
+
 **ICD-10-CM FY2027 (PO "Go" 2026-11-11) — DONE (all 4 stages approved 2026-11-11).** (Company Data Stage 4 below still waits for the PO's own save
 test + approval.) Data: Downloads/icd10cm-2027-helix.zip → 1_codes (98,403: code, code with dot, billable, short / long description,
 chapter, section, FY2027 change), 2_coding_notes (25,029: code with dot, note type, note), 3_index_terms (76,455: term path, code,
