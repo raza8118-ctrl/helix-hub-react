@@ -206,7 +206,7 @@ export async function aiWeeklySummary(s, clientName, user) {
         model: AI_MODEL, max_tokens: 4000, output_config: { effort: 'low' }, fallbacks: 'default',
         system: 'You write the opening paragraph of a weekly status email from a medical billing company to its client (a home health / hospice agency). Use only the numbers given. 3–4 plain sentences, friendly and factual; mention what needs the client’s attention (questions waiting on them, ADRs due). No headings, no bullet points, no greetings or sign-off.',
         messages: [{ role: 'user', content: `Client: ${clientName}\nWeek numbers (JSON):\n${JSON.stringify(numbers)}` }],
-    });
+    }, { feature: 'reports_summary' });
     if (!res.ok) throw new Error(res.status === 401 ? 'The AI key in Settings was rejected.' : res.status === 429 ? 'The AI service is busy — try again in a minute.' : `AI request failed (${res.status}).`);
     const json = await res.json();
     if (json.stop_reason === 'refusal') throw new Error('The AI declined to write the summary.');

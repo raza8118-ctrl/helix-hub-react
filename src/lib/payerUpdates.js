@@ -138,7 +138,7 @@ export async function extractBulletin(file, payers, pages, user) {
       }],
       output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
       fallbacks: 'default',
-    });
+    }, { feature: 'bulletin_reading' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(res.status === 401 ? 'The AI key in Settings was rejected — an admin needs to update it.'

@@ -373,12 +373,12 @@ export function canViewPost(post, viewerEmpId, requestRows, closeRows) {
 
 // ── AI helper ─────────────────────────────────────────────────────────────────
 
-export async function callAI(prompt, maxTokens = 1024) {
+export async function callAI(prompt, maxTokens = 1024, feature = 'ai_email') {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
   // Stage 4: through the helix-ai server function — the company's key stays on the server
   let res;
   try {
-    res = await aiFetch({ model: AI_MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] });
+    res = await aiFetch({ model: AI_MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }, { feature });
   } catch (err) {
     throw err.message === 'NO_KEY' ? new Error('No AI key is saved in Settings — an admin can add one.') : err;
   }

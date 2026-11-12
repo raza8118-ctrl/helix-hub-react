@@ -341,13 +341,13 @@ values — work without them and never ask for patient details.
 Write for busy staff: lead with the answer in one or two sentences, then short bullet points or numbered steps. No
 headings.`;
 
-async function callClaude(system, messages, format) {
+async function callClaude(system, messages, format, feature = 'ask_helix') {
   assertAiAllowed();   // Owner Console: AI can be switched off per company
   // Stage 4: through the helix-ai server function — the key stays on the server (NO_KEY thrown when none is saved)
   const res = await aiFetch({
     model: MODEL, max_tokens: 16000, system, tools: TOOLS, tool_choice: { type: 'auto' }, messages,
     output_config: { effort: 'medium', ...(format ? { format } : {}) }, fallbacks: 'default',
-  });
+  }, { feature });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(res.status === 401 ? 'The AI key in Settings was rejected — an admin needs to update it.'
@@ -362,13 +362,13 @@ async function callClaude(system, messages, format) {
  * browser, repeats until it answers. messages are appended to, never edited (thinking blocks passed back exactly as
  * returned). format = optional json_schema for the final answer. Returns { text, sources, actions, messages, lookups }.
  */
-export async function converse({ system, messages: history, format = null, knowledge, onLookup }) {
+export async function converse({ system, messages: history, format = null, knowledge, onLookup, feature = 'ask_helix' }) {
   const messages = [...history];
   const sources = new Map();
   const actions = new Map();
   let lookups = 0;
   for (let round = 0; round < MAX_LOOKUPS + 2; round++) {
-    const json = await callClaude(system, messages, format);
+    const json = await callClaude(system, messages, format, feature);
     messages.push({ role: 'assistant', content: json.content });
     if (json.stop_reason === 'refusal') throw new Error('The AI declined to answer this question.');
     if (json.stop_reason === 'max_tokens') throw new Error('The answer was cut off — please ask a narrower question.');

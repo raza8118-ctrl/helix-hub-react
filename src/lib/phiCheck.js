@@ -36,3 +36,17 @@ export function findIdentifiers(text) {
 }
 
 
+
+/**
+ * Testing-AI rule (PO 2026-11-12): while AI runs in Testing mode (a provider without a BAA), the typed text may not hold
+ * an MBI, an SSN, a phone number, or a name + date of birth. Same rule as the "ai" Edge Function. → what was found, or null.
+ */
+export function testingAiBlock(text) {
+  const s = String(text ?? '');
+  const has = kind => findIdentifiers(s).some(f => f.kind === kind);
+  if (has('mbi')) return 'a Medicare number (MBI)';
+  if (has('ssn')) return 'a Social Security number';
+  if (has('phone')) return 'a phone number';
+  if (has('dob') || ((has('label') || has('title')) && has('date'))) return 'a name and date of birth';
+  return null;
+}

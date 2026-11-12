@@ -141,7 +141,7 @@ export async function improveWording(req, style, user) {
       messages: [{ role: 'user', content: userMessage(req, style) }],
       output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
       fallbacks: 'default',
-    });
+    }, { feature: 'appeal_wording' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(res.status === 401 ? 'The AI key in Settings was rejected — an admin needs to update it.'

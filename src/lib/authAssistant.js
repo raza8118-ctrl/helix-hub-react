@@ -70,7 +70,7 @@ export async function buildChecklist(req, knowledge, user, onLookup) {
   let ok = false;
   let lookups = 0;
   try {
-    const r = await converse({ system: SYSTEM, messages: [{ role: 'user', content: ask }], format: { type: 'json_schema', schema: SCHEMA }, knowledge, onLookup });
+    const r = await converse({ system: SYSTEM, messages: [{ role: 'user', content: ask }], format: { type: 'json_schema', schema: SCHEMA }, knowledge, onLookup, feature: 'auth_checklist' });
     lookups = r.lookups;
     let checklist;
     try { checklist = JSON.parse(r.text); } catch { throw new Error('The checklist couldn’t be read — please try again.'); }

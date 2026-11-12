@@ -61,7 +61,7 @@ export async function suggestCodes(text, user) {
       messages: [{ role: 'user', content: `Diagnosis statements:\n${String(text).slice(0, MAX_TEXT)}` }],
       output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
       fallbacks: 'default',
-    });
+    }, { feature: 'coding_assistant' });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       const msg = String(body?.error?.message ?? body?.message ?? '');   // the AI service's own wording (never contains our text)
