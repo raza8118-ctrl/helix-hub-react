@@ -5,6 +5,7 @@
 import { assertAiAllowed } from './companyFeatures';
 import { aiFetch, AI_MODEL } from './ai';
 import { logAudit } from './audit';
+import { db } from './supabase';
 
 // ── 1. Patient-identifier check (blocks — nothing is replaced or sent) ─────────────────────
 const MONTHS = '(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
@@ -122,4 +123,63 @@ export async function suggestCodes(text, user) {
   } finally {
     logAudit({ actor: user, action: 'coding_assistant_ai', entityType: 'coding_assistant', details: { ok, codes: count } });
   }
+}
+
+// ── 3. Save the final list (codes only) + QA stats (migration 56) ───────────────────────────
+
+/**
+ * Saves the coder's final list — codes and counts only, never the pasted text. rows = checkCodes() rows in order,
+ * ai = the AI's suggested codes. → { ok } or { error }
+ */
+export async function saveCodingResult({ user, rows, ai, fy }) {
+  const final = rows.map(r => r.code);
+  const kept = final.filter(c => ai.includes(c)).length;
+  const changed = rows.filter(r => r.source === 'ai_edited').length;
+  const added = rows.filter(r => r.source === 'coder').length;
+  const row = {
+    emp_id: user.emp_id, coder_name: user.name ?? null,
+    codes: rows.map((r, i) => ({ code: r.code, order: i + 1, status: r.status, conflict: r.conflicts.length > 0, sequencing: r.seq.length > 0, source: r.source ?? 'ai' })),
+    ai_codes: ai, final_codes: final, ai_count: ai.length, final_count: final.length, kept, changed, added,
+    removed: Math.max(0, ai.length - kept - changed), problems: rows.filter(r => r.status !== 'valid' || r.conflicts.length).length, fiscal_year: fy ?? null,
+  };
+  const { error } = await db('coding_results').insert(row);
+  if (error) return { error: /coding_results/.test(error.message) ? 'Saving needs the Coding Assistant database update (migration 56).' : 'Could not save — please try again.' };
+  logAudit({ actor: user, action: 'coding_assistant_save', entityType: 'coding_assistant', details: { final: final.length, ai: ai.length, kept, changed, added, problems: row.problems } });
+  return { ok: true };
+}
+
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/**
+ * QA stats for this week (Mon →) and this month: per coder — lists saved, codes, share of AI codes kept, lists with
+ * problems — and the AI codes most often changed or removed. → { week, month, corrected } or null (not set up).
+ */
+export async function loadCodingStats() {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const mon = new Date(now); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const from = mon < first ? mon : first;
+  const rows = [];
+  for (let at = 0; at < 10000; at += 1000) {
+    const { data, error } = await db('coding_results').select('emp_id,coder_name,ai_codes,final_codes,ai_count,final_count,kept,changed,added,removed,problems,created_at')
+      .gte('created_at', from.toISOString()).order('created_at').range(at, at + 999);
+    if (error) return null;
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  const per = list => {
+    const m = new Map();
+    for (const r of list) {
+      const p = m.get(r.emp_id) ?? { emp_id: r.emp_id, name: r.coder_name || r.emp_id, lists: 0, codes: 0, ai: 0, kept: 0, problems: 0 };
+      p.lists++; p.codes += r.final_count; p.ai += r.ai_count; p.kept += r.kept; if (r.problems) p.problems++;
+      m.set(r.emp_id, p);
+    }
+    return [...m.values()].sort((a, b) => b.lists - a.lists);
+  };
+  const corrected = new Map();
+  for (const r of rows) for (const c of r.ai_codes ?? []) if (!(r.final_codes ?? []).includes(c)) corrected.set(c, (corrected.get(c) ?? 0) + 1);
+  return {
+    week: per(rows.filter(r => r.created_at >= mon.toISOString())), month: per(rows.filter(r => r.created_at >= first.toISOString())),
+    corrected: [...corrected.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10),
+    weekLabel: ymd(mon), monthLabel: ymd(first),
+  };
 }

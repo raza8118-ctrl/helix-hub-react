@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { findIdentifiers, suggestCodes, cleanCode, MAX_TEXT } from '../../lib/codingAssistant';
+import { findIdentifiers, suggestCodes, cleanCode, MAX_TEXT, saveCodingResult, loadCodingStats } from '../../lib/codingAssistant';
+import { hasAccess } from '../../lib/access';
 import { checkCodes } from '../../lib/codingRules';
-import { icdDot } from '../../lib/icd10';
+import { icdDot, icdLatestYear } from '../../lib/icd10';
 import { logAudit } from '../../lib/audit';
 import CopyButton from '../../components/shared/CopyButton';
 
@@ -25,6 +26,11 @@ export default function CodingAssistant({ user }) {
   const [checked, setChecked] = useState(null);  // { rows, moved }
   const [ai, setAi] = useState([]);              // the AI's codes (for the save in Stage 2)
   const [addCode, setAddCode] = useState('');
+  const [saved, setSaved] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [fy, setFy] = useState(null);
+  const [statsKey, setStatsKey] = useState(0);
+  useEffect(() => { let alive = true; icdLatestYear().then(y => alive && setFy(y)); return () => { alive = false; }; }, []);
   const run = useRef(0);
 
   // forget everything when signing out / switching company
@@ -45,7 +51,7 @@ export default function CodingAssistant({ user }) {
   }, [items]);
 
   async function suggest() {
-    setErr('');
+    setErr(''); setSaved('');
     const f = findIdentifiers(text);
     setFound(f);
     if (f.length) return;
@@ -78,6 +84,14 @@ export default function CodingAssistant({ user }) {
     setAddCode('');
   }
   const final = rows.map(r => icdDot(r.code)).join(', ');
+  async function save() {
+    setSaving(true); setErr('');
+    const r = await saveCodingResult({ user, rows, ai, fy });
+    setSaving(false);
+    if (r.error) { setErr(r.error); return; }
+    setText(''); setAck(false); setFound([]); setItems([]); setChecked(null); setAi([]);
+    setSaved(`Saved: ${final}`); setStatsKey(k => k + 1);
+  }
   const counts = rows.reduce((t, r) => { t[r.status] = (t[r.status] ?? 0) + 1; if (r.conflicts.length) t.conflict++; return t; }, { conflict: 0 });
   function clearAll() {
     if (rows.length) logAudit({ actor: user, action: 'coding_assistant_done', entityType: 'coding_assistant',
@@ -128,9 +142,12 @@ export default function CodingAssistant({ user }) {
             {checked?.moved && <span className="badge badge-blue" title="Code first / Use additional code rules changed the order">Order adjusted</span>}
             <span style={{ marginLeft: 'auto' }} className="row">
               {final && <CopyButton value={final} label="Copy codes" />}
+              {rows.length > 0 && <button type="button" className="btn-primary btn-sm" onClick={save} disabled={saving || !checked}
+                title="Saves the codes and counts for QA stats — never the text">{saving ? 'Saving…' : '💾 Save final list'}</button>}
             </span>
           </div>
           {!checked && items.length > 0 && <div className="loading-row"><div className="spinner" /> Checking the codes…</div>}
+          {saved && rows.length === 0 && <p className="text-sm" role="status">✓ {saved} — recorded for QA stats with your name (codes only). The text was cleared.</p>}
           {rows.length === 0 && <p className="text-sm text-muted">No codes yet — let the AI suggest them above, or type them in below.</p>}
           {rows.map((r, i) => (
             <div key={r.code} className={`ca-row ca-${r.status}${r.conflicts.length ? ' ca-conflict' : ''}`}>
@@ -181,6 +198,39 @@ export default function CodingAssistant({ user }) {
             Suggestions only — the coder decides. Check each code against the record and the Official Guidelines (SOP Library → Coding).
           </p>
         </div>
+      )}
+      {hasAccess(user, 'qa_audit') && <CodingStats key={statsKey} />}
+    </div>
+  );
+}
+
+/** QA stats (supervisors and up): lists saved per coder this week / month, share of AI codes kept, AI codes most corrected. */
+function CodingStats() {
+  const [st, setSt] = useState(undefined);
+  useEffect(() => { let alive = true; loadCodingStats().then(x => alive && setSt(x)); return () => { alive = false; }; }, []);
+  if (st === null) return <div className="card text-sm text-muted">QA stats need the Coding Assistant database update (migration 56).</div>;
+  if (!st) return null;
+  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : '—');
+  const table = (title, list) => (
+    <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+      <div className="bold" style={{ marginBottom: 4 }}>{title}</div>
+      {list.length === 0 ? <div className="text-sm text-muted">No saved lists yet.</div> : (
+        <div className="table-wrap"><table className="ocd-table">
+          <thead><tr><th>Coder</th><th>Lists</th><th>Codes</th><th>AI codes kept</th><th>Lists with problems</th></tr></thead>
+          <tbody>{list.map(p => <tr key={p.emp_id}><td>{p.name}</td><td>{p.lists}</td><td>{p.codes}</td><td>{pct(p.kept, p.ai)}</td><td>{p.problems}</td></tr>)}</tbody>
+        </table></div>
+      )}
+    </div>
+  );
+  return (
+    <div className="card mb-16">
+      <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 8 }}><strong>QA stats</strong><span className="text-sm text-muted">saved final lists — codes only</span></div>
+      <div className="row" style={{ gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {table(`This week (from ${st.weekLabel})`, st.week)}
+        {table(`This month (from ${st.monthLabel})`, st.month)}
+      </div>
+      {st.corrected.length > 0 && (
+        <div className="text-sm" style={{ marginTop: 8 }}>AI codes most often changed or removed: {st.corrected.map(([c, n]) => <span key={c} className="ca-7"><b>{icdDot(c)}</b> ×{n}</span>)}</div>
       )}
     </div>
   );
