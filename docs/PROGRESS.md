@@ -51,6 +51,16 @@ helix-ai on 404 (not deployed); in Testing mode the same identifier rule runs in
 Rolled-back test: Gemini + Production refused, Claude + Production without BAA refused, bad model / wrong owner key refused,
 Claude + Production + BAA ok; session check ok / SESSION; usage line with feature + provider; config table locked for the app,
 ai_config_public readable, ai_session_check not callable by the app. Setup steps: docs/AI_SETUP.md. Lint 51, build OK, npm test 7/7.
+**Deployed by Claude 2026-11-12 (PO "Deploy it for me")**: Supabase → Edge Functions → Deploy a new function → Via Editor → name `ai`,
+code = supabase/functions/ai/index.ts (sha256 checked, 12,039 chars) → Deploy function; Verify JWT left at its default. The
+GEMINI_API_KEY secret was already set (the PO added it; Claude never saw it). Live tests (Test Co, made-up text only): no / fake
+session → 403 SESSION; "Patient: … DOB 01/02/1940" → 422 name + DOB; MBI → 422; `gemini-3.8-flash` answered 503 "high demand"
+(Google-side, temporary) several times → switched briefly to `gemini-3.6-flash`: "Reply OK" → 200 "OK" (Anthropic shape, thought
+signature kept); Coding Assistant suggestCodes → I11.0 primary, I50.23, E11.65, Z79.4 with phrases (JSON schema works);
+`gemini-3.6-flash` then also 503 → `gemini-3.5-flash-lite`: tool round trip (get_filing_limit → tool_result 95 → "The timely filing
+limit for Acme Health is 95 days.", signature on the tool_use) works. Model set back to `gemini-3.8-flash`. Usage rows show feature +
+provider + model + tokens, no text. A full Ask Helix run in the background tab stalled while loading its data (before any AI call)
+— to re-check in the page in Stage 2. Idea for Stage 2: on Gemini 503, retry once and then fall back to the next Flash model.
 
 **Coding Assistant Phase A (PO "Go" 2026-11-11) — DONE (all 3 stages approved 2026-11-11; AI suggestions still to verify once the AI account has credit).** (Company Data Stage 4 below still waits for the PO's own
 save test.) Workbench → "Coding Assistant" for admins + team Coding (+ grant key coding_assistant). Text box (diagnosis statements
