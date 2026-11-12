@@ -35,6 +35,23 @@ RPCs) + function + app switched to `ai` (falls back to helix-ai until `ai` is de
 2 Owner Console → Platform → AI (provider, live model list, mode, BAA, AI on/off per company, usage per feature) + banner + browser
 block; 3 clean-up after it works: remove the Settings AI-key box, clear helix_ai_keys (PO confirms first), helix-ai left unused.
 
+**Stage 1 BUILT — waiting for the PO to add the secret + deploy (2026-11-12).** Code pushed first (025095e), then migration 58 run
+(fingerprint checked). Model checked on Google's model page 2026-11-12: current stable Flash = `gemini-3.8-flash` (2.5 models
+deprecated, rerouted 2026-12-01). New `supabase/functions/ai/index.ts`: ai_session_check (session + company AI switch + provider /
+model / mode), Testing block (MBI / SSN / phone / name + DOB in the typed text → 422 TEST_BLOCKED, logged as a count), Gemini
+generateContent translation (system → systemInstruction, text / PDF / image → parts, tools → functionDeclarations with
+parametersJsonSchema, tool_use / tool_result ↔ functionCall / functionResponse, thought signatures kept on the returned blocks,
+json_schema → responseMimeType + responseJsonSchema, finishReason → stop_reason, usage → tokens), Claude pass-through (Gemini extras
+stripped), keys only from secrets GEMINI_API_KEY / ANTHROPIC_API_KEY (missing → NO_KEY), ai_log_usage_v2 per feature. Migration 58:
+helix_ai_config (locked; default gemini / gemini-3.8-flash / testing; Production only with Claude + BAA), ai_config_public,
+owner_ai_config_get (+ 30-day usage) / owner_ai_config_save (owner-logged), helix_ai_usage + feature / provider, ai_session_check +
+ai_log_usage_v2 (service role only). App: ai.js calls `ai` with a feature (ai_email, ask_helix, auth_checklist,
+credentialing_checklist, appeal_wording, bulletin_reading, payer_suggestions, reports_summary, coding_assistant); falls back to
+helix-ai on 404 (not deployed); in Testing mode the same identifier rule runs in the browser first (phiCheck.testingAiBlock).
+Rolled-back test: Gemini + Production refused, Claude + Production without BAA refused, bad model / wrong owner key refused,
+Claude + Production + BAA ok; session check ok / SESSION; usage line with feature + provider; config table locked for the app,
+ai_config_public readable, ai_session_check not callable by the app. Setup steps: docs/AI_SETUP.md. Lint 51, build OK, npm test 7/7.
+
 **Coding Assistant Phase A (PO "Go" 2026-11-11) — DONE (all 3 stages approved 2026-11-11; AI suggestions still to verify once the AI account has credit).** (Company Data Stage 4 below still waits for the PO's own
 save test.) Workbench → "Coding Assistant" for admins + team Coding (+ grant key coding_assistant). Text box (diagnosis statements
 only) with a red banner; browser check BLOCKS before sending: MBI pattern, dates incl. DOB words, phone, name labels (Patient: /
