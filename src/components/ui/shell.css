@@ -1105,3 +1105,4 @@ body[class*="theme-"] .btn-link { color: var(--accent); }
 .ca-7 { display: inline-block; margin: 0 10px 0 4px; }
 .ca-bad { color: var(--danger); margin-top: 2px; }
 .ca-seq { color: var(--primary); margin-top: 2px; }
+.ca-checks { margin: 8px 0 4px; padding-left: 0; list-style: none; font-size: 13px; } .ca-checks li.ok { color: #16a34a; } .ca-checks li.bad { color: var(--danger); font-weight: 600; }

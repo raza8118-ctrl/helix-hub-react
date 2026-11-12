@@ -200,6 +200,7 @@ export default function CodingAssistant({ user }) {
         </div>
       )}
       {hasAccess(user, 'qa_audit') && <CodingStats key={statsKey} />}
+      {user?.role === 'admin' && <SelfCheck />}
     </div>
   );
 }
@@ -232,6 +233,49 @@ function CodingStats() {
       {st.corrected.length > 0 && (
         <div className="text-sm" style={{ marginTop: 8 }}>AI codes most often changed or removed: {st.corrected.map(([c, n]) => <span key={c} className="ca-7"><b>{icdDot(c)}</b> ×{n}</span>)}</div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Admin self-check (PO 2026-11-11): known cases run against the LIVE Master Library ICD-10-CM data and the identifier check,
+ * e.g. after a new fiscal year is imported. Made-up text only; nothing is saved or sent anywhere.
+ */
+const SELF_CHECKS = [
+  ['I11.0 goes before I50.9 (Code first / Use additional code)', async () => (await checkCodes([{ code: 'I509' }, { code: 'I110' }])).rows.map(r => r.code).join(',') === 'I110,I509'],
+  ['S72.001 needs a 7th character', async () => { const [r] = (await checkCodes([{ code: 'S72001' }])).rows; return r.status === 'more_digits' && r.needs7th && r.children.some(k => k.code === 'S72001A'); }],
+  ['E11.65 + E10.9 is an Excludes1 conflict', async () => (await checkCodes([{ code: 'E1165' }, { code: 'E109' }])).rows.every(r => r.conflicts.length > 0)],
+  ['I50 is a header with child codes', async () => { const [r] = (await checkCodes([{ code: 'I50' }])).rows; return r.status === 'more_digits' && r.children.length > 0; }],
+  ['I50.9 is valid', async () => (await checkCodes([{ code: 'I509' }])).rows[0]?.status === 'valid'],
+  ['ZZ99 is not valid', async () => (await checkCodes([{ code: 'ZZ99' }])).rows[0]?.status === 'invalid'],
+  ['Made-up MBI / DOB / phone are blocked', async () => findIdentifiers('MBI 1EG4-TE5-MK73 DOB 03/14/1938 (214) 555-0182').length >= 3],
+  ['Clinical wording is not blocked', async () => findIdentifiers('MS exacerbation, Stage 2 ulcer, BP 140/90, CVA 2019, S72.001A').length === 0],
+];
+function SelfCheck() {
+  const [res, setRes] = useState(null);
+  async function runAll() {
+    setRes('running');
+    const out = [];
+    for (const [name, fn] of SELF_CHECKS) {
+      let ok;
+      try { ok = await fn(); } catch { ok = false; }
+      out.push({ name, ok });
+    }
+    setRes(out);
+  }
+  return (
+    <div className="card mb-16">
+      <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <strong>Self-check</strong>
+        <span className="text-sm text-muted">admins — known cases against the live ICD-10-CM data (run after each yearly import)</span>
+        <button type="button" className="btn-sm" style={{ marginLeft: 'auto' }} onClick={runAll} disabled={res === 'running'}>{res === 'running' ? 'Running…' : 'Run self-check'}</button>
+      </div>
+      {Array.isArray(res) && (
+        <ul className="ca-checks">
+          {res.map(r => <li key={r.name} className={r.ok ? 'ok' : 'bad'}>{r.ok ? '✓' : '✗'} {r.name}</li>)}
+        </ul>
+      )}
+      {Array.isArray(res) && <div className="text-sm">{res.filter(r => r.ok).length} of {res.length} passed.</div>}
     </div>
   );
 }
