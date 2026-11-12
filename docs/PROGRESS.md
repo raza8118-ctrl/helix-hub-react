@@ -23,7 +23,7 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
-**Coding Assistant Phase A (PO "Go" 2026-11-11) — IN PROGRESS, Stage 1.** (Company Data Stage 4 below still waits for the PO's own
+**Coding Assistant Phase A (PO "Go" 2026-11-11) — DONE (all 3 stages approved 2026-11-11; AI suggestions still to verify once the AI account has credit).** (Company Data Stage 4 below still waits for the PO's own
 save test.) Workbench → "Coding Assistant" for admins + team Coding (+ grant key coding_assistant). Text box (diagnosis statements
 only) with a red banner; browser check BLOCKS before sending: MBI pattern, dates incl. DOB words, phone, name labels (Patient: /
 Name:), member ID / MRN / SSN words + patterns, 7+ digit runs, email, street address, ages over 89; plus an "No patient identifiers"
@@ -37,7 +37,7 @@ order + badges, AI vs final, counts; per company, protect_all_tables) + QA stats
 polish. Files: new CodingAssistant.jsx, lib/codingAssistant.js, lib/codingRules.js, migration 56; changed modules.js, WorkbenchApp.jsx,
 access.js, shell.css.
 
-**Stage 1 BUILT — waiting for PO approval (2026-11-11).** No database change. Code pushed (e9cab5a, bb175e6, 61c0b3a). New
+**Stage 1 APPROVED (PO "Approved, start Stage 2").** No database change. Code pushed (e9cab5a, bb175e6, 61c0b3a). New
 src/lib/codingAssistant.js (findIdentifiers — MBI, SSN, dates, DOB words, phone, email, "Patient: / Name: / MRN:" labels, ID words, Mr. /
 Mrs. names, 7+ digit numbers, street address, state + ZIP, age over 89; suggestCodes via helix-ai with a JSON schema, checked again
 before sending, codes validated, one primary first; audit log counts only), src/lib/codingRules.js (checkCodes: Master Library
@@ -54,7 +54,7 @@ S72.001 → reordered, pick S72.001D → Valid; Clear empties. 3Gen: the AI call
 credit (400 "credit balance is too low") — now shown as "The company’s AI account is out of credit…". The AI suggestions themselves
 are NOT verified yet (needs credit). Lint 51, build OK.
 
-**Stage 2 BUILT — waiting for PO approval (2026-11-11).** Code pushed first (cbc6699), then migration 56 (20261121_coding_results.sql:
+**Stage 2 APPROVED (PO "Approved, start Stage 3").** Code pushed first (cbc6699), then migration 56 (20261121_coding_results.sql:
 coding_results per company — emp_id, coder_name, codes jsonb in order with status / conflict / sequencing / source, ai_codes,
 final_codes, counts kept / changed / added / removed / problems, fiscal_year; protect_all_tables → 249; "Run and enable RLS").
 codingAssistant.js saveCodingResult (codes + counts only, audit log counts) + loadCodingStats (this week / month per coder: lists,
@@ -68,7 +68,7 @@ delete, like older tables). Re-test: home user saves + reads coding_results, sav
 refused, Test Co can't read / write the home table. Browser (3Gen, owner): Save final list button, QA stats card loads ("No saved
 lists yet") — no real list saved. Lint 51, build OK.
 
-**Stage 3 BUILT — last stage, waiting for PO approval (2026-11-11).** No database change. Code pushed (a3b0c5b). The identifier check moved
+**Stage 3 APPROVED (PO "Approved" 2026-11-11) — step DONE.** No database change. Code pushed (a3b0c5b). The identifier check moved
 to src/lib/phiCheck.js and the rules logic to src/lib/codingRulesCore.js (both pure, no imports; codingAssistant.js / codingRules.js
 re-export / load data and call them — no behaviour change). New `npm test` (node --test "scripts/*.test.mjs", no new packages):
 scripts/coding.test.mjs — 7 tests, made-up text + small hand-made fixtures: identifiers blocked (MBI, DOB, dates, phone, labels,
