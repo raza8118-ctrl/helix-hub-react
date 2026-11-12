@@ -21,7 +21,7 @@ export default function CodingAssistant({ user }) {
   const [found, setFound] = useState([]);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
-  const [items, setItems] = useState(null);      // [{ code, role, reason, phrase, source }] in the coder's order
+  const [items, setItems] = useState([]);        // [{ code, role, reason, phrase, source }] in the coder's order (codes can always be typed in)
   const [checked, setChecked] = useState(null);  // { rows, moved }
   const [ai, setAi] = useState([]);              // the AI's codes (for the save in Stage 2)
   const [addCode, setAddCode] = useState('');
@@ -29,14 +29,13 @@ export default function CodingAssistant({ user }) {
 
   // forget everything when signing out / switching company
   useEffect(() => {
-    const wipe = () => { setText(''); setItems(null); setChecked(null); setAi([]); };
+    const wipe = () => { setText(''); setItems([]); setChecked(null); setAi([]); };
     window.addEventListener('helix:signed-out', wipe);
     return () => window.removeEventListener('helix:signed-out', wipe);
   }, []);
 
   // rules re-run whenever the list changes
   useEffect(() => {
-    if (!items) return undefined;
     const n = ++run.current;
     const t = setTimeout(async () => {
       const r = await checkCodes(items);
@@ -51,7 +50,7 @@ export default function CodingAssistant({ user }) {
     setFound(f);
     if (f.length) return;
     if (!ack) { setErr('Tick “No patient identifiers in this text” first.'); return; }
-    setBusy('Asking the AI for codes…'); setItems(null); setChecked(null);
+    setBusy('Asking the AI for codes…');
     try {
       const codes = await suggestCodes(text, user);
       if (!codes.length) { setErr('The AI found no codes in these statements — code them by hand below.'); setItems([]); setAi([]); }
@@ -74,8 +73,8 @@ export default function CodingAssistant({ user }) {
   };
   function add() {
     const c = cleanCode(addCode);
-    if (!c || (items ?? []).some(i => i.code === c)) { setAddCode(''); return; }
-    setItems([...(items ?? []), { code: c, role: (items ?? []).length ? 'secondary' : 'primary', reason: '', phrase: '', source: 'coder' }]);
+    if (!c || items.some(i => i.code === c)) { setAddCode(''); return; }
+    setItems([...items, { code: c, role: items.length ? 'secondary' : 'primary', reason: '', phrase: '', source: 'coder' }]);
     setAddCode('');
   }
   const final = rows.map(r => icdDot(r.code)).join(', ');
@@ -83,7 +82,7 @@ export default function CodingAssistant({ user }) {
   function clearAll() {
     if (rows.length) logAudit({ actor: user, action: 'coding_assistant_done', entityType: 'coding_assistant',
       details: { ai_codes: ai.length, final_codes: rows.length, kept: rows.filter(r => ai.includes(r.code)).length } });
-    setText(''); setAck(false); setFound([]); setItems(null); setChecked(null); setAi([]); setErr('');
+    setText(''); setAck(false); setFound([]); setItems([]); setChecked(null); setAi([]); setErr('');
   }
 
   return (
@@ -121,7 +120,7 @@ export default function CodingAssistant({ user }) {
         {err && <p className="ot-err" role="alert">{err}</p>}
       </div>
 
-      {items && (
+      {(
         <div className="card mb-16">
           <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
             <strong>Codes in order</strong>
@@ -131,8 +130,8 @@ export default function CodingAssistant({ user }) {
               {final && <CopyButton value={final} label="Copy codes" />}
             </span>
           </div>
-          {!checked && <div className="loading-row"><div className="spinner" /> Checking the codes…</div>}
-          {checked && rows.length === 0 && <p className="text-sm text-muted">No codes yet — add one below.</p>}
+          {!checked && items.length > 0 && <div className="loading-row"><div className="spinner" /> Checking the codes…</div>}
+          {rows.length === 0 && <p className="text-sm text-muted">No codes yet — let the AI suggest them above, or type them in below.</p>}
           {rows.map((r, i) => (
             <div key={r.code} className={`ca-row ca-${r.status}${r.conflicts.length ? ' ca-conflict' : ''}`}>
               <div className="ca-row-h">

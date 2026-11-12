@@ -92,9 +92,12 @@ export async function suggestCodes(text, user) {
       fallbacks: 'default',
     });
     if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = String(body?.error?.message ?? body?.message ?? '');   // the AI service's own wording (never contains our text)
       throw new Error(res.status === 401 ? 'The AI key in Settings was rejected — an admin needs to update it.'
         : res.status === 429 ? 'The AI service is busy — please try again in a minute.'
-        : `The AI request failed (${res.status}). Please try again.`);
+        : /credit balance/i.test(msg) ? 'The company’s AI account is out of credit — an admin needs to top it up (Anthropic → Plans & Billing).'
+        : `The AI request failed (${res.status})${msg ? `: ${msg}` : ''}. Please try again.`);
     }
     const json = await res.json();
     if (json.stop_reason === 'refusal') throw new Error('The AI declined these statements — code them by hand.');

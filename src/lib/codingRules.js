@@ -95,6 +95,8 @@ export async function checkCodes(items) {
       if (!hits.length && isFirst && a.status !== 'invalid') a.hints.push(`Code first (if documented): ${n.note}`);
     }
   }
+  // "Code first (if documented)" hints only matter when none of the code's Code first notes is already satisfied
+  for (const a of rows) if (a.seq.some(s => s.startsWith('Code first:'))) a.hints = [];
   // stable order: keep the coder's order, but never put a code before one it must follow
   const order = [];
   const left = [...rows];
