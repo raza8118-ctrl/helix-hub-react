@@ -114,7 +114,7 @@ export async function suggestCodes(text, user) {
     ok = true; count = codes.length;
     return codes;
   } catch (e) {
-    if (e.message === 'NO_KEY') throw new Error('No AI key is saved for this company — an admin adds it in Settings.');
+    if (e.message === 'NO_KEY') throw new Error('No AI key is saved for this company — an admin adds it in Settings.', { cause: e });
     throw e;
   } finally {
     logAudit({ actor: user, action: 'coding_assistant_ai', entityType: 'coding_assistant', details: { ok, codes: count } });
