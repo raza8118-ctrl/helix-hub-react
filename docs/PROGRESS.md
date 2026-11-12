@@ -54,6 +54,20 @@ S72.001 → reordered, pick S72.001D → Valid; Clear empties. 3Gen: the AI call
 credit (400 "credit balance is too low") — now shown as "The company’s AI account is out of credit…". The AI suggestions themselves
 are NOT verified yet (needs credit). Lint 51, build OK.
 
+**Stage 2 BUILT — waiting for PO approval (2026-11-11).** Code pushed first (cbc6699), then migration 56 (20261121_coding_results.sql:
+coding_results per company — emp_id, coder_name, codes jsonb in order with status / conflict / sequencing / source, ai_codes,
+final_codes, counts kept / changed / added / removed / problems, fiscal_year; protect_all_tables → 249; "Run and enable RLS").
+codingAssistant.js saveCodingResult (codes + counts only, audit log counts) + loadCodingStats (this week / month per coder: lists,
+codes, % AI codes kept, lists with problems; AI codes most often changed / removed); page: "💾 Save final list" (clears the text after
+saving) + QA stats card for qa_audit holders (supervisor+). Rolled-back test with throwaway sessions: Test Co coder saves + reads own
+company; can't write the home table; home user sees 0 Test Co rows; no session → 0.
+**Found + fixed: migration 57 (20261122_home_table_grants.sql, run 2026-11-11)** — the HOME company's tables from migrations 53 / 55 /
+56 (import_templates, icd_notes, icd_index, icd_changes, sop_documents, coding_results) had no grants for the app roles ("permission
+denied" for home users: Smart Import "Save matching", PDFs on home SOPs, Coding Assistant save). Granted select / insert / update (no
+delete, like older tables). Re-test: home user saves + reads coding_results, saves an import template and an SOP document, delete
+refused, Test Co can't read / write the home table. Browser (3Gen, owner): Save final list button, QA stats card loads ("No saved
+lists yet") — no real list saved. Lint 51, build OK.
+
 **ICD-10-CM FY2027 (PO "Go" 2026-11-11) — DONE (all 4 stages approved 2026-11-11).** (Company Data Stage 4 below still waits for the PO's own save
 test + approval.) Data: Downloads/icd10cm-2027-helix.zip → 1_codes (98,403: code, code with dot, billable, short / long description,
 chapter, section, FY2027 change), 2_coding_notes (25,029: code with dot, note type, note), 3_index_terms (76,455: term path, code,
