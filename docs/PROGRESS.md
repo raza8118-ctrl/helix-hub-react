@@ -68,6 +68,17 @@ delete, like older tables). Re-test: home user saves + reads coding_results, sav
 refused, Test Co can't read / write the home table. Browser (3Gen, owner): Save final list button, QA stats card loads ("No saved
 lists yet") — no real list saved. Lint 51, build OK.
 
+**Stage 3 BUILT — last stage, waiting for PO approval (2026-11-11).** No database change. Code pushed (a3b0c5b). The identifier check moved
+to src/lib/phiCheck.js and the rules logic to src/lib/codingRulesCore.js (both pure, no imports; codingAssistant.js / codingRules.js
+re-export / load data and call them — no behaviour change). New `npm test` (node --test "scripts/*.test.mjs", no new packages):
+scripts/coding.test.mjs — 7 tests, made-up text + small hand-made fixtures: identifiers blocked (MBI, DOB, dates, phone, labels,
+Mr. / Mrs., MRN, long numbers, address, ZIP, age 90+, email, SSN, member id), clinical wording not blocked, note refs / ranges / 7th
+characters, I11.0 before I50.9 with ONE note, Excludes1 both ways, 7th character / header / retired / unknown, coder order kept — 7 / 7
+pass. Polish: one sequencing note per pair ("Goes after I11.0 — Code first / Use additional code"); "Code first (if documented)"
+hints only when no Code first rule matched. Admin self-check on the page (8 known cases against the LIVE Master Library + the
+identifier check; for after each yearly ICD import): 8 of 8 passed in 3Gen. Lint 51, build OK. Coding Assistant Phase A: all 3 stages
+built. Still not verified: the AI suggestions themselves (the company's Anthropic account is out of credit).
+
 **ICD-10-CM FY2027 (PO "Go" 2026-11-11) — DONE (all 4 stages approved 2026-11-11).** (Company Data Stage 4 below still waits for the PO's own save
 test + approval.) Data: Downloads/icd10cm-2027-helix.zip → 1_codes (98,403: code, code with dot, billable, short / long description,
 chapter, section, FY2027 change), 2_coding_notes (25,029: code with dot, note type, note), 3_index_terms (76,455: term path, code,
