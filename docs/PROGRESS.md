@@ -23,6 +23,18 @@ then **↻ Sync structure**. Any new migration from now on is run when its step 
 
 ## ▶ Current step
 
+**AI server function "ai" — Gemini for testing (PO "Go" 2026-11-12) — IN PROGRESS, Stage 1.** One Edge Function `ai` for every AI
+feature (AI email, Ask Helix + Auth checklist, Appeal AI wording, bulletin reading, payer suggestions, reports summary, Coding
+Assistant); keys only from Supabase secrets GEMINI_API_KEY / ANTHROPIC_API_KEY (never in chat / code / browser). The app keeps sending
+its Anthropic-style request + a feature name; the function translates to / from Gemini (system, text, PDF / images, tools, JSON
+answers, limits) or passes through to Claude. Gemini (AI Studio key) has NO BAA → Testing only; Production needs Claude + "BAA signed"
+tick. Testing mode: yellow banner "Testing AI – do not enter patient or client data" on every AI feature, and requests with an MBI,
+name + DOB, phone or SSN are blocked in the browser AND in the function. Usage logged per feature (counts only). Stages, PO approval
+after each: 1 migration 58 (helix_ai_config: provider / model / mode / BAA; feature + provider on helix_ai_usage; owner-only settings
+RPCs) + function + app switched to `ai` (falls back to helix-ai until `ai` is deployed) + exact secret / deploy steps, Gemini test;
+2 Owner Console → Platform → AI (provider, live model list, mode, BAA, AI on/off per company, usage per feature) + banner + browser
+block; 3 clean-up after it works: remove the Settings AI-key box, clear helix_ai_keys (PO confirms first), helix-ai left unused.
+
 **Coding Assistant Phase A (PO "Go" 2026-11-11) — DONE (all 3 stages approved 2026-11-11; AI suggestions still to verify once the AI account has credit).** (Company Data Stage 4 below still waits for the PO's own
 save test.) Workbench → "Coding Assistant" for admins + team Coding (+ grant key coding_assistant). Text box (diagnosis statements
 only) with a red banner; browser check BLOCKS before sending: MBI pattern, dates incl. DOB words, phone, name labels (Patient: /
